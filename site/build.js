@@ -19,7 +19,7 @@ const GLOSSARY_PATH_EN = path.join(REPO_ROOT, 'glossary', 'terms.md');
 const GLOSSARY_PATH = fs.existsSync(GLOSSARY_PATH_ZH) ? GLOSSARY_PATH_ZH : GLOSSARY_PATH_EN;
 const OUTPUT_PATH = path.join(__dirname, 'data.js');
 
-const GITHUB_BASE = 'https://github.com/rohitg00/ai-engineering-from-scratch/tree/main/';
+const GITHUB_BASE = 'https://github.com/xiaojiaenen/ai-engineering-from-scratch-zh/tree/main/';
 
 // ─── Parse ROADMAP.md for lesson statuses ────────────────────────────
 function parseRoadmap(content) {
