@@ -157,6 +157,31 @@
     }
   });
 
+
+  // localhost: sync progress from project progress.json
+  var isLocalProgress = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '::1';
+  if (isLocalProgress) {
+    fetch('progress.json')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data || !data.completed || !data.completed.length) return;
+        var state = read();
+        var changed = false;
+        for (var i = 0; i < data.completed.length; i++) {
+          var lessonPath = data.completed[i];
+          var lesson = ensureLesson(state, lessonPath);
+          if (!lesson.completedAt) {
+            lesson.completedAt = Date.now();
+            changed = true;
+          }
+        }
+        if (changed) {
+          write(state);
+        }
+      })
+      .catch(function() {});
+  }
+
   window.AIFSProgress = {
     recordVisit: recordVisit,
     recordAnswer: recordAnswer,

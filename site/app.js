@@ -84,6 +84,43 @@
   }
 
   function populateStats() {
+        // localhost: sync from progress.json
+        var isStatLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '::1';
+        if (isStatLocal) {
+          fetch('progress.json')
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+              if (data && data.completed) {
+                var userDone = data.completed.length;
+                var totalLessons = 435;
+                var totalPhases = 20;
+
+                // Update lesson count
+                var statEl = document.querySelector('[data-stat="complete-frac"]');
+                if (statEl) statEl.textContent = userDone + ' / ' + totalLessons;
+
+                // Calculate completed phases from completed lesson paths
+                var completedPhases = {};
+                for (var i = 0; i < data.completed.length; i++) {
+                  var path = data.completed[i];
+                  var phaseMatch = path.match(/phases\/([^/]+)/);
+                  if (phaseMatch) completedPhases[phaseMatch[1]] = true;
+                }
+                var phaseCount = Object.keys(completedPhases).length;
+
+                // Update phase count
+                var phaseEl = document.querySelector('[data-stat="phases-frac"]');
+                if (phaseEl) phaseEl.textContent = phaseCount + ' / ' + totalPhases;
+
+                // Update progress bars
+                var lessonPct = (userDone / totalLessons) * 100;
+                var phasePct = (phaseCount / totalPhases) * 100;
+                setBar('[data-bar="complete"]', lessonPct);
+                setBar('[data-bar="phases"]', phasePct);
+              }
+            })
+            .catch(function() {});
+        }
     var stats = computeStats();
     var pct = stats.lessons > 0 ? (stats.complete / stats.lessons) * 100 : 0;
     var phasePct = stats.phases > 0 ? (stats.completePhases / stats.phases) * 100 : 0;
@@ -209,7 +246,7 @@
     if (!p) return;
     currentPhaseIdx = idx;
 
-    document.getElementById('modalPhaseNum').textContent = 'PHASE ' + String(p.id).padStart(2, '0');
+    document.getElementById('modalPhaseNum').textContent = '第 ' + String(p.id).padStart(2, '0');
     document.getElementById('modalTitle').textContent = p.name;
     document.getElementById('modalDesc').textContent = p.desc;
 
@@ -240,7 +277,9 @@
       html += '<div class="modal-lesson' + (userComplete ? ' user-done' : '') + '">';
       html += '<span class="modal-lesson-status ' + statusClass + '"' + (userComplete ? ' title="You completed this lesson"' : '') + '></span>';
       if (l.url) {
-        html += '<a href="' + l.url + '" target="_blank" rel="noopener">' + escapeHtml(l.name) + '</a>';
+        var isModalLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '::1';
+        var lessonHref = isModalLocal && lessonPath ? 'lesson.html?path=' + lessonPath : l.url;
+        html += '<a href="' + lessonHref + '"' + (isModalLocal ? '' : ' target="_blank" rel="noopener"') + '>' + escapeHtml(l.name) + '</a>';
       } else {
         html += '<a>' + escapeHtml(l.name) + '</a>';
       }
@@ -253,7 +292,7 @@
       }
       var toggleHtml = '';
       if (hasProgress && lessonPath) {
-        toggleHtml = '<button type="button" class="modal-lesson-toggle' + (userComplete ? ' done' : '') + '" data-path="' + lessonPath + '" title="' + (userComplete ? 'Mark as not done' : 'Mark complete') + '" aria-label="' + (userComplete ? 'Mark as not done' : 'Mark complete') + '">' + (userComplete ? '✓' : '+') + '</button>';
+        toggleHtml = '<button type="button" class="modal-lesson-toggle' + (userComplete ? ' done' : '') + '" data-path="' + lessonPath + '" title="' + (userComplete ? '标记为未完成' : '标记完成') + '" aria-label="' + (userComplete ? '标记为未完成' : '标记完成') + '">' + (userComplete ? '✓' : '+') + '</button>';
       }
       html += (actionHtml || '<span class="modal-lesson-read-placeholder" aria-hidden="true"></span>') + toggleHtml;
       html += '</div>';

@@ -14,7 +14,9 @@ const path = require('path');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const README_PATH = path.join(REPO_ROOT, 'README.md');
 const ROADMAP_PATH = path.join(REPO_ROOT, 'ROADMAP.md');
-const GLOSSARY_PATH = path.join(REPO_ROOT, 'glossary', 'terms.md');
+const GLOSSARY_PATH_ZH = path.join(REPO_ROOT, 'glossary', 'terms-zh.md');
+const GLOSSARY_PATH_EN = path.join(REPO_ROOT, 'glossary', 'terms.md');
+const GLOSSARY_PATH = fs.existsSync(GLOSSARY_PATH_ZH) ? GLOSSARY_PATH_ZH : GLOSSARY_PATH_EN;
 const OUTPUT_PATH = path.join(__dirname, 'data.js');
 
 const GITHUB_BASE = 'https://github.com/rohitg00/ai-engineering-from-scratch/tree/main/';
@@ -279,14 +281,14 @@ function parseGlossary(content) {
     if (!currentTerm) continue;
 
     // Match "What people say" line
-    const saysMatch = line.match(/\*\*What people say:\*\*\s*"?(.+?)"?\s*$/);
+    const saysMatch = line.match(/\*\*(?:What people say|人们的说法)：\*\*\s*"?(.+?)"?\s*$/);
     if (saysMatch) {
       currentTerm.says = saysMatch[1].replace(/^"/, '').replace(/"$/, '').trim();
       continue;
     }
 
     // Match "What it actually means" line
-    const meansMatch = line.match(/\*\*What it actually means:\*\*\s*(.+)/);
+    const meansMatch = line.match(/\*\*(?:What it actually means|实际含义)：\*\*\s*(.+)/);
     if (meansMatch) {
       currentTerm.means = meansMatch[1].trim();
       continue;
@@ -405,6 +407,58 @@ function build() {
 
   console.log('🔍 Parsing glossary/terms.md...');
   const glossaryTerms = parseGlossary(glossary);
+
+  
+  // Resolve Chinese lesson names from zh.md files
+  console.log('🔍 Resolving Chinese lesson names...');
+  let zhNameCount = 0;
+  for (const phase of phases) {
+    const phaseNum = String(phase.id).padStart(2, '0');
+      // Find actual phase directory by listing
+      let phaseDirName = '';
+      const allPhaseDirs = fs.readdirSync(path.join(REPO_ROOT, 'phases'), { withFileTypes: true })
+        .filter(d => d.isDirectory() && d.name.startsWith(phaseNum + '-'));
+      if (allPhaseDirs.length > 0) phaseDirName = allPhaseDirs[0].name;
+    for (const lesson of phase.lessons) {
+      let lessonPath;
+      if (lesson.url) {
+        const pathMatch = lesson.url.match(/(phases\/[^/]+\/[^/]+)\/?$/);
+        if (pathMatch) {
+          lessonPath = pathMatch[1];
+        }
+      }
+      // For lessons without URL, construct path from phase dir name
+      if (!lessonPath) {
+        const lessonSlug = lesson.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        // Try to match against actual directory names
+        const phaseLessonDirs = fs.readdirSync(path.join(REPO_ROOT, 'phases', phaseDirName), { withFileTypes: true })
+          .filter(d => d.isDirectory());
+        for (const dir of phaseLessonDirs) {
+          if (dir.name.includes(lessonSlug.substring(0, 20))) {
+            lessonPath = 'phases/' + phaseDirName + '/' + dir.name;
+            break;
+          }
+        }
+      }
+      if (!lessonPath) continue;
+      const zhPath = path.join(REPO_ROOT, lessonPath, 'docs', 'zh.md');
+      if (fs.existsSync(zhPath)) {
+        try {
+          const zhContent = fs.readFileSync(zhPath, 'utf8');
+          const firstLine = zhContent.split('\n')[0].trim();
+          const titleMatch = firstLine.match(/^#\s+(.+)/);
+          if (titleMatch) {
+            lesson._nameEn = lesson.name;
+            lesson.name = titleMatch[1].trim();
+            zhNameCount++;
+          }
+        } catch (e) {
+          // ignore read errors
+        }
+      }
+    }
+  }
+  console.log(`   Chinese names resolved: ${zhNameCount}`);
 
   console.log('🔍 Discovering outputs + Phase 14 missions...');
   const artifacts = discoverArtifacts();

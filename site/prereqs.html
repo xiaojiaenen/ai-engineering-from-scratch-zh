@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roadmap - AI Engineering from Scratch</title>
+  <title>路线图 - AI Engineering from Scratch</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23fafaf5'/><rect x='2' y='2' width='28' height='28' fill='none' stroke='%233553ff' stroke-width='1.2'/><text x='6' y='22' font-size='14' font-family='monospace' fill='%233553ff'>AI</text></svg>">
   <meta name="description" content="Interactive prerequisite map for 435 AI engineering lessons. See which phases depend on which, and plan your learning path.">
-  <meta property="og:title" content="Roadmap · AI Engineering from Scratch">
+  <meta property="og:title" content="路线图 · AI Engineering from Scratch">
   <meta property="og:description" content="Interactive prerequisite map. See what each phase depends on and what it unlocks downstream.">
   <meta property="og:image" content="https://aiengineeringfromscratch.com/og-image.png?v=2">
   <meta property="og:url" content="https://aiengineeringfromscratch.com/prereqs.html">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Roadmap · AI Engineering from Scratch">
+  <meta name="twitter:title" content="路线图 · AI Engineering from Scratch">
   <meta name="twitter:description" content="Interactive prerequisite map across 20 phases.">
   <meta name="twitter:image" content="https://aiengineeringfromscratch.com/og-image.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -216,19 +216,44 @@
     .edge-arrow.dimmed-edge     { opacity: 0.08; }
 
     /* --- Detail panel --- */
+    /* Modal overlay */
+    .detail-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .detail-overlay.open { display: flex; }
     .detail-panel {
+      position: relative;
       max-width: 700px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
       margin: 0 auto;
       background: var(--bg-surface);
       border: 2px solid var(--border);
-      border-radius: 0;
       padding: 28px 24px;
       box-shadow: var(--shadow-hard);
-      display: none;
       animation: panelSlideIn 0.35s ease;
     }
-
-    .detail-panel.open { display: block; }
+    .detail-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--ink-soft);
+      font-family: var(--font-mono);
+      z-index: 1;
+    }
+    .detail-close:hover { color: var(--blueprint); }
 
     @keyframes panelSlideIn {
       from { opacity: 0; transform: translateY(16px); }
@@ -394,7 +419,7 @@
 </head>
 <body>
 
-  <a href="#main" class="skip-link">Skip to content</a>
+  <a href="#main" class="skip-link">跳转到内容</a>
 
   <header class="site-header">
     <div class="header-inner">
@@ -402,10 +427,10 @@
         <span class="logo-icon" aria-hidden="true"></span> AI / FROM SCRATCH
       </a>
       <nav class="header-nav">
-        <a href="index.html#contents">Contents</a>
-        <a href="catalog.html">Catalog</a>
-        <a href="prereqs.html">Roadmap</a>
-        <a href="glossary.html">Glossary</a>
+        <a href="index.html#contents">课程</a>
+        <a href="catalog.html">索引</a>
+        <a href="prereqs.html">路线图</a>
+        <a href="glossary.html">术语表</a>
         <a href="https://github.com/rohitg00/ai-engineering-from-scratch" target="_blank" rel="noopener" class="header-github">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
           <svg class="star-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279L12 19.896l-7.416 3.517 1.48-8.279L0 9.306l8.332-1.151z"/></svg>
@@ -413,7 +438,7 @@
         </a>
       </nav>
       <button class="search-toggle" type="button" data-cmd-palette
-        aria-label="Search (⌘K)" title="Search (⌘K)">
+        aria-label="搜索 (⌘K)" title="搜索 (⌘K)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2.5"
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -421,7 +446,7 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </button>
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
         <span class="theme-icon" id="themeIcon">N</span>
       </button>
     </div>
@@ -430,8 +455,8 @@
   <main class="prereqs-page" id="main">
     <div class="container">
       <div class="prereqs-header">
-        <h1>Roadmap</h1>
-        <p>Click any phase to see its prerequisites and what it unlocks downstream.</p>
+        <h1>路线图</h1>
+        <p>点击任意阶段，查看其前置知识以及它解锁的下游阶段。</p>
       </div>
 
       <div class="prereqs-controls">
@@ -451,7 +476,7 @@
         </div>
       </div>
 
-      <div class="detail-panel" id="detailPanel"></div>
+      <div class="detail-overlay" id="detailOverlay"><div class="detail-panel" id="detailPanel"><button class="detail-close" id="detailClose" type="button">×</button></div></div>
     </div>
   </main>
 
@@ -459,11 +484,11 @@
     <div class="container footer-inner">
       <p>AI Engineering from Scratch · open source · free forever.</p>
       <div class="footer-links">
-        <a href="index.html">Home</a>
+        <a href="index.html">首页</a>
         <a href="https://github.com/rohitg00/ai-engineering-from-scratch" target="_blank" rel="noopener">GitHub</a>
-        <a href="catalog.html">Catalog</a>
-        <a href="glossary.html">Glossary</a>
-              <a href="https://github.com/rohitg00/ai-engineering-from-scratch/issues/new/choose" target="_blank" rel="noopener">Report / Suggest</a>
+        <a href="catalog.html">索引</a>
+        <a href="glossary.html">术语表</a>
+              <a href="https://github.com/rohitg00/ai-engineering-from-scratch/issues/new/choose" target="_blank" rel="noopener">反馈 / 建议</a>
       </div>
     </div>
   </footer>
@@ -927,6 +952,10 @@
     /* ===================================================
        Detail panel
     =================================================== */
+    function closeDetail() {
+      document.getElementById('detailOverlay').classList.remove('open');
+    }
+
     function showDetail(id, ancestors, descendants) {
       var panel = document.getElementById('detailPanel');
       var phase = PHASE_MAP[id];
@@ -986,25 +1015,25 @@
       panel.innerHTML =
         '<div class="detail-top">' +
           '<span class="detail-phase-num">Phase ' + String(id).padStart(2, '0') + '</span>' +
-          '<span class="detail-status ' + phase.status + '">' + phase.status.replace('-', ' ') + '</span>' +
+          '<span class="detail-status ' + phase.status + '">' + (phase.status === 'complete' ? '已完成' : phase.status === 'in-progress' ? '进行中' : '计划中') + '</span>' +
         '</div>' +
         '<div class="detail-title">' + escapeHtml(phase.name) + '</div>' +
         '<div class="detail-desc">' + escapeHtml(phase.desc) + '</div>' +
         '<div class="detail-stats">' +
-          '<strong>' + stats.done + '</strong> of <strong>' + stats.total + '</strong> lessons complete' +
-          ' &nbsp;·&nbsp; <strong>' + ancestorCount + '</strong> prerequisite phases' +
-          ' &nbsp;·&nbsp; <strong>' + descendantCount + '</strong> phases unlocked' +
+          '<strong>' + stats.done + '</strong> / <strong>' + stats.total + '</strong> 节课已完成' +
+          ' &nbsp;·&nbsp; <strong>' + ancestorCount + '</strong> 个前置阶段' +
+          ' &nbsp;·&nbsp; <strong>' + descendantCount + '</strong> 个解锁阶段' +
         '</div>' +
         '<div class="detail-sections">' +
           '<div><div class="detail-section-title"><span class="title-icon" style="color:var(--accent)">&#9664;</span> Prerequisites</div>' + prereqHtml + '</div>' +
           '<div><div class="detail-section-title"><span class="title-icon" style="color:var(--complete)">&#9654;</span> Unlocks</div>' + unlockHtml + '</div>' +
         '</div>' +
         '<div class="detail-actions">' +
-          (readLink ? '<a href="' + readLink + '" class="detail-link detail-link-read">Read</a>' : '') +
-          '<a href="' + phaseGithubUrl + '" target="_blank" rel="noopener" class="detail-link">View on GitHub</a>' +
+          (readLink ? '<a href="' + readLink + '" class="detail-link detail-link-read">阅读</a>' : '') +
+          '<a href="' + phaseGithubUrl + '" target="_blank" rel="noopener" class="detail-link">在 GitHub 查看</a>' +
         '</div>';
 
-      panel.classList.add('open');
+      document.getElementById('detailOverlay').classList.add('open');
 
       /* Clickable prereq/unlock items navigate the graph */
       var clickables = panel.querySelectorAll('[data-goto]');
@@ -1027,7 +1056,11 @@
         })(clickables[i]);
       }
 
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Close on overlay click or button
+      var overlay = document.getElementById('detailOverlay');
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDetail(); });
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) closeDetail(); });
+      document.getElementById('detailClose').addEventListener('click', function(e) { e.stopPropagation(); closeDetail(); });
     }
   })();
   </script>
