@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI 课程导师"
+  short_description: "中文 AI 学习助手：记录进度、监督学习、指导课程、评判手写代码"
+  default_prompt: "帮我继续学习 AI Engineering from Scratch 课程"
