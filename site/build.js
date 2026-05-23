@@ -80,7 +80,7 @@ function parseReadme(content, roadmapStatuses) {
       line.match(/###\s+!\[\]\([^)]*?Phase[_\s]+(\d+)[-_]([^?)]+?)-[A-F0-9]{6}[^)]*\)\s*`(\d+)\s+lessons?`/i);
     const detailsHeaderMatch =
       line.match(/<summary><strong>Phase\s+(\d+):\s+(.+?)<\/strong>\s*<code>(\d+)\s+(?:lessons?|projects?)<\/code>.*?<em>(.*?)<\/em>/) ||
-      line.match(/<summary>\s*<b>\s*(?:[^\w\s]+\s+)?Phase\s+(\d+)\s*[—\-:]\s*(.+?)<\/b>.*?<code>(\d+)\s+(?:lessons?|projects?)<\/code>.*?<em>(.*?)<\/em>/);
+      line.match(/<summary>\s*<b>\s*(?:[^\w\s]+\s+)?(?:Phase|阶段)\s*(\d+)(?:（续）)?\s*[—\-:]\s*(.+?)<\/b>.*?<code>(\d+)\s*(?:lessons?|projects?|课|节课|课时|个项目)\s*<\/code>.*?(?:<em>(.*?)<\/em>)?/);
 
     if (phaseHeaderMatch) {
       const [, idStr, rawName] = phaseHeaderMatch;
@@ -103,18 +103,18 @@ function parseReadme(content, roadmapStatuses) {
     }
 
     if (detailsHeaderMatch) {
-      const [, idStr, name, , desc] = detailsHeaderMatch;
+      const [, idStr, name, , desc] = detailsHeaderMatch; const realDesc = desc || ''; 
       const id = parseInt(idStr);
       const roadmapKey = `Phase ${id}`;
       const phaseStatus = roadmapStatuses[roadmapKey]?.phaseStatus || 'planned';
-      currentPhase = { id, name: name.trim(), status: phaseStatus, desc: desc?.trim() || '', lessons: [] };
+      currentPhase = { id, name: name.trim(), status: phaseStatus, desc: (desc || '').trim(), lessons: [] };
       phases.push(currentPhase);
       inLessonTable = false;
       continue;
     }
 
     // Detect start of lesson table
-    if (currentPhase && line.match(/^\|\s*#\s*\|\s*Lesson/)) {
+    if (currentPhase && line.match(/^\|\s*#\s*\|\s*(?:Lesson|课程)/)) {
       inLessonTable = true;
       isCapstoneTable = false;
       continue;
