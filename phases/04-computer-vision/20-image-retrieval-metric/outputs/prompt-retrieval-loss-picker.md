@@ -1,6 +1,7 @@
 ---
 name: prompt-retrieval-loss-picker
 description: Pick triplet / InfoNCE / ProxyNCA for a given retrieval problem
+description-zh: 针对给定的检索问题，在 triplet / InfoNCE / ProxyNCA 中做出选择
 phase: 4
 lesson: 20
 ---

@@ -1,6 +1,7 @@
 ---
 name: skill-anchor-designer
 description: Given a dataset of ground-truth boxes, run k-means on (w, h) and return anchor sets per FPN level plus coverage statistics
+description-zh: 针对真实标注框数据集，对宽度和高度运行k-means聚类，返回每个FPN层级的锚点集及覆盖率统计
 version: 1.0.0
 phase: 4
 lesson: 6

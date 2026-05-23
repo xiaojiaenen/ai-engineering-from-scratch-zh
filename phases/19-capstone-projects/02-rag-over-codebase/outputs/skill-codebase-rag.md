@@ -1,6 +1,7 @@
 ---
 name: codebase-rag
 description: Build a cross-repo semantic search system with AST-aware chunking, hybrid retrieval, incremental re-index, and cited answers.
+description-zh: 构建跨仓库语义搜索系统，支持AST感知分块、混合检索、增量重索引及引用式回答
 version: 1.0.0
 phase: 19
 lesson: 02

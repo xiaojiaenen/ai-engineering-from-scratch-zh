@@ -1,6 +1,7 @@
 ---
 name: batch-triager
 description: Triage LLM workloads into interactive / semi-interactive / batch lanes, compute stacked discount (batch + cache) savings, and flag mis-triaged workloads.
+description-zh: 将LLM工作负载分流为交互式/半交互式/批处理通道，计算叠加折扣（批处理 + 缓存）节省，并标记分流错误的工作负载。
 version: 1.0.0
 phase: 17
 lesson: 15

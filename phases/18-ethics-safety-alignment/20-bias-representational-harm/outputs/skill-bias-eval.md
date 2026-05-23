@@ -1,6 +1,7 @@
 ---
 name: bias-eval
 description: Audit a bias evaluation report across metric categories, intersectionality, and debias mechanism.
+description-zh: 跨指标类别、交叉性和去偏机制，审计偏见评估报告。
 version: 1.0.0
 phase: 18
 lesson: 20

@@ -1,6 +1,7 @@
 ---
 name: regulatory-map
 description: Map a deployment's AI regulatory obligations across EU, US, UK, Korea.
+description-zh: 映射部署在欧盟、美国、英国、韩国的AI监管义务。
 version: 1.0.0
 phase: 18
 lesson: 24

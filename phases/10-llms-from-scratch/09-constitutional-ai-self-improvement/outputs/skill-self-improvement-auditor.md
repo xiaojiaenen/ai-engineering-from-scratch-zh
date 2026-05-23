@@ -1,6 +1,7 @@
 ---
 name: self-improvement-auditor
 description: Audit a proposed self-improvement or constitutional AI pipeline before it runs at scale.
+description-zh: 在提案中的自我改进或宪法AI管道大规模运行前进行审计
 version: 1.0.0
 phase: 10
 lesson: 9

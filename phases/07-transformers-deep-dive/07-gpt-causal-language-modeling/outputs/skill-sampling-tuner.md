@@ -1,6 +1,7 @@
 ---
 name: sampling-tuner
 description: Pick decoding strategy (greedy / temperature / top-k / top-p / min-p / speculative) for a given generation task.
+description-zh: 为给定的生成任务选择解码策略（贪婪 / 温度 / top-k / top-p / min-p / 推测）。
 version: 1.0.0
 phase: 7
 lesson: 7

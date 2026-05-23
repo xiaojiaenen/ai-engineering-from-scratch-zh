@@ -1,6 +1,7 @@
 ---
 name: bargainer-designer
 description: Design a negotiation protocol: which agent narrates, which component generates offers, how private scratchpads separate from public messages, what the round bound is, and how deal rate is monitored.
+description-zh: 设计谈判协议：指定叙述智能体、报价生成组件、私有草稿与公有消息的分离机制、轮次限制及协议达成率监控方式。
 version: 1.0.0
 phase: 16
 lesson: 16

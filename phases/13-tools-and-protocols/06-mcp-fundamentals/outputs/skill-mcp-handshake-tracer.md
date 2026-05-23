@@ -1,6 +1,19 @@
 ---
 name: mcp-handshake-tracer
 description: Given a pcap-style transcript of an MCP client-server conversation, annotate every message with its primitive, lifecycle phase, and capability dependency.
+description-zh: # MCP Transcript Annotator
+
+I don't see a pcap-style transcript attached to your message. Please provide it and I'll annotate every message.
+
+In the meantime, here's the **annotation schema** I'll apply, along with a **fully worked example** so you know exactly what to expect.
+
+---
+
+## Annotation Schema
+
+| Field | Values |
+|---|---|
+| **Primitive** | `initialize`, `initialized`, `ping`, `resources/list`, `resources/read`, `resources/subscribe`, `resources/unsubscribe`, `prompts/list`,
 version: 1.0.0
 phase: 13
 lesson: 06

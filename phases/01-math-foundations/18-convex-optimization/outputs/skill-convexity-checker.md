@@ -1,6 +1,7 @@
 ---
 name: skill-convexity-checker
 description: Determine if an optimization problem is convex and choose the right solver
+description-zh: 判断优化问题是否为凸问题并选择合适的求解器。
 version: 1.0.0
 phase: 1
 lesson: 18

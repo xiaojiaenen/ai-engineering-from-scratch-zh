@@ -1,6 +1,27 @@
 ---
 name: seq2seq-design
 description: Design a sequence-to-sequence pipeline for a given task.
+description-zh: # Sequence-to-Sequence Pipeline Design
+
+## Example Task: Machine Translation (English → French)
+
+---
+
+## 1. Architecture Overview
+
+```
+Input Sequence → Encoder → Context Vector → Decoder → Output Sequence
+(English)                                                             (French)
+```
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        SEQ2SEQ PIPELINE                              │
+│                                                                      │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────────────┐  │
+│  │  Data     │──▶│ Encoder  │──▶│ Attention │──▶│    Decoder      │  │
+│  │  Prep     │   │ (BiLSTM/ │   │  Mechanism│   │   (LSTM/        │  │
+│  │           │   │  Transf.)│
 phase: 5
 lesson: 09
 ---

@@ -1,6 +1,7 @@
 ---
 name: skill-sampling-strategy
 description: Choose the right sampling method for generation, estimation, or inference
+description-zh: 为生成、估计或推理选择合适的采样方法。
 version: 1.0.0
 phase: 1
 lesson: 16

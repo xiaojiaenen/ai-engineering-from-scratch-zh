@@ -1,6 +1,19 @@
 ---
 name: tool-schema-linter
 description: Audit a tool registry against production design rules for names, descriptions, parameters, and shape. Can run in CI on every tool-registry change.
+description-zh: # Tool Registry Auditor
+
+A CI-compatible linter that enforces production design rules on every tool-registry change.
+
+## Overview
+
+```
+┌──────────────┐     ┌─────────────────┐     ┌───────────────┐
+│  Git change   │────▶│  registry_audit │────▶│  pass / fail  │
+│  (CI trigger) │     │  .py            │     │  + report     │
+└──────────────┘     └────────┬────────┘     └───────────────┘
+                              │
+                    ┌
 version: 1.0.0
 phase: 13
 lesson: 05

@@ -1,6 +1,17 @@
 ---
 name: obs-platform-wiring
 description: Pick an observability platform (Langfuse, Phoenix, Opik, Datadog) and wire traces + evals + prompt versions into an existing agent.
+description-zh: 选择一个可观测性平台（Langfuse、Phoenix、Opik、Datadog），并将跟踪、评估和提示版本集成到现有智能体中。
+
+I chose **Langfuse** — open-source, self-hostable, native prompt versioning, and first-class eval/dataset support. The patterns below apply to any agent framework (LangChain, CrewAI, raw OpenAI, etc.).
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Your Agent                          │
+│                                                         │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐            │
 version: 1.0.0
 phase: 14
 lesson: 24

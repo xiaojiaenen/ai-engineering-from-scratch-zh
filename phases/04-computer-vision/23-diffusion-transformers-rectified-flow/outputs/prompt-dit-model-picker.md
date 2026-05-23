@@ -1,6 +1,7 @@
 ---
 name: prompt-dit-model-picker
 description: Pick between SD3, SD3.5, FLUX.1-dev, FLUX.1-schnell, Z-Image, SD4 Turbo given quality, latency, and license
+description-zh: 在SD3/SD3.5/FLUX.1-dev/FLUX.1-schnell/Z-Image/SD4 Turbo间根据质量、延迟和许可证选择。
 phase: 4
 lesson: 23
 ---

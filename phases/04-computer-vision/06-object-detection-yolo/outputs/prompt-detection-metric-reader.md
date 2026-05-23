@@ -1,6 +1,7 @@
 ---
 name: prompt-detection-metric-reader
 description: Turn a precision/recall/AP/mAP row into a one-line diagnosis and the single most useful next experiment
+description-zh: 将精度/召回率/AP/mAP行转化为单行诊断结论及最有用的下一步实验建议
 phase: 4
 lesson: 6
 ---

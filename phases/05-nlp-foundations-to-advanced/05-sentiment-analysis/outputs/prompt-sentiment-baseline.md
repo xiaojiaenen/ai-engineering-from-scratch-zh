@@ -1,6 +1,44 @@
 ---
 name: sentiment-baseline
 description: Design a sentiment analysis baseline for a new dataset.
+description-zh: # Sentiment Analysis Baseline Design
+
+## 1. Data Exploration & Preparation
+
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from collections import Counter
+
+# Load and inspect
+df = pd.read_csv("dataset.csv")
+print(f"Shape: {df.shape}")
+print(f"Label distribution:\n{df['sentiment'].value_counts(normalize=True)}")
+print(f"Null values:\n{df.isnull().sum()}")
+print(f"Avg text length: {df['text'].str.len().mean():.0f} chars")
+```
+
+
+
+**Key checks:**
+- Class imbalance ratio
+- Text language(s), encoding issues
+- Average token count per sample
+- Duplicates
+
+---
+
+## 2. Text Preprocessing Pipeline
+
+```python
+import re
+import nltk
+from nltk.corpus import stopwords
+
+def preprocess(text):
+    text = text.lower()
+    text = re.sub(r"http\S+|www\S+", "", text)       # URLs
+    text = re.sub(r"
 phase: 5
 lesson: 05
 ---

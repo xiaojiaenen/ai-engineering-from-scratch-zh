@@ -1,6 +1,29 @@
 ---
 name: qa-architect
 description: Choose QA architecture, retrieval strategy, and evaluation plan.
+description-zh: # QA System Design Guide
+
+## 1. QA Architecture
+
+| Architecture | When to Use |
+|---|---|
+| **Extractive QA** (e.g., BERT-based span extraction) | Factual answers verbatim from source documents |
+| **Generative QA** (e.g., seq2seq like T5, Flan-T5) | Abstractive/compositional answers, multi-hop reasoning |
+| **Retrieval-Augmented Generation (RAG)** | Large knowledge bases, up-to-date info needed, reducing hallucination |
+| **Knowledge Graph QA** | Structured data, relational queries |
+| **Hybrid** (retrieval + generation + verification) | Production-grade systems needing high accuracy |
+
+**Recommendation for most cases → RAG pipeline:**
+```
+Query → Retriever → Reranker → LLM Generator → Answer
+```
+
+---
+
+## 2. Retrieval Strategy
+
+### Sparse Retrieval (Lexical)
+- **BM2
 version: 1.0.0
 phase: 5
 lesson: 13

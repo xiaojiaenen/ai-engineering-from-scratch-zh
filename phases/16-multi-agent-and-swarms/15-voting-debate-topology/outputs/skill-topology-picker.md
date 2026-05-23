@@ -1,6 +1,7 @@
 ---
 name: topology-picker
 description: Pick a multi-agent debate topology (star / chain / tree / graph), an N of agents, a heterogeneity profile, and a round bound for a given task.
+description-zh: 为指定任务选择多智能体辩论拓扑（星型/链型/树型/图型）、智能体数量、异质性配置和轮次限制。
 version: 1.0.0
 phase: 16
 lesson: 15

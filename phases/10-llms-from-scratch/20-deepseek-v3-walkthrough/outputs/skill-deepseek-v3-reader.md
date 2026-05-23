@@ -1,6 +1,7 @@
 ---
 name: deepseek-v3-reader
 description: Read a DeepSeek-family config and produce a component-by-component architecture analysis.
+description-zh: 阅读DeepSeek系列配置文件并生成逐组件架构分析
 version: 1.0.0
 phase: 10
 lesson: 20

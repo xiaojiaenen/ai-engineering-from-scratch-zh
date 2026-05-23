@@ -1,6 +1,7 @@
 ---
 name: primitive-mapper
 description: Map any multi-agent framework or codebase to the four primitive axes (agent, handoff, shared state, orchestrator).
+description-zh: 将任意多智能体框架或代码库映射至四元基本轴（智能体/交接/共享状态/协调器）。
 version: 1.0.0
 phase: 16
 lesson: 04

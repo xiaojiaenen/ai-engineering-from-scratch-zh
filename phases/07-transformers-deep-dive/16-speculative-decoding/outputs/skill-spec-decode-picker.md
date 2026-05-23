@@ -1,6 +1,7 @@
 ---
 name: spec-decode-picker
 description: Pick a speculative decoding strategy (vanilla / Medusa / EAGLE / lookahead) and tuning parameters for a new LLM inference workload.
+description-zh: 为新的LLM推理负载选择推测解码策略（原始 / Medusa / EAGLE / 前瞻）和调参参数。
 version: 1.0.0
 phase: 7
 lesson: 16

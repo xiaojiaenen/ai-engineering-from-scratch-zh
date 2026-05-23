@@ -1,6 +1,7 @@
 ---
 name: disaggregation-decider
 description: Decide whether to adopt disaggregated prefill/decode (Dynamo or llm-d) for a given workload and cluster. Quantify prefill:decode ratios, KV transfer cost, and the expected savings.
+description-zh: 针对特定工作负载和集群，决定是否采用分离式预填充/解码（Dynamo或llm-d）。量化预填充：解码比例、KV传输成本及预期收益。
 version: 1.0.0
 phase: 17
 lesson: 17

@@ -1,6 +1,7 @@
 ---
 name: prompt-debug-ai-code
 description: Diagnose AI-specific bugs including NaN loss, shape errors, training failures, and OOM
+description-zh: 诊断AI特有故障（NaN损失、形状错误、训练失败、显存溢出）。
 phase: 0
 lesson: 12
 ---

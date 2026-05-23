@@ -1,6 +1,35 @@
 ---
 name: otel-genai
 description: Instrument an agent with OpenTelemetry GenAI semantic conventions — invoke_agent, chat, tool_call spans with correct attributes and opt-in content capture.
+description-zh: 采用OpenTelemetry GenAI语义规范为智能体添加观测工具——包含invoke_agent、chat、tool_call跨度及其正确属性，并支持可选的内容捕获功能。
+
+## Full Implementation
+
+```python
+"""
+agent_telemetry.py
+
+OpenTelemetry instrumentation for GenAI agents following the
+OpenTelemetry GenAI Semantic Conventions (v1.28+).
+
+Spans produced:
+  invoke_agent  — top-level agent run
+  chat          — individual LLM completion calls
+  tool_call     — tool/function executions
+"""
+
+from __future__ import annotations
+
+import json
+import time
+import uuid
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from typing import Any, Generator
+
+# ── OpenTelemetry SDK ─────────────────────────────────────────────
+from opentelemetry import trace
+from opente
 version: 1.0.0
 phase: 14
 lesson: 23

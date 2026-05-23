@@ -1,6 +1,7 @@
 ---
 name: prompt-feature-engineer
 description: Systematic prompt for engineering features from raw tabular data
+description-zh: 从原始表格数据中系统性地工程化特征的提示模板
 phase: 2
 lesson: 8
 ---

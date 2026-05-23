@@ -1,6 +1,30 @@
 ---
 name: gateway-bootstrap
 description: Produce a gateway configuration spec given users, backends, and compliance constraints.
+description-zh: # Gateway Configuration Specification
+
+## 1. Overview
+
+This document defines the configuration for an API Gateway integrating **users**, **backends**, and **compliance constraints**.
+
+---
+
+## 2. Users
+
+| User ID | Role | Auth Method | Rate Limit | Scope |
+|---------|------|-------------|------------|-------|
+| `u-001` | Admin | OAuth 2.0 + MFA | 1000 req/min | Full CRUD |
+| `u-002` | Partner | API Key + TLS Mutual Auth | 500 req/min | Read + Write |
+| `u-003` | Internal Service | mTLS Certificate | 5000 req/min | Full CRUD |
+| `u-004` | External Consumer | JWT (RS256) | 200 req/min | Read-only |
+
+### Authentication Policies
+```yaml
+authentication:
+  methods:
+    - type: oauth2
+      issuer: "https://auth.example.com"
+      jwks_uri: "https://auth.example
 version: 1.0.0
 phase: 13
 lesson: 17

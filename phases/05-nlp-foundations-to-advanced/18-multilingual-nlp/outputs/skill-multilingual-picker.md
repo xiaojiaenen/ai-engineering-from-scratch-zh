@@ -1,6 +1,29 @@
 ---
 name: multilingual-picker
 description: Pick source language, target model, and evaluation plan for a multilingual NLP task.
+description-zh: # Multilingual NLP Task Plan
+
+## 1. Source Language
+
+**Recommended: English**
+
+- Largest volume of annotated data available
+- Most pre-trained models are English-centric
+- Serves as a strong pivot language for cross-lingual transfer
+
+**Secondary pivot languages to consider:**
+- **Chinese / Spanish / Arabic** — high-resource, typologically diverse
+- Use these if the target domain/region demands it (e.g., medical NLP in Arabic)
+
+---
+
+## 2. Target Model
+
+| Option | Model | Why |
+|--------|-------|-----|
+| **Cross-lingual Transformer** | **XLM-RoBERTa (XLM-R)** | Pre-trained on 100 languages; strong zero-shot transfer |
+| **Multilingual LLM** | **mT5 / BLOOM / LLaMA-multilingual** | Generative tasks (summarization, QA, translation) |
+| **Language-specific** | **FastText + fine-tuned BERT** |
 version: 1.0.0
 phase: 5
 lesson: 18

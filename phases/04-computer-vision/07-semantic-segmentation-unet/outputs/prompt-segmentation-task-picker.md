@@ -1,6 +1,7 @@
 ---
 name: prompt-segmentation-task-picker
 description: Pick semantic vs instance vs panoptic segmentation and name the architecture for a given task
+description-zh: 针对给定任务选择语义、实例或全景分割，并命名适用的架构
 phase: 4
 lesson: 7
 ---

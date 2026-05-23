@@ -1,6 +1,7 @@
 ---
 name: workbench-benchmark
 description: Run the same task through prompt-only and workbench-guided pipelines on a project's own sample app and emit a five-outcome before/after report.
+description-zh: 通过纯提示词和工作台引导两条流水线在项目自有示例应用上运行相同任务，并输出五项指标的前后对比报告。
 version: 1.0.0
 phase: 14
 lesson: 41

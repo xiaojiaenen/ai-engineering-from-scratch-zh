@@ -1,6 +1,7 @@
 ---
 name: multimodal-agent-designer
 description: Design a multimodal agent (computer-use, GUI grounding, web or mobile) with action schema, memory strategy, and benchmark evaluation plan.
+description-zh: 设计多模态智能体（计算机使用、GUI定位、网页或移动端），包含动作模式、记忆策略和基准评估计划
 version: 1.0.0
 phase: 12
 lesson: 25

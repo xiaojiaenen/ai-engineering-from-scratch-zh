@@ -1,6 +1,7 @@
 ---
 name: w2sg-pgr
 description: Audit a scalable-oversight or W2SG claim via the performance-gap-recovered metric.
+description-zh: 通过性能差距恢复指标，审计可扩展监督或W2SG声明。
 version: 1.0.0
 phase: 18
 lesson: 11

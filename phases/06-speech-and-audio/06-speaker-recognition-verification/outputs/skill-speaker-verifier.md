@@ -1,6 +1,22 @@
 ---
 name: speaker-verifier
 description: Design a speaker verification or diarization pipeline with model choice, enrollment protocol, and threshold tuning.
+description-zh: # Speaker Verification & Diarization Pipeline Design
+
+## 1. System Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    END-TO-END PIPELINE                          │
+│                                                                 │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌────────────┐  │
+│  │ Audio    │──▶│ Frontend │──▶│ Speaker  │──▶│ Scoring /  │  │
+│  │ Ingest   │   │ Process  │   │ Embedding│   │ Decision   │  │
+│  └──────────┘   └──────────┘   └──────────┘   └────────────┘  │
+│       │              │              │                │          │
+│       ▼              ▼              ▼                ▼          │
+│   VAD/Raw      MFSTFT/     x-vector/ECAPA-    Cosine/PLDA/   │
+│   16kHz WAV
 version: 1.0.0
 phase: 6
 lesson: 06

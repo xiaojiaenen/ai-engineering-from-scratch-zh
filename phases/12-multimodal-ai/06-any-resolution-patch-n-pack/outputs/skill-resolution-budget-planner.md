@@ -1,6 +1,7 @@
 ---
 name: resolution-budget-planner
 description: Pick between square-resize, AnyRes, M-RoPE, and NaFlex for a mixed-aspect-ratio VLM workload and emit a per-task token budget plan.
+description-zh: 为混合宽高比VLM工作负载在正方形缩放、AnyRes、M-RoPE和NaFlex间选择，输出每任务token预算计划
 version: 1.0.0
 phase: 12
 lesson: 06

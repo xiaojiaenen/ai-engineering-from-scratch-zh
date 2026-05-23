@@ -1,6 +1,19 @@
 ---
 name: asr-picker
 description: Pick ASR model, decoding strategy, chunking, and LM fusion for a given deployment target.
+description-zh: # ASR System Configuration Guide by Deployment Target
+
+Below is a decision framework mapping deployment constraints to recommended ASR components.
+
+---
+
+## 1. ASR Model
+
+| Deployment Target | Recommended Model | Rationale |
+|---|---|---|
+| **Cloud (GPU)** | Conformer-CTC/Transducer (large, 100M+ params) | Accuracy priority; no latency/size constraints |
+| **Edge GPU (Jetson, etc.)** | Streaming Conformer-Transducer (medium, 20–50M) | Balances accuracy and real-time factor |
+| **Mobile / Embedded CPU** | Zipformer-Tiny, Emformer, or Pruned RNN-T (<10M) | Meets strict memory &
 version: 1.0.0
 phase: 6
 lesson: 04

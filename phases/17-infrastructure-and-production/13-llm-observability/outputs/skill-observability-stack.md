@@ -1,6 +1,7 @@
 ---
 name: observability-stack
 description: Pick an LLM observability stack (development platform + gateway + optional scale layer) given stack, scale, budget, and license posture, and define the OpenTelemetry GenAI attribute set.
+description-zh: 根据技术栈、规模、预算和许可态势，选择LLM可观测性堆栈（开发平台 + 网关 + 可选扩展层），并定义OpenTelemetry GenAI属性集。
 version: 1.0.0
 phase: 17
 lesson: 13

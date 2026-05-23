@@ -1,6 +1,7 @@
 ---
 name: sycophancy-probe
 description: Generate matched user-belief / third-party-belief prompts and score a model's sycophancy.
+description-zh: 生成匹配的用户信念/第三方信念提示，并评估模型的谄媚倾向。
 version: 1.0.0
 phase: 18
 lesson: 4

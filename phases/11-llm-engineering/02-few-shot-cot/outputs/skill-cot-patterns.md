@@ -1,6 +1,12 @@
 ---
 name: skill-cot-patterns
 description: Decision framework for choosing the right reasoning technique based on task complexity, accuracy requirements, and cost constraints
+description-zh: 根据任务复杂度、精度要求和成本约束选择合适推理技术的决策框架：
+
+**核心权衡维度：**
+- **复杂度**：问题结构清晰度、模糊性、所需推理步骤
+- **精度要求**：容错程度、输出一致性需求
+- **成本约束**：计算资源、
 version: 1.0.0
 phase: 11
 lesson: 02

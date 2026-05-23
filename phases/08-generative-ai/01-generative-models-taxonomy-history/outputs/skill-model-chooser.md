@@ -1,6 +1,7 @@
 ---
 name: generative-model-chooser
 description: Pick a generative-model family, backbone, and hosted alternative for a given task and budget.
+description-zh: 根据任务需求和预算选择生成模型族、主干网络及托管替代方案。
 version: 1.0.0
 phase: 8
 lesson: 01

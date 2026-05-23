@@ -1,6 +1,7 @@
 ---
 name: prompt-prompt-optimizer
 description: Takes a draft prompt and rewrites it using proven prompt engineering patterns for maximum effectiveness across models
+description-zh: 接受草稿 prompt，使用经过验证的 prompt engineering 模式重写，以在各模型中实现最大效果。
 phase: 11
 lesson: 01
 ---

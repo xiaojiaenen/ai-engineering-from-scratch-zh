@@ -1,6 +1,7 @@
 ---
 name: bert-finetuner
 description: Scope a BERT fine-tune for a new classification, extraction, or retrieval task.
+description-zh: 界定用于新分类、提取或检索任务的BERT微调范围。
 version: 1.0.0
 phase: 7
 lesson: 6

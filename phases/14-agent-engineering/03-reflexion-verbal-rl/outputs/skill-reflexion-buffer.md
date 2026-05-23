@@ -1,6 +1,7 @@
 ---
 name: reflexion-buffer
 description: Maintain an episodic-memory buffer of reflections for verbal RL with TTL, dedup, and scoped scope.
+description-zh: 为语言强化学习维护一个带有TTL、去重和作用域范围的反思情景记忆缓冲区。
 version: 1.0.0
 phase: 14
 lesson: 03

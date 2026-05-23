@@ -1,6 +1,7 @@
 ---
 name: skill-classification-diagnostics
 description: Given a confusion matrix and class names, surface per-class failures and propose the single most impactful fix
+description-zh: 给定一个混淆矩阵和类别名称，揭示每个类别的失败案例并提出一项最具影响力的改进方案
 version: 1.0.0
 phase: 4
 lesson: 4

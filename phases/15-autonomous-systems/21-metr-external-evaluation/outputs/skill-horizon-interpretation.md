@@ -1,6 +1,7 @@
 ---
 name: horizon-interpretation
 description: Review a vendor's time-horizon claim and produce a gap analysis between benchmark claim and deployment reality.
+description-zh: 审查供应商对时间视野的声明，生成基准声明与部署现实之间的差距分析。
 version: 1.0.0
 phase: 15
 lesson: 21

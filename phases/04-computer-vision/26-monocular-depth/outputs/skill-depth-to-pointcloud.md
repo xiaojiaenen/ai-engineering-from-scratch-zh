@@ -1,6 +1,7 @@
 ---
 name: skill-depth-to-pointcloud
 description: Build point clouds from depth maps with correct intrinsics handling and export to .ply
+description-zh: 使用正确的内参处理从深度图构建点云，并导出为.ply格式
 version: 1.0.0
 phase: 4
 lesson: 26

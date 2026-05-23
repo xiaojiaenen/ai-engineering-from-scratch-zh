@@ -1,6 +1,7 @@
 ---
 name: skill-residual-block-reviewer
 description: Review a PyTorch residual block for skip-connection correctness, BN placement, activation order, and shape alignment
+description-zh: 审查PyTorch残差块的跳跃连接正确性、BN层位置、激活顺序及形状对齐
 version: 1.0.0
 phase: 4
 lesson: 3

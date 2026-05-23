@@ -1,6 +1,10 @@
 ---
 name: mcp-transport-migrator
 description: Produce a migration plan from legacy HTTP+SSE to Streamable HTTP with session id continuity and Origin validation.
+description-zh: # Migration Plan: Legacy HTTP+SSE to Streamable HTTP  
+
+## 1. Executive Summary  
+Migrate from legacy HTTP polling/Server-Sent Events (SSE) to **Streamable HTTP** (e.g., HTTP/2 streams, WebSockets, or gRPC) while preserving **session continuity** (via session IDs) and enforcing **Origin validation** for security
 version: 1.0.0
 phase: 13
 lesson: 09

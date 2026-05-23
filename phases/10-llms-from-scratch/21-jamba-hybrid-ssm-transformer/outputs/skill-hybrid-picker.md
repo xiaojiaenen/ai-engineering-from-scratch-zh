@@ -1,6 +1,7 @@
 ---
 name: hybrid-picker
 description: Pick between pure Transformer, Jamba-style hybrid, and pure SSM for a given workload.
+description-zh: 针对特定工作负载在纯Transformer、Jamba风格混合模型和纯SSM之间做出选择
 version: 1.0.0
 phase: 10
 lesson: 21

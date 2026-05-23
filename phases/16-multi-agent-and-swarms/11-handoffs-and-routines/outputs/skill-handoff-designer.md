@@ -1,6 +1,7 @@
 ---
 name: handoff-designer
 description: Design a handoff topology for a Swarm/Agents-SDK-style system: which agents exist, which handoffs they can call, what context transfers.
+description-zh: 为Swarm/Agents-SDK风格系统设计交接拓扑：确定智能体存在性、可调用的交接方式及上下文转移机制。
 version: 1.0.0
 phase: 16
 lesson: 11

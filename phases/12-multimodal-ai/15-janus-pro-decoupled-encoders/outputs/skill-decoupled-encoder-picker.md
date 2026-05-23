@@ -1,6 +1,7 @@
 ---
 name: decoupled-encoder-picker
 description: Decide whether a unified VLM should decouple its visual encoders and pick between Janus-Pro, JanusFlow, and InternVL-U.
+description-zh: 决定统一VLM是否解耦视觉编码器，在Janus-Pro/JanusFlow/InternVL-U间选择
 version: 1.0.0
 phase: 12
 lesson: 15

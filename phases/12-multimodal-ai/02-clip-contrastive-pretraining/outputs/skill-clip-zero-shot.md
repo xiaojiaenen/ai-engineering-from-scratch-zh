@@ -1,6 +1,7 @@
 ---
 name: clip-zero-shot
 description: Run zero-shot image classification with a CLIP / SigLIP checkpoint, producing ranked predictions with similarity scores.
+description-zh: 使用CLIP/SigLIP权重运行零样本图像分类，输出带相似度评分的排序预测结果
 version: 1.0.0
 phase: 12
 lesson: 02

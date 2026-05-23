@@ -1,6 +1,7 @@
 ---
 name: positional-encoding-picker
 description: Pick positional encoding (RoPE, ALiBi, sinusoidal) + scaling strategy given context length and training budget.
+description-zh: 根据上下文长度和训练预算选择位置编码（RoPE、ALiBi、正弦函数）和缩放策略。
 version: 1.0.0
 phase: 7
 lesson: 4

@@ -1,6 +1,21 @@
 ---
 name: text-encoder-picker
 description: Pick a text encoder architecture for a given constraint set.
+description-zh: # Text Encoder Architecture Selection Guide
+
+Since you haven't specified your exact constraints, here's a decision framework mapping **common constraint sets** to recommended architectures:
+
+---
+
+## Constraint → Architecture Mapping
+
+| Primary Constraint | Recommended Architecture | Why |
+|---|---|---|
+| **Low latency / Edge deployment** | **DistilBERT / MiniLM / MobileBERT** | Reduced parameters (66M–25M), distillation-based |
+| **Extremely low memory (<50MB)** | **TinyBERT / Quantized FastText + MLP** | Ultra-compressed or non-neural fallback |
+| **High quality, resource-rich** | **BERT-Large / DeBERTa / RoBERTa** | Strong representational power, fine-tunable |
+| **Long documents (>512 tokens)** | **Longformer / BigBird / LED** | Sparse attention (O(n) vs O(n²)) |
+|
 phase: 5
 lesson: 08
 ---

@@ -1,6 +1,7 @@
 ---
 name: prompt-model-diagnostics
 description: Diagnose model performance issues using train/test metrics and learning curves
+description-zh: 通过训练/测试指标与学习曲线诊断模型性能问题
 phase: 2
 lesson: 10
 ---

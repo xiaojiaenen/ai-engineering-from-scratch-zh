@@ -1,6 +1,29 @@
 ---
 name: audio-evaluator
 description: Pick metrics, benchmarks, normalization rules, and reporting format for any audio model release.
+description-zh: # Audio Model Evaluation & Reporting Framework
+
+---
+
+## 1. Metrics (by task category)
+
+### Speech Recognition (ASR)
+| Metric | What It Captures |
+|---|---|
+| **WER** (Word Error Rate) | Primary accuracy metric |
+| **CER** (Character Error Rate) | Useful for character-rich languages (CJK) |
+| **SER** (Sentence Error Rate) | % of sentences with ≥1 error |
+| **RTF** (Real-Time Factor) | Inference time / audio duration |
+| **Latency (p50/p95)** | Time-to-first-token or full decode |
+
+### Speech Synthesis (TTS)
+| Metric | What It Captures |
+|---|---|
+| **MOS** (Mean Opinion Score) | Human-rated naturalness (1–5) |
+| **MUSHRA** | Fine-grained subjective quality |
+| **PESQ** (ITU-T P.862) | Perceptual objective quality |
+| **UTMOS** | Neural MOS predictor (scalable proxy) |
+| **Speaker
 version: 1.0.0
 phase: 6
 lesson: 17

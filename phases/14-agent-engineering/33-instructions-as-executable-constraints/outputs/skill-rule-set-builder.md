@@ -1,6 +1,24 @@
 ---
 name: rule-set-builder
 description: Interview a project owner, classify their existing prose instructions into five operational categories, and emit a versioned agent-rules.md plus a Python checker stub.
+description-zh: 访谈项目负责人，将他们现有的文本说明分类为五个操作类别，并生成一个版本化的agent-rules.md以及一个Python检查器桩。
+
+---
+
+## Step 1: Interview Transcript (Simulated)
+
+**Interviewer:** Thanks for joining. Can you walk me through how you'd want an AI agent to behave in your codebase?
+
+**Project Owner (Sarah, Tech Lead — "Acme API Platform"):**
+
+> Sure. A few things that are non-negotiable for us.
+>
+> **On code changes:**
+> - Never modify files under `migrations/` directly — those are auto-generated. If a migration is wrong, regenerate it.
+> - All new endpoints must go through our rate-limiter middleware. Don't let an agent add a route without it.
+> - We use `snake_case` everywhere in Python. I've seen agents mix camelCase sometimes.
+>
+> **
 version: 1.0.0
 phase: 14
 lesson: 33

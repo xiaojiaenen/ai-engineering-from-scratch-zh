@@ -1,6 +1,7 @@
 ---
 name: transformer-block-reviewer
 description: Review a transformer block implementation against 2026 defaults and flag drift.
+description-zh: 根据2026年默认设置审查Transformer块实现并标记偏差。
 version: 1.0.0
 phase: 7
 lesson: 5

@@ -1,6 +1,7 @@
 ---
 name: star-loop-reviewer
 description: Audit a proposed self-taught reasoning pipeline (STaR-family) before you commit training compute to it.
+description-zh: 在投入训练计算资源前，审查拟议的自学推理流水线（STaR系列）。
 version: 1.0.0
 phase: 15
 lesson: 2

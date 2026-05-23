@@ -1,6 +1,7 @@
 ---
 name: scaling-advisor
 description: Advise on durable-execution choice for a multi-agent production system. Picks between FastAPI + Postgres, LangGraph runtime, Temporal, Restate, or custom based on concrete load and state-retention needs.
+description-zh: 就多智能体生产系统的持久化执行方案提供建议，根据实际负载与状态保留需求在FastAPI+Postgres/LangGraph运行时/Temporal/Restate或自定义方案间进行选择。
 version: 1.0.0
 phase: 16
 lesson: 22

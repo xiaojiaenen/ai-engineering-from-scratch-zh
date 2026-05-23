@@ -1,6 +1,7 @@
 ---
 name: ai-scientist-sandbox-review
 description: Two-gate review checklist for research-loop agent outputs before anything leaves the sandbox.
+description-zh: 研究循环智能体输出在离开沙盒前需通过的双重门审查清单。
 version: 1.0.0
 phase: 15
 lesson: 5

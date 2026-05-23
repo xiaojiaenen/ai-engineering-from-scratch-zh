@@ -1,6 +1,37 @@
 ---
 name: prompt-structured-extractor
 description: Extract structured data from unstructured text given a JSON Schema definition
+description-zh: # Extracting Structured Data from Unstructured Text Using JSON Schema
+
+## Overview
+
+This task involves parsing free-form text and mapping its content to a predefined JSON Schema structure. Here's how to approach it:
+
+## Example
+
+**JSON Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "name":       { "type": "string" },
+    "age":        { "type": "integer" },
+    "email":      { "type": "string", "format": "email" },
+    "occupation": { "type": "string" }
+  },
+  "required": ["name", "age"]
+}
+```
+
+**Unstructured Text:**
+> "Hi, my name is John Smith. I'm 34 years old and I work as a software engineer at Google. You can reach me at john.smith@gmail.com."
+
+**Extracted Output:**
+```json
+{
+  "name": "John Smith",
+  "age": 34,
+  "email": "john
 phase: 11
 lesson: 03
 ---

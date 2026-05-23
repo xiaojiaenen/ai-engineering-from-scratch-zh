@@ -1,6 +1,7 @@
 ---
 name: swarm-fit
 description: Decide whether a task fits a swarm (decentralized) architecture or a supervisor (centralized) one.
+description-zh: 判断任务适合去中心化蜂群架构还是中心化监督者架构。
 version: 1.0.0
 phase: 16
 lesson: 09

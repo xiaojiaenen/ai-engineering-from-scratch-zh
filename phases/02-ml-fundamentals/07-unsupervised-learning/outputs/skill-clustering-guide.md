@@ -1,6 +1,7 @@
 ---
 name: skill-clustering-guide
 description: Choose the right clustering algorithm based on data shape, noise, and constraints
+description-zh: 根据数据形态、噪声与约束条件选择聚类算法
 version: 1.0.0
 phase: 2
 lesson: 7

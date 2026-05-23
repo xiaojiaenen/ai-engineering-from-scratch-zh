@@ -1,6 +1,7 @@
 ---
 name: bounded-loop-review
 description: Audit a proposed bounded self-improvement loop against the four-primitive stack (invariants, anchor, multi-objective, regression detection).
+description-zh: 根据四基元堆栈（不变量、锚点、多目标、回归检测）审查拟议的有界自我改进循环。
 version: 1.0.0
 phase: 15
 lesson: 8

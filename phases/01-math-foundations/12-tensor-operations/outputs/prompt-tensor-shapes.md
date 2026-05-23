@@ -1,6 +1,7 @@
 ---
 name: prompt-tensor-shapes
 description: Debug tensor shape mismatches and recommend fixes for common deep learning operations
+description-zh: 调试张量形状不匹配并为常见深度学习操作推荐修复方案。
 phase: 1
 lesson: 12
 ---

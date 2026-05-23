@@ -1,6 +1,7 @@
 ---
 name: finetuning-pipeline
 description: Run a reproducible data-to-SFT-to-DPO-to-serve fine-tuning pipeline with ablations, quantization, and a 2026 Model Openness Framework model card.
+description-zh: 运行可复现的数据→SFT→DPO→服务化微调流程，包含消融实验、量化方案及2026年模型开放性框架模型卡
 version: 1.0.0
 phase: 19
 lesson: 07

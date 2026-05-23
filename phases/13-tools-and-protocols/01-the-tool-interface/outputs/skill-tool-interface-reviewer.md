@@ -1,6 +1,22 @@
 ---
 name: tool-interface-reviewer
 description: Audit a tool definition (name + description + JSON Schema + executor outline) for loop fitness before it ships to an LLM.
+description-zh: # Tool Definition Loop-Fitness Audit
+
+## Purpose
+
+Before shipping any tool to an LLM agent runtime, verify it won't induce **redundant, runaway, or degenerate call patterns**. This audit catches problems at the schema/description level — before a single token is spent.
+
+---
+
+## The Core Loop Risks
+
+```
+┌─────────────────────────────────────────────────────┐
+│            LLM Agent Loop Failure Modes              │
+├──────────┬──────────────────────────────────────────┤
+│ Type     │ What happens                             │
+├──────────┼────────────────────────
 version: 1.0.0
 phase: 13
 lesson: 01

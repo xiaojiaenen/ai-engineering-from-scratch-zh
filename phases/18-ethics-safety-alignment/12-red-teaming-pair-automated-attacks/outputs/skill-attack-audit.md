@@ -1,6 +1,7 @@
 ---
 name: attack-audit
 description: Audit a red-team evaluation report for attack coverage, budget, judge identity, and behaviour set.
+description-zh: 审计红队评估报告的攻击覆盖范围、预算、评判身份和行为集合。
 version: 1.0.0
 phase: 18
 lesson: 12

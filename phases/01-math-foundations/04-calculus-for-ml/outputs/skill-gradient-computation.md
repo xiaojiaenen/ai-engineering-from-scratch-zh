@@ -1,6 +1,7 @@
 ---
 name: skill-gradient-computation
 description: Compute gradients of common ML loss functions and choose the right derivative approach
+description-zh: 计算常见机器学习损失函数的梯度并选择正确的求导方法
 version: 1.0.0
 phase: 1
 lesson: 4

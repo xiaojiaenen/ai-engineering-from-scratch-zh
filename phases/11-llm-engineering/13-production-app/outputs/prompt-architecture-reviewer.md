@@ -1,6 +1,27 @@
 ---
 name: prompt-architecture-reviewer
 description: Review the architecture of any LLM application against a production readiness checklist -- identifies gaps, risks, and missing components
+description-zh: # LLM Application Production Readiness Checklist
+
+## Architecture Review Framework
+
+---
+
+## 1. 📐 System Architecture & Design
+
+### Application Layer
+| Item | Check | Risk if Missing |
+|------|-------|-----------------|
+| Clear separation of concerns (frontend / orchestration / LLM layer / data) | ⬜ | Tech debt, unmaintainable code |
+| Stateless application design or explicit state management | ⬜ | Horizontal scaling failure |
+| API gateway / BFF (Backend-for-Frontend) pattern | ⬜ | No rate limiting, no auth boundary |
+| Microservice vs. monolith decision documented with rationale | ⬜ | Ad-hoc scaling, unclear ownership |
+| Fallback / graceful degradation paths defined | ⬜ | Complete outage on LLM failure |
+
+### LLM-Specific Architecture
+| Item | Check | Risk if Missing |
+|------|-------|-----------------|
+| LLM provider abstraction layer (not tightly coupled to one vendor) | ⬜ | Vendor lock-in, single point of
 phase: 11
 lesson: 13
 ---

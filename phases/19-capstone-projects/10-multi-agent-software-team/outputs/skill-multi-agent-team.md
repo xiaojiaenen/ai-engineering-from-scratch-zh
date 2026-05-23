@@ -1,6 +1,7 @@
 ---
 name: multi-agent-team
 description: Build a multi-agent software team with architect, parallel coders, reviewer, and tester; measure against SWE-bench Pro and produce a handoff post-mortem.
+description-zh: 组建多智能体软件团队，包含架构师、并行编码员、审查员和测试员；以SWE-bench专业版为基准进行评估并生成交接复盘报告
 version: 1.0.0
 phase: 19
 lesson: 10

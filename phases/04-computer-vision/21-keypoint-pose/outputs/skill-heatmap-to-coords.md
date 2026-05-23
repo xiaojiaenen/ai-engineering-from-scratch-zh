@@ -1,6 +1,7 @@
 ---
 name: skill-heatmap-to-coords
 description: Write the sub-pixel heatmap-to-coordinate routine used by every production pose model
+description-zh: 编写所有生产姿态模型所使用的子像素热图到坐标的转换例程
 version: 1.0.0
 phase: 4
 lesson: 21

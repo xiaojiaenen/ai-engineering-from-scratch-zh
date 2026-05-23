@@ -1,6 +1,16 @@
 ---
 name: skill-prompt-patterns
 description: Decision framework for choosing the right prompt pattern based on task type, reliability requirements, and target model
+description-zh: 基于任务类型、可靠性需求及目标模型的提示模式决策框架：
+
+**核心决策流程图：**
+1.  **分析任务类型** → 2. **明确可靠性需求** → 3. **考虑目标模型特性** → 4. **选择并实施提示模式** → 5. **验证与迭代**
+
+---
+
+### **1. 任务类型与推荐提示模式**
+
+| 任务类型 | 核心目标 | 推荐提示
 version: 1.0.0
 phase: 11
 lesson: 01

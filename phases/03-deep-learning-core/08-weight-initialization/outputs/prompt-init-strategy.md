@@ -1,6 +1,44 @@
 ---
 name: prompt-init-strategy
 description: Diagnose weight initialization problems and recommend the right strategy for any neural network architecture
+description-zh: # Weight Initialization: Diagnosis & Strategy Guide
+
+## 🔍 Why Initialization Matters
+
+Bad initialization causes two critical problems:
+
+```
+❌ Vanishing Gradients: Weights too small → signals shrink to zero through layers
+❌ Exploding Gradients: Weights too large → signals grow uncontrollably
+```
+
+**Symptom:** Loss doesn't decrease, stays flat, or outputs NaN/Inf.
+
+---
+
+## 🩺 Diagnosis Toolkit
+
+### 1. Monitor Layer Activations
+
+```python
+# PyTorch: Hook to inspect activations
+activation_stats = {}
+
+def get_activation(name):
+    def hook(model, input, output):
+        activation_stats[name] = {
+            'mean': output.mean().item(),
+            'std': output.std().item(),
+            'dead_pct': (output == 0).float().mean().item()  # for ReLU
+        }
+    return hook
+
+# Register hooks
+for name, layer in model.named_modules():
+    if isinstance(layer, (nn.Linear, nn.Conv2d)):
+        layer.register_forward_hook(get_activation(name))
+
+# Run one
 phase: 03
 lesson: 08
 ---

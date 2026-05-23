@@ -1,6 +1,7 @@
 ---
 name: orchestration-picker
 description: Pick an orchestration topology (supervisor, swarm, hierarchical, debate, or none) for a given problem and implement it minimally.
+description-zh: 为给定问题选择编排拓扑（管理者/集群/分层/辩论/无模式），并实现最小化版本。
 version: 1.0.0
 phase: 14
 lesson: 28

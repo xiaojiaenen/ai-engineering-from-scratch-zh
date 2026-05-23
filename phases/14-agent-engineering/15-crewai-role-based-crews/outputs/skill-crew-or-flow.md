@@ -1,6 +1,7 @@
 ---
 name: crew-or-flow
 description: Pick CrewAI Crew or Flow for a given task, and scaffold the minimal implementation.
+description-zh: 为给定任务选择CrewAI Crew或Flow模式，并构建最小化实现基础框架。
 version: 1.0.0
 phase: 14
 lesson: 15

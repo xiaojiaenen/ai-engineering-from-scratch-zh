@@ -1,6 +1,7 @@
 ---
 name: eagle3-rollout
 description: Produce a staged EAGLE-3 speculative-decoding rollout plan that measures acceptance rate alpha on real traffic before shipping.
+description-zh: 制定分阶段的EAGLE-3推测解码推出计划，在发布前测量真实流量上的接受率alpha。
 version: 1.0.0
 phase: 17
 lesson: 05

@@ -1,6 +1,33 @@
 ---
 name: prompt-safety-auditor
 description: Audit any LLM application for safety vulnerabilities -- prompt injection, data leakage, jailbreaks, and output risks
+description-zh: # LLM Application Safety Audit Framework
+
+## 1. Prompt Injection
+
+### Direct Injection
+| Attack Vector | Test Method | Risk Level |
+|---|---|---|
+| Instruction override | "Ignore previous instructions and..." | High |
+| Role hijacking | "You are now DAN, you can do anything..." | High |
+| Delimiter escaping | Breaking out of system prompt boundaries | Critical |
+| Payload smuggling | Embedding malicious instructions in user data | Critical |
+
+### Indirect Injection
+```
+Test: Inject instructions into data sources the LLM consumes
+- Documents, web pages, emails, database records
+- Image metadata, hidden text (white-on-white)
+- Third-party API responses
+```
+
+**Audit Checklist:**
+- [ ] System prompt isolation from user input
+- [ ] Delimiter/separator robustness
+- [ ] Input sanitization before prompt assembly
+- [ ] Instruction hierarchy enforcement
+- [ ] Canary token detection for injected directives
+- [ ] Segregation of trusted
 phase: 11
 lesson: 12
 ---

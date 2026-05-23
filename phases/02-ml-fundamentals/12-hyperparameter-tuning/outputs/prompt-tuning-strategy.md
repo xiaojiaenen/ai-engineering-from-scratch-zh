@@ -1,6 +1,7 @@
 ---
 name: prompt-tuning-strategy
 description: Recommend a hyperparameter tuning strategy based on model type, data size, and compute budget
+description-zh: 根据模型类型、数据规模和计算资源推荐超参数调优策略
 phase: 2
 lesson: 12
 ---

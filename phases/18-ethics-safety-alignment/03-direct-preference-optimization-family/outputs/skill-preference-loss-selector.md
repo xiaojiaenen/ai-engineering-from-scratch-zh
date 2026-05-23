@@ -1,6 +1,7 @@
 ---
 name: preference-loss-selector
 description: Recommend a direct-alignment-algorithm loss given dataset shape and target stage.
+description-zh: 根据数据集特征和目标阶段，推荐直接对齐算法损失函数。
 version: 1.0.0
 phase: 18
 lesson: 3

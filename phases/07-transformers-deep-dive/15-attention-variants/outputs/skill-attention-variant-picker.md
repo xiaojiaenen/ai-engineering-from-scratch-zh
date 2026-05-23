@@ -1,6 +1,7 @@
 ---
 name: attention-variant-picker
 description: Pick a full / sliding-window / sparse / differential attention topology for a new model given context length, retrieval demands, and compute profile.
+description-zh: 根据上下文长度、检索需求和计算特性为新模型选择全连接/滑动窗口/稀疏/差分注意力拓扑。
 version: 1.0.0
 phase: 7
 lesson: 15

@@ -1,6 +1,7 @@
 ---
 name: 3d-pipeline
 description: Choose a 3D generation or reconstruction pipeline given input type, output format, and use case.
+description-zh: 根据输入类型、输出格式和用例，选择3D生成或重建流水线。
 version: 1.0.0
 phase: 8
 lesson: 12

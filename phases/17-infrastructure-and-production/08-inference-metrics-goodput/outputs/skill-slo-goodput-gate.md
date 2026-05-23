@@ -1,6 +1,7 @@
 ---
 name: slo-goodput-gate
 description: Produce a CI/CD-ready benchmark recipe that gates LLM deploys on goodput, not throughput, with P50/P90/P99 percentiles and a documented tool choice.
+description-zh: 产生一个CI/CD就绪的基准测试方案，该方案基于有效吞吐量而非吞吐量来限制LLM部署，包含P50/P90/P99百分位和记录的工具选择。
 version: 1.0.0
 phase: 17
 lesson: 08

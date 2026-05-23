@@ -1,6 +1,7 @@
 ---
 name: skill-recall-at-k-runner
 description: Write a clean evaluation harness for recall@K with train/val/gallery splits and proper data contract
+description-zh: 为 recall@K 编写一个清晰的评估框架，包含 train/val/gallery 划分和正确的数据契约
 version: 1.0.0
 phase: 4
 lesson: 20

@@ -1,6 +1,36 @@
 ---
 name: dqn-trainer
 description: Produce a DQN training config (buffer, target sync, ε schedule, reward clipping) for a discrete-action RL task.
+description-zh: # DQN Training Configuration
+
+## Replay Buffer
+
+| Parameter | Value |
+|---|---|
+| **Buffer size** | 1,000,000 transitions |
+| **Min samples before training** | 50,000 |
+| **Batch size** | 32 |
+| **Priority** | None (uniform sampling) |
+| **Storage** | `(s, a, r, s', done)` tuples |
+
+```python
+buffer = ReplayBuffer(
+    capacity=1_000_000,
+    min_size=50_000,
+    batch_size=32,
+    priority=False  # set True for PER variant
+)
+```
+
+---
+
+## Target Network Sync
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| **Update method** | Hard copy | Original DQN style |
+| **Sync frequency** | Every 10,000 steps | Stable bootstrapping |
+| **τ (soft update)** | N/A | Use hard copy (set τ=0
 version: 1.0.0
 phase: 9
 lesson: 5

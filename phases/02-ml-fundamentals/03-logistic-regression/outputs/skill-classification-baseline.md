@@ -1,6 +1,7 @@
 ---
 name: skill-classification-baseline
 description: Establish a strong classification baseline before reaching for complex models
+description-zh: 在尝试复杂模型前建立稳健的分类基线
 version: 1.0.0
 phase: 2
 lesson: 3

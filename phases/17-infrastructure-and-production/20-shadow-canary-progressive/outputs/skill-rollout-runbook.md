@@ -1,6 +1,7 @@
 ---
 name: rollout-runbook
 description: Design a shadow → canary → A/B → 100% rollout plan for a new LLM model or prompt template, with five canary gates, noise-floor-aware thresholds, and a seconds-fast rollback path.
+description-zh: 为新的LLM模型或提示模板设计阴影 → 金丝雀 → A/B → 100%推出计划，包含五个金丝雀门限、噪声底线感知阈值和秒级快速回滚路径。
 version: 1.0.0
 phase: 17
 lesson: 20

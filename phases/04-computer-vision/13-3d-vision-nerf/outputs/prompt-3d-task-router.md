@@ -1,6 +1,7 @@
 ---
 name: prompt-3d-task-router
 description: Route to the right 3D representation (point cloud, mesh, voxel, NeRF, Gaussian splat) based on task and input
+description-zh: 根据任务和输入选择合适的3D表示（点云/网格/体素/NeRF/高斯溅射）。
 phase: 4
 lesson: 13
 ---

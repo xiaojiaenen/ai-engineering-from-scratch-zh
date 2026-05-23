@@ -1,6 +1,7 @@
 ---
 name: router-plan
 description: Design an LLM model-routing plan — pick pattern (pre-route, cascade, ensemble), signals (task, length, embedding, confidence), and online quality gates.
+description-zh: 设计LLM模型路由计划——选择模式（预路由、级联、集成）、信号（任务、长度、嵌入、置信度）和在线质量门限。
 version: 1.0.0
 phase: 17
 lesson: 16

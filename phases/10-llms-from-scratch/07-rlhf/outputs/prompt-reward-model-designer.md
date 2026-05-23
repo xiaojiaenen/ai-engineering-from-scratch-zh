@@ -1,6 +1,7 @@
 ---
 name: prompt-reward-model-designer
 description: Design reward model training pipelines for RLHF alignment
+description-zh: 为RLHF对齐设计奖励模型训练管道
 version: 1.0.0
 phase: 10
 lesson: 7

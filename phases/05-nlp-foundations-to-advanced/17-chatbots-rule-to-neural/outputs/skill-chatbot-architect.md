@@ -1,6 +1,30 @@
 ---
 name: chatbot-architect
 description: Design a chatbot stack for a given use case.
+description-zh: # Chatbot Stack Design Framework
+
+Since no specific use case was provided, I'll use a **Customer Support Chatbot for an E-commerce Platform** as an illustrative example. This framework can be adapted to any use case.
+
+---
+
+## 1. Define the Use Case
+
+| Attribute | Details |
+|---|---|
+| **Goal** | Automate 70% of customer support queries |
+| **Users** | E-commerce shoppers |
+| **Channels** | Website, Mobile App, WhatsApp, Facebook Messenger |
+| **Key Tasks** | Order tracking, returns/refunds, FAQs, escalation to human agents |
+
+---
+
+## 2. High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                  CHANNELS                        │
+│  (Web Widget, Mobile App, WhatsApp, Messenger)   │
+└────────────────
 version: 1.0.0
 phase: 5
 lesson: 17

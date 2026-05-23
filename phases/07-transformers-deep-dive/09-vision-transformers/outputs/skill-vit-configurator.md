@@ -1,6 +1,7 @@
 ---
 name: vit-configurator
 description: Pick a ViT variant, patch size, and pretraining source for a new vision task.
+description-zh: 为新的视觉任务选择ViT变体、块大小和预训练来源。
 version: 1.0.0
 phase: 7
 lesson: 9

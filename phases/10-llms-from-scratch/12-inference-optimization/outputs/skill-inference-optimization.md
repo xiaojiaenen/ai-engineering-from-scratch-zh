@@ -1,6 +1,7 @@
 ---
 name: skill-inference-optimization
 description: Diagnose and optimize LLM inference serving throughput, latency, and cost
+description-zh: 诊断和优化大语言模型推理服务的吞吐量、延迟和成本
 version: 1.0.0
 phase: 10
 lesson: 12

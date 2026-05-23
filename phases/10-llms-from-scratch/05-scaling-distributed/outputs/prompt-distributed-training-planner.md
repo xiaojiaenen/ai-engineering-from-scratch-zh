@@ -1,6 +1,7 @@
 ---
 name: prompt-distributed-training-planner
 description: Plan a distributed training run given model size and available hardware
+description-zh: 根据模型规模和可用硬件规划分布式训练运行
 version: 1.0.0
 phase: 10
 lesson: 5

@@ -1,6 +1,15 @@
 ---
 name: skill-production-checklist
 description: Decision framework for shipping LLM applications to production -- covers every component with specific thresholds and pass/fail criteria
+description-zh: LLM应用生产部署决策框架：涵盖所有关键组件，含具体阈值与通过/不通过标准
+
+---
+
+### **1. 数据层**
+**指标**：数据质量、覆盖度、标注一致性  
+**阈值**：
+- 训练/评估数据准确率 ≥ 95%
+- 边缘案例覆盖 ≥ 90
 version: 1.0.0
 phase: 11
 lesson: 13

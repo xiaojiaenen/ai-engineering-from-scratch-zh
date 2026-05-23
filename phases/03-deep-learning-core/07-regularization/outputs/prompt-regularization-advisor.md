@@ -1,6 +1,31 @@
 ---
 name: prompt-regularization-advisor
 description: A diagnostic prompt for choosing regularization strategies based on overfitting symptoms
+description-zh: # Diagnostic Prompt: Choosing Regularization Strategies Based on Overfitting Symptoms
+
+---
+
+## Step 1: Identify Overfitting Symptoms
+
+Use this diagnostic checklist to classify your symptoms:
+
+| # | Symptom | Indicator |
+|---|---------|-----------|
+| S1 | **Large train-validation gap** | Training accuracy/loss ≫ validation accuracy/loss |
+| S2 | **Noisy model outputs** | Unstable predictions, large weight magnitudes |
+| S3 | **High variance across folds** | CV scores fluctuate wildly |
+| S4 | **Model memorizes training data** | Perfect/near-perfect training metrics |
+| S5 | **Poor generalization on unseen data** | Test performance degrades significantly |
+| S6 | **Excessive feature reliance** | Model uses too many features / complex interactions |
+
+---
+
+## Step 2: Map Symptoms → Root Causes → Strategies
+
+### 🔴 Root Cause A: Excessive Model Complexity
+**Symptoms:** S1, S4, S6
+
+| Strategy | When to Use | Key
 phase: 03
 lesson: 07
 ---

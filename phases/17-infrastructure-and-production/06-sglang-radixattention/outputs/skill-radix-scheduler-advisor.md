@@ -1,6 +1,7 @@
 ---
 name: radix-scheduler-advisor
 description: Advise on SGLang adoption and prompt-ordering discipline for prefix-heavy workloads that want RadixAttention's cache reuse.
+description-zh: 为希望利用RadixAttention缓存重用的前缀密集型工作负载，建议SGLang采用和提示顺序规范。
 version: 1.0.0
 phase: 17
 lesson: 06

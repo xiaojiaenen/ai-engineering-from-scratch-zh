@@ -1,6 +1,7 @@
 ---
 name: skill-graph-analysis
 description: Analyze graph-structured data and choose the right graph algorithm for ML tasks
+description-zh: 分析图结构数据并为机器学习任务选择合适的图算法。
 phase: 1
 lesson: 21
 ---

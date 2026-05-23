@@ -1,6 +1,7 @@
 ---
 name: skill-tokenizer
 description: Choosing and building tokenizers for LLM projects
+description-zh: 为大语言模型项目选择和构建分词器
 version: 1.0.0
 phase: 10
 lesson: 1

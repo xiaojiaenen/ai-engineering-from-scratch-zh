@@ -1,6 +1,7 @@
 ---
 name: video-brief
 description: Translate a video brief into a model + prompt + shot plan for a 2026 video generator.
+description-zh: 将视频简报转化为2026视频生成器的模型+提示+分镜方案。
 version: 1.0.0
 phase: 8
 lesson: 10

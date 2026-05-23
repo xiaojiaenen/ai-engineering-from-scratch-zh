@@ -1,6 +1,12 @@
 ---
 name: skill-embedding-patterns
 description: Production patterns for embeddings, vector search, and similarity
+description-zh: 嵌入、向量搜索与相似性计算的生产模式
+
+**1. 嵌入生成**
+- **模型选择**：采用预训练模型（如 BERT、CLIP）或领域专用模型，通过微调提升质量。
+- **维度优化**：使用 PCA 或自动编码器降低维度，平衡精度与效率。
+- **缓存策略**：对频繁访问的文本/图像
 version: 1.0.0
 phase: 11
 lesson: 4

@@ -1,6 +1,7 @@
 ---
 name: skill-quantization
 description: Choose the right quantization strategy for deploying LLMs based on hardware, quality, and latency constraints
+description-zh: 根据硬件、质量和延迟约束选择部署大语言模型的正确量化策略
 version: 1.0.0
 phase: 10
 lesson: 11

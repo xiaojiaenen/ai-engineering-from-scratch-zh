@@ -1,6 +1,7 @@
 ---
 name: vla-action-format-picker
 description: Pick an action format (discrete bin, FAST, flow-matching, dual-system) and VLA family (RT-2, OpenVLA, π0, GR00T) for a robot task.
+description-zh: 为机器人任务选择动作格式（离散分箱、FAST、流匹配、双系统）和VLA系列（RT-2、OpenVLA、π0、GR00T）
 version: 1.0.0
 phase: 12
 lesson: 21

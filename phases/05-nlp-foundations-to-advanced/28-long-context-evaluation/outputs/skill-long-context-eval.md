@@ -1,6 +1,28 @@
 ---
 name: long-context-eval
 description: Design a long-context evaluation battery for a given model and use case.
+description-zh: # Long-Context Evaluation Battery Design Framework
+
+## Step 1: Define Parameters
+
+```
+MODEL: [e.g., LLM with 128K token context window]
+USE CASE: [e.g., Legal contract analysis]
+TYPICAL INPUT LENGTH: [e.g., 50K–100K tokens]
+```
+
+---
+
+## Step 2: Test Categories & Specific Tasks
+
+### A. Needle-in-a-Haystack (NIAH) Retrieval
+| Dimension | Details |
+|-----------|---------|
+| **Purpose** | Test fact recall at varying depths |
+| **Method** | Embed a unique fact ("needle") at 0%, 25%, 50%, 75%, 95% depth in a long "haystack" of irrelevant text |
+| **Variants** | Single needle, multi-needle (scattered), distractor needles |
+| **Metric** | Exact match accuracy per depth position |
+| **Context lengths** | 8K, 32K, 64K, 128K (step up to model max
 version: 1.0.0
 phase: 5
 lesson: 28

@@ -1,6 +1,7 @@
 ---
 name: rsi-cycle-pause-spec
 description: Specify the conditions under which an RSI pipeline must pause and wait for human review before the next cycle.
+description-zh: 明确递归自我改进流水线必须暂停并等待人工审查后方可进入下一周期的具体条件。
 version: 1.0.0
 phase: 15
 lesson: 7

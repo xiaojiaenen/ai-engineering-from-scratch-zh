@@ -1,6 +1,7 @@
 ---
 name: chaos-plan
 description: Design an LLM chaos engineering plan — verify prerequisites, build four planes, pick tool, start with three safe experiments, enforce safety-plane gates.
+description-zh: 设计LLM混沌工程计划——验证前提条件、构建四个平面、选择工具、从三个安全实验开始、执行安全平面门限。
 version: 1.0.0
 phase: 17
 lesson: 24

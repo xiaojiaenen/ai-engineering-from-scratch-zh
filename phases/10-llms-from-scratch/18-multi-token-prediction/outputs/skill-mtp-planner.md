@@ -1,6 +1,7 @@
 ---
 name: mtp-planner
 description: Plan a multi-token prediction integration for a new pre-training run.
+description-zh: 为新预训练运行规划多token预测集成方案
 version: 1.0.0
 phase: 10
 lesson: 18

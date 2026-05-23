@@ -1,6 +1,7 @@
 ---
 name: tripwire-design
 description: Review a proposed agent detector stack (kill switch, circuit breakers, canary tokens) and flag missing tripwires before the first autonomous run.
+description-zh: 审查拟议的智能体检测器堆栈（终止开关、熔断机制、金丝雀令牌），并在首次自主运行前标记缺失的触发条件。
 version: 1.0.0
 phase: 15
 lesson: 14

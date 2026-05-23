@@ -1,6 +1,7 @@
 ---
 name: skill-evaluation
 description: Evaluation strategy checklist for classification and regression models
+description-zh: 分类与回归模型的评估策略检查清单
 version: 1.0.0
 phase: 2
 lesson: 9

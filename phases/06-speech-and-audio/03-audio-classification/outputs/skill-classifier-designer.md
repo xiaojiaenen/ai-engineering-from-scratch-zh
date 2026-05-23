@@ -1,6 +1,26 @@
 ---
 name: classifier-designer
 description: Pick architecture, augmentation, class-balance strategy, and eval metric for an audio classification task.
+description-zh: # Audio Classification Pipeline Recommendations
+
+## Architecture
+**Audio Spectrogram Transformer (AST)**
+- Pre-trained on AudioSet, fine-tunes well on downstream tasks.
+- Alternative: **CNN backbone (e.g., EfficientNet-B0)** over log-mel spectrograms for smaller datasets or constrained compute.
+
+## Augmentation
+| Technique | Purpose |
+|---|---|
+| **SpecAugment** (time/freq masking) | Simulates occlusion, regularizes |
+| **Mixup / CutMix on spectrograms** | Smoother decision boundaries |
+| **Time-stretch & pitch-shift** | Robustness to speed/tone variation |
+| **Background noise mixing** (from ESC-50, etc.) | Real-world robustness |
+
+> Apply **on-the-fly** during training for variety.
+
+## Class-Balance Strategy
+1. **Weighted sampler** (inverse class frequency) — simplest, effective first step.
+2. **Focal loss** (γ ≈ 2) — down-weights easy/major
 version: 1.0.0
 phase: 6
 lesson: 03

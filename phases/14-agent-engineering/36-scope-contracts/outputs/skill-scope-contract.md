@@ -1,6 +1,7 @@
 ---
 name: scope-contract
 description: Generate per-task scope contracts with allowed/forbidden globs, acceptance criteria, and rollback plan, plus a CI-ready glob-aware checker that runs on every agent diff.
+description-zh: 为每个任务生成范围契约（含允许/禁止的glob模式、验收标准和回滚计划），并附带可在每次智能体差异提交时运行的CI就绪glob模式检查器。
 version: 1.0.0
 phase: 14
 lesson: 36

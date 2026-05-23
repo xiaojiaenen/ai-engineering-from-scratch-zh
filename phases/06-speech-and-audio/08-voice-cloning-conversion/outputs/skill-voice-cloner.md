@@ -1,6 +1,21 @@
 ---
 name: voice-cloner
 description: Pick cloning approach (zero-shot / conversion / adaptation), consent artifact, watermark, and safety filters for a voice-cloning deployment.
+description-zh: # Voice-Cloning Deployment: Key Design Choices
+
+---
+
+## 1. Cloning Approach
+
+| Approach | How It Works | Best For | Trade-offs |
+|---|---|---|---|
+| **Zero-shot** | Clone from a few seconds of reference audio with no fine-tuning | Rapid prototyping, low-friction user experience | Lower fidelity; harder to control quality |
+| **Conversion (TTS + voice transfer)** | Generate speech with a base TTS model, then convert timbre to target voice | Consistent prosody; decouples TTS quality from cloning | Two-stage pipeline; potential artifacts at conversion boundary |
+| **Adaptation (fine-tuning)** | Fine-tune a pretrained model on target speaker's data | Highest fidelity & speaker similarity | Requires 1–30 min clean data; per-speaker training cost; overfitting risk |
+
+### Recommendation
+- **Start with zero-shot** for broad access / low barrier.
+- **Upgrade to adaptation** for high-value or premium speakers where you
 version: 1.0.0
 phase: 6
 lesson: 08

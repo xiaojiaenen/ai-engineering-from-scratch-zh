@@ -1,6 +1,7 @@
 ---
 name: cache-auditor
 description: Audit an LLM prompt template and traffic pattern for cacheability. Recommend prompt restructure, TTL choice, parallelization fix, and semantic-cache threshold.
+description-zh: 审计LLM提示模板和流量模式的可缓存性。推荐提示重构、TTL选择、并行化修复和语义缓存阈值。
 version: 1.0.0
 phase: 17
 lesson: 14

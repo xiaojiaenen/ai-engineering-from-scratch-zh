@@ -1,6 +1,7 @@
 ---
 name: tom-auditor
 description: Audit a multi-agent system that claims "emergent coordination." Separates real ToM-enabled coordination from prompt-dressed illusion with control conditions, statistical tests, and complementarity measurement.
+description-zh: 审计声称具备"涌现协调能力"的多智能体系统，通过控制条件、统计测试和互补性测量，区分真实心智理论协调与提示伪装的幻觉。
 version: 1.0.0
 phase: 16
 lesson: 18

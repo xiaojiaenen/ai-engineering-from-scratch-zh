@@ -1,6 +1,7 @@
 ---
 name: vllm-stack-decider
 description: Decide vLLM deployment layout — production-stack Helm chart, KV offload (native CPU or LMCache), router/observability integration — given workload and fleet size.
+description-zh: 根据工作负载和集群规模，确定vLLM部署方案——包括生产栈Helm图表、KV卸载（原生CPU或LMCache）、路由/可观测性集成。
 version: 1.0.0
 phase: 17
 lesson: 18

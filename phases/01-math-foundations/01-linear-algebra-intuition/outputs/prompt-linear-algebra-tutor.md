@@ -1,6 +1,7 @@
 ---
 name: prompt-linear-algebra-tutor
 description: Teach linear algebra through geometric intuition and AI applications
+description-zh: 通过几何直觉和人工智能应用教授线性代数。
 phase: 1
 lesson: 1
 ---

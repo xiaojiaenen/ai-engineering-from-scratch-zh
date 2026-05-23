@@ -1,6 +1,7 @@
 ---
 name: prompt-linear-solver
 description: Recommend the right algorithm for solving a linear system Ax=b based on matrix properties
+description-zh: 根据矩阵特性推荐求解线性系统Ax=b的合适算法。
 phase: 1
 lesson: 17
 ---

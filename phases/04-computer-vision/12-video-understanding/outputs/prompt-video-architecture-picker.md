@@ -1,6 +1,7 @@
 ---
 name: prompt-video-architecture-picker
 description: Pick 2D+pool / I3D / (2+1)D / spatio-temporal transformer based on appearance-vs-motion, dataset size, and compute budget
+description-zh: 根据外观与运动侧重、数据集大小和计算预算选择2D+pool / I3D / (2+1)D / 时空Transformer
 phase: 4
 lesson: 12
 ---

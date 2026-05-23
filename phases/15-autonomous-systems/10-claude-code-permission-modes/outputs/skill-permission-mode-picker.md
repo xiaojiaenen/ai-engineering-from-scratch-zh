@@ -1,6 +1,7 @@
 ---
 name: permission-mode-picker
 description: Match a Claude Code task to the correct permission mode, budget caps, and required isolation before starting a run.
+description-zh: 在启动运行前，将Claude Code任务匹配至正确的权限模式、预算上限及所需隔离环境。
 version: 1.0.0
 phase: 15
 lesson: 10

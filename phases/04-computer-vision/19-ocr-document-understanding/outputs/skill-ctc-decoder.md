@@ -1,6 +1,7 @@
 ---
 name: skill-ctc-decoder
 description: Write greedy and beam-search CTC decoders from scratch, including length normalisation
+description-zh: 从头编写贪婪和束搜索 CTC 解码器，包括长度归一化
 version: 1.0.0
 phase: 4
 lesson: 19

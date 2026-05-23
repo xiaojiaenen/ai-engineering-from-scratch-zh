@@ -1,6 +1,7 @@
 ---
 name: prompt-sft-data-curator
 description: Design and curate instruction datasets for supervised fine-tuning
+description-zh: 为监督微调设计与策划指令数据集
 version: 1.0.0
 phase: 10
 lesson: 6

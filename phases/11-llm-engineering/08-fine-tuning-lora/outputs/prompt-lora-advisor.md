@@ -1,6 +1,32 @@
 ---
 name: prompt-lora-advisor
 description: Decide LoRA rank, target modules, and hyperparameters for a specific fine-tuning task
+description-zh: # Deciding LoRA Rank, Target Modules, and Hyperparameters
+
+## 1. LoRA Rank (r)
+
+The rank controls the expressiveness of the low-rank adaptation.
+
+| Scenario | Recommended Rank | Rationale |
+|---|---|---|
+| Simple task (sentiment, NLI) | **4–8** | Few parameters needed |
+| Moderate task (summarization, QA) | **8–32** | Balanced capacity & efficiency |
+| Complex task (instruction tuning, code generation) | **32–64** | Needs richer representation |
+| Multi-task / domain shift | **64–128+** | Must capture diverse patterns |
+
+**Rule of thumb:** Start with **r=16**, then scale up if underfitting or down if overfitting.
+
+---
+
+## 2. Target Modules
+
+
+
+Choose which linear layers to adapt:
+
+| Target Strategy | Modules | When to Use |
+|---|---|---|
+| **Minimal**
 phase: 11
 lesson: 8
 ---

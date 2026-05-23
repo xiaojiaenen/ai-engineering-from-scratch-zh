@@ -1,6 +1,7 @@
 ---
 name: prompt-classifier-pipeline-auditor
 description: Audit a PyTorch image classification training script for the five invariants that cover most silent bugs
+description-zh: 审查一个 PyTorch 图像分类训练脚本，检查五项能覆盖大多数隐蔽错误的关键不变量
 phase: 4
 lesson: 4
 ---

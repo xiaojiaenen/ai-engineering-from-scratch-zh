@@ -1,6 +1,7 @@
 ---
 name: classifier-stack-audit
 description: Audit a deployment's input/output classifier stack (model, taxonomy, input rails, output rails, dialog rails) and flag adversarial-attack gaps.
+description-zh: 审查部署的输入/输出分类器堆栈（模型、分类体系、输入护栏、输出护栏、对话护栏），并标记对抗性攻击漏洞。
 version: 1.0.0
 phase: 15
 lesson: 18

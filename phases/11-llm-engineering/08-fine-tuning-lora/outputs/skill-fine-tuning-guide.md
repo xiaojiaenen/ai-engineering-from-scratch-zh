@@ -1,6 +1,27 @@
 ---
 name: skill-fine-tuning-guide
 description: Decision tree for when and how to fine-tune LLMs with LoRA and QLoRA
+description-zh: # Decision Tree: Fine-Tuning LLMs with LoRA & QLoRA
+
+```
+START: You have a task and want better LLM performance.
+│
+├─ Q1: Can prompt engineering / few-shot examples solve it?
+│   ├─ YES → Stop. Use prompting. (Fastest, cheapest, no training)
+│   └─ NO ↓
+│
+├─ Q2: Does an existing fine-tuned model on HuggingFace fit your needs?
+│   ├─ YES → Stop. Use that model directly or with minor prompt tuning.
+│   └─ NO ↓
+│
+├─ Q3: Do you have labeled training data? (typically 1K–100K examples)
+│   ├─ NO → Go collect/generate data first. Consider synthetic data from a larger LLM.
+│   └─ YES ↓
+│
+├─ Q4: Do you need to adapt task behavior / style / domain knowledge,
+│        or do you need fundamentally new capabilities?
+│   │
+│   ├
 version: 1.0.0
 phase: 11
 lesson: 8

@@ -1,6 +1,7 @@
 ---
 name: prompt-spectral-analyzer
 description: Guides analysis of frequency content in signals using Fourier transform techniques
+description-zh: 使用傅里叶变换技术指导分析信号中的频率成分
 phase: 1
 lesson: 20
 ---

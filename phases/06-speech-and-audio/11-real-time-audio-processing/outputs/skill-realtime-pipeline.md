@@ -1,6 +1,30 @@
 ---
 name: realtime-voice-pipeline
 description: Pick transport, VAD, streaming STT, LLM, streaming TTS, and orchestration for a target end-to-end latency.
+description-zh: # Building a Low-Latency Voice AI Pipeline
+
+## The Latency Budget
+
+A typical voice pipeline has these serial stages:
+
+```
+Audio In → VAD → STT → LLM → TTS → Audio Out
+```
+
+Total latency = **transport + VAD + STT + LLM + TTS + transport**
+
+---
+
+## Component-by-Component Selection
+
+### 1. Transport Layer
+
+| Option | Latency | Best For |
+|--------|---------|----------|
+| **WebSocket** | ~5-15 ms | Simple, good enough for most cases |
+| **WebRTC** | ~1-5 ms | Browser-native, NAT traversal |
+| **Raw UDP/RTP** | ~1-3 ms | Controlled environments |
+| **gRPC streaming** | ~10-20 ms | Service-to-service |
 version: 1.0.0
 phase: 6
 lesson: 11

@@ -1,6 +1,7 @@
 ---
 name: workflow-picker
 description: Pick the right pattern (prompt chain, router, parallel, orchestrator-workers, evaluator-optimizer, or full agent) for a given task and produce the minimal implementation.
+description-zh: 为特定任务选择正确的模式（提示链、路由器、并行、编排器-工作者、评估器-优化器或完整智能体）并实现最小化部署。
 version: 1.0.0
 phase: 14
 lesson: 12

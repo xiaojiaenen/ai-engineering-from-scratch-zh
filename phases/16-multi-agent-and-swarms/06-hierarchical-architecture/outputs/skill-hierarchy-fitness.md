@@ -1,6 +1,7 @@
 ---
 name: hierarchy-fitness
 description: Decide whether a multi-agent task fits hierarchical, flat supervisor, or sequential. Surface the failure modes that matter.
+description-zh: 判断多智能体任务适合层次化、扁平监督者还是序列化架构，并揭示关键失效模式。
 version: 1.0.0
 phase: 16
 lesson: 06

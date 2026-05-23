@@ -1,6 +1,7 @@
 ---
 name: dp-audit
 description: Audit a differential-privacy claim for a language-model deployment.
+description-zh: 审计语言模型部署的差分隐私声明。
 version: 1.0.0
 phase: 18
 lesson: 22

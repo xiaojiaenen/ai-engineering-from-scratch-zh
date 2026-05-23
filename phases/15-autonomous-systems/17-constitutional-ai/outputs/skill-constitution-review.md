@@ -1,6 +1,7 @@
 ---
 name: constitution-review
 description: Audit a deployment's constitutional layer — hardcoded prohibitions, soft-coded defaults, operator-adjustable bounds, and four-tier hierarchy resolution.
+description-zh: 审查部署的宪法层——硬编码禁止条款、软编码默认值、操作员可调边界及四层级冲突解决机制。
 version: 1.0.0
 phase: 15
 lesson: 17

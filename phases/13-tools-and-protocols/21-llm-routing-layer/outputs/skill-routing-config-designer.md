@@ -1,6 +1,7 @@
 ---
 name: routing-config-designer
 description: Given a workload profile, pick LiteLLM / OpenRouter / Portkey and produce a routing config.
+description-zh: 
 version: 1.0.0
 phase: 13
 lesson: 20

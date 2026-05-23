@@ -1,6 +1,7 @@
 ---
 name: provider-portability-audit
 description: Audit a function-calling integration against one provider for what breaks when ported to the other two.
+description-zh: 
 version: 1.0.0
 phase: 13
 lesson: 02

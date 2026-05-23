@@ -1,6 +1,7 @@
 ---
 name: skill-lora-training-setup
 description: Write a full LoRA training config for a custom dataset, including captions, rank, batch size, and learning rate
+description-zh: 为自定义数据集编写完整的LoRA训练配置，包括描述文本、秩、批大小和学习率
 version: 1.0.0
 phase: 4
 lesson: 11

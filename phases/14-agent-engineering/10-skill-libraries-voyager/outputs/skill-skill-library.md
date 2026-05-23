@@ -1,6 +1,7 @@
 ---
 name: skill-library
 description: Generate a Voyager-shaped skill library with registration, retrieval by similarity, compositional execution, and failure-driven refinement.
+description-zh: 生成Voyager风格的技能库，支持注册、相似性检索、组合执行和失败驱动的优化机制。
 version: 1.0.0
 phase: 14
 lesson: 10

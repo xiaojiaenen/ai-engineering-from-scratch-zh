@@ -1,6 +1,39 @@
 ---
 name: grammar-pipeline
 description: Design a classical POS + dependency pipeline for a downstream NLP task.
+description-zh: # Classical POS + Dependency Parsing Pipeline
+
+## Architecture Overview
+
+```
+Raw Text → Tokenization → POS Tagging → Dependency Parsing → Downstream Task
+```
+
+---
+
+## Stage 1: Tokenization
+
+| Aspect | Details |
+|---|---|
+| **Method** | Rule-based (whitespace + punctuation splitting) + normalization |
+| **Handling** | Contractions (`don't` → `do n't`), hyphenation, URLs, numbers |
+| **Output** | Sentence-level token lists |
+
+---
+
+## Stage 2: POS Tagging (Sequence Labeling)
+
+### Features (per token *wᵢ*)
+
+```
+Morphological:
+  - Prefix/suffix (2-4 chars): "un-", "-ing", "-ed", "-tion"
+  - Capitalization pattern, hyphenation
+  - Contains digit? Contains hyphen?
+
+Contextual (window ±2):
+  - Word identity: w_{i-2}, w_{i-1}, w_i, w_{i+1}, w_{i+2}
+  -
 version: 1.0.0
 phase: 5
 lesson: 07

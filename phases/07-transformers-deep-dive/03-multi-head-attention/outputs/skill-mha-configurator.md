@@ -1,6 +1,7 @@
 ---
 name: mha-configurator
 description: Recommend head count, KV-head count, and projection strategy (MHA / MQA / GQA / MLA) for a new transformer.
+description-zh: 为新的Transformer推荐头数、键值头数和投影策略（MHA / MQA / GQA / MLA）。
 version: 1.0.0
 phase: 7
 lesson: 3

@@ -1,6 +1,7 @@
 ---
 name: refine-loop
 description: Configure an evaluator-optimizer (Self-Refine / CRITIC) loop given task, verifier availability, and iteration budget.
+description-zh: 根据任务、验证器可用性和迭代预算配置评估器-优化器（Self-Refine/CRITIC）循环。
 version: 1.0.0
 phase: 14
 lesson: 05

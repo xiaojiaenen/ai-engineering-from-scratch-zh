@@ -1,6 +1,7 @@
 ---
 name: seq2seq-picker
 description: Choose encoder-decoder vs decoder-only for a new sequence-to-sequence task.
+description-zh: 为新的序列到序列任务选择编码器-解码器还是纯解码器架构。
 version: 1.0.0
 phase: 7
 lesson: 8

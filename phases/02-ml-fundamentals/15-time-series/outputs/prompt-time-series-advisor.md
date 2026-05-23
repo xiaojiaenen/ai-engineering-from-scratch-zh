@@ -1,6 +1,7 @@
 ---
 name: prompt-time-series-advisor
 description: Frame time series problems and recommend approaches
+description-zh: 构建时间序列问题框架并推荐解决方案
 phase: 2
 lesson: 15
 ---

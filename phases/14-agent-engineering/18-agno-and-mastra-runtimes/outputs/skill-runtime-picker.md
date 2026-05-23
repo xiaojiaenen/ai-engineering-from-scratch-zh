@@ -1,6 +1,7 @@
 ---
 name: runtime-picker
 description: Pick a production agent runtime (Agno, Mastra, LangGraph, provider SDK) for a given stack, latency budget, and operational shape.
+description-zh: 针对特定技术栈、延迟预算和运维形态选择合适的生产级智能体运行时（Agno、Mastra、LangGraph或提供商SDK）。
 version: 1.0.0
 phase: 14
 lesson: 18

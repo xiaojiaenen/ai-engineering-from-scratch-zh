@@ -1,6 +1,7 @@
 ---
 name: compliance-matrix
 description: Produce the required-framework matrix for an LLM SaaS given customer geography, segment, and contract scope. Map controls across SOC 2, HIPAA, GDPR, PCI-DSS, EU AI Act, Colorado AI Act, ISO 42001.
+description-zh: 根据客户地理位置、细分市场和合同范围，为LLM SaaS生成所需框架矩阵。映射SOC 2、HIPAA、GDPR、PCI-DSS、EU AI Act、Colorado AI Act、ISO 42001的控制措施。
 version: 1.0.0
 phase: 17
 lesson: 26

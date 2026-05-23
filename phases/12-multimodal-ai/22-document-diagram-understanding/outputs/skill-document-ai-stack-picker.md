@@ -1,6 +1,7 @@
 ---
 name: document-ai-stack-picker
 description: Pick between OCR pipeline, OCR-free specialist, and VLM-native for a document-AI project based on domain, scale, and regulatory needs.
+description-zh: 根据领域、规模和合规需求，为文档AI项目在OCR流水线、无OCR专家模型和VLM原生方案间选择
 version: 1.0.0
 phase: 12
 lesson: 22

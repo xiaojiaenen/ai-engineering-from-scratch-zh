@@ -1,6 +1,36 @@
 ---
 name: mdp-modeler
 description: Given a task description, produce a Markov Decision Process spec and flag formulation risks before training.
+description-zh: # MDP Specification & Formulation Risk Checklist
+
+## Step 1: Extract the MDP Tuple ⟨S, A, T, R, γ⟩
+
+Given any task description, define each component:
+
+### **State Space (S)**
+```
+- What observations does the agent receive?
+- Are states fully observable (MDP) or partially observable (POMDP)?
+- Continuous or discrete?
+- What features are included / excluded?
+- Include: agent state, environment state, goal/task parameters
+```
+
+### **Action Space (A)**
+```
+- Discrete (finite set) or Continuous (ℝⁿ)?
+- Low-level (torques, velocities) vs. high-level (subgoals, options)?
+- Hierarchical actions needed?
+- Constraints on actions (e.g., joint limits, budgets)?
+```
+
+### **Transition Function (T)**
+```
+- Known (model-based) or learned (model-free)?
+- Stochastic or deterministic?
+- Stationary or non-stationary?
+- Physics-based simulator or real-world?
+```
 version: 1.0.0
 phase: 9
 lesson: 1

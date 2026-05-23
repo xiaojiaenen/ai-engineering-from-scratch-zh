@@ -1,6 +1,7 @@
 ---
 name: skill-function-calling-patterns
 description: Decision framework for implementing function calling in production -- tool design, error handling, security, and provider patterns
+description-zh: 生产环境中实现 function calling 的决策框架——tool 设计、错误处理、安全性和 provider 模式
 version: 1.0.0
 phase: 11
 lesson: 09

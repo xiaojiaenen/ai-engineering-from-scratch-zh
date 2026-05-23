@@ -1,6 +1,7 @@
 ---
 name: eval-suite
 description: Build a three-layer eval suite (static benchmarks, custom offline, online production) with evaluator-optimizer loop and CI gates.
+description-zh: 建立三层评估套件（静态基准测试、定制化离线测试、在线生产测试），配备评估器-优化器循环和持续集成门控。
 version: 1.0.0
 phase: 14
 lesson: 30

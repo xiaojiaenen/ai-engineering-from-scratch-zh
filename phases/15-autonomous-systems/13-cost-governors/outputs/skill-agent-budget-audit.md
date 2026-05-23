@@ -1,6 +1,7 @@
 ---
 name: agent-budget-audit
 description: Audit an agent deployment's cost-governor stack and flag missing layers before enabling unattended runs.
+description-zh: 审查智能体部署的成本调控器堆栈，并在启用无人值守运行前标记缺失层级。
 version: 1.0.0
 phase: 15
 lesson: 13

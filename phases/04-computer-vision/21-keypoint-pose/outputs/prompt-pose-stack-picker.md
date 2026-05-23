@@ -1,6 +1,7 @@
 ---
 name: prompt-pose-stack-picker
 description: Pick MediaPipe / YOLOv8-pose / HRNet / ViTPose given latency, crowd size, and 2D vs 3D need
+description-zh: 根据延迟、人群规模和 2D vs 3D 需求，选择 MediaPipe / YOLOv8-pose / HRNet / ViTPose
 phase: 4
 lesson: 21
 ---

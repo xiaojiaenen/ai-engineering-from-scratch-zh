@@ -1,6 +1,24 @@
 ---
 name: prompt-eval-designer
 description: Design tailored evaluation rubrics and test suites for LLM applications from a description of the use case
+description-zh: # Designing Tailored Evaluation Rubrics & Test Suites for LLM Applications
+
+## A Framework for Use-Case-Driven LLM Evaluation
+
+---
+
+## 1. Input: Use Case Profiling
+
+Before generating evaluations, extract key attributes from the use case description:
+
+| Dimension | Questions to Extract | Example |
+|-----------|---------------------|---------|
+| **Task Type** | What is the LLM doing? | Summarization, classification, generation, extraction, QA, dialogue |
+| **Domain** | What field/industry? | Medical, legal, finance, e-commerce, education |
+| **Output Format** | What does the output look like? | Free text, JSON, code, table, structured label |
+| **User Persona** | Who interacts with it? | End consumer, developer, domain expert |
+| **Stakes Level** | What are the consequences of errors? | Low (chatbot fun), medium (customer support), high (medical advice) |
+| **Constraints** | Tone, length, safety, latency? |
 phase: 11
 lesson: 10
 ---

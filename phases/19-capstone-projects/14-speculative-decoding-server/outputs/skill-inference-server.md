@@ -1,6 +1,7 @@
 ---
 name: inference-server
 description: Ship a speculative-decoding inference server with EAGLE-3 or P-EAGLE drafts, K8s autoscaling, and a full throughput/latency/cost report.
+description-zh: 推出投机解码推理服务器，支持EAGLE-3或P-EAGLE草稿模型、K8s自动扩缩容，并提供完整的吞吐量/延迟/成本报告
 version: 1.0.0
 phase: 19
 lesson: 14

@@ -1,6 +1,7 @@
 ---
 name: memory-auditor
 description: Audit a multi-agent system's shared-memory design for provenance, versioning, verifier separation, and projection schema. Flag memory-poisoning exposure before production.
+description-zh: 审计多智能体系统共享内存设计的溯源性、版本控制、验证者分离和投影模式，在生产前标记内存污染风险。
 version: 1.0.0
 phase: 16
 lesson: 13

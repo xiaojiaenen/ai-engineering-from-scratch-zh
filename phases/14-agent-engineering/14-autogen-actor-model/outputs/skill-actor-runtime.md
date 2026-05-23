@@ -1,6 +1,7 @@
 ---
 name: actor-runtime
 description: Build an AutoGen v0.4-shaped actor runtime with private state, inbox-per-actor, message-only IPC, fault isolation, and a dead-letter queue.
+description-zh: 
 version: 1.0.0
 phase: 14
 lesson: 14

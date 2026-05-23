@@ -1,6 +1,7 @@
 ---
 name: rewoo-planner
 description: Generate a validated ReWOO plan DAG from a user request and tool catalog.
+description-zh: 根据用户请求和工具目录生成经过验证的ReWOO计划有向无环图。
 version: 1.0.0
 phase: 14
 lesson: 02

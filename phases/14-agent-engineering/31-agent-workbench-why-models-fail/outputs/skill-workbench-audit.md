@@ -1,6 +1,7 @@
 ---
 name: workbench-audit
 description: Audit a repo for the seven agent workbench surfaces and report which are missing, partial, or healthy before any agent work begins.
+description-zh: 审查代码库中七个智能体工作台界面的完备性，在智能体工作开始前报告缺失、不完整或健康状态。
 version: 1.0.0
 phase: 14
 lesson: 31

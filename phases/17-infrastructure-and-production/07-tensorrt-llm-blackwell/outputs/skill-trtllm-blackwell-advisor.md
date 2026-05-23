@@ -1,6 +1,7 @@
 ---
 name: trtllm-blackwell-advisor
 description: Decide whether Blackwell + TensorRT-LLM + Dynamo is worth the NVIDIA-lock for a given workload and budget.
+description-zh: 决定对于给定的工作负载和预算，Blackwell + TensorRT-LLM + Dynamo是否值得NVIDIA锁定。
 version: 1.0.0
 phase: 17
 lesson: 07

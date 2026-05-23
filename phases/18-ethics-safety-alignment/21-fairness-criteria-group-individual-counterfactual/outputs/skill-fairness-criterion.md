@@ -1,6 +1,7 @@
 ---
 name: fairness-criterion
 description: Identify which fairness criterion a claim invokes and audit the associated assumptions.
+description-zh: 识别某声明引用的公平性准则并审计相关假设。
 version: 1.0.0
 phase: 18
 lesson: 21

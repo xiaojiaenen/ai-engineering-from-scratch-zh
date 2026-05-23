@@ -1,6 +1,7 @@
 ---
 name: constitution-writer
 description: Draft a four-tier constitution for a domain-specific AI system.
+description-zh: 为领域特定AI系统起草四级宪法。
 version: 1.0.0
 phase: 18
 lesson: 5

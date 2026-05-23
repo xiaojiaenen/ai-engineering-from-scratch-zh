@@ -1,6 +1,7 @@
 ---
 name: skill-imbalanced-data
 description: Decision checklist for handling imbalanced classification problems
+description-zh: 处理类别不平衡问题的决策检查清单
 version: 1.0.0
 phase: 2
 lesson: 17

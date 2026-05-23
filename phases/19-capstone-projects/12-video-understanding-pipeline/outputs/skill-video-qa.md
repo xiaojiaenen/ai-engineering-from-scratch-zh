@@ -1,6 +1,7 @@
 ---
 name: video-qa
 description: Build a video understanding pipeline with scene segmentation, multi-vector indexing, temporal grounding, and timestamped citations.
+description-zh: 搭建视频理解管道，包含场景分割、多向量索引、时序定位及带时间戳的引用功能
 version: 1.0.0
 phase: 19
 lesson: 12

@@ -1,6 +1,7 @@
 ---
 name: gan-debugger
 description: Diagnose failing GAN training from loss curves and sample grids; prescribe one-line fixes.
+description-zh: 通过损失曲线和样本网格诊断GAN训练失败；提供单行修复方案。
 version: 1.0.0
 phase: 8
 lesson: 03

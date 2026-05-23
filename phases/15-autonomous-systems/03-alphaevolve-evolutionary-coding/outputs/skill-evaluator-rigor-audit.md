@@ -1,6 +1,7 @@
 ---
 name: evaluator-rigor-audit
 description: Audit a proposed AlphaEvolve-style evolutionary coding loop's evaluator before committing any compute to the search.
+description-zh: 在投入计算资源进行搜索前，审查拟议的AlphaEvolve风格进化式编码循环的评估器。
 version: 1.0.0
 phase: 15
 lesson: 3

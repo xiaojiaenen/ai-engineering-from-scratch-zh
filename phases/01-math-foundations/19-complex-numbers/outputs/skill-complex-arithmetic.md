@@ -1,6 +1,7 @@
 ---
 name: skill-complex-arithmetic
 description: Quick reference for complex number operations in ML and signal processing contexts
+description-zh: 机器学习和信号处理中复数运算的快速参考。
 phase: 1
 lesson: 19
 ---

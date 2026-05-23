@@ -1,6 +1,7 @@
 ---
 name: structured-output-designer
 description: Design a strict-mode-compatible JSON Schema plus Pydantic model for a free-text extraction target, with typed refusal and retry handling stubbed in.
+description-zh: 
 version: 1.0.0
 phase: 13
 lesson: 04

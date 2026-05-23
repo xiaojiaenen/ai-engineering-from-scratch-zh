@@ -1,6 +1,38 @@
 ---
 name: marl-architect
 description: Pick the right multi-agent RL regime (IPPO, CTDE, self-play, league) for a given task.
+description-zh: # Choosing the Right Multi-Agent RL Regime
+
+## Quick Decision Flowchart
+
+```
+Are agents cooperative or competitive?
+├── Competitive → Self-Play or League
+├── Cooperative → CTDE or IPPO
+└── Mixed/General-sum → CTDE or IPPO + communication
+
+Is the agent count fixed and small?
+├── Yes (2-8) → CTDE (QMIX, MAPPO, MADDPG)
+└── No / Scalable → IPPO or mean-field
+
+Do agents need to share global state?
+├── Yes → CTDE (centralized critic)
+└── No → IPPO / independent learners
+
+Is the environment symmetric?
+├── Yes → Self-Play
+└── No → League / asymmetric CTDE
+```
+
+---
+
+## The Four Regimes Compared
+
+### 1. **IPPO (Independent PPO)**
+| Aspect | Details |
+|---|---|
+| **Core idea** | Each agent runs its own PPO independently; treats others as part of the environment |
+| **Best for** | Large-scale, homogeneous agents,
 version: 1.0.0
 phase: 9
 lesson: 10

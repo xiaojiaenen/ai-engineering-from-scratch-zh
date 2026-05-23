@@ -1,6 +1,7 @@
 ---
 name: gpu-autoscaler-plan
 description: Design a three-layer GPU autoscaling plan (Karpenter + KAI Scheduler + application signals) for a Kubernetes-based LLM serving cluster. Diagnose DCGM_FI_DEV_GPU_UTIL traps and partial-allocation failures.
+description-zh: 为基于Kubernetes的LLM服务集群设计三层GPU自动扩展计划（Karpenter + KAI Scheduler + 应用信号）。诊断DCGM_FI_DEV_GPU_UTIL陷阱和部分分配失败。
 version: 1.0.0
 phase: 17
 lesson: 03

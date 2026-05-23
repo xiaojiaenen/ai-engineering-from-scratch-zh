@@ -1,6 +1,29 @@
 ---
 name: entity-linker
 description: Design an entity linking pipeline — KB, candidate generator, disambiguator, evaluation.
+description-zh: # Entity Linking Pipeline Design
+
+## 1. Knowledge Base (KB)
+
+### Structure
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Knowledge Base                     │
+│                                                      │
+│  Entity: Q42 (Douglas Adams)                         │
+│  ├── Surface Forms: ["Douglas Adams", "Doug Adams",  │
+│  │     "D Adams", "Douglas Noel Adams"]              │
+│  ├── Type: Person > Author                           │
+│  ├── Aliases: [multilingual variants]                │
+│  ├── Description: "English author and humorist"      │
+│  ├── Relations:                                      │
+│  │     ├── (born_in, Cambridge)                      │
+│  │     ├── (wrote, The Hitchhiker's Guide...)        │
+│  │     └── (occupation, screenwriter)                │
+│  └── Incoming Links: 12,048 (popularity prior)       │
+│                                                      │
+│
 version: 1.0.0
 phase: 5
 lesson: 25

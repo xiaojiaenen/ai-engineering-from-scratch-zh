@@ -1,6 +1,7 @@
 ---
 name: skill-noise-schedule-designer
 description: Produce a linear, cosine, or sigmoid beta schedule given T and target corruption level, plus SNR plot
+description-zh: 根据T和目标损坏程度生成线性、余弦或sigmoid beta调度，附带信噪比图
 version: 1.0.0
 phase: 4
 lesson: 10

@@ -1,6 +1,7 @@
 ---
 name: minimal-workbench
 description: Lay down the three-file minimum viable agent workbench for any repo — short AGENTS.md router, durable agent_state.json, and a JSON task_board.json keyed to the project's current backlog.
+description-zh: 为任意代码库建立三文件最小可行智能体工作台——精简的AGENTS.md路由器、持久化agent_state.json，以及对应项目当前待办列表的JSON格式task_board.json。
 version: 1.0.0
 phase: 14
 lesson: 32

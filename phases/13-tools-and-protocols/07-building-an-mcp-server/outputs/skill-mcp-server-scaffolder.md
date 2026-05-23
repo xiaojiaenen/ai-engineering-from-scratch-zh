@@ -1,6 +1,18 @@
 ---
 name: mcp-server-scaffolder
 description: Scaffold a domain-specific MCP server with the right tools/resources/prompts split and SDK graduation path.
+description-zh: # Scaffold a Domain-Specific MCP Server
+
+Below is a production-ready scaffold for a **DevOps Incident Management** MCP server — chosen because it cleanly exercises all three MCP primitives (tools, resources, prompts) and provides a realistic graduation story.
+
+---
+
+## Directory Structure
+
+```
+incident-mcp/
+├── pyproject.toml
+├── README
 version: 1.0.0
 phase: 13
 lesson: 07

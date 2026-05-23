@@ -1,6 +1,7 @@
 ---
 name: skill-information-theory
 description: Apply information theory concepts to ML loss functions, model evaluation, and feature selection
+description-zh: 将信息论概念应用于机器学习损失函数、模型评估和特征选择
 version: 1.0.0
 phase: 1
 lesson: 9

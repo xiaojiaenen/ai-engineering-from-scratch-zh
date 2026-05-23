@@ -1,6 +1,7 @@
 ---
 name: sleeper-audit
 description: Audit an alignment-training report for whether it actually demonstrates removal of a planted or suspected backdoor.
+description-zh: 审计对齐训练报告是否真正移除了植入或疑似后门。
 version: 1.0.0
 phase: 18
 lesson: 7

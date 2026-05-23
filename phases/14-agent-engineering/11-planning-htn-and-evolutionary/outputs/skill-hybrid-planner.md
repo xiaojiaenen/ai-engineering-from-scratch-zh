@@ -1,6 +1,7 @@
 ---
 name: hybrid-planner
 description: Build a hybrid planner — ChatHTN for provably-sound plans, AlphaEvolve for code search with a machine-checkable evaluator — and pick the right one for the problem.
+description-zh: 构建一个混合规划器——ChatHTN用于可证明可靠的计划，AlphaEvolve用于代码搜索并带有机器可检查的评估器——并为问题选择合适的规划器。
 version: 1.0.0
 phase: 14
 lesson: 11

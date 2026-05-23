@@ -1,6 +1,7 @@
 ---
 name: prompt-transformation-visualizer
 description: Explain what a matrix transformation does geometrically given its entries
+description-zh: 根据矩阵的条目解释其几何变换效果
 phase: 1
 lesson: 3
 ---

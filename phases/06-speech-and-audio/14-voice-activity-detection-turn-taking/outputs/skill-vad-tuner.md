@@ -1,6 +1,30 @@
 ---
 name: vad-tuner
 description: Pick VAD model, threshold, silence hangover, pre-roll, and turn-detection strategy for a voice agent.
+description-zh: # Voice Agent VAD Configuration Guide
+
+## 1. VAD Model
+
+| Option | Latency | Accuracy | Best For |
+|---|---|---|---|
+| **Silero VAD** ⭐ | ~1ms | Very high | Production agents (recommended) |
+| WebRTC VAD | <1ms | Moderate | Ultra-low-resource / embedded |
+| pyannote.audio | ~5ms | Highest | Offline / diarization-heavy |
+| FunASR VAD | ~2ms | High | Chinese-language agents |
+
+**Recommendation:** **Silero VAD v5** — best trade-off of accuracy, latency, and ease of deployment. Runs on CPU in ~1ms per frame.
+
+---
+
+## 2. Thresholds
+
+```
+Speech threshold:     0.5  (probability ≥ 0.5 → speech)
+Noise threshold:      0.35 (used for noise-aware gate)
+Energy gate (optional): -40 dBFS (skip VAD if below this)
+```
+
+| Parameter |
 version: 1.0.0
 phase: 6
 lesson: 14

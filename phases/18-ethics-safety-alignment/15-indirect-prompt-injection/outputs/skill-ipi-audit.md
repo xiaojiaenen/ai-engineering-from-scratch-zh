@@ -1,6 +1,7 @@
 ---
 name: ipi-audit
 description: Audit an agentic deployment for indirect prompt injection exposure and information-flow-control coverage.
+description-zh: 审计智能体部署的间接提示注入风险和信息流控制覆盖。
 version: 1.0.0
 phase: 18
 lesson: 15

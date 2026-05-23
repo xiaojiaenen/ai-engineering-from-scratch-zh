@@ -1,6 +1,7 @@
 ---
 name: injection-defense
 description: Build a PVE (Prompt-Validator-Executor) layer with source-tagged content, injection-marker scanning, and allowlist navigation for any agent runtime.
+description-zh: 为任意智能体运行时构建PVE（提示-验证-执行器）层，实现来源标记内容、注入标记扫描和白名单导航。
 version: 1.0.0
 phase: 14
 lesson: 27

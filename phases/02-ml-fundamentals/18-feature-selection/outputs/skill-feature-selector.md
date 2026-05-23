@@ -1,6 +1,7 @@
 ---
 name: skill-feature-selector
 description: Quick reference decision tree for choosing the right feature selection method
+description-zh: 选择合适特征选择方法的快速参考决策树
 version: 1.0.0
 phase: 2
 lesson: 18

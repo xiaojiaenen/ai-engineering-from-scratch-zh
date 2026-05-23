@@ -1,6 +1,7 @@
 ---
 name: prompt-tokenizer-builder
 description: Build and debug production-quality tokenizers for LLM projects
+description-zh: 为大语言模型项目构建和调试生产级分词器
 version: 1.0.0
 phase: 10
 lesson: 2

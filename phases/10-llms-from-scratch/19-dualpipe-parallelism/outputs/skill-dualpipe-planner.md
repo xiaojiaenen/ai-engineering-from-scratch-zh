@@ -1,6 +1,7 @@
 ---
 name: dualpipe-planner
 description: Plan a pipeline parallelism strategy (1F1B, Zero Bubble, DualPipe, DualPipeV) for a training cluster.
+description-zh: 为训练集群规划流水线并行策略（1F1B、Zero Bubble、DualPipe、DualPipeV）
 version: 1.0.0
 phase: 10
 lesson: 19

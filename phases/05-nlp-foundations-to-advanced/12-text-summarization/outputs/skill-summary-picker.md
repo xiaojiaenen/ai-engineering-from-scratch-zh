@@ -1,6 +1,11 @@
 ---
 name: summary-picker
 description: Pick extractive or abstractive, name the library, add a factuality check.
+description-zh: abstractive
+
+Library: No external library used – I am a large language model (LLM) performing abstractive summarization through internal reasoning.
+
+Factuality check: I ensure factuality by strictly aligning the summary with the source text, avoiding unsupported claims, and cross-referencing details within the provided context to prevent contradictions.
 version: 1.0.0
 phase: 5
 lesson: 12

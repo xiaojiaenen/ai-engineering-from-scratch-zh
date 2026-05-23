@@ -1,6 +1,7 @@
 ---
 name: prompt-ensemble-selector
 description: Pick the right ensemble method for a given dataset and problem
+description-zh: 针对给定数据集和问题选择合适的集成方法
 phase: 02
 lesson: 11
 ---

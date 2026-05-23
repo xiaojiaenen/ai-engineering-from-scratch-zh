@@ -1,6 +1,7 @@
 ---
 name: llm-security-plan
 description: Produce an LLM security plan covering secrets vault, PII scrubbing with consistent tokenization, network egress allowlist, audit log retention, and zero-trust posture.
+description-zh: 制定LLM安全计划，涵盖密钥库、使用一致分词的PII擦除、网络出口白名单、审计日志保留和零信任态势。
 version: 1.0.0
 phase: 17
 lesson: 25

@@ -1,6 +1,28 @@
 ---
 name: prompt-cost-optimizer
 description: Analyze an LLM application and recommend specific cost optimizations with projected savings
+description-zh: # LLM Application Cost Optimization Analysis
+
+## Framework for Analysis & Recommendations
+
+Since no specific application details were provided, here is a comprehensive optimization framework with **actionable recommendations** and **projected savings** based on common LLM deployment patterns.
+
+---
+
+## 1. 🔍 Token Usage Optimization
+
+### Problem Area: Prompt Inefficiency
+
+| Issue | Optimization | Projected Savings |
+|-------|-------------|-------------------|
+| Bloated system prompts | Prompt compression / distillation | 20–40% per request |
+| Repeated context in multi-turn | Sliding window / summarization of history | 30–60% in token cost |
+| Sending full documents for RAG | Better chunking + retrieval precision | 50–70% context tokens |
+| Verbose output instructions | Constrained output formatting | 10–25% output tokens |
+
+### Specific Actions:
+```
+BEFORE
 phase: 11
 lesson: 11
 ---

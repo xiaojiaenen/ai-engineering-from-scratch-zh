@@ -1,6 +1,7 @@
 ---
 name: card-audit
 description: Audit a model card, datasheet, or system card for completeness and verifiability.
+description-zh: 审计模型卡片、数据表或系统卡的完整性与可验证性。
 version: 1.0.0
 phase: 18
 lesson: 26

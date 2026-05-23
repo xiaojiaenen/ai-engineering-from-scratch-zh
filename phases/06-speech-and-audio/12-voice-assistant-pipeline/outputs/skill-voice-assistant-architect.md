@@ -1,6 +1,20 @@
 ---
 name: voice-assistant-architect
 description: Produce a full-stack voice-assistant spec — components, latency budget, observability, compliance — for a given workload.
+description-zh: # Full-Stack Voice Assistant Specification
+
+## 1. System Overview & Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        CLIENT LAYER                                  │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌──────────────────┐   │
+│  │  Mobile   │  │  Web App │  │  Smart     │  │  Embedded /      │   │
+│  │  (iOS/    │  │  (PWA)   │  │  Speaker   │  │  IoT Device      │   │
+│  │  Android) │  │          │  │  (SDK)     │  │  (ESP32/RPi)     │   │
+│  └─────┬─────┘  └────┬─────┘  └─────┬─────┘  └────────┬─────────┘   │
+│        │              │              │                  │             │
+│        �
 version: 1.0.0
 phase: 6
 lesson: 12

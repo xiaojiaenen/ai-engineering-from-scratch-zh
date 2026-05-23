@@ -1,6 +1,7 @@
 ---
 name: skill-freeze-inspector
 description: Report which parameters are trainable, which BatchNorm layers are in eval mode, and whether the optimizer is actually consuming the trainable parameters
+description-zh: 报告哪些参数是可训练的，哪些 BatchNorm 层处于 eval 模式，以及优化器是否实际在消耗可训练参数
 version: 1.0.0
 phase: 4
 lesson: 5

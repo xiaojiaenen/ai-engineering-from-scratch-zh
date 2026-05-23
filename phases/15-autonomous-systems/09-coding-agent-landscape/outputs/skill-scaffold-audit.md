@@ -1,6 +1,7 @@
 ---
 name: coding-scaffold-audit
 description: Audit a proposed coding-agent scaffold (retrieval, verifier loop, sandbox, benchmark fit) before adopting it for production code changes.
+description-zh: 在采用拟议的编码智能体脚手架进行生产代码变更前，审查其检索、验证循环、沙盒及基准适配性。
 version: 1.0.0
 phase: 15
 lesson: 9

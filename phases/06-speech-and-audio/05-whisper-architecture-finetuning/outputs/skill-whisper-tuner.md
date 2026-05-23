@@ -1,6 +1,27 @@
 ---
 name: whisper-tuner
 description: Design a Whisper fine-tune or inference pipeline for a given language, domain, and latency budget.
+description-zh: # Whisper Fine-Tune & Inference Pipeline Design
+
+## 1. Requirement Analysis (Inputs)
+
+```
+┌─────────────────────────────────────────────────┐
+│  LANGUAGE   │ e.g., Japanese, Arabic, Swahili    │
+│  DOMAIN     │ e.g., medical, legal, call-center  │
+│  LATENCY    │ e.g., < 500ms / < 2s / batch-only  │
+│  WER TARGET │ e.g., < 8% on domain test set      │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Pipeline Overview
+
+```
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│  Data        │──▶│  Fine-Tune   │──▶│  Optimize &  │──▶│  Deploy &    │
+│  Preparation │   │  Whisper     │   │
 version: 1.0.0
 phase: 6
 lesson: 05

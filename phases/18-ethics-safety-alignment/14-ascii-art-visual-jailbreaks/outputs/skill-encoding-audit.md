@@ -1,6 +1,7 @@
 ---
 name: encoding-audit
 description: Audit a jailbreak-defense report across encoding-family attacks.
+description-zh: 跨编码攻击家族审计越狱防御报告。
 version: 1.0.0
 phase: 18
 lesson: 14

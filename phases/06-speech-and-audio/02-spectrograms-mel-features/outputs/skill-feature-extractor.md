@@ -1,6 +1,17 @@
 ---
 name: feature-extractor
 description: Pick feature type, mel count, frame/hop, and normalization to match a downstream audio model.
+description-zh: # Audio Feature Configuration for Downstream Models
+
+## Key Parameters
+
+| Parameter | Common Options | Notes |
+|---|---|---|
+| **Feature Type** | `mel`, `mfcc`, `linear`, `log-mel` | `log-mel` is most common for deep models |
+| **Mel Count (n_mels)** | 40, 64, 80, 128 | Match your pretrained model exactly |
+| **Frame Length (n_fft)** | 256, 512, 1024, 2048 | Usually 25ms at 16kHz → 400 or 512 |
+| **Hop Length (hop_length)** | 160, 256, 512 | Usually 10ms at 16kHz → 160 |
+| **Normalization** | per-utterance, per-feature, global cmvn, none | **Critical** — must match training
 version: 1.0.0
 phase: 6
 lesson: 02

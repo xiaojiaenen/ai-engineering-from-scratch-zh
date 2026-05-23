@@ -1,6 +1,7 @@
 ---
 name: prompt-stochastic-process-advisor
 description: Identify which stochastic process framework applies to a given problem and recommend implementation
+description-zh: 确定适用给定问题的随机过程框架并推荐实现方法。
 phase: 1
 lesson: 22
 ---

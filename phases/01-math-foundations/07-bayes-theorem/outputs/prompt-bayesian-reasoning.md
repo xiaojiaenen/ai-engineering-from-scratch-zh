@@ -1,6 +1,7 @@
 ---
 name: prompt-bayesian-reasoning
 description: Walk through Bayesian reasoning step by step for any scenario
+description-zh: 为任何场景逐步讲解贝叶斯推理过程
 phase: 1
 lesson: 7
 ---

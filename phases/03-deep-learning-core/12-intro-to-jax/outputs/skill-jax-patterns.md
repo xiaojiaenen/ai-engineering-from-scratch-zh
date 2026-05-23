@@ -1,6 +1,34 @@
 ---
 name: skill-jax-patterns
 description: Functional programming patterns in JAX -- when and how to use grad, jit, vmap, and pmap
+description-zh: # JAX 函数式编程模式：grad、jit、vmap 与 pmap 的使用指南
+
+---
+
+## 核心理念
+
+JAX 的设计哲学源于函数式编程：**纯函数、不可变数据、高阶函数变换**。`grad`、`jit`、`vmap` 和 `pmap` 是四个核心的**函数变换（function transformation）**——它们接收一个函数，返回一个新函数，且可以任意组合。
+
+```
+原始函数 f
+  ├── jit(f)        → 编译优化后的 f
+  ├── grad(f)       → 计算 f 的梯度
+  ├── vmap(f)       → f 的向量化（自动批处理）
+  └── pmap(f)       → f 的并行化（多设备）
+```
+
+---
+
+## 1. `jax.grad` — 自动微分
+
+### 基本用法
+
+```python
+import jax
+import jax.numpy as jnp
+
+def f(x):
+    return jnp.sin(x)
 version: 1.0.0
 phase: 3
 lesson: 12

@@ -1,6 +1,7 @@
 ---
 name: workbench-pack
 description: Generate a project-tuned drop-in agent workbench pack — rules sharpened to the team's history, scope globs matched to the repo, rubric dimensions extended with one domain-specific entry.
+description-zh: 生成针对项目优化的即插即用智能体工作包——规则根据团队历史优化、范围glob模式匹配代码库、评估维度增加一个领域特定条目。
 version: 1.0.0
 phase: 14
 lesson: 42

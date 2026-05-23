@@ -1,6 +1,7 @@
 ---
 name: reward-hack-auditor
 description: Diagnose reward-hacking failure modes in a trained RLHF model from training logs and eval outputs.
+description-zh: 从训练日志和评估输出，诊断已训练RLHF模型的奖励黑客失败模式。
 version: 1.0.0
 phase: 18
 lesson: 2

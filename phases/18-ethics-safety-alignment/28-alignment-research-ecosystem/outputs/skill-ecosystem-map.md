@@ -1,6 +1,7 @@
 ---
 name: ecosystem-map
 description: Map an alignment claim or evaluation to the organisation, methodology, and cross-checks.
+description-zh: 将对齐声明或评估映射至组织、方法论和交叉验证。
 version: 1.0.0
 phase: 18
 lesson: 28

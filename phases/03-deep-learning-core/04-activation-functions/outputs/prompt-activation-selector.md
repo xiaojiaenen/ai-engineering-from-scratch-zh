@@ -1,6 +1,37 @@
 ---
 name: prompt-activation-selector
 description: A decision prompt for choosing the right activation function for any neural network architecture
+description-zh: # 🧠 Activation Function Decision Prompt
+
+## Step 1: What is your task type?
+
+```
+├── Regression (continuous output)?
+│   ├── Yes → Go to Step 2A
+│   └── No → Go to Step 2B
+```
+
+---
+
+## Step 2A: Regression
+
+```
+Is the output range bounded?
+├── Yes, [0, 1] (e.g., probabilities)?
+│   └── Use SIGMOID (output layer)
+├── Yes, [-1, 1]?
+│   └── Use TANH (output layer)
+├── Yes, [0, ∞) (e.g., prices, counts)?
+│   └── Use ReLU or Softplus (output layer)
+└── No, unbounded (-∞, +∞)?
+    └── Use LINEAR / Identity (output layer)
+```
+
+### Hidden Layers for Regression:
+```
+Input data has negative values?
+├── Yes → Consider Leaky ReLU, ELU, or SELU
+└── No  → Standard ReLU is fine
 phase: 03
 lesson: 04
 ---

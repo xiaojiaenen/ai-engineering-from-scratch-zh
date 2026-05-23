@@ -1,6 +1,7 @@
 ---
 name: browser-agent-trust-boundary
 description: Scope a proposed browser-agent deployment — trust zones, authorized writes, required defenses — before the agent touches a real site.
+description-zh: 在智能体接触真实网站前，界定拟议浏览器智能体部署的范围——信任区域、授权写入操作、必要防护措施。
 version: 1.0.0
 phase: 15
 lesson: 11

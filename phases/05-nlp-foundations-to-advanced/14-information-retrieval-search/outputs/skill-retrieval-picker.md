@@ -1,6 +1,7 @@
 ---
 name: retrieval-picker
 description: Pick a retrieval stack for a given corpus and query pattern.
+description-zh: 为特定语料库与查询模式选择检索栈时，需综合考虑内容特性、查询复杂度
 version: 1.0.0
 phase: 5
 lesson: 14

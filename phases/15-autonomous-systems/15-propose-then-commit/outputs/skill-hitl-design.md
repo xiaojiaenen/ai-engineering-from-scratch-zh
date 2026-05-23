@@ -1,6 +1,7 @@
 ---
 name: hitl-design
 description: Review a proposed Human-in-the-Loop workflow for propose-then-commit shape and flag missing metadata, idempotency, verification, or challenge-and-response layers.
+description-zh: 审查拟议的人机协作工作流是否具备“提议-确认”形态，并标记缺失的元数据、幂等性、验证或挑战-响应层。
 version: 1.0.0
 phase: 15
 lesson: 15

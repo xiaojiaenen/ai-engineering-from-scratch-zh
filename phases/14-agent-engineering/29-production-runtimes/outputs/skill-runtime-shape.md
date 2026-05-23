@@ -1,6 +1,7 @@
 ---
 name: runtime-shape
 description: Pick a production runtime shape (request-response, streaming, queue, event, cron, durable) and wire observability.
+description-zh: 选择生产运行时模式（请求-响应/流式/队列/事件/定时/持久化）并接入可观测性体系。
 version: 1.0.0
 phase: 14
 lesson: 29

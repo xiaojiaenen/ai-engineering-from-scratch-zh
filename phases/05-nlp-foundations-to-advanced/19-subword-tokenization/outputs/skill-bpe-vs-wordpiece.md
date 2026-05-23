@@ -1,6 +1,27 @@
 ---
 name: skill-bpe-vs-wordpiece
 description: Pick tokenizer algorithm, vocab size, library for a given corpus and deployment target.
+description-zh: # Tokenizer Selection Guide for Corpus & Deployment Target
+
+## Step 1: Analyze Your Corpus
+
+| Corpus Characteristic | Consideration |
+|---|---|
+| Language | Multilingual → larger vocab; CJK → subword-aware needed |
+| Domain (code, medical, legal) | Domain-specific tokens matter |
+| Size (MB/GB) | Larger corpus → supports larger vocab reliably |
+| Text structure | URLs, code, formulas → need pre-tokenizer rules |
+
+---
+
+## Step 2: Choose Tokenizer Algorithm
+
+| Algorithm | Best For | Trade-off |
+|---|---|---|
+| **BPE** (Byte Pair Encoding) | General-purpose, multilingual, code | Fast encode/decode; good balance |
+| **WordPiece** | English-centric NLU (BERT-style) | Slightly slower; deterministic merges |
+| **Unigram** (SentencePiece) | Multilingual, CJK, resource-constrained inference | Prunable; probabilistic |
+| **Byte-level BPE**
 version: 1.0.0
 phase: 5
 lesson: 19

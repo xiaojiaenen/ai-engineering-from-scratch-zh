@@ -1,6 +1,32 @@
 ---
 name: preprocessing-advisor
 description: Recommends a tokenization, stemming, and lemmatization setup for an NLP task.
+description-zh: # Recommended Tokenization, Stemming & Lemmatization Setup
+
+## 1. Tokenization
+
+| Approach | Tool | Use Case |
+|----------|------|----------|
+| **Subword (Recommended)** | `Byte-Pair Encoding (BPE)` via HuggingFace `tokenizers` | Handles OOV words, works well with transformers |
+| **Word-level** | `spaCy` / `NLTK` `word_tokenize` | Traditional ML models, interpretability |
+| **Sentence-level** | `spaCy` (`sentencizer`) / `nltk.sent_tokenize` | Document-level preprocessing |
+
+### Recommended Default:
+```python
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+tokens = tokenizer("NLP preprocessing is important.", return_tensors="pt")
+```
+
+---
+
+## 2. Stemming
+
+| Stemmer | Speed | Aggressiveness | Use Case |
+|---------|-------|----------------|----------|
+| **Porter** | Moderate | Mild | General-purpose |
+| **Snowball** | Moderate | Medium | Mult
 phase: 5
 lesson: 01
 ---

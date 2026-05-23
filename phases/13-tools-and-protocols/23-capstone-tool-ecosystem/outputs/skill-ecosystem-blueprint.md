@@ -1,6 +1,7 @@
 ---
 name: ecosystem-blueprint
 description: Produce a full Phase 13 ecosystem architecture given a product need; name primitives, security posture, telemetry, and packaging.
+description-zh: 根据产品需求生成完整的Phase 13生态系统架构；命名原语、安全态势、遥测及打包方案。
 version: 1.0.0
 phase: 13
 lesson: 22

@@ -1,6 +1,7 @@
 ---
 name: skill-concept-prompt-designer
 description: Turn user utterances into well-formed SAM 3 concept prompts with splitting, disambiguation, and fallbacks
+description-zh: 将用户语句转化为规范的SAM 3概念提示（含拆分、消歧和后备机制）。
 version: 1.0.0
 phase: 4
 lesson: 24

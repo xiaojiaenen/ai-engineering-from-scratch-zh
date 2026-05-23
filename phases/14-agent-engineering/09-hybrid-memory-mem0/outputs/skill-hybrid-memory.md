@@ -1,6 +1,7 @@
 ---
 name: hybrid-memory
 description: Generate a Mem0-shaped three-store memory system (vector + KV + graph) with a fusion scorer, scope taxonomy, and temporal invalidation.
+description-zh: 生成Mem0风格的三存储记忆系统（向量+键值+图），包含融合评分器、范围分类体系和时间失效机制。
 version: 1.0.0
 phase: 14
 lesson: 09

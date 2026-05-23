@@ -1,6 +1,16 @@
 ---
 name: music-designer
 description: Pick a music-generation model, license strategy, length plan, and disclosure metadata for a deployment.
+description-zh: 1. **Model**  
+   **MusicGen** (Meta) — open-source, transformer-based, supports text-to-music.
+
+2. **License**  
+   **Apache 2.0** (for model weights and generated outputs).  
+   *Allow commercial use, modification, distribution, with patent grant.*
+
+3. **Length Plan**  
+   - **Default**: 30 seconds (low latency, API-friendly)  
+   - **Extended**: Up to 180 seconds (requires chunked generation
 version: 1.0.0
 phase: 6
 lesson: 09

@@ -1,6 +1,7 @@
 ---
 name: prompt-tokenizer-analyzer
 description: Analyze tokenization efficiency for a given text across different models and tokenizer types
+description-zh: 针对给定文本，分析不同模型与分词器类型间的分词效率
 phase: 10
 lesson: 01
 ---

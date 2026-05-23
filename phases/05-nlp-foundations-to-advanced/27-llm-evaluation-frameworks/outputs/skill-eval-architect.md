@@ -1,6 +1,29 @@
 ---
 name: eval-architect
 description: Design an LLM evaluation plan with calibrated judge and CI gates.
+description-zh: # LLM Evaluation Plan: Calibrated Judge + CI Gates
+
+## 1. Evaluation Architecture Overview
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌──────────┐
+│  Test Suite  │────▶│ Calibrated   │────▶│  Statistical │────▶│ CI Gate  │
+│  Generation  │     │   Judge      │     │  Aggregation │     │ Decision │
+└─────────────┘     └──────────────┘     └─────────────┘     └──────────┘
+       │                   │                    │                    │
+   N samples          Rubric-based         Bootstrap CI        Ship / Block
+   Per capability      Scoring             Per metric           / Iterate
+```
+
+---
+
+## 2. Define Evaluation Taxonomy
+
+```yaml
+capabilities:
+  - name: factual_accuracy
+    weight: 0.30
+    sub_metrics: [recall
 version: 1.0.0
 phase: 5
 lesson: 27

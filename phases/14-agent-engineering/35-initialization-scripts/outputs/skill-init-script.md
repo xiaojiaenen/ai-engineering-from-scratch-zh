@@ -1,6 +1,7 @@
 ---
 name: init-script
 description: Interview a project and emit a deterministic init_agent.py with five probes plus a CI workflow that refuses to launch the agent if any probe fails.
+description-zh: 通过项目访谈生成确定性init_agent.py（含五个探测项），并建立CI工作流确保任何探测失败时禁止启动智能体。
 version: 1.0.0
 phase: 14
 lesson: 35

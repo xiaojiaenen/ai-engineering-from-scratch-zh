@@ -1,6 +1,7 @@
 ---
 name: inference-platform-picker
 description: Pick an inference platform (Fireworks, Together, Baseten, Modal, Replicate, Anyscale, or custom silicon) given workload, SLA, budget, and operational constraints. Normalize per-token, per-minute, and per-prediction pricing.
+description-zh: 根据工作负载、SLA、预算和运营约束，选择推理平台（Fireworks、Together、Baseten、Modal、Replicate、Anyscale或自定义芯片）。标准化每token、每分钟和每预测的定价。
 version: 1.0.0
 phase: 17
 lesson: 02

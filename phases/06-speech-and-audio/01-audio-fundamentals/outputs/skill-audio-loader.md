@@ -1,6 +1,37 @@
 ---
 name: audio-loader
 description: Validate a raw audio file against a target model's expectations and resample it safely.
+description-zh: # Validate & Resample Raw Audio for a Target Model
+
+## Overview
+
+Models like Whisper, Wav2Vec2, or custom classifiers expect specific **sample rate**, **channels**, **bit depth**, and **duration**. Below is a robust pipeline that validates, converts, and resamples audio safely.
+
+---
+
+## Complete Implementation
+
+```python
+import numpy as np
+import soundfile as sf
+import librosa
+from dataclasses import dataclass
+from typing import Optional
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+# ──────────────────────────────────────────────
+# 1. Define the target model's audio expectations
+# ──────────────────────────────────────────────
+@dataclass(frozen=True)
+class AudioSpec:
+    """Describes what the target model requires."""
+    sample_rate: int        # e.g. 16000 (Whisper), 22050 (some classifiers)
+    n_channels: int         # 1 = mono, 2 = stereo
+    bit_depth:
 version: 1.0.0
 phase: 6
 lesson: 01

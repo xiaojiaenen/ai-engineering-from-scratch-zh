@@ -1,6 +1,7 @@
 ---
 name: prompt-open-vocab-stack-picker
 description: Pick SAM 3 / Grounded SAM 2 / YOLO-World / SAM-MI based on latency, concept complexity, and licensing
+description-zh: 根据延迟、概念复杂度和许可证选择SAM 3/Grounded SAM 2/YOLO-World/SAM-MI。
 phase: 4
 lesson: 24
 ---

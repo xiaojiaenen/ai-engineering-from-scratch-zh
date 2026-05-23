@@ -1,6 +1,7 @@
 ---
 name: consensus-designer
 description: Design a BFT-aware consensus protocol for a multi-agent ensemble. Picks clustering, weighting, threshold, and escalation policy; attack-tests the design against byzantine, sycophancy, and monoculture patterns.
+description-zh: 为多智能体集成设计容错共识协议，确定聚类策略、权重分配、阈值设置与升级策略，并针对拜占庭、谄媚及单一化模式进行攻击测试。
 version: 1.0.0
 phase: 16
 lesson: 14

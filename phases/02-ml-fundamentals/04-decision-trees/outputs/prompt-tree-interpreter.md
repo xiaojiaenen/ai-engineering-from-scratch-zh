@@ -1,6 +1,7 @@
 ---
 name: prompt-tree-interpreter
 description: Interpret decision tree results and diagnose potential issues
+description-zh: 解读决策树结果并诊断潜在问题
 phase: 2
 lesson: 4
 ---

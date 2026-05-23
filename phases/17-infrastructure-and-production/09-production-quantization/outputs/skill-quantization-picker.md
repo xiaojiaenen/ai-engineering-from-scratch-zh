@@ -1,6 +1,7 @@
 ---
 name: quantization-picker
 description: Pick a 2026 quantization format given hardware, engine, workload, and quality tolerance, and produce a calibration + validation plan.
+description-zh: 根据硬件、引擎、工作负载和质量容差，选择2026年量化格式，并制定校准 + 验证计划。
 version: 1.0.0
 phase: 17
 lesson: 09

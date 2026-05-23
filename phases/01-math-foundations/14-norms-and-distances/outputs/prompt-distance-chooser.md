@@ -1,6 +1,7 @@
 ---
 name: prompt-distance-chooser
 description: Guides the user through choosing the right distance metric for their specific task
+description-zh: 指导用户为其特定任务选择合适的距离度量。
 phase: 1
 lesson: 14
 ---

@@ -1,6 +1,30 @@
 ---
 name: agent-loop
 description: Write a correct, minimal ReAct agent loop in any target language/runtime with tools, stop condition, and turn budget.
+description-zh: ```python
+import json, os
+from openai import OpenAI
+
+client = OpenAI()
+
+# ── Tools ───────────────────────────────────────────────────────────
+def search(query: str) -> str:
+    return f"Mock search results for: {query}"
+
+def calculate(expression: str) -> str:
+    try:
+        return str(eval(expression))
+    except Exception as e:
+        return f"Error: {e}"
+
+TOOLS = {
+    "search":    {"fn": search,    "desc": "Search the web. Input: query string."},
+    "calculate": {"fn": calculate, "desc": "Evaluate a math expression. Input: expression string."},
+}
+
+TOOL_DESC = "\n".join(f"- {name}: {t['desc']}" for name, t in TOOLS.items())
+
+# ── Prompt ─────────────────
 version: 1.0.0
 phase: 14
 lesson: 01

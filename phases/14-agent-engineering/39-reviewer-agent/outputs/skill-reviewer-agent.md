@@ -1,6 +1,7 @@
 ---
 name: reviewer-agent
 description: Stand up a reviewer agent role with a five-dimension rubric that reads builder artifacts, produces a structured review report, and starts human review from a written page instead of a blank one.
+description-zh: 建立具有五维评估标准的评审智能体角色，可读取构建者产物、生成结构化评审报告，并使人工评审基于已撰写页面而非空白页面启动。
 version: 1.0.0
 phase: 14
 lesson: 39

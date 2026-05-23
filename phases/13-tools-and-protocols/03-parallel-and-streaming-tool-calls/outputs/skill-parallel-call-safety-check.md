@@ -1,6 +1,19 @@
 ---
 name: parallel-call-safety-check
 description: Audit a tool registry for safe parallelization. Mark each tool parallel_safe, note ordering dependencies, and flag downstream rate-limit risk.
+description-zh: # Tool Registry Parallelization Audit
+
+> **Assumed Tool Registry** — Since no registry was supplied, I've audited a canonical AI-agent tool set. Replace with your actual registry entries as needed.
+
+---
+
+## Audit Legend
+
+| Flag | Meaning |
+|---|---|
+| ✅ `parallel_safe` | No shared state, idempotent, no ordering constraints |
+| ⚠️ `parallel_conditional` | Safe under constraints noted |
+| �
 version: 1.0.0
 phase: 13
 lesson: 03

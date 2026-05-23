@@ -1,6 +1,7 @@
 ---
 name: td-agent
 description: Pick between Q-learning, SARSA, Expected SARSA for a tabular or small-feature RL task.
+description-zh: 
 version: 1.0.0
 phase: 9
 lesson: 4

@@ -1,6 +1,7 @@
 ---
 name: prompt-instance-vs-semantic-router
 description: Ask three questions and pick instance vs semantic vs panoptic segmentation plus the first model
+description-zh: 提出三个问题，并选择实例、语义或全景分割，以及首个模型
 phase: 4
 lesson: 8
 ---

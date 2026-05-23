@@ -1,6 +1,24 @@
 ---
 name: prompt-framework-architect
 description: Design neural network architectures using framework abstractions -- modules, containers, losses, and optimizers
+description-zh: # Designing Neural Network Architectures with Framework Abstractions
+
+## Core Abstraction Map
+
+```
+┌─────────────────────────────────────────────────┐
+│            Neural Network Design                 │
+├──────────┬──────────┬───────────┬───────────────┤
+│ Modules  │Containers│  Losses   │  Optimizers   │
+│ (Layer)  │ (Model)  │ (Objective)│ (Learning)   │
+├──────────┼──────────┼───────────┼───────────────┤
+│ Linear   │Sequential│ MSELoss   │ SGD           │
+│ Conv2d   │ModuleList│ CrossEnt  │ Adam          │
+│ LSTM     │ModuleDict│ BCELoss   │ AdamW         │
+│ BatchNorm│          │ NLLLoss   │ RMSprop       │
+│ Dropout  │          │ HingeLoss │               │
+│ Attention│          │ CTCLoss   │               │
+└──────────
 phase: 03
 lesson: 10
 ---

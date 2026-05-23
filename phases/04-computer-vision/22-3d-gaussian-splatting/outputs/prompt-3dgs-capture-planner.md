@@ -1,6 +1,7 @@
 ---
 name: prompt-3dgs-capture-planner
 description: Plan a photo capture session for 3DGS reconstruction given scene type and hardware
+description-zh: 根据场景类型和硬件为3DGS重建规划照片采集方案。
 phase: 4
 lesson: 22
 ---

@@ -1,6 +1,7 @@
 ---
 name: moe-configurator
 description: Pick expert count, top-k, balancing strategy, and shared-expert layout for a new MoE transformer.
+description-zh: 为新MoE transformer选择专家数量、top-k参数、平衡策略和共享专家布局。
 version: 1.0.0
 phase: 7
 lesson: 11

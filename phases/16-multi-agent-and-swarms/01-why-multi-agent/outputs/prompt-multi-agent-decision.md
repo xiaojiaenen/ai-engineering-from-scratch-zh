@@ -1,6 +1,7 @@
 ---
 name: prompt-multi-agent-decision
 description: Decide whether a task needs a multi-agent system or a single agent
+description-zh: 判断任务需要多智能体系统还是单智能体处理。
 phase: 16
 lesson: 1
 ---

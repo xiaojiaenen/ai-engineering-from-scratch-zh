@@ -1,6 +1,7 @@
 ---
 name: role-designer
 description: Produce a role roster for a multi-agent system, naming the planner/executor/critic/verifier for a given task with explicit I/O schemas.
+description-zh: 为多智能体系统制作角色清单，为指定任务命名规划者/执行者/评审者/验证者并定义明确I/O模式。
 version: 1.0.0
 phase: 16
 lesson: 08

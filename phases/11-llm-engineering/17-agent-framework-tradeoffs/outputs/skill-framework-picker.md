@@ -1,6 +1,14 @@
 ---
 name: framework-picker
 description: Pick LangGraph, CrewAI, AutoGen, Agno, or plain Python for an agent task by matching abstraction to problem shape.
+description-zh: 根据问题复杂度与抽象层级选择框架：
+
+**决策流程：**
+1. **需要完全控制 & 定制化** → **Plain Python**
+2. **需状态管理、循环、中断的复杂工作流** → **LangGraph**
+3. **基于角色的多智能体协作** → **CrewAI**
+4. **对话式自动化 & 人类协作** → **AutoGen**
+5. **轻量
 version: 1.0.0
 phase: 11
 lesson: 17

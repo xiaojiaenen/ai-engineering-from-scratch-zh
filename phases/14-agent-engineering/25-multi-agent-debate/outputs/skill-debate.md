@@ -1,6 +1,7 @@
 ---
 name: debate
 description: Scaffold a multi-agent debate with N debaters, R rounds, configurable topology (full mesh, star, ring), and a convergence rule.
+description-zh: 构建N名辩论者、R轮辩论的多智能体辩论框架，支持可配置拓扑结构（全网状/星型/环型）和收敛规则。
 version: 1.0.0
 phase: 14
 lesson: 25

@@ -1,6 +1,7 @@
 ---
 name: doc-qa
 description: Build a vision-first multimodal document QA system on 10k pages with late-interaction retrieval and evidence-region citations.
+description-zh: 构建视觉优先的多模态文档问答系统，支持万页级文档，采用延迟交互检索与证据区域引用
 version: 1.0.0
 phase: 19
 lesson: 04

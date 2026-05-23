@@ -1,6 +1,7 @@
 ---
 name: vlm-recipe-picker
 description: Pick an open-weight VLM recipe (encoder, connector, LLM, data mix, resolution schedule) with ablation-table citations for every choice.
+description-zh: 选择开放权重VLM方案（编码器、连接器、LLM、数据混合、分辨率计划），每项选择附消融实验表引用
 version: 1.0.0
 phase: 12
 lesson: 07

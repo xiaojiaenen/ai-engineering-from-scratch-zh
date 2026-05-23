@@ -1,6 +1,7 @@
 ---
 name: economy-designer
 description: Design a minimal agent economy — identity, credit attribution, payment mechanism, reputation. Picks the smallest stack that solves the user's multi-agent incentive problem.
+description-zh: 设计最小化智能体经济体系——涵盖身份标识、信用归属、支付机制、声誉系统，选择能解决用户多智能体激励问题的最简技术栈。
 version: 1.0.0
 phase: 16
 lesson: 21

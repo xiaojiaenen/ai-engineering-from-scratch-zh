@@ -1,6 +1,37 @@
 ---
 name: skill-perceptron
 description: Understand the perceptron pattern and when to use single-layer vs multi-layer architectures
+description-zh: # Perceptron 模式与架构选择
+
+## Perceptron 基本结构
+
+```
+输入层        激活函数        输出
+x₁ ──(w₁)──┐
+x₂ ──(w₂)──┤──→ Σ(wᵢxᵢ+b) ──→ f(z) ──→ ŷ
+x₃ ──(w₃)──┘
+```
+
+**核心公式：** `ŷ = f(Σwᵢxᵢ + b)`
+
+---
+
+## Single-Layer Perceptron（单层感知机）
+
+```
+输入 ──→ [单层权重+激活] ──→ 输出
+```
+
+**特点：**
+- 只有**一个**计算层（输入→输出直接连接）
+- 使用线性激活函数（如 step function）
+- 只能学习**线性可分**的模式
+
+**适用场景：**
+| 场景 | 示例 |
+|------|------|
+| AND / OR 逻辑门 | ✅ |
+| 线性二
 version: 1.0.0
 phase: 3
 lesson: 1

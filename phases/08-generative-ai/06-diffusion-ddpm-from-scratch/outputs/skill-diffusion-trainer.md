@@ -1,6 +1,7 @@
 ---
 name: diffusion-trainer
 description: Configure a diffusion training run: schedule, prediction target, sampler, and eval plan.
+description-zh: 配置扩散模型训练运行：调度策略、预测目标、采样器和评估计划。
 version: 1.0.0
 phase: 8
 lesson: 06

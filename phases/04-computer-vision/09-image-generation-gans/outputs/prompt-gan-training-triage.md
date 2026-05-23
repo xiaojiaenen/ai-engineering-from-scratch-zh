@@ -1,6 +1,7 @@
 ---
 name: prompt-gan-training-triage
 description: Read a description of GAN training curves and pick the failure mode plus the single recommended fix
+description-zh: 解读GAN训练曲线描述，判断故障模式并推荐单行修复方案。
 phase: 4
 lesson: 9
 ---

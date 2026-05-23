@@ -1,6 +1,25 @@
 ---
 name: mcp-server-designer
 description: Design and scaffold an MCP server with tools, resources, and safety defaults.
+description-zh: # MCP Server Scaffold with Tools, Resources & Safety Defaults
+
+## Project Structure
+
+```
+mcp-server/
+├── pyproject.toml
+├── config/
+│   └── settings.py
+├── src/
+│   ├── __init__.py
+│   ├── server.py              # Main MCP server entry point
+│   ├── safety/
+│   │   ├── __init__.py
+│   │   ├── defaults.py        # Safety policies & guardrails
+│   │   ├── rate_limiter.py    # Rate limiting
+│   │   └── validator.py       # Input/output validation
+│   ├── tools/
+│
 version: 1.0.0
 phase: 11
 lesson: 14

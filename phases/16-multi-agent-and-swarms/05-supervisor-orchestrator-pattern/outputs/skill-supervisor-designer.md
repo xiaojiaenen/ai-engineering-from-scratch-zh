@@ -1,6 +1,7 @@
 ---
 name: supervisor-designer
 description: Design a supervisor/orchestrator-worker system for a given research-style query, specifying lead prompt, worker roles, decomposition rules, and synthesis template.
+description-zh: 为研究类查询设计监督者/协调-执行者系统，明确主导提示、执行者角色、分解规则与综合模板。
 version: 1.0.0
 phase: 16
 lesson: 05

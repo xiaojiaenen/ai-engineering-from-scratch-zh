@@ -1,6 +1,7 @@
 ---
 name: a2a-integrator
 description: Design an A2A integration between two agents — Agent Card, task schemas, auth, streaming or polling.
+description-zh: 设计两个智能体之间的A2A集成方案——包括智能体卡片、任务模式、认证机制、流式或轮询方式。
 version: 1.0.0
 phase: 16
 lesson: 12

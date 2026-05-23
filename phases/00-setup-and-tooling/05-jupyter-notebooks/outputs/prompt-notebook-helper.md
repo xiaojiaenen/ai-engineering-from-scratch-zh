@@ -1,6 +1,7 @@
 ---
 name: prompt-notebook-helper
 description: Debug Jupyter notebook issues including kernel crashes, memory problems, and display failures
+description-zh: 调试Jupyter Notebook问题（内核崩溃、内存问题、显示故障）。
 phase: 0
 lesson: 5
 ---

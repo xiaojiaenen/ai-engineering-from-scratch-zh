@@ -1,6 +1,7 @@
 ---
 name: nsa-integrator
 description: Integration plan for Native Sparse Attention in a long-context pre-training run.
+description-zh: 将原生稀疏注意力机制集成至长上下文预训练运行的实施方案
 version: 1.0.0
 phase: 10
 lesson: 17

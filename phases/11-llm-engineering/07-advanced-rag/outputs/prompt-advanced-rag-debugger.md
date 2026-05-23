@@ -1,6 +1,36 @@
 ---
 name: prompt-advanced-rag-debugger
 description: Diagnose and fix RAG quality issues across retrieval, generation, and evaluation
+description-zh: # Diagnosing and Fixing RAG Quality Issues
+
+## The RAG Quality Diagnostic Framework
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    RAG PIPELINE                          │
+│                                                         │
+│  Query → [Retrieval] → Context → [Generation] → Answer  │
+│              ↑                            ↑             │
+│              └────── [Evaluation] ────────┘             │
+│                                                         │
+│  Failure modes exist at EVERY stage.                    │
+│  Fix the BROKEN stage, not the symptom.                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Stage 1: Retrieval Quality Issues
+
+### Diagnostic: Is Retrieval the Bottleneck?
+
+```python
+class RetrievalDiagnostics:
+    """Measure retrieval quality before blaming the generator."""
+    
+    def __init__(self, retriever, ground_truth_qa_pairs: list[dict]):
+        """
+        ground_truth_qa_pairs: [{"query":
 phase: 11
 lesson: 7
 ---

@@ -1,6 +1,7 @@
 ---
 name: prompt-video-model-picker
 description: Pick Sora 2 / Runway Gen-5 / Wan-Video / HunyuanVideo / Cosmos for a given task, license, and latency target
+description-zh: 根据给定任务、许可证和延迟目标，选择 Sora 2 / Runway Gen-5 / Wan-Video / HunyuanVideo / Cosmos
 phase: 4
 lesson: 28
 ---

@@ -1,6 +1,7 @@
 ---
 name: case-study-mapper
 description: Map a proposed multi-agent system design to the closest 2026 production reference (Anthropic Research, MetaGPT/ChatDev, or OpenClaw/Moltbook). Surface known trade-offs, recommended framework, and the specific design decisions already tested in production.
+description-zh: 将拟议多智能体系统设计映射至最接近的2026生产参考案例（Anthropic Research/MetaGPT/ChatDev/OpenClaw/Moltbook），揭示已知权衡、推荐框架及已在生产中验证的具体设计决策。
 version: 1.0.0
 phase: 16
 lesson: 25

@@ -1,6 +1,7 @@
 ---
 name: welfare-assessment
 description: Apply Anthropic's four-step welfare precautionary assessment to a deployment decision.
+description-zh: 将Anthropic四步福利预防性评估应用于部署决策。
 version: 1.0.0
 phase: 18
 lesson: 19

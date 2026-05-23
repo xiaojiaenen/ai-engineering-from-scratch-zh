@@ -1,6 +1,7 @@
 ---
 name: llava-vibes-eval
 description: Run a 10-prompt vibes-eval on a LLaVA-family VLM and produce a human-readable scorecard.
+description-zh: 对LLaVA系列VLM进行10提示词体验评估，生成人类可读评分卡
 version: 1.0.0
 phase: 12
 lesson: 05

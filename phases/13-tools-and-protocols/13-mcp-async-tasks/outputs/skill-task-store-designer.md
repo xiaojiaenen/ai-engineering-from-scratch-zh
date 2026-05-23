@@ -1,6 +1,37 @@
 ---
 name: task-store-designer
 description: Design the task store for a long-running MCP tool: state shape, ttl, durability, cancellation, crash recovery.
+description-zh: # Task Store Design for Long-Running MCP Tool
+
+## 1. State Shape
+
+```typescript
+interface Task {
+  // Identity
+  id: string;                    // UUID v7 (time-sortable)
+  parentId?: string;             // for subtask trees
+  idempotencyKey?: string;       // client-provided dedup key
+
+  // Lifecycle
+  status: TaskStatus;
+  createdAt: number;             // epoch ms
+  updatedAt: number;
+  startedAt?: number;
+  completedAt?: number;
+  expiresAt: number;             // createdAt + TTL
+
+  // Payload
+  toolName: string;
+  input: JsonValue;              // original MCP tool call args
+  output?: JsonValue;            // result on success
+  error?: TaskError;             // structured error on failure
+
+  // Progress
+  progress: {
+    current: number;
+    total: number;
+    message?: string;
+    phase?: string;              // e.g. "downloading
 version: 1.0.0
 phase: 13
 lesson: 13

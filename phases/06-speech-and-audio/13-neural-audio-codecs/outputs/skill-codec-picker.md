@@ -1,6 +1,23 @@
 ---
 name: codec-picker
 description: Pick a neural audio codec (EnCodec / DAC / SNAC / Mimi) for a given generative or compression task.
+description-zh: # Neural Audio Codec Selection Guide
+
+## Quick Decision Matrix
+
+| Codec | Best For | Key Strengths | Key Trade-offs |
+|-------|----------|---------------|----------------|
+| **EnCodec** | General-purpose compression & music generation | Mature ecosystem, multi-bandwidth, 24kHz | Moderate quality at low bitrates |
+| **DAC** (Descript Audio Codec) | High-fidelity speech & music | State-of-the-art quality, 44.1kHz stereo, fewest codebooks | Heavier model, limited ecosystem integration |
+| **SNAC** | Lightweight / real-time streaming | Very fast, minimal codebooks, efficient | Lower reconstruction quality |
+| **Mimi** | Speech-centric generation (Moshi/SSM-based) | Semantic + acoustic tokens, speech-optimized | Narrow domain (speech-first) |
+
+---
+
+## Detailed Recommendations
+
+### 🎯 For **Text-to-Speech / Voice Generation**
+> **→ Mimi** (if speech-only) or **EnCodec** (
 version: 1.0.0
 phase: 6
 lesson: 13

@@ -1,6 +1,7 @@
 ---
 name: ai-scientist
 description: Build an autonomous research agent that runs experiment tree search, writes LaTeX papers with vision critique, and passes a sandbox-escape red team.
+description-zh: 开发自主研究智能体，支持实验树搜索、生成带视觉评价的LaTeX论文，并能通过沙箱逃逸红队测试
 version: 1.0.0
 phase: 19
 lesson: 05

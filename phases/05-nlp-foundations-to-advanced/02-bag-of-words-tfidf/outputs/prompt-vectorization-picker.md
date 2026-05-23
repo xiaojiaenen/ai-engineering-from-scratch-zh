@@ -1,6 +1,32 @@
 ---
 name: vectorization-picker
 description: Given a text-classification task, recommend BoW, TF-IDF, embeddings, or a hybrid.
+description-zh: # Text Classification: Choosing a Text Representation
+
+## Short Answer
+
+**It depends on your constraints.** Here's a decision framework:
+
+---
+
+## Recommendation by Scenario
+
+| Scenario | Best Choice | Why |
+|---|---|---|
+| **Small dataset + simple task** | **TF-IDF** | Fast, interpretable, works well with limited data |
+| **Large dataset + simple task** | **Embeddings** | Captures semantics; enough data to learn representations |
+| **Small dataset + complex task** | **Hybrid** (TF-IDF + Embeddings) | Combines sparse statistical features with semantic richness |
+| **Large dataset + complex task** | **Fine-tuned embeddings** (e.g., BERT) | State-of-the-art performance |
+| **Need interpretability / speed** | **BoW / TF-IDF** | Transparent, lightweight |
+
+---
+
+## Detailed Breakdown
+
+### 📌 **BoW**
+- Simplest baseline
+- Ignores word order and semantics
+-
 phase: 5
 lesson: 02
 ---

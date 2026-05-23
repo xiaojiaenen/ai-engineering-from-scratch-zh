@@ -1,6 +1,7 @@
 ---
 name: skill-conv-shape-calculator
 description: Walk a CNN spec layer by layer and report output shape, receptive field, and parameter count for every block
+description-zh: 逐层遍历CNN规格，报告每个模块的输出形状、感受野和参数数量
 version: 1.0.0
 phase: 4
 lesson: 2

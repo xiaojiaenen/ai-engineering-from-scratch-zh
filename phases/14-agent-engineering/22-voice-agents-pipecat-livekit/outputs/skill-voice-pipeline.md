@@ -1,6 +1,7 @@
 ---
 name: voice-pipeline
 description: Scaffold a Pipecat-shaped voice pipeline (VAD + STT + LLM + TTS + transport) with barge-in, confidence gating, and latency budget enforcement.
+description-zh: 构建Pipecat风格的语音处理流水线（VAD+STT+LLM+TTS+传输），支持插入打断、置信度门控和延迟预算管控。
 version: 1.0.0
 phase: 14
 lesson: 22

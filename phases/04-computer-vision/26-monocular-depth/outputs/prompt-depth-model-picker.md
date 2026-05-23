@@ -1,6 +1,7 @@
 ---
 name: prompt-depth-model-picker
 description: Pick Depth Anything V3 / Marigold / UniDepth / MiDaS given latency, metric-vs-relative need, and scene type
+description-zh: 根据延迟、度量与相对需求及场景类型选择Depth Anything V3 / Marigold / UniDepth / MiDaS
 phase: 4
 lesson: 26
 ---

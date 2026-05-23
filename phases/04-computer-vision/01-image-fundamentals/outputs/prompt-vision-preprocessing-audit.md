@@ -1,6 +1,7 @@
 ---
 name: prompt-vision-preprocessing-audit
 description: Turn any model card or dataset card into a checklist of the preprocessing invariants a vision pipeline must honour
+description-zh: 将任意模型卡片或数据集卡片转换为视觉流水线必须遵守的预处理不变量清单
 phase: 4
 lesson: 1
 ---

@@ -1,6 +1,7 @@
 ---
 name: skill-dimensionality-reduction
 description: Choose the right dimensionality reduction technique for a given task based on data size, goal, and downstream use
+description-zh: 根据数据大小、目标和下游用途为给定任务选择合适的降维技术。
 phase: 1
 lesson: 10
 ---

@@ -1,6 +1,7 @@
 ---
 name: skill-autodiff
 description: Build, debug, and reason about automatic differentiation systems
+description-zh: 构建、调试和推理自动微分系统。
 phase: 1
 lesson: 5
 ---

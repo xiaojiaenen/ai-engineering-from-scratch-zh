@@ -1,6 +1,19 @@
 ---
 name: re-designer
 description: Design a relation extraction pipeline with provenance and canonicalization.
+description-zh: # Relation Extraction Pipeline with Provenance & Canonicalization
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        RAW TEXT CORPUS                                  │
+└──────────────────────────┬──────────────────────────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STAGE 1: PREPROCESSING                                                │
+│  ┌───────────┐ ┌──────────────┐ ┌────────────┐ ┌──────────────────┐   │
+│  │ Document  │→│  Sentence    │→│  Mention    │→│
 version: 1.0.0
 phase: 5
 lesson: 26

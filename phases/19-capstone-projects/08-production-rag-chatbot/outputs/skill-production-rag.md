@@ -1,6 +1,7 @@
 ---
 name: production-rag
 description: Deploy a regulated-domain RAG chatbot with role + jurisdiction filtering, prompt caching, guardrails, and live drift monitoring.
+description-zh: 部署受监管领域RAG聊天机器人，支持角色与司法管辖区过滤、提示缓存、安全防护及实时漂移监控
 version: 1.0.0
 phase: 19
 lesson: 08

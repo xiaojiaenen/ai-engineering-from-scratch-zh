@@ -1,6 +1,20 @@
 ---
 name: spoof-defender
 description: Pick detection model, watermark, provenance manifest, and operational playbook for a voice-generation / voice-auth deployment.
+description-zh: # Voice-Gen / Voice-Auth Deployment — Key Components
+
+---
+
+## 1. Detection Model
+
+| Aspect | Recommendation |
+|---|---|
+| **Primary model** | **AASIST2** (graph attention + raw waveform) for spoofing detection on ASVspoof 5 protocol |
+| **Ensemble layer** | Pair with **RawNet3** to capture complementary spectral artifacts |
+| **Input features** | Raw waveform (no handcrafted front-end); optional LFCC branch for channel-robust mode |
+| **Threshold strategy** | EER-calibrated per-locale; operate at **≤1 % EER with ≤5 % FRR** on enrollment audio |
+| **Update cadence** | Retrain quarterly on new TTS / voice-clone samples (GPT-4o-audio, VALL-E XT, ElevenLabs v3, etc.) |
+| **Hard-negative mining** | Adversarial vocoder outputs (HiFi
 version: 1.0.0
 phase: 6
 lesson: 16

@@ -1,6 +1,17 @@
 ---
 name: tool-registry
 description: Build a production tool catalog and registry with JSON Schema validation, parallel dispatch, and observability.
+description-zh: 构建一个具有JSON Schema验证、并行调度和可观测性的生产工具目录和注册表。
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ToolCatalog                                  │
+│  ┌───────────┐  ┌──────────────┐  ┌──────────────────────────────┐ │
+│  │  Schema    │  │   Registry   │  │      Version Manager         │ │
+│  │ Validator  │──│   (CRUD)     │──│  (semver, deprecation)       │ │
+│
 version: 1.0.0
 phase: 14
 lesson: 06

@@ -1,6 +1,7 @@
 ---
 name: failure-detector
 description: Generate failure-mode detectors for agent traces, wired to a trace store, tagging the five industry-recurring modes plus domain-specific signatures.
+description-zh: 为智能体追踪生成故障模式检测器，接入追踪存储系统，标记五种行业共性模式及领域特定特征。
 version: 1.0.0
 phase: 14
 lesson: 26

@@ -1,6 +1,7 @@
 ---
 name: prompt-backbone-selector
 description: Pick the right vision backbone (LeNet, VGG, ResNet, MobileNet, EfficientNet-Lite, ConvNeXt, ViT) for a given task, dataset size, and compute budget
+description-zh: 为给定任务、数据集规模和计算预算选择合适的视觉骨干网络（LeNet、VGG、ResNet、MobileNet、EfficientNet-Lite、ConvNeXt、ViT）
 phase: 4
 lesson: 3
 ---

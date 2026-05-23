@@ -1,6 +1,7 @@
 ---
 name: speculative-tuning
 description: Profile a decode workload and pick draft model, draft length K, temperature gate, and fallback policy for speculative decoding.
+description-zh: 分析解码工作负载并为推测性解码选择草稿模型、草稿长度K、温度门控和回退策略
 version: 1.0.0
 phase: 10
 lesson: 25

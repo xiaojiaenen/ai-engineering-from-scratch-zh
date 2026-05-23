@@ -1,6 +1,24 @@
 ---
 name: elicitation-form-designer
 description: Design the elicitation form schema and message template for a tool that needs mid-call user confirmation or disambiguation.
+description-zh: # Elicitation Form Schema & Message Template
+
+## Overview
+
+This design covers a **mid-call elicitation** pattern: a tool pauses execution to ask the user for confirmation or disambiguation, then resumes once the user responds.
+
+---
+
+## 1. Elicitation Form Schema (JSON Schema)
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/elicitation-form.json",
+  "title": "ElicitationForm",
+  "description": "Schema for mid-call user confirmation or disambiguation requests.",
+  "type": "object",
+  "required": ["elicitationId", "triggerTool", "prompt", "responseType
 version: 1.0.0
 phase: 13
 lesson: 12

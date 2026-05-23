@@ -1,6 +1,7 @@
 ---
 name: skill-point-cloud-loader
 description: Write a PyTorch Dataset for .ply / .pcd / .xyz files with correct normalisation, centring, and point sampling
+description-zh: 为 .ply / .pcd / .xyz 文件编写一个 PyTorch Dataset，包含正确的归一化、居中和点采样
 version: 1.0.0
 phase: 4
 lesson: 13

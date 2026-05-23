@@ -1,6 +1,7 @@
 ---
 name: migration-agent
 description: Build a repo-level code migration agent that combines deterministic recipes with an agent fallback loop, passes MigrationBench, and publishes a failure taxonomy.
+description-zh: 构建仓库级代码迁移智能体，融合确定性规则与智能体回退循环，通过迁移基准测试并发布失败分类体系
 version: 1.0.0
 phase: 19
 lesson: 09

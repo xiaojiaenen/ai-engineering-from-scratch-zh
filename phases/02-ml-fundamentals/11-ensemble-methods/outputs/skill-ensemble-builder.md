@@ -1,6 +1,7 @@
 ---
 name: skill-ensemble-builder
 description: Choose the right ensemble method and configure it for your problem
+description-zh: 为你的问题选择合适的集成方法并进行配置
 version: 1.0.0
 phase: 2
 lesson: 11

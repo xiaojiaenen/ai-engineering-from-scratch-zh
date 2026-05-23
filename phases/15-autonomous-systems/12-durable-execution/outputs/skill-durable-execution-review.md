@@ -1,6 +1,7 @@
 ---
 name: durable-execution-review
 description: Review a proposed long-running agent deployment for correct durable-execution shape (activities, determinism, checkpoint backend, human-input state, HITL-on-resume).
+description-zh: 审查拟议的长期运行智能体部署是否具备正确的持久化执行形态（活动、确定性、检查点后端、人工输入状态、恢复时人工介入）。
 version: 1.0.0
 phase: 15
 lesson: 12

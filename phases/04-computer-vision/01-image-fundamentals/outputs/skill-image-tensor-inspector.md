@@ -1,6 +1,7 @@
 ---
 name: skill-image-tensor-inspector
 description: Inspect any image-shaped tensor or array and report dtype, layout, range, and whether it looks raw, normalized, or standardized
+description-zh: 检查任意图像形状的张量或数组，报告数据类型、布局、范围以及是否为原始、归一化或标准化数据
 version: 1.0.0
 phase: 4
 lesson: 1

@@ -1,6 +1,7 @@
 ---
 name: agents-sdk-scaffold
 description: Scaffold an OpenAI Agents SDK app with a triage agent, handoffs, input/output/tool guardrails, session store, and a trace processor.
+description-zh: 构建OpenAI Agents SDK应用基础框架，包含分诊智能体、移交机制、输入/输出/工具防护栏、会话存储和追踪处理器。
 version: 1.0.0
 phase: 14
 lesson: 16

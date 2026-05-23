@@ -1,6 +1,12 @@
 ---
 name: skill-rag-pipeline
 description: Build and debug RAG pipelines from first principles
+description-zh: 从第一性原理构建和调试RAG（检索增强生成）管线，核心是将其拆解为最基础的部分：**信息检索** + **语言模型生成**。以下是分步指南：
+
+### 1. 理解核心组件
+- **检索器（Retriever）**：从知识库中查找相关文档片段。
+- **生成器（Generator）**：大型语言模型（如GPT-4），利用检索到的信息生成答案。
+- **知识库**：文档集合，需预处理为可搜索格式（如
 version: 1.0.0
 phase: 11
 lesson: 6

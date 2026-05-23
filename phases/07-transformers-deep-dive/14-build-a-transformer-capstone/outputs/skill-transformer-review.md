@@ -1,6 +1,7 @@
 ---
 name: transformer-review
 description: Review a transformer-from-scratch implementation against the 13 Phase 7 lessons.
+description-zh: 根据第7阶段的13条教训审查从零开始的Transformer实现。
 version: 1.0.0
 phase: 7
 lesson: 14

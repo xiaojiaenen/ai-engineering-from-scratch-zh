@@ -1,6 +1,7 @@
 ---
 name: skill-svd
 description: Apply SVD to real problems including compression, denoising, recommendations, and least-squares solving
+description-zh: 将SVD应用于实际问题，包括压缩、去噪、推荐和最小二乘求解。
 phase: 1
 lesson: 11
 ---

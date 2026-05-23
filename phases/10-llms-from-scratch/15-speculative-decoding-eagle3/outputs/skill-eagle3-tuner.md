@@ -1,6 +1,7 @@
 ---
 name: eagle3-tuner
 description: Pick and tune a speculative decoding strategy (vanilla / Medusa / EAGLE-1/2/3 / lookahead) for a new inference workload.
+description-zh: 针对新推理负载，选择并优化投机解码策略（基础版/Medusa/EAGLE-1/2/3/前瞻式）
 version: 1.0.0
 phase: 10
 lesson: 15

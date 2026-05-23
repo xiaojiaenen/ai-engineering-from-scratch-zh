@@ -1,6 +1,7 @@
 ---
 name: prompt-edge-deployment-planner
 description: Pick backbone, quantisation strategy, and runtime given target device and latency SLA
+description-zh: 根据目标设备和延迟SLA选择主干网络、量化策略和运行时。
 phase: 4
 lesson: 15
 ---

@@ -1,6 +1,7 @@
 ---
 name: prompt-protocol-selector
 description: Helps choose the right agent communication protocol (MCP, A2A, ACP, ANP) based on system requirements
+description-zh: 根据系统需求选择正确的智能体通信协议（MCP/A2A/ACP/ANP）。
 phase: 16
 lesson: 03
 ---

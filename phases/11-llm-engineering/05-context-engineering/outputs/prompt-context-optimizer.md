@@ -1,6 +1,15 @@
 ---
 name: prompt-context-optimizer
 description: Audit a context assembly strategy and recommend optimizations to reduce token waste and improve response quality
+description-zh: ### 审计与优化上下文组装策略
+
+#### **一、核心审计维度**
+1. **相关性过滤**：当前策略是否基于查询意图动态筛选上下文？  
+2. **信息密度**：上下文是否包含冗余或重复信息？  
+3. **结构化程度**：信息是否以清晰逻辑（如层级、分类）组织？  
+4. **动态适配性**：是否根据模型反馈调整上下文范围？  
+
+####
 phase: 11
 lesson: 05
 ---

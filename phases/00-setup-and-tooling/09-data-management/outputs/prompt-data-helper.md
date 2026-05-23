@@ -1,6 +1,7 @@
 ---
 name: prompt-data-helper
 description: Find and load the right dataset for an AI/ML task
+description-zh: 为AI/ML任务查找并加载合适的数据集。
 phase: 0
 lesson: 9
 ---

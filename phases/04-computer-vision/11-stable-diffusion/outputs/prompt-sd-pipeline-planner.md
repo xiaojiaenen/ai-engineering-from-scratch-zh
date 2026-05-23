@@ -1,6 +1,7 @@
 ---
 name: prompt-sd-pipeline-planner
 description: Pick SD 1.5 / SDXL / SD3 / FLUX plus scheduler and precision given a latency budget, fidelity target, and licensing constraint
+description-zh: 根据延迟预算、保真度目标和许可证约束选择SD 1.5 / SDXL / SD3 / FLUX及其调度器和精度
 phase: 4
 lesson: 11
 ---

@@ -1,6 +1,7 @@
 ---
 name: computer-use-safety
 description: Build per-step safety classifier + confirmation gate for a computer-use agent, with allowlist navigation and injection-marker filtering.
+description-zh: 为计算机使用智能体建立逐步安全分类器和确认门控，包含白名单导航和注入标记过滤功能。
 version: 1.0.0
 phase: 14
 lesson: 21

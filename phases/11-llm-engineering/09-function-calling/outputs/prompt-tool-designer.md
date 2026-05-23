@@ -1,6 +1,16 @@
 ---
 name: prompt-tool-designer
 description: Design complete tool definitions (JSON Schema) for function calling from a natural language description
+description-zh: # Designing Tool Definitions (JSON Schema) for Function Calling
+
+## General Structure
+
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "snake_case_function_name",
+    "description": "Clear, concise description of what the function does, when to use it, and any constraints.",
 phase: 11
 lesson: 09
 ---

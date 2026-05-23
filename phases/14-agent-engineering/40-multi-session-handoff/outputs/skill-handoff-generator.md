@@ -1,6 +1,7 @@
 ---
 name: handoff-generator
 description: Generate end-of-session handoff packets from workbench artifacts, producing both human-readable Markdown and machine-readable JSON keyed to the seven canonical fields.
+description-zh: 根据工作台产物生成会话结束交接包，同时输出人类可读的Markdown和机器可读的JSON格式（对应七个标准字段）。
 version: 1.0.0
 phase: 14
 lesson: 40

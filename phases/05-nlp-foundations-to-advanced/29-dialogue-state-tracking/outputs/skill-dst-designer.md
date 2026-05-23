@@ -1,6 +1,40 @@
 ---
 name: dst-designer
 description: Design a dialogue state tracker — schema, extractor, update policy, evaluation.
+description-zh: # Dialogue State Tracker (DST) Design
+
+## 1. Schema Design
+
+The schema defines **what** the tracker tracks — the ontology of belief states.
+
+### Slot-Value Ontology
+
+```yaml
+# Schema definition (e.g., restaurant booking domain)
+domain: restaurant
+slots:
+  - name: food_type
+    type: categorical
+    values: [italian, chinese, indian, japanese, mexican, ...]
+    description: "Type of cuisine the user wants"
+
+  - name: price_range
+    type: categorical
+    values: [cheap, moderate, expensive]
+    description: "Desired price range"
+
+  - name: area
+    type: categorical
+    values: [north, south, east, centre, west]
+    description: "Geographic preference"
+
+  - name: name
+    type: freeform          # open-vocabulary value
+    description: "Restaurant name"
+
+  - name: book_time
+    type: freeform          # constrained by parser
+    description: "Reservation
 version: 1.0.0
 phase: 5
 lesson: 29

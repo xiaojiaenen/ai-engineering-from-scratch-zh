@@ -1,6 +1,30 @@
 ---
 name: skill-debug-checklist
 description: Decision-tree checklist for debugging neural network training failures
+description-zh: # 神经网络训练故障排查决策树 Checklist
+
+---
+
+## 1. 损失是否为 NaN 或 Inf？
+
+**是 →**
+- ✅ 检查学习率是否过大 → 降低 learning rate
+- ✅ 检查数据中是否存在 NaN/Inf 值 → 清洗数据
+- ✅ 检查是否需要 gradient clipping
+- ✅ 检查 loss function 是否存在数值不稳定（如 log(0)）→ 加入 epsilon
+- ✅ 检查 Batch Normalization / Layer Normalization 是否正确配置
+
+**否 → 进入第 2 步**
+
+---
+
+## 2. 损失是否在第一个 batch 就不下降？
+
+**是 →**
+- ✅ 检查数据 pipeline 是否正确加载（打印一个 batch 查看）
+- ✅ 检查 label 是否正确对齐
+- ✅ 检查 optimizer 是否正确关联了 model parameters
+- ✅ 检查是否有 `loss.backward()` 和
 version: 1.0.0
 phase: 3
 lesson: 13

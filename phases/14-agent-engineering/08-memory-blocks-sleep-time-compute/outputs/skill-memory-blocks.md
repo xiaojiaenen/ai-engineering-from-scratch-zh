@@ -1,6 +1,7 @@
 ---
 name: memory-blocks
 description: Generate a Letta-shaped three-tier memory system (core blocks, recall, archival) with a sleep-time consolidation agent off the critical path.
+description-zh: 生成Letta风格的三层记忆系统（核心区块、回忆存储、档案存储），配备独立于关键路径的睡眠期整合智能体。
 version: 1.0.0
 phase: 14
 lesson: 08

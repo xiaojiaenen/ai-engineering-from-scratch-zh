@@ -1,6 +1,7 @@
 ---
 name: benchmark-reader
 description: Read a multi-agent benchmark claim skeptically. Grades the claim on benchmark selection, contamination, baselines, statistical significance, task diversity, and cost disclosure.
+description-zh: 以批判视角审阅多智能体基准测试声明，从基准选择、数据污染、基线对比、统计显著性、任务多样性和成本披露六个维度进行评级。
 version: 1.0.0
 phase: 16
 lesson: 24

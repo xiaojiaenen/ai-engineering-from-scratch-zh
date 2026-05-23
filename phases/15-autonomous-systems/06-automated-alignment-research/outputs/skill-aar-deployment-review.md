@@ -1,6 +1,7 @@
 ---
 name: aar-deployment-review
 description: Pre-deployment review of an automated-alignment-research pipeline, including sandbox isolation and log integrity.
+description-zh: 自动化对齐研究流水线的部署前审查，涵盖沙盒隔离与日志完整性。
 version: 1.0.0
 phase: 15
 lesson: 6

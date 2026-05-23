@@ -1,6 +1,44 @@
 ---
 name: skill-pytorch-patterns
 description: Reference patterns for PyTorch training, evaluation, and deployment
+description-zh: # PyTorch Training, Evaluation & Deployment Patterns
+
+## 1. Training Loop Pattern
+
+### Basic Training Loop
+```python
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
+def train_one_epoch(model, dataloader, criterion, optimizer, device):
+    model.train()
+    running_loss = 0.0
+
+    for batch_idx, (inputs, targets) in enumerate(dataloader):
+        inputs, targets = inputs.to(device), targets.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item() * inputs.size(0)
+
+    return running_loss / len(dataloader.dataset)
+```
+
+### Training with Mixed Precision (AMP)
+```python
+from torch.cuda.amp import autocast, GradScaler
+
+def train_one_epoch_amp(model, dataloader, criterion, optimizer, device):
+    model.train()
+    scaler = GradScaler()
+
+    for inputs, targets in dataloader:
+        inputs, targets = inputs.to(device), targets.to
 version: 1.0.0
 phase: 03
 lesson: 11

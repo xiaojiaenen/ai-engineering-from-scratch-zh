@@ -1,6 +1,21 @@
 ---
 name: skill-advanced-rag
 description: Build production-grade RAG with hybrid search, reranking, and evaluation
+description-zh: # Production-Grade RAG System
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        RAG PIPELINE                                  │
+│                                                                      │
+│  ┌──────────┐   ┌──────────────┐   ┌──────────┐   ┌──────────────┐ │
+│  │ Document  │──▶│  Indexing    │──▶│ Hybrid   │──▶│  Reranking   │ │
+│  │ Loading   │   │  (BM25+Vec)  │   │ Search   │   │  (CrossEnc)  │ │
+│  └──────────┘   └──────────────┘   └──────────┘   └──────┬───────┘ │
+│                                                           │         │
+│  ┌──────────┐   ┌──────────────┐   ┌──────────┐          │         │
+│  │Evaluation │
 version: 1.0.0
 phase: 11
 lesson: 7

@@ -1,6 +1,7 @@
 ---
 name: moderation-stack
 description: Recommend a moderation stack configuration for a production deployment.
+description-zh: 为生产环境部署推荐审核策略栈配置。
 version: 1.0.0
 phase: 18
 lesson: 29

@@ -1,6 +1,7 @@
 ---
 name: multi-region-router
 description: Design a multi-region LLM routing plan with KV-cache locality, residency boundaries, DR manifest, and a quarterly failover drill.
+description-zh: 设计多区域LLM路由计划，包含KV缓存局部性、驻留边界、DR清单和季度故障转移演练。
 version: 1.0.0
 phase: 17
 lesson: 11

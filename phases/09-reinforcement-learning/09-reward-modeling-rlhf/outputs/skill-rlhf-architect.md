@@ -1,6 +1,25 @@
 ---
 name: rlhf-architect
 description: Design an RLHF / DPO / GRPO alignment pipeline for a language model, including RM, KL, and data strategy.
+description-zh: # Comprehensive LLM Alignment Pipeline: RLHF / DPO / GRPO
+
+---
+
+## 1. Overview & Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ALIGNMENT PIPELINE OVERVIEW                  │
+│                                                                 │
+│  Phase 0: Base Model & Supervised Fine-Tuning (SFT)            │
+│  Phase 1: Preference Data Collection                            │
+│  Phase 2: Reward Model (RM) Training                            │
+│  Phase 3: Policy Optimization (RLHF / DPO / GRPO)              │
+│  Phase 4: Evaluation & Iteration                                │
+│                                                                 │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐    │
+│  │  SFT     │──▶│  Data    │──▶│  RM or   │──▶│  Policy  │    │
+│  │  Model
 version: 1.0.0
 phase: 9
 lesson: 9

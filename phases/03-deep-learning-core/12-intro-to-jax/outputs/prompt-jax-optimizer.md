@@ -1,6 +1,30 @@
 ---
 name: prompt-jax-optimizer
 description: Choose and configure the right JAX/Optax optimizer for a given training scenario
+description-zh: # Choosing & Configuring JAX/Optax Optimizers
+
+## 1. Core Concept
+
+In JAX+Optax, an "optimizer" is a **gradient transformation** — a pair of pure functions:
+
+```
+init(params) → state
+update(grads, state, params) → (updates, new_state)
+```
+
+You combine them with `apply_updates` to get new parameters.
+
+---
+
+## 2. Quick Decision Matrix
+
+| Scenario | Recommended Optimizer | Why |
+|---|---|---|
+| General deep learning | **Adam / AdamW** | Adaptive LR, fast convergence |
+| Vision (CNN/ViT) training | **SGD + Momentum** or **AdamW** | SGD generalizes well; AdamW + WD works for ViT |
+| LLM / Transformer fine-tuning | **AdamW** | De facto standard, decoupled weight decay |
+| LLM pretraining at scale | **AdamW + Adafactor** | Adafactor saves memory (no second moment) |
+| Simple / small models | **SGD
 phase: 03
 lesson: 12
 ---

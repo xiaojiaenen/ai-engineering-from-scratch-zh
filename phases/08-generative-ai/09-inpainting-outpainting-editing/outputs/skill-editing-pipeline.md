@@ -1,6 +1,7 @@
 ---
 name: editing-pipeline
 description: Plan an image-editing pipeline from source + edit description to a ready-to-ship output.
+description-zh: 规划从源图像加编辑描述到可发布输出的图像编辑流水线。
 version: 1.0.0
 phase: 8
 lesson: 09

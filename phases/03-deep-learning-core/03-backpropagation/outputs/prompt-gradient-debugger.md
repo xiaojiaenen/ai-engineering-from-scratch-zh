@@ -1,6 +1,45 @@
 ---
 name: prompt-gradient-debugger
 description: Diagnose and fix gradient problems in neural networks -- vanishing gradients, exploding gradients, and NaN values
+description-zh: # Diagnosing & Fixing Gradient Problems in Neural Networks
+
+## 1. Vanishing Gradients
+
+### Symptoms
+```
+- Weights in early layers barely update
+- Loss plateaus or decreases extremely slowly
+- Layer gradient norms decrease exponentially toward input
+```
+
+### Diagnosis
+
+```python
+import torch
+import matplotlib.pyplot as plt
+
+def diagnose_gradients(model):
+    """Log gradient statistics for every layer."""
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            grad = param.grad
+            print(f"{name:>40s} | "
+                  f"mean={grad.mean():.2e}  "
+                  f"std={grad.std():.2e}  "
+                  f"max={grad.abs().max():.2e}  "
+                  f"norm={grad.norm():.2e}")
+
+# Usage after loss.backward()
+loss.backward()
+diagnose_gradients(model)
+```
+
+```python
+def plot_gradient_flow(model):
+    """Visualize gradient norms across layers."""
+    ave_grads = []
+    layers = []
+    for name
 phase: 03
 lesson: 03
 ---

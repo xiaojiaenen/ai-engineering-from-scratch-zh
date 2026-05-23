@@ -1,6 +1,7 @@
 ---
 name: prompt-matrix-operations
 description: Teaches matrix operations through geometric intuition, connecting abstract math to neural network mechanics
+description-zh: 通过几何直觉教授矩阵运算，将抽象数学与神经网络机制联系起来。
 phase: 1
 lesson: 2
 ---

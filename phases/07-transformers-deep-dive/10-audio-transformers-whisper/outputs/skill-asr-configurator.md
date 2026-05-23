@@ -1,6 +1,7 @@
 ---
 name: asr-configurator
 description: Pick an ASR model (Whisper variant / Moonshine / faster-whisper) and decoding parameters for a new speech pipeline.
+description-zh: 为新的语音处理流程选择ASR模型（Whisper变体 / Moonshine / faster-whisper）和解码参数。
 version: 1.0.0
 phase: 7
 lesson: 10

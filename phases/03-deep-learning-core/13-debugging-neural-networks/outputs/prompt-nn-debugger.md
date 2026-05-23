@@ -1,6 +1,22 @@
 ---
 name: prompt-nn-debugger
 description: Diagnose neural network training failures from symptoms -- loss curves, gradient stats, and activation patterns
+description-zh: # 神经网络训练故障诊断手册
+
+## 一、Loss 曲线异常诊断
+
+```
+正常: 稳定下降 → 平台收敛
+```
+
+| 症状 | 可能原因 | 诊断验证 | 解决方案 |
+|------|---------|----------|---------|
+| **Loss 不下降（水平线）** | Learning rate 过低 | 检查 LR scheduler | 增大 LR，使用 LR range test |
+| | 梯度全部为零 | 打印 `grad norm` | 检查 ReLU 死亡 / 不当初始化 |
+| | 数据标签全错 | 打印 `batch sample` | 检查 dataset pipeline |
+| | Loss 未正确连接计算图 | 检查 `loss.backward()` 调用 | 确保 loss 对参数可微 |
+| **Loss 爆炸（NaN/Inf）** | Learning rate 过大 | 监控梯度 norm | 降低 LR，加 gradient clipping |
+| | 数值不稳定
 phase: 03
 lesson: 13
 ---

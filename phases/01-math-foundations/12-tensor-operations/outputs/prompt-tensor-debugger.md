@@ -1,6 +1,7 @@
 ---
 name: prompt-tensor-debugger
 description: Step-by-step debugging prompt for tensor shape errors in deep learning code
+description-zh: 深度学习代码中张量形状错误的逐步调试提示
 phase: 1
 lesson: 12
 ---

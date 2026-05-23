@@ -1,6 +1,7 @@
 ---
 name: instructgpt-explainer
 description: Diagnose an RLHF-family paper or pipeline against the three-stage InstructGPT reference.
+description-zh: 对照三阶段InstructGPT参考文献，诊断RLHF类论文或流程。
 version: 1.0.0
 phase: 18
 lesson: 1

@@ -1,6 +1,46 @@
 ---
 name: prompt-loss-function-selector
 description: A decision prompt for choosing the right loss function for any ML task
+description-zh: # 🎯 Loss Function Decision Prompt
+
+Follow this step-by-step decision tree to select the optimal loss function for your ML task.
+
+---
+
+## Step 1: What is your task type?
+
+```
+→ Classification?
+   └── Go to Step 2A
+
+→ Regression?
+   └── Go to Step 2B
+
+→ Ranking / Retrieval?
+   └── Go to Step 2C
+
+→ Generation / Reconstruction?
+   └── Go to Step 2D
+```
+
+---
+
+## Step 2A: Classification
+
+```
+→ Binary classification?
+   │
+   ├── Are classes balanced?
+   │    ├── YES → Binary Cross-Entropy (Log Loss)
+   │    └── NO  → Weighted Binary Cross-Entropy
+   │             or Focal Loss (for extreme imbalance)
+   │
+   → Multi-class classification?
+   │
+   ├── Are classes mutually exclusive?
+   │    ├── YES → Categorical Cross-Entropy
+   │    │         (softmax output)
+   │
 phase: 03
 lesson: 05
 ---

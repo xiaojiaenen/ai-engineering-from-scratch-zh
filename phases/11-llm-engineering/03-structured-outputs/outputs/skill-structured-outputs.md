@@ -1,6 +1,17 @@
 ---
 name: skill-structured-outputs
 description: Decision framework for choosing the right structured output strategy based on provider, reliability, and complexity
+description-zh: 结构化输出策略决策框架
+
+**核心决策维度：**
+- **提供商能力**：支持的JSON Schema约束、强制输出模式
+- **可靠性**：输出格式稳定性和错误处理
+- **复杂性**：数据结构嵌套深度和验证需求
+
+**决策流程：**
+
+1. **评估提供商支持**
+   - 检查是否原生支持 `response_format: json_schema`（如OpenAI
 version: 1.0.0
 phase: 11
 lesson: 03

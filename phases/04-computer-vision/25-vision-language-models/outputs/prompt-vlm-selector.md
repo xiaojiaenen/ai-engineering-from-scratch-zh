@@ -1,6 +1,7 @@
 ---
 name: prompt-vlm-selector
 description: Pick Qwen3-VL / InternVL3.5 / LLaVA-Next / API given accuracy, latency, context length, and budget
+description-zh: 根据精度、延迟、上下文长度和预算选择Qwen3-VL / InternVL3.5 / LLaVA-Next / API
 phase: 4
 lesson: 25
 ---

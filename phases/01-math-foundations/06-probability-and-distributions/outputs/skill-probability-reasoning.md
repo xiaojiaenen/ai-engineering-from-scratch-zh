@@ -1,6 +1,7 @@
 ---
 name: skill-probability-reasoning
 description: Choose the right probability distribution for a given ML problem
+description-zh: 为给定的机器学习问题选择合适的概率分布。
 version: 1.0.0
 phase: 1
 lesson: 6

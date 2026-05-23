@@ -1,6 +1,19 @@
 ---
 name: duplex-pipeline
 description: Pick full-duplex (Moshi) vs pipeline (VAD + STT + LLM + TTS) architecture for a voice-agent workload.
+description-zh: # Full-Duplex (Moshi) vs Pipeline (VAD→STT→LLM→TTS)
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  PIPELINE                                               │
+│                                                         │
+│  Mic → VAD → STT → LLM → TTS → Speaker                │
+│        ╔═══╗ ╔═══╗ ╔═══╗ ╔═══╗                        │
+│        ║   ║ ║   ║ ║   ║ ║   ║  sequential stages      │
+│        ╚═══╝ ╚═══╝ ╚═══╝ ╚═══╝                        │
+│
 version: 1.0.0
 phase: 6
 lesson: 15

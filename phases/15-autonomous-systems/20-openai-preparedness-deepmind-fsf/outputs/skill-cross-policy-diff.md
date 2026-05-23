@@ -1,6 +1,7 @@
 ---
 name: cross-policy-diff
 description: Produce a cross-policy comparison for a specific capability using the OpenAI Preparedness Framework v2, Anthropic RSP v3.0, and DeepMind FSF v3 as reference.
+description-zh: 使用OpenAI准备就绪框架v2、Anthropic RSP v3.0和DeepMind FSF v3作为参考，针对特定能力制作跨政策对比分析。
 version: 1.0.0
 phase: 15
 lesson: 20

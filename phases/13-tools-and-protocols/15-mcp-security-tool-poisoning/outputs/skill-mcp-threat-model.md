@@ -1,6 +1,7 @@
 ---
 name: mcp-threat-model
 description: Produce a threat model for an MCP deployment naming the applicable attack classes, defenses in place, and Rule-of-Two violations.
+description-zh: 
 version: 1.0.0
 phase: 13
 lesson: 15

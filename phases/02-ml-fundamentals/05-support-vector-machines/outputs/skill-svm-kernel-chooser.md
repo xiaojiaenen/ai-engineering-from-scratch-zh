@@ -1,6 +1,7 @@
 ---
 name: skill-svm-kernel-chooser
 description: Choose the right SVM kernel and tune C and gamma for your problem
+description-zh: 针对问题选择支持向量机核函数并调整C与gamma参数
 version: 1.0.0
 phase: 2
 lesson: 5

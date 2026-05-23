@@ -1,6 +1,7 @@
 ---
 name: skill-latency-profiler
 description: Write a complete latency-benchmarking script with warmup, synchronisation, percentiles, and memory tracking
+description-zh: 编写包含预热、同步、百分位统计和显存追踪的完整延迟基准测试脚本。
 version: 1.0.0
 phase: 4
 lesson: 15

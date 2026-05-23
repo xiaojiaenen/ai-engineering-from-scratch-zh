@@ -1,6 +1,35 @@
 ---
 name: embedding-probe
 description: Inspect a word2vec model. Run analogies, find neighbors, diagnose quality.
+description-zh: # Word2Vec Model Inspector
+
+```python
+#!/usr/bin/env python3
+"""
+word2vec_inspector.py
+Interactive CLI tool to inspect, test, and diagnose a word2vec model.
+Supports gensim KeyedVectors format (.kv, .kv mmap, original word2vec binary/text, GloVe).
+"""
+
+import sys
+import math
+import argparse
+import numpy as np
+from collections import Counter
+
+try:
+    from gensim.models import KeyedVectors
+    from gensim.models.keyedvectors import KeyedVectors as KV
+except ImportError:
+    sys.exit("gensim is required:  pip install gensim")
+
+
+# ──────────────────────────────────────────────
+# Loading
+# ──────────────────────────────────────────────
+def load_model(path: str, fmt: str | None = None) -> KeyedVectors:
+    """Load a word2vec / GloVe / fasttext model into KeyedVectors."""
+    if fmt == "word2vec" or (fmt is None and path.endswith(
 version: 1.0.0
 phase: 5
 lesson: 03

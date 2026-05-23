@@ -1,6 +1,7 @@
 ---
 name: skill-frame-sampler-auditor
 description: Audit a video pipeline's frame sampler for off-by-one, short-clip handling, and crop consistency
+description-zh: 审查视频流水线的帧采样器，检查边界错误、短片段处理和裁剪一致性
 version: 1.0.0
 phase: 4
 lesson: 12

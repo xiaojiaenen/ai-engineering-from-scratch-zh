@@ -1,6 +1,7 @@
 ---
 name: fm-tuner
 description: Convert a diffusion training plan into a flow-matching / rectified-flow config.
+description-zh: 将扩散训练计划转换为流匹配/修正流配置。
 version: 1.0.0
 phase: 8
 lesson: 13

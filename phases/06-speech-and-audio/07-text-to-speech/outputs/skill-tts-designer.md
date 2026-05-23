@@ -1,6 +1,29 @@
 ---
 name: tts-designer
 description: Pick TTS model, voice, text-normalization scope, and evaluation plan for a given language, style, and latency target.
+description-zh: # TTS System Selection Framework
+
+## 1. Language Analysis
+
+| Factor | What to Assess |
+|---|---|
+| **Language family** | Isolating (Mandarin), agglutinative (Turkish), fusional (Spanish) |
+| **Script & encoding** | Latin, Cyrillic, CJK, Devanagari, RTL (Arabic/Hebrew) |
+| **Phone set size** | Small (~30 phonemes for Japanese) vs. large (~110+ for !Xóõ) |
+| **Tone/intonation** | Tonal (Mandarin, Vietnamese), pitch-accent (Japanese, Swedish) |
+| **Available data** | Hours of licensed, transcribed, studio-quality speech |
+| **Code-switching** | Monolingual or mixed-language content |
+
+---
+
+## 2. TTS Model Selection
+
+### Model Tier Decision Tree
+
+```
+START
+│
+├
 version: 1.0.0
 phase: 6
 lesson: 07

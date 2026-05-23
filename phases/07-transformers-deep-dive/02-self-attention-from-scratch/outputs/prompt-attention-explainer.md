@@ -1,6 +1,7 @@
 ---
 name: prompt-attention-explainer
 description: Explain the attention mechanism through the database lookup analogy
+description-zh: 通过数据库查询类比解释注意力机制。
 phase: 7
 lesson: 2
 ---

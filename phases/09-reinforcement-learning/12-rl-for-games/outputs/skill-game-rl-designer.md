@@ -1,6 +1,26 @@
 ---
 name: game-rl-designer
 description: Design a game-RL or reasoning-RL training pipeline (AlphaZero / MuZero / GRPO) for a given domain.
+description-zh: # Game-RL / Reasoning-RL Training Pipeline
+
+## A Unified Framework Inspired by AlphaZero, MuZero & GRPO
+
+---
+
+## 1. Problem Statement & Domain Specification
+
+### 1.1 Domain Abstraction
+
+Before designing the pipeline, we formalize the domain as a **Markov Decision Process (MDP)** or a **Partially Observable MDP (POMDP)**:
+
+```
+Domain = (S, A, T, R, γ, Ω, O)
+```
+
+| Symbol | Meaning | Example (Chess) | Example (Math Reasoning) |
+|--------|---------|-----------------|--------------------------|
+| **S** | State space | Board position + history | Problem + partial proof steps |
+| **
 version: 1.0.0
 phase: 9
 lesson: 12

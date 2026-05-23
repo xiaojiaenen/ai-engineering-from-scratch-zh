@@ -1,6 +1,7 @@
 ---
 name: issue-to-pr
 description: Build an async GitHub issue-to-PR agent that runs in a cloud sandbox, reproduces the build, verifies tests, and opens review-ready PRs within strict per-repo budgets.
+description-zh: 开发异步GitHub问题转PR智能体，在云沙箱中运行，复现构建过程、验证测试用例，并在严格单仓库预算内生成可审查的PR
 version: 1.0.0
 phase: 19
 lesson: 16

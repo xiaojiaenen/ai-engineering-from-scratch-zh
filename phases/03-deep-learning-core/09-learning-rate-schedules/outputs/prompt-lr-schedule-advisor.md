@@ -1,6 +1,31 @@
 ---
 name: prompt-lr-schedule-advisor
 description: Recommend the right learning rate schedule and hyperparameters for any training setup
+description-zh: # Learning Rate Schedules & Hyperparameter Recommendations
+
+## 🔑 Universal Principles
+
+| Principle | Guideline |
+|---|---|
+| **Warmup** | Always warm up (3-10% of total steps) |
+| **Peak LR** | Scale with effective batch size √(B/B₀) |
+| **Weight Decay** | Decouple from LR; 0.01–0.1 for AdamW |
+| **Batch Size** | Power of 2; scale LR linearly if <8K tokens |
+
+---
+
+## 📋 By Training Scenario
+
+### 1. **Pretraining (LLMs, Vision Transformers)**
+```
+Schedule: Cosine Decay with Warmup
+- Warmup: 2,000 steps (linear ramp)
+- Peak LR: 3e-4 to 6e-4
+- Min LR: 10% of peak
+- Weight Decay: 0.1
+- β1, β2: 0.9, 0.95
+- ε: 1e-8
+- Gradient Clip:
 phase: 03
 lesson: 09
 ---

@@ -1,6 +1,7 @@
 ---
 name: state-graph
 description: Build a LangGraph-shaped state machine with typed state, conditional edges, per-node checkpointing, and durable resume.
+description-zh: 构建LangGraph风格的状态机，包含类型化状态、条件边、逐节点检查点和持久化恢复机制。
 version: 1.0.0
 phase: 14
 lesson: 13

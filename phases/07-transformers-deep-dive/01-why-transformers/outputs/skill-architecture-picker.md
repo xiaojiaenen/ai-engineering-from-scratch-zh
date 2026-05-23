@@ -1,6 +1,7 @@
 ---
 name: sequence-architecture-picker
 description: Pick sequence architecture (RNN, transformer, SSM, hybrid) given length, throughput, and training budget.
+description-zh: 根据长度、吞吐量和训练预算选择序列架构（RNN、Transformer、SSM、混合）。
 version: 1.0.0
 phase: 7
 lesson: 1

@@ -1,6 +1,7 @@
 ---
 name: prompt-ocr-stack-picker
 description: Pick Tesseract / PaddleOCR / Donut / VLM-OCR given document type, language, and structure
+description-zh: 根据文档类型、语言和结构，选择 Tesseract / PaddleOCR / Donut / VLM-OCR
 phase: 4
 lesson: 19
 ---

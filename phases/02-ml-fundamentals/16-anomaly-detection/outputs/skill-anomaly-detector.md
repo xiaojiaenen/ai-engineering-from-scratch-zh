@@ -1,6 +1,7 @@
 ---
 name: skill-anomaly-detector
 description: Choose the right anomaly detection approach for your problem
+description-zh: 为你的问题选择合适的异常检测方法
 phase: 2
 lesson: 16
 ---

@@ -1,6 +1,21 @@
 ---
 name: mcp-apps-spec
 description: Produce the full MCP Apps contract for a tool that needs an interactive UI resource.
+description-zh: # MCP Apps Contract — Interactive UI Resource Tool
+
+Below is a full MCP Apps contract for a tool called **"Data Explorer"** that requires an interactive UI resource (e.g., a dashboard where the user can filter, select rows, and confirm actions).
+
+---
+
+## 1. App Manifest (`mcp-app.json`)
+
+```json
+{
+  "mcpApps": "1.0",
+  "name": "data-explorer",
+  "displayName": "Data Explorer",
+  "description": "An interactive data exploration and visualization tool.",
+  "version": "1.
 version: 1.0.0
 phase: 13
 lesson: 14

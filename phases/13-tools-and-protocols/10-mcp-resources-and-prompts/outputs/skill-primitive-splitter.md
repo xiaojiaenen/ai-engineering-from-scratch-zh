@@ -1,6 +1,13 @@
 ---
 name: primitive-splitter
 description: Categorize each capability in an MCP server draft as tool, resource, or prompt with rationale.
+description-zh: 在 MCP 服务器草案中，将每个能力分类为**工具**、**资源**或**提示**，依据如下定义和逻辑：
+
+1. **工具**：执行操作、计算或副作用的函数。
+   - **理由**：具有主动性和状态变更能力，通常由模型调用来完成特定任务。
+   - **示例**：`search_files`（搜索文件）、`run_code`（执行代码）、`send_email`（发送邮件）。
+
+2. **资源**：提供数据或上下文信息的
 version: 1.0.0
 phase: 13
 lesson: 10

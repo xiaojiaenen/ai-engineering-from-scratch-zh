@@ -1,6 +1,7 @@
 ---
 name: control-protocol-audit
 description: Audit a deployment protocol under the AI Control threat model.
+description-zh: 在AI控制威胁模型下审计部署协议。
 version: 1.0.0
 phase: 18
 lesson: 10

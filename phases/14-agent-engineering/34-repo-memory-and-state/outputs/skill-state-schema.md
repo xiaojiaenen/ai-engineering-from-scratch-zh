@@ -1,6 +1,24 @@
 ---
 name: state-schema
 description: Generate project-specific JSON Schemas for agent state and task board, a Python StateManager with atomic writes, and a migration scaffold so schema bumps cannot corrupt the workbench.
+description-zh: 为智能体状态和任务板生成项目特定的JSON Schemas，一个带有原子写入的Python StateManager，以及一个迁移脚手架，以确保模式升级不会损坏工作台。
+
+## Project Structure
+
+```
+workbench/
+├── schemas/
+│   ├── agent_state.v1.schema.json
+│   ├── agent_state.v2.schema.json
+│   ├── task_board.v1.schema.json
+│   └── task_board.v2.schema.json
+├── state_manager.py
+├── migrations/
+│   ├── __init__.py
+│   ├── registry.py
+│   ├── m001_initial.py
+│   └── m002_add_agent_metrics.py
+└── tests/
 version: 1.0.0
 phase: 14
 lesson: 34

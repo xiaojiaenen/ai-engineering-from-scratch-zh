@@ -1,6 +1,7 @@
 ---
 name: training-budget-estimator
 description: Estimate (N, D, hours, GPU count) for a new transformer training run given compute budget and deployment constraints.
+description-zh: 根据计算预算和部署约束估算新Transformer训练运行的（N、D、小时数、GPU数量）。
 version: 1.0.0
 phase: 7
 lesson: 13

@@ -1,6 +1,7 @@
 ---
 name: a2a-agent-spec
 description: Produce the Agent Card and skills schema for an agent that should be callable over A2A.
+description-zh: 为可通过A2A调用的智能体生成Agent Card和技能模式。
 version: 1.0.0
 phase: 13
 lesson: 18

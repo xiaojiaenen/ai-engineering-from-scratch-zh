@@ -1,6 +1,9 @@
 ---
 name: chunker
 description: Pick a chunking strategy, size, and overlap for a given corpus and query distribution.
+description-zh: 选择合适的文本分块（chunking）策略、大小（size）和重叠（overlap）对于信息检索和问答系统的效果至关重要。具体选择取决于**语料库特性**和**查询分布**。以下是一个清晰的决策流程：
+
+### 1. **
 version: 1.0.0
 phase: 5
 lesson: 23

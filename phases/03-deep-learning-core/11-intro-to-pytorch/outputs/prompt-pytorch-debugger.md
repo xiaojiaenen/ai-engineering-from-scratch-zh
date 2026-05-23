@@ -1,6 +1,36 @@
 ---
 name: prompt-pytorch-debugger
 description: Diagnose and fix common PyTorch training failures from symptoms
+description-zh: # Diagnosing & Fixing PyTorch Training Failures
+
+## Symptom → Root Cause → Fix Decision Tree
+
+---
+
+## 1. Loss is `nan` or `inf`
+
+```
+Loss = nan/inf
+├── Appears at iteration 0?
+│   ├── YES → Bad data preprocessing
+│   │   └── Check: data.contains(nan/inf), wrong normalization
+│   └── NO → Grad explosion or numerical instability
+│
+├── Appears suddenly mid-training?
+│   ├── lr too high → reduce by 10x
+│   ├── Missing batch norm / layer norm
+│   ├── Wrong loss function (e.g., log(0))
+│   └── Mixed precision overflow (fp16 dynamic range ~65504)
+```
+
+**Diagnostic code:**
+```python
+# Detect the exact moment it breaks
+torch.autograd.set_detect_anomaly(True)  # slow but precise
+
+# Find problematic parameters
+for name, param in model.named_parameters():
+    if torch.isnan(param).any() or torch.isinf(param
 phase: 03
 lesson: 11
 ---

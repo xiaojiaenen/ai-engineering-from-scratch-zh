@@ -1,6 +1,34 @@
 ---
 name: stategraph-designer
 description: Turn an agent task into a LangGraph StateGraph with named nodes, typed state, reducers, checkpointer, and human interrupts.
+description-zh: # LangGraph Agent: Full Implementation
+
+## The Task: A Research Agent with Human-in-the-Loop
+
+Let's build an agent that researches a topic, drafts a report, and asks a human to approve/edit before publishing.
+
+---
+
+## 1. Typed State with Reducers
+
+```python
+from typing import Annotated, TypedDict, Literal
+from langchain_core.messages import AnyMessage
+from langgraph.graph.message import add_messages  # built-in reducer
+import operator
+
+class AgentState(TypedDict):
+    # Reducer: appends messages instead of overwriting
+    messages: Annotated[list[AnyMessage], add_messages]
+
+    # Reducer: accumulates sources in a list
+    sources: Annotated[list[str], operator.add]
+
+    # Reducer: overwrites (default behavior — no annotation needed)
+    draft: str
+    topic: str
+    iteration: int
+    status: Literal["researching", "drafting", "reviewing", "done"]
 version: 1.0.0
 phase: 11
 lesson: 16

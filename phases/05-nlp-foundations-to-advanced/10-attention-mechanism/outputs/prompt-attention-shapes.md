@@ -1,6 +1,29 @@
 ---
 name: attention-shapes
 description: Debug shape bugs in attention implementations.
+description-zh: # Debugging Shape Bugs in Attention Implementations
+
+## Common Shape Issues
+
+### 1. Missing/Extra Dimensions in Reshaping
+
+```python
+# WRONG: Forgetting to split heads
+# q, k, v shape: (batch, seq_len, d_model)
+attn = torch.matmul(q, k.transpose(-2, -1))  # WRONG if d_model != d_k
+
+# CORRECT: Split into heads first
+# (batch, seq_len, d_model) → (batch, n_heads, seq_len, d_k)
+q = q.view(batch, seq_len, n_heads, d_k).transpose(1, 2)
+k = k.view(batch, seq_len, n_heads, d_k).transpose(1, 2)
+v = v.view(batch, seq_len, n_heads, d_v).transpose(1, 2)
+```
+
+### 2. Transpose Axes Mismatch
+
+```python
+# WRONG: Transposing wrong dimensions
+# After view+transpose: (batch,
 phase: 5
 lesson: 10
 ---

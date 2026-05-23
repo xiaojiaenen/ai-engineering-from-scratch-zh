@@ -1,6 +1,7 @@
 ---
 name: two-loss-trainer-designer
 description: Design a Transfusion / MMDiT-style two-loss training setup (NTP on one modality, diffusion on another) with loss weights, mask design, and schedule.
+description-zh: 设计Transfusion/MMDiT风格双损失训练方案（模态一做NTP，模态二做扩散），包含损失权重、掩码设计和训练计划
 version: 1.0.0
 phase: 12
 lesson: 13

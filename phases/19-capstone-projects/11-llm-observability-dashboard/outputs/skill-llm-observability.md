@@ -1,6 +1,7 @@
 ---
 name: llm-observability
 description: Build a self-hosted LLM observability dashboard that ingests OpenTelemetry GenAI spans, runs evals, and catches injected regressions in under five minutes.
+description-zh: 搭建自托管LLM可观测性面板，摄入OpenTelemetry GenAI跨度数据，运行评估，并在五分钟内捕获注入式回归
 version: 1.0.0
 phase: 19
 lesson: 11

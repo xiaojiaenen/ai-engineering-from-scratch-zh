@@ -1,6 +1,7 @@
 ---
 name: prompt-eval-designer
 description: Design a custom evaluation suite for any LLM task, including test cases, scoring functions, and pass/fail thresholds
+description-zh: 为任何大语言模型任务设计自定义评估套件，包括测试用例、评分函数和通过/失败阈值
 phase: 10
 lesson: 10
 ---

@@ -1,6 +1,7 @@
 ---
 name: skill-cmer-monitor
 description: Instrument a production VLM endpoint with Cross-Modal Error Rate monitoring, dashboards, and alerts
+description-zh: 为生产环境视觉语言模型端点配置跨模态错误率监控、仪表板和告警
 version: 1.0.0
 phase: 4
 lesson: 25

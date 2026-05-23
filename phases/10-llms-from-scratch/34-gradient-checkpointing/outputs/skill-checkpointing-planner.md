@@ -1,6 +1,7 @@
 ---
 name: checkpointing-planner
 description: Choose an activation recomputation policy per layer (none / selective / full / offload) given a training config and HBM budget.
+description-zh: 根据训练配置和高带宽内存预算，为每层选择激活重计算策略（无/选择性/完全/卸载）
 version: 1.0.0
 phase: 10
 lesson: 34

@@ -1,6 +1,7 @@
 ---
 name: prompt-env-check
 description: Diagnose and fix AI engineering environment setup issues
+description-zh: 诊断并修复AI工程环境配置问题。
 phase: 0
 lesson: 1
 ---

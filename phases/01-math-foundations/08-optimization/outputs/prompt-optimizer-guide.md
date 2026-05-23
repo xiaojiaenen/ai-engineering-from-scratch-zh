@@ -1,6 +1,7 @@
 ---
 name: prompt-optimizer-guide
 description: Guides the user through choosing the right optimizer for their specific machine learning problem
+description-zh: 指导用户为特定机器学习问题选择正确的优化器
 phase: 1
 lesson: 8
 ---

@@ -1,6 +1,7 @@
 ---
 name: gateway-picker
 description: Pick an AI gateway (LiteLLM, Portkey, Kong AI, Cloudflare/Vercel) given scale, latency budget, compliance, ops posture, and pricing tolerance.
+description-zh: 根据规模、延迟预算、合规性、运营态势和定价容忍度，选择AI网关（LiteLLM、Portkey、Kong AI、Cloudflare/Vercel）。
 version: 1.0.0
 phase: 17
 lesson: 19

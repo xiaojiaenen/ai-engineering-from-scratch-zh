@@ -1,6 +1,7 @@
 ---
 name: scheming-triage
 description: Triage an agent-deployment incident report against the Apollo three-pillar scheming framework.
+description-zh: 按照Apollo三支柱谋划框架，处理智能体部署事件报告。
 version: 1.0.0
 phase: 18
 lesson: 8

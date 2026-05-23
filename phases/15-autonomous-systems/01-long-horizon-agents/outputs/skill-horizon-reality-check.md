@@ -1,6 +1,7 @@
 ---
 name: horizon-reality-check
 description: Given a task you want to hand to an agent, decide whether the current frontier's horizon covers it with enough margin.
+description-zh: 针对需交由智能体处理的任务，判断当前前沿模型的视野范围是否具备足够余量覆盖该任务。
 version: 1.0.0
 phase: 15
 lesson: 1

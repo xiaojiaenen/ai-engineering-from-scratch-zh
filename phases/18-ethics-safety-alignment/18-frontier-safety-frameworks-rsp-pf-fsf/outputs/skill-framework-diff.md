@@ -1,6 +1,7 @@
 ---
 name: framework-diff
 description: Compare a new safety framework or release note against RSP v3.0, PF v2, FSF v3.0.
+description-zh: 对比新安全框架或发布说明与RSP v3.0、PF v2、FSF v3.0的差异。
 version: 1.0.0
 phase: 18
 lesson: 18

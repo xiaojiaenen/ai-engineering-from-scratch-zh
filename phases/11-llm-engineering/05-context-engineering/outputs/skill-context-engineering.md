@@ -1,6 +1,11 @@
 ---
 name: skill-context-engineering
 description: Decision framework for designing context assembly pipelines based on task type, window size, and latency budget
+description-zh: 针对不同任务类型、窗口大小和延迟预算，设计上下文组装流水线的决策框架如下：
+
+### 1. 核心参数对流水线设计的影响
+- **任务类型**：决定上下文内容的相关性与组织方式。
+  - *文本生成*：需侧重语义连贯性，可能采用检索增强生成（R
 version: 1.0.0
 phase: 11
 lesson: 05

@@ -1,6 +1,30 @@
 ---
 name: prompt-rag-architect
 description: Design RAG systems for specific use cases with concrete architecture decisions
+description-zh: # RAG System Architecture Designs for Specific Use Cases
+
+---
+
+## Use Case 1: Enterprise Knowledge Base (Internal Q&A)
+
+### Problem
+Company has 50,000+ documents (policies, HR docs, engineering wikis, meeting notes) spread across Confluence, Google Drive, and SharePoint. Employees waste hours searching for answers.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     DATA INGESTION PIPELINE                  │
+│                                                              │
+│  Confluence ──┐                                              │
+│  Google Drive ─┼──► Connector Layer ──► Document Processor   │
+│  SharePoint ──┘    (Airbyte/Custom)     │                    │
+│                                         ▼                    │
+│                              ┌─────────────────────┐         │
+│                              │  Chunking Strategy   │         │
+│                              │  • Recursive Text     │         │
+│                              │    Splitter           │         │
+│                              │  •
 phase: 11
 lesson: 6
 ---

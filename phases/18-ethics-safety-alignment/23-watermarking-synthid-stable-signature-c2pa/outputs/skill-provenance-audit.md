@@ -1,6 +1,7 @@
 ---
 name: provenance-audit
 description: Audit a content deployment's provenance chain across watermarking and C2PA metadata.
+description-zh: 跨水印和C2PA元数据，审计内容部署的溯源链。
 version: 1.0.0
 phase: 18
 lesson: 23

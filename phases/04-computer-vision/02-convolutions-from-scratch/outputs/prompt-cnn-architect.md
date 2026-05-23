@@ -1,6 +1,7 @@
 ---
 name: prompt-cnn-architect
 description: Design a stack of Conv2d layers from input size, parameter budget, and target receptive field
+description-zh: 根据输入大小、参数预算和目标感受野设计Conv2d层堆栈
 phase: 4
 lesson: 2
 ---

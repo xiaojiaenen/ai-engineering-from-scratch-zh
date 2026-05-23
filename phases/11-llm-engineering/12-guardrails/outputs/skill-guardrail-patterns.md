@@ -1,6 +1,11 @@
 ---
 name: skill-guardrail-patterns
 description: Decision framework for choosing and implementing guardrails in production -- tool selection, layering strategy, and cost-performance tradeoffs
+description-zh: 生产环境中防护栏（Guardrails）的选型与实施决策框架——涵盖工具选择、分层策略与成本性能权衡。
+
+**工具选择标准**
+1. **集成便捷性**：是否无缝融入现有技术栈（如LangChain、Haystack）
+2. **定制灵活性**：规则/
 version: 1.0.0
 phase: 11
 lesson: 12

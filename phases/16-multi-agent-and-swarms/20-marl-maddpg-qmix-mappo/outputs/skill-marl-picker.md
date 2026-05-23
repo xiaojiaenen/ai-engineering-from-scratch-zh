@@ -1,6 +1,7 @@
 ---
 name: marl-picker
 description: Choose a MARL algorithm (MADDPG, QMIX, MAPPO, IQL, or extensions) for a given multi-agent task. Consider cooperative vs competitive, action-space type, heterogeneity, reward structure, and scale.
+description-zh: 为指定多智能体任务选择MARL算法（MADDPG/QMIX/MAPPO/IQL及其扩展），考虑合作/竞争特性、动作空间类型、异质性、奖励结构与规模因素。
 version: 1.0.0
 phase: 16
 lesson: 20

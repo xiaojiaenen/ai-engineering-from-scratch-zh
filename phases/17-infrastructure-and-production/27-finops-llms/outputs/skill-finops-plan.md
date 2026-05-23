@@ -1,6 +1,7 @@
 ---
 name: finops-plan
 description: Design an LLM FinOps program — attribution schema (user/task/tenant + four token layers), three-tier enforcement ladder, and unit metric (cost per resolved / artifact).
+description-zh: 设计LLM FinOps程序——归属模式（用户/任务/租户 + 四个token层）、三级执行阶梯和单位指标（每解决/每制品的成本）。
 version: 1.0.0
 phase: 17
 lesson: 27

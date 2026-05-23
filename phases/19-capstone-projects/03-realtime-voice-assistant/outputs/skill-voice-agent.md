@@ -1,6 +1,7 @@
 ---
 name: voice-agent
 description: Build a real-time voice agent with sub-800ms first-audio-out, barge-in handling, and mid-conversation tool use.
+description-zh: 构建实时语音智能体，实现首音频响应延迟低于800毫秒、支持插话处理及对话中工具调用
 version: 1.0.0
 phase: 19
 lesson: 03

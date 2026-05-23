@@ -1,6 +1,7 @@
 ---
 name: prompt-fine-tune-planner
 description: Pick feature extraction vs progressive vs end-to-end fine-tuning given dataset size, domain distance, and compute budget
+description-zh: 根据数据集大小、领域距离和计算预算，选择特征提取、渐进式或端到端微调
 phase: 4
 lesson: 5
 ---

@@ -1,6 +1,35 @@
 ---
 name: topic-picker
 description: Pick LDA or BERTopic for a corpus. Specify library, knobs, evaluation.
+description-zh: # LDA vs. BERTopic for Topic Modeling
+
+## Quick Decision
+
+| Factor | LDA | BERTopic |
+|---|---|---|
+| Corpus size | 10K+ documents | Any (even small) |
+| Short texts (tweets, titles) | Poor | Excellent |
+| Interpretability | Good (bag-of-words) | Good (c-TF-IDF words) |
+| Speed | Fast (CPU) | Slower (needs embeddings) |
+| GPU required | No | Recommended |
+| Overlapping topics | Yes (soft clustering) | Less natural |
+| Domain with rare jargon | Decent | Better (semantic embeddings) |
+
+**Rule of thumb**: Default to **BERTopic** unless you need probabilistic soft assignments or lack GPU resources.
+
+---
+
+## Option A: LDA
+
+### Library
+```python
+from gensim.models import LdaMulticore, CoherenceModel
+from sklearn.feature_extraction.text import CountVectorizer
+```
+
+### Knobs to Tune
+
+| Knob |
 version: 1.0.0
 phase: 5
 lesson: 15

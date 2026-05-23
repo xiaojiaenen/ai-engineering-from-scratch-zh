@@ -1,6 +1,7 @@
 ---
 name: skill-segmentation-mask-inspector
 description: Report class distribution, predicted-mask statistics, and the classes most likely to be under-predicted or boundary-blurred
+description-zh: 报告类别分布、预测掩码统计信息以及最易被低估或边界模糊的类别
 version: 1.0.0
 phase: 4
 lesson: 7

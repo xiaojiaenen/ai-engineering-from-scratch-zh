@@ -1,6 +1,7 @@
 ---
 name: scaling-policy-review
 description: Review a frontier-lab scaling policy (Anthropic RSP, OpenAI Preparedness, DeepMind FSF, internal) against the RSP v3.0 reference shape.
+description-zh: 参照RSP v3.0参考形态，审查前沿实验室的规模扩展政策（Anthropic RSP、OpenAI准备就绪框架、DeepMind FSF或内部政策）。
 version: 1.0.0
 phase: 15
 lesson: 19

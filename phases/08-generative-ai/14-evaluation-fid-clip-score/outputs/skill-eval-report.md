@@ -1,6 +1,7 @@
 ---
 name: eval-report
 description: Plan a full generative-model evaluation: sample quality, adherence, preference, failure audit.
+description-zh: 规划完整的生成模型评估：样本质量、符合度、偏好度、失败审计。
 version: 1.0.0
 phase: 8
 lesson: 14

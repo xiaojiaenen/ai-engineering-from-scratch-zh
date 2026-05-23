@@ -1,6 +1,7 @@
 ---
 name: simulation-designer
 description: Design a generative-agent simulation (Smallville-style) for a given scenario. Specifies memory schema, reflection cadence, plan horizon, spatial/social constraints, and evaluation metrics.
+description-zh: 为指定场景设计生成式智能体仿真（Smallville风格），明确记忆模式、反思频率、规划视距、空间/社交约束及评估指标。
 version: 1.0.0
 phase: 16
 lesson: 17

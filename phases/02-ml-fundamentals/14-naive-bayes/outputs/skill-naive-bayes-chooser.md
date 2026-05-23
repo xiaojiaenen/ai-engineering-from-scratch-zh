@@ -1,6 +1,7 @@
 ---
 name: skill-naive-bayes-chooser
 description: Choose the right Naive Bayes variant for your classification task
+description-zh: 为分类任务选择合适的朴素贝叶斯变体
 phase: 2
 lesson: 14
 ---

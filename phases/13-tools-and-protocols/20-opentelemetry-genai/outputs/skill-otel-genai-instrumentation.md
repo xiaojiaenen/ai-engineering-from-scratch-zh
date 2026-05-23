@@ -1,6 +1,17 @@
 ---
 name: otel-genai-instrumentation
 description: Produce an instrumentation plan for an agent codebase to emit OTel GenAI spans end-to-end.
+description-zh: # OTel GenAI Agent Instrumentation Plan
+
+## 1. Span Topology (Parent → Child)
+
+```
+AgentWorkflow                    ← root span (the full agent run)
+├── AgentTurn                    ← per user-facing turn
+│   ├── GenAI.LLMInference      ← each LLM call (system→assistant)
+│   │   ├── GenAI.Embedding      ← if embedding calls happen inside
+│   │   └── GenAI.ToolCall       ← per tool invocation the LLM requested
+│   │       ├── db.query         ← infra spans (tool internals
 version: 1.0.0
 phase: 13
 lesson: 19

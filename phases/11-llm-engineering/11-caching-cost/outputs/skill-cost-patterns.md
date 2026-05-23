@@ -1,6 +1,13 @@
 ---
 name: skill-cost-patterns
 description: Decision framework for LLM cost optimization -- caching strategies, rate limiting, model routing, and budget controls
+description-zh: # LLM 成本优化决策框架
+
+## 核心策略概览
+
+| 策略 | 目标 | 实现方式 | 适用场景 |
+|------|------|----------|----------|
+| **缓存策略** | 减少重复调用 | 语义缓
 version: 1.0.0
 phase: 11
 lesson: 11

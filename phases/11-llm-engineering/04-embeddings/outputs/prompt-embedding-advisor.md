@@ -1,6 +1,17 @@
 ---
 name: prompt-embedding-advisor
 description: Choose embedding models, dimensions, and strategies for specific use cases
+description-zh: # Embedding 模型、维度与策略选择指南
+
+## 一、主流 Embedding 模型对比
+
+| 模型 | 维度 | 优势 | 适用场景 |
+|------|------|------|----------|
+| **OpenAI text-embedding-3-small** | 1536 (可降至 256/512) | 性价比高，支持维度缩减 | 通用文本检索 |
+| **OpenAI text-embedding-3-large** | 3072 (可降至 256-1024) | 高精度，Matryoshka 支持 | 高精度语义搜索 |
+| **Cohere embed-v3** | 1024 | 多语言优秀，支持压缩 | 多语言应用 |
+| **BGE (BAAI)** | 768/1024 | 开源免费，中文优秀 | 中文场景/自部署 |
+| **E5-Mistral-7B
 phase: 11
 lesson: 4
 ---

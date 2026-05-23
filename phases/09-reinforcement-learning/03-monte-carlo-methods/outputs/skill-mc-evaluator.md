@@ -1,6 +1,30 @@
 ---
 name: mc-evaluator
 description: Evaluate a policy via Monte Carlo rollouts and produce a convergence report with DP-comparison if available.
+description-zh: # Policy Evaluation via Monte Carlo Rollouts with DP Comparison
+
+Below is a complete, self-contained Python implementation.
+
+## Full Implementation
+
+```python
+"""
+Monte Carlo Policy Evaluation with Dynamic Programming Comparison
+=================================================================
+Generates a convergence report comparing MC estimates against DP ground truth.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from typing import Dict, List, Tuple, Optional
+from dataclasses import dataclass, field
+from collections import defaultdict
+import time
+
+
+# ─────────────────────────────────────────────
+# 1. MDP Environment: 4×4 Gridworld (standard)
+# ─────────
 version: 1.0.0
 phase: 9
 lesson: 3

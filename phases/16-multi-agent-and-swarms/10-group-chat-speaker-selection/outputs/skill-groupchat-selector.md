@@ -1,6 +1,7 @@
 ---
 name: groupchat-selector
 description: Configure an AutoGen/AG2-style GroupChat selector for a task, naming the selector variant, termination, and anti-hot-speaker rules.
+description-zh: 为任务配置AutoGen/AG2风格群聊选择器，指定选择器变体、终止条件与防垄断发言规则。
 version: 1.0.0
 phase: 16
 lesson: 10

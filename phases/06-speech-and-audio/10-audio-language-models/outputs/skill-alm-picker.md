@@ -1,6 +1,40 @@
 ---
 name: alm-picker
 description: Pick an audio-language model, benchmark subset, output modality (text vs speech), and guardrails for an audio-understanding task.
+description-zh: ## Audio-Understanding Task Configuration
+
+### Model
+**Whisper-large-v3 (OpenAI)** — a robust, multilingual speech-to-text model with strong generalization across accents, noise conditions, and languages.
+
+---
+
+### Benchmark Subset
+**LibriSpeech test-clean** (from the Open ASR Leaderboard)
+
+| Detail | Value |
+|---|---|
+| Samples | ~2,620 utterances |
+| Domain | Read English speech (audiobooks) |
+| Metric | Word Error Rate (WER) |
+| Why | Widely adopted, clean baseline, reproducible |
+
+---
+
+### Output Modality
+**Text** — transcribed text output. Rationale:
+
+- Directly measurable via WER/CER.
+- Avoids compounding TTS artifacts when evaluating.
+- Enables downstream NLP tasks (summarization, translation, sentiment) on the transcript.
+
+---
+
+### Guardrails
+
+| Category | Guardrail |
+|---|---|
+| **Content safety** | Post-generation profanity/PII filter (e.g., regex + Named-Entity Recognition redaction) on transcripts |
+| **
 version: 1.0.0
 phase: 6
 lesson: 10

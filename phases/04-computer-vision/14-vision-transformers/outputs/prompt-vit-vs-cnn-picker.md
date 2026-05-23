@@ -1,6 +1,7 @@
 ---
 name: prompt-vit-vs-cnn-picker
 description: Pick between ViT, ConvNeXt, or Swin based on dataset size, compute, and inference stack
+description-zh: 根据数据集规模、计算资源和推理栈，在ViT、ConvNeXt或Swin中选择
 phase: 4
 lesson: 14
 ---

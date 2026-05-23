@@ -1,6 +1,7 @@
 ---
 name: skill-physical-plausibility-checks
 description: Automated checks for object permanence, gravity, and continuity on any generated video before shipping
+description-zh: 在发布前对任何生成的视频进行物体持久性、重力和连续性的自动化检查
 version: 1.0.0
 phase: 4
 lesson: 28

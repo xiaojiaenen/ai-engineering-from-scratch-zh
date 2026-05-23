@@ -1,6 +1,7 @@
 ---
 name: prompt-network-architect
 description: Guides the user through designing neural network architectures by choosing layer counts, neuron counts, and activation functions for a given problem
+description-zh: 引导用户为特定问题设计神经网络架构，选择层数、神经元数量和激活函数
 phase: 03
 lesson: 02
 ---

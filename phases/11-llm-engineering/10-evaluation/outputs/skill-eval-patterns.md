@@ -1,6 +1,13 @@
 ---
 name: skill-eval-patterns
 description: Decision framework for choosing evaluation strategies -- when to use which method, how to size test suites, and how to integrate evals into CI/CD
+description-zh: # 评估策略决策框架
+
+## 决策矩阵：方法选择指南
+
+| 评估目标 | 首选方法 | 适用场景 | 资源需求 |
+|---------|---------|---------|---------|
+| **功能正确性** | 单元测试 + 集成测试 | 代码变更、API
 version: 1.0.0
 phase: 11
 lesson: 10

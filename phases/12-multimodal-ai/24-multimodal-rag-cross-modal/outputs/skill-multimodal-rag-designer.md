@@ -1,6 +1,7 @@
 ---
 name: multimodal-rag-designer
 description: Design a production multimodal RAG across text, images, audio, video with retrievers, fusion strategy, and grounded generator.
+description-zh: 设计跨文本/图像/音频/视频的生产级多模态RAG，包含检索器、融合策略和基于事实的生成器
 version: 1.0.0
 phase: 12
 lesson: 24

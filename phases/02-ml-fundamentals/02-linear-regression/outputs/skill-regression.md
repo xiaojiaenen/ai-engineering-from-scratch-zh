@@ -1,6 +1,7 @@
 ---
 name: skill-regression
 description: Choose the right regression approach based on data characteristics and problem constraints
+description-zh: 根据数据特征与问题约束选择回归方法
 version: 1.0.0
 phase: 2
 lesson: 2

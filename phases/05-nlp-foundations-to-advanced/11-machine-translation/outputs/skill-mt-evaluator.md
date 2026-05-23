@@ -1,6 +1,27 @@
 ---
 name: mt-evaluator
 description: Evaluate a machine translation output for shipping.
+description-zh: # Machine Translation Evaluation – Shipping Domain
+
+I'd be happy to help evaluate a machine translation output for the shipping industry. However, I need a few key details to proceed:
+
+## Please Provide:
+
+1. **Source text** – The original text in the source language
+2. **MT output** – The machine-translated text to be evaluated
+3. **Language pair** – e.g., English → Chinese, Spanish → French, etc.
+4. **Purpose** – e.g., shipping documentation, customer-facing content, internal logistics communication, regulatory compliance
+
+## Evaluation Criteria I Will Apply:
+
+| Criterion | Description |
+|---|---|
+| **Accuracy** | Correct translation of meaning |
+| **Terminology** | Proper use of shipping/logistics terms (e.g., Bill of Lading, FOB, CIF, demurrage, freight forwarding) |
+| **Fluency** | Natural readability in the target language |
+| **Consistency** | Uniform use of terms throughout |
+| **Omissions/Additions** | Any missing or extra content |
+| **
 version: 1.0.0
 phase: 5
 lesson: 11

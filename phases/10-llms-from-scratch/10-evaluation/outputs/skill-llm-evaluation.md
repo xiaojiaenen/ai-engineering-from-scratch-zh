@@ -1,6 +1,7 @@
 ---
 name: skill-llm-evaluation
 description: Decision framework for choosing the right LLM evaluation strategy based on task type, budget, and requirements
+description-zh: 根据任务类型、预算和需求选择正确大语言模型评估策略的决策框架
 version: 1.0.0
 phase: 10
 lesson: 10

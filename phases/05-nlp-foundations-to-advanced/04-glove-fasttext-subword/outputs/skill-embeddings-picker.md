@@ -1,6 +1,26 @@
 ---
 name: skill-embeddings-picker
 description: Pick a tokenization approach for a new language model or text pipeline.
+description-zh: # Choosing a Tokenization Approach
+
+## Main Options
+
+### 1. **Byte-Pair Encoding (BPE)**
+- **How it works:** Iteratively merges the most frequent character pairs.
+- **Pros:** Good balance of vocabulary size and coverage; handles rare words well.
+- **Cons:** Can produce inconsistent subwords.
+- **Used by:** GPT-2, GPT-3, RoBERTa, LLaMA
+
+### 2. **WordPiece**
+- **How it works:** Similar to BPE but merges based on likelihood maximization.
+- **Pros:** Strong performance on downstream tasks.
+- **Cons:** Slightly more complex training.
+- **Used by:** BERT, DistilBERT, ELECTRA
+
+### 3. **Unigram (SentencePiece)**
+- **How it works:** Starts with a large vocabulary and prunes tokens to maximize likelihood.
+- **Pros:** Probabilistic framework; language-agnostic (treats input as raw unicode).
+- **Cons:** Can be slower to train
 version: 1.0.0
 phase: 5
 lesson: 04

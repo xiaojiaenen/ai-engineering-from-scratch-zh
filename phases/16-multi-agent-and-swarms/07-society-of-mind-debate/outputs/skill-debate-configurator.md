@@ -1,6 +1,7 @@
 ---
 name: debate-configurator
 description: Configure a multi-agent debate for a given task, estimating quality gain and token cost before running.
+description-zh: 为指定任务配置多智能体辩论机制，运行前评估质量增益与token消耗。
 version: 1.0.0
 phase: 16
 lesson: 07

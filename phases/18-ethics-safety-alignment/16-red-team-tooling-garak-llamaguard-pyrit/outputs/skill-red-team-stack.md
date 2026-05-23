@@ -1,6 +1,7 @@
 ---
 name: red-team-stack
 description: Recommend a red-team tool stack and configuration for a given deployment.
+description-zh: 为特定部署推荐红队工具栈及配置方案。
 version: 1.0.0
 phase: 18
 lesson: 16

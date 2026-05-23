@@ -1,6 +1,7 @@
 ---
 name: mesa-diagnostic
 description: Classify an observed safety failure as outer-alignment, proxy-inner, or deceptive-inner.
+description-zh: 将观察到的安全故障分类为外层对齐、代理内层或欺骗性内层。
 version: 1.0.0
 phase: 18
 lesson: 6

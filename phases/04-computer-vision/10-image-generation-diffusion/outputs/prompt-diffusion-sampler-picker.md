@@ -1,6 +1,7 @@
 ---
 name: prompt-diffusion-sampler-picker
 description: Pick DDPM, DDIM, DPM-Solver++, or Euler ancestral based on quality target, latency budget, and conditioning type
+description-zh: 根据质量目标、延迟预算和条件类型选择DDPM、DDIM、DPM-Solver++或Euler ancestral
 phase: 4
 lesson: 10
 ---

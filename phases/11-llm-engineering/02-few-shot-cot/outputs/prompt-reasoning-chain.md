@@ -1,6 +1,19 @@
 ---
 name: prompt-reasoning-chain
 description: Production-ready few-shot CoT prompt with self-consistency support for multi-step reasoning tasks
+description-zh: # Production-Ready Few-Shot CoT Prompt with Self-Consistency
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  Self-Consistency Loop               │
+│                                                      │
+│   ┌──────────┐  ┌──────────┐      ┌──────────┐     │
+│   │ Reasoning│  │ Reasoning│ ···  │ Reasoning│     │
+│   │ Path  1  │  │ Path  2  │      │ Path  N  │     │
+│   └────┬─────┘  └────┬─────┘      └────┬─────┘     │
+│
 phase: 11
 lesson: 02
 ---

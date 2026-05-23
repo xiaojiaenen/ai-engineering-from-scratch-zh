@@ -1,6 +1,7 @@
 ---
 name: prompt-api-troubleshooter
 description: Diagnose and fix common AI API errors (auth, rate limits, timeouts)
+description-zh: 诊断并修复常见AI API错误（认证、速率限制、超时）。
 phase: 0
 lesson: 4
 ---

@@ -1,6 +1,7 @@
 ---
 name: prompt-tracker-picker
 description: Pick SORT / ByteTrack / BoT-SORT / SAM 2 / SAM 3.1 given scene type, occlusion patterns, and latency budget
+description-zh: 根据场景类型、遮挡模式和延迟预算，选择 SORT / ByteTrack / BoT-SORT / SAM 2 / SAM 3.1
 phase: 4
 lesson: 27
 ---

@@ -1,6 +1,25 @@
 ---
 name: prompt-optimizer-selector
 description: A decision prompt for choosing the right optimizer and learning rate for any architecture
+description-zh: # Optimizer & Learning Rate Decision Prompt
+
+Use this prompt with any LLM (or as a self-checklist) when starting a new training run.
+
+---
+
+## The Prompt
+
+```
+You are an expert deep learning engineer. Given my training setup below, recommend the optimal optimizer, learning rate, and key hyperparameters.
+
+**MY SETUP:**
+- Task: [classification / detection / generation / segmentation / NLP / RL / other]
+- Architecture: [e.g., ResNet-50, ViT-B/16, Transformer, U-Net, MLP, GAN, Diffusion, LLM, etc.]
+- Dataset size: [small (<10K) / medium (10K-1M) / large (>1M)]
+- Modality: [image / text / tabular / multimodal / time-series]
+- Batch size: [small (≤32) / medium (64-512) / large (>512)]
+- Hardware: [single GPU / multi-GPU / TPU]
+- Training from scratch
 phase: 03
 lesson: 06
 ---

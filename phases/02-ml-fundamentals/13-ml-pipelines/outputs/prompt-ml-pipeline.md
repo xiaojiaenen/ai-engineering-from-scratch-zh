@@ -1,6 +1,7 @@
 ---
 name: prompt-ml-pipeline
 description: Build, debug, and deploy reproducible ML pipelines
+description-zh: 构建、调试和部署可复现的机器学习流水线
 phase: 2
 lesson: 13
 ---

@@ -1,6 +1,17 @@
 ---
 name: structured-output-picker
 description: Choose a structured output approach, schema design, and validation plan.
+description-zh: ## Structured Output Approach
+
+**1. Output Format Selection**  
+- **JSON** (preferred): Widely supported, human-readable, easy to parse.  
+- **YAML** (alternative): More human-friendly for configuration, less common for APIs.  
+- **XML** (legacy): Use only if required by existing systems.
+
+**2. Schema Design Principles**  
+- **Use JSON Schema** for formal specification.  
+- **Key Elements**:  
+  - `
 version: 1.0.0
 phase: 5
 lesson: 20

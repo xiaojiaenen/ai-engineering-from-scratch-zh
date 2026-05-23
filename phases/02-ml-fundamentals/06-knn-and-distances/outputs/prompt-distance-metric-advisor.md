@@ -1,6 +1,7 @@
 ---
 name: prompt-distance-metric-advisor
 description: Recommend the right distance metric based on data type and problem characteristics
+description-zh: 根据数据类型和问题特征推荐合适的距离度量
 phase: 2
 lesson: 6
 ---

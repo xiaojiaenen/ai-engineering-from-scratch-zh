@@ -1,6 +1,16 @@
 ---
 name: prompt-loss-debugger
 description: A diagnostic prompt for debugging loss curves and training failures
+description-zh: **ML 训练失败诊断提示**
+
+**症状：**
+损失曲线震荡、不降反升、停滞不前，或模型性能（准确率/评估指标）无法提升。
+
+**请依次检查以下方面：**
+
+**1. 数据流**
+- **数据加载**：确认数据能正确加载，无 NaN 或无限值。
+- **数据预处理**：检查输入特征的范围（如 [
 phase: 03
 lesson: 05
 ---

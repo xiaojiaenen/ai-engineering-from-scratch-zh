@@ -1,6 +1,7 @@
 ---
 name: img2img-chooser
 description: Pick an image-to-image approach given paired vs unpaired data, domain specificity, and latency budget.
+description-zh: 根据配对与非配对数据、领域特异性和延迟预算，选择图像到图像的方法。
 version: 1.0.0
 phase: 8
 lesson: 04

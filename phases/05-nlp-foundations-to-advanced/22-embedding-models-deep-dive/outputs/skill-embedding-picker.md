@@ -1,6 +1,18 @@
 ---
 name: embedding-picker
 description: Pick embedding model, dimension, and retrieval mode for a given corpus and deployment.
+description-zh: # Selecting Embedding Model, Dimension & Retrieval Mode
+
+## 1. Pick the Embedding Model
+
+### Key Factors
+
+| Factor | Consideration |
+|---|---|
+| **Domain** | General text → `text-embedding-3-small/large`, `bge-large`, `e5-large`; Code → `CodeBERT`, `starcoder`; Multilingual → `multilingual-e5-large`, `mBERT` |
+| **Quality vs Speed** | Higher quality: `text-embedding-3-large`, `bge-large-en-v1.5`; Faster/smaller: `text-embedding-3-small`, `all-MiniLM-L6-v2` |
+| **Max Tokens** | Short docs (≤512 tokens) → most models; Long docs → `jina-embeddings-v2` (8K), `nomic-embed-text` (8K), Cohere v3 (128K) |
+| **License/Cost** | Open-source (self-hosted): `bge`, `
 version: 1.0.0
 phase: 5
 lesson: 22

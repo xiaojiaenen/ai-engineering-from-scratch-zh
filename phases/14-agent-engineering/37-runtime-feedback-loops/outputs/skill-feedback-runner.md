@@ -1,6 +1,23 @@
 ---
 name: feedback-runner
 description: Wrap shell commands with deterministic stdout/stderr/exit/duration capture, persist a JSONL record per command, and refuse to advance the agent loop when feedback is missing.
+description-zh: # Deterministic Shell Command Wrapper with JSONL Persistence
+
+## Core Design
+
+```
+┌─────────────────────────────────────────────────┐
+│                  Agent Loop                      │
+│                                                  │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐   │
+│  │  Plan     │───▶│  Execute │───▶│  Observe │   │
+│  │  Step     │    │  Command │    │  Result  │   │
+│  └──────────┘    └─────┬────┘    └────┬─────┘   │
+│       ▲                │              │          │
+│       │         ┌──────▼──────┐       │          │
+│       │         │  Capture    │       │          │
+│       │         │  stdout     │       │          │
+│
 version: 1.0.0
 phase: 14
 lesson: 37

@@ -1,6 +1,24 @@
 ---
 name: ner-picker
 description: Pick the right NER approach for a given extraction task.
+description-zh: # Picking the Right NER Approach for Your Extraction Task
+
+## Key Factors to Consider
+
+### 1. **Domain Specificity**
+| Scenario | Recommended Approach |
+|---|---|
+| General entities (people, places, orgs) | **Pre-trained models** (spaCy, Flair, BERT-NER) |
+| Specialized domain (medical, legal, finance) | **Fine-tuned domain models** (BioBERT, LegalBERT) |
+| Highly custom entity types | **Train your own model** (CRF, BiLSTM-CRF, fine-tuned transformer) |
+
+### 2. **Data Availability**
+| Data Situation | Recommended Approach |
+|---|---|
+| **No labeled data** | Pre-trained models, zero-shot NER, rule-based (regex, dictionaries) |
+| **Small dataset** (<1k samples) | Few-shot learning, prompt-based NER (LLMs), active learning |
+| **Medium dataset** (1k–50k) | Fine-tune BiLSTM-CRF or transformer (BERT-based) |
+|
 version: 1.0.0
 phase: 5
 lesson: 06
