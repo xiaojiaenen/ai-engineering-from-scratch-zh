@@ -133,6 +133,19 @@ python phases/01-math-foundations/01-linear-algebra-intuition/code/vectors.py
 | [`/check-understanding <phase>`](.claude/skills/check-understanding/SKILL.md) | 每阶段测试，八个问题，附带反馈和具体的复习课程。 |
 
 ```
+### 启动本地网站
+
+课程自带一个全中文的本地学习网站，包含课程浏览、进度追踪和测验功能。
+
+```bash
+cd ai-engineering-from-scratch-zh
+node site/build.js          # 构建课程数据（首次运行）
+python3 -m http.server 3000 # 启动服务
+```
+
+浏览器打开 `http://localhost:3000/site/` 即可使用。
+
+
 ░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒
 ```
 
