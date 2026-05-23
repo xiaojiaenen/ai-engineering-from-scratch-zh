@@ -38,25 +38,25 @@
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#fafaf5','primaryTextColor':'#1a1a1a','primaryBorderColor':'#3553ff','lineColor':'#3553ff','fontFamily':'JetBrains Mono','fontSize':'12px'}}}%%
 flowchart TB
-  P0["Phase 0 — Setup &amp; Tooling"] --> P1["Phase 1 — Math Foundations"]
-  P1 --> P2["Phase 2 — ML Fundamentals"]
-  P2 --> P3["Phase 3 — Deep Learning Core"]
-  P3 --> P4["Phase 4 — Vision"]
-  P3 --> P5["Phase 5 — NLP"]
-  P3 --> P6["Phase 6 — Speech &amp; Audio"]
-  P3 --> P9["Phase 9 — RL"]
-  P5 --> P7["Phase 7 — Transformers"]
-  P7 --> P8["Phase 8 — GenAI"]
-  P7 --> P10["Phase 10 — LLMs from Scratch"]
-  P10 --> P11["Phase 11 — LLM Engineering"]
-  P10 --> P12["Phase 12 — Multimodal"]
-  P11 --> P13["Phase 13 — Tools &amp; Protocols"]
-  P13 --> P14["Phase 14 — Agent Engineering"]
-  P14 --> P15["Phase 15 — Autonomous Systems"]
-  P15 --> P16["Phase 16 — Multi-Agent &amp; Swarms"]
-  P14 --> P17["Phase 17 — Infrastructure &amp; Production"]
-  P15 --> P18["Phase 18 — Ethics &amp; Alignment"]
-  P16 --> P19["Phase 19 — Capstone Projects"]
+  P0["第0阶段 — 环境搭建"] --> P1["第1阶段 — 数学基础"]
+  P1 --> P2["第2阶段 — ML基础"]
+  P2 --> P3["第3阶段 — 深度学习核心"]
+  P3 --> P4["第4阶段 — 计算机视觉"]
+  P3 --> P5["第5阶段 — NLP"]
+  P3 --> P6["第6阶段 — 语音与音频"]
+  P3 --> P9["第9阶段 — 强化学习"]
+  P5 --> P7["第7阶段 — Transformer"]
+  P7 --> P8["第8阶段 — 生成式AI"]
+  P7 --> P10["第10阶段 — 从零构建LLM"]
+  P10 --> P11["第11阶段 — LLM工程"]
+  P10 --> P12["第12阶段 — 多模态AI"]
+  P11 --> P13["第13阶段 — 工具与协议"]
+  P13 --> P14["第14阶段 — Agent工程"]
+  P14 --> P15["第15阶段 — 自主系统"]
+  P15 --> P16["第16阶段 — 多Agent与集群"]
+  P14 --> P17["第17阶段 — 基础设施与生产"]
+  P15 --> P18["第18阶段 — 伦理与对齐"]
+  P16 --> P19["第19阶段 — 结业项目"]
   P17 --> P19
   P18 --> P19
 ```
@@ -82,7 +82,7 @@ phases/<NN>-<phase-name>/<NN>-<lesson-name>/
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#fafaf5','primaryTextColor':'#1a1a1a','primaryBorderColor':'#3553ff','lineColor':'#3553ff','fontFamily':'JetBrains Mono','fontSize':'13px'}}}%%
 flowchart LR
-  M["MOTTO<br/><sub>one-line core idea</sub>"] --> Pr["PROBLEM<br/><sub>concrete pain</sub>"]
+  M["格言<br/><sub>一句话核心思想</sub>"] --> Pr["问题<br/><sub>具体痛点</sub>"]
   Pr --> C["CONCEPT<br/><sub>diagrams &amp; intuition</sub>"]
   C --> B["BUILD IT<br/><sub>raw math, no frameworks</sub>"]
   B --> U["USE IT<br/><sub>same thing in PyTorch / sklearn</sub>"]
