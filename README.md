@@ -187,7 +187,9 @@ def run(query, tools):
 
 </td>
 </tr>
-</table>**`outputs/skill-agent-loop.md`** &nbsp; <sub><i>部署它</i></sub>
+</table>
+
+**`outputs/skill-agent-loop.md`** &nbsp; <sub><i>部署它</i></sub>
 
 ```markdown
 ---
@@ -498,7 +500,9 @@ the agent went wrong and explain why...
 | 03 | [预训练数据管道](phases/10-llms-from-scratch/03-data-pipelines/) | 构建 | Python |
 | 04 | [预训练一个迷你GPT (124M)](phases/10-llms-from-scratch/04-pre-training-mini-gpt/) | 构建 | Python |
 | 05 | [分布式训练、FSDP、DeepSpeed](phases/10-llms-from-scratch/05-scaling-distributed/) | 构建 | Python |
-</details>| 编号 | 课程 | 类型 | 语言 |
+</details>
+
+| 编号 | 课程 | 类型 | 语言 |
 |:---:|--------|:----:|------|
 | 06 | [指令调优 — SFT](phases/10-llms-from-scratch/06-instruction-tuning-sft/) | 构建 | Python |
 | 07 | [RLHF — 奖励模型 + PPO](phases/10-llms-from-scratch/07-rlhf/) | 构建 | Python |
