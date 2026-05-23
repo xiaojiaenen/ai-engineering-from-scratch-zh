@@ -14,39 +14,27 @@
 ░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒
 ```
 
-> **84% of students already use AI tools. Only 18% feel prepared to use them
-> professionally.** This curriculum closes that gap.
+> **84% 的学生已经在用 AI 工具，但只有 18% 觉得能专业地使用它们。** 本课程填补这个差距。
 >
-> 435 lessons. 20 phases. ~320 hours. Python, TypeScript, Rust, Julia. Every lesson ships
-> a reusable artifact: a prompt, a skill, an agent, an MCP server. Free, open source, MIT.
+> 435 节课，20 个阶段，约 320 小时。Python、TypeScript、Rust、Julia。每节课产出可复用成果。免费开源，MIT 协议。
 >
-> You don't just learn AI. You build it. End-to-end. By hand.
+> 不是学 AI，是造 AI。从头到尾，亲手写。
 
-## How this works
+## 运作方式
 
-Most AI material teaches in scattered pieces. A paper here, a fine-tuning post there, a
-flashy agent demo somewhere else. The pieces rarely line up. You ship a chatbot but can't
-explain its loss curve. You hook a function to an agent but can't say what attention does
-inside the model that's calling it.
+大多数 AI 资料零散教学——论文在这儿，微调教程在那儿，炫酷 Agent 演示又在别处。内容很难串联。你部署了聊天机器人却解释不了损失曲线，把函数挂到 Agent 上却说不出模型里注意力在做什么。
 
-This curriculum is the spine. 20 phases, 435 lessons, four languages: Python, TypeScript,
-Rust, Julia. Linear algebra at one end, autonomous swarms at the other. Every algorithm
-gets built from raw math first. Backprop. Tokenizer. Attention. Agent loop. By the time
-PyTorch shows up, you already know what it's doing under the hood.
+这个课程是那条主线。20 个阶段，435 节课，四种语言。一端线性代数，另一端自主智能体集群。每个算法从原始数学构建——反向传播、分词器、注意力、Agent 循环。PyTorch 出场时，你早已清楚它底层做了什么。
 
-Each lesson runs the same loop: read the problem, derive the math, write the code, run
-the test, keep the artifact. No five-minute videos, no copy-paste deploys, no hand-holding.
-Free, open source, and built to run on your own laptop.
+每节课遵循同一循环：读问题 → 推导数学 → 写代码 → 运行测试 → 保留产出。没有五分钟快餐视频，没有复制粘贴，不在手把手喂。免费开源，在你电脑上运行。
 
 ```
 ░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒
 ```
 
-## The shape of the curriculum
+## 课程全景
 
-Twenty phases stack on top of each other. Math is the floor. Agents and production are the roof.
-Skip ahead if you already know the lower layers, but don't skip and then wonder why something at
-the top is breaking.
+二十个阶段层层递进。数学是地基，Agent 与生产是屋顶。跳过基础也行——但别后来反问上面的东西为什么出问题。
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#fafaf5','primaryTextColor':'#1a1a1a','primaryBorderColor':'#3553ff','lineColor':'#3553ff','fontFamily':'JetBrains Mono','fontSize':'12px'}}}%%
@@ -78,9 +66,9 @@ flowchart TB
 ░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒
 ```
 
-## The shape of a lesson
+## 课程结构
 
-Each lesson lives in its own folder, with the same structure across the entire curriculum:
+每节课有独立文件夹，整个课程统一结构：
 
 ```
 phases/<NN>-<phase-name>/<NN>-<lesson-name>/
@@ -90,8 +78,8 @@ phases/<NN>-<phase-name>/<NN>-<lesson-name>/
 └── outputs/   prompts, skills, agents, or MCP servers this lesson produces
 ```
 
-Every lesson follows six beats. The *Build It / Use It* split is the spine — you implement the
-algorithm from scratch first, then run the same thing through the production library. You
+每节课六个节拍： The *Build It / Use It* split is the spine — you implement the
+algorithm from scratch first, then 用工业库跑同一件事. You
 understand what the framework is doing because you wrote the smaller version yourself.
 
 ```mermaid
@@ -234,7 +222,7 @@ the agent went wrong and explain why...
 
 <a id="contents"></a>
 
-## Contents
+## 目录
 
 Twenty phases. Click any phase to expand its lesson list.
 
@@ -1012,7 +1000,7 @@ HEAD/GET).
 ░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒░░░▒▒▒
 ```
 
-## Contributing
+## 贡献
 
 | Goal | Read |
 |---|---|
@@ -1073,7 +1061,7 @@ Sign up via [GitHub Sponsors](https://github.com/sponsors/rohitg00).
 
 If this manual helped you, star the repo. It keeps the project alive.
 
-## License
+## 许可证
 
 MIT. Use it however you want — fork it, teach it, sell it, ship it. Attribution appreciated,
 not required.
@@ -1083,5 +1071,5 @@ Maintained by [Rohit Ghumare](https://github.com/rohitg00) and the community.
 <sub>
   <a href="https://x.com/ghumare64">@ghumare64</a> &nbsp;·&nbsp;
   <a href="https://aiengineeringfromscratch.com">aiengineeringfromscratch.com</a> &nbsp;·&nbsp;
-  <a href="https://github.com/xiaojiaenen/ai-engineering-from-scratch-zh/issues/new/choose">Report / Suggest</a>
+  <a href="https://github.com/xiaojiaenen/ai-engineering-from-scratch-zh/issues/new/choose">反馈 / 建议</a>
 </sub>
