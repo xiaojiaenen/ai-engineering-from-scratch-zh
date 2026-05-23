@@ -515,6 +515,10 @@ the agent went wrong and explain why...
 | 05 | [分布式训练、FSDP、DeepSpeed](phases/10-llms-from-scratch/05-scaling-distributed/) | 构建 | Python |
 </details>
 
+<details>
+<summary><b>阶段10（续）— 从零开始构建LLM</b> &nbsp;<code>17课</code></summary>
+<br/>
+
 | 编号 | 课程 | 类型 | 语言 |
 |:---:|--------|:----:|------|
 | 06 | [指令调优 — SFT](phases/10-llms-from-scratch/06-instruction-tuning-sft/) | 构建 | Python |
