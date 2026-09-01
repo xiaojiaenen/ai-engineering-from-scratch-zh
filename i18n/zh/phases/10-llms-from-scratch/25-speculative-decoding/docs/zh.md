@@ -1,95 +1,95 @@
-# 推测解码与 EAGLE
+# 投机解码和
 
-> 前沿大语言模型（LLM）每生成一个 token 都需要对数十亿参数执行一次完整的正向传播。而这次正向传播存在严重的过度配置：在大多数情况下，一个更小规模的模型就能正确猜测接下来的 3-5 个 token，而大模型只需要*验证*这个猜测是否正确。如果猜测正确，你用一次计算的代价得到了 5 个 token。推测解码（Speculative Decoding，Leviathan 等人，2023）实现了这一点，而 EAGLE-3（2025）将接受率推高到了每个验证步骤约 4.5 个 token——在保持输出分布一致的前提下实现了 4-5 倍的加速。
+> 一个创建一个代币的跨界法规需要通过数十亿个参数. 往往的通行量大大过于充足:通常一个更小的模型可以正确猜测下一个3-5个代币, 如果猜测是正确的,你会得到5个代币. 投机解码 (Leviathan等人) 据估计,在2023年,EAGLE-3 (2025) 将接受率推至4.5个代币,以实现4-5倍的速度.
 
-**类型：** 构建
-**语言：** Python（含 numpy）
-**前置知识：** 第10阶段第12课（推理优化）、第10阶段第04课（预训练迷你 GPT）
-**时间：** 约75分钟
+**Type:** Build
+**Languages:** Python (with numpy)
+**Prerequisites:** Phase 10 Lesson 12 (Inference Optimization), Phase 10 Lesson 04 (Pre-training Mini-GPT)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-在 H100 上，70B 级别模型的解码吞吐量通常为 40-80 token/秒。每个 token 都需要一次完整的正向传播，从 HBM 读取所有模型权重。你不能在不改变输出的情况下缩小模型，也不能在显存限制之外增加 batch size。你陷入了僵局——除非你能让模型在一次正向传播中输出多个 token。
+对于 H100 的 70B 类型的代码输出通常为 40-80 代币/秒.每个代币需要一个全前传输,读取HBM 的所有模型重量.你不能使模型变小而不改变输出.你不能增加更大的批量.你卡在,除非你可以让模型输出超过一个代币.
 
-自回归生成看起来本质上是串行的：`x_{t+1} = sample(p(· | x_{1:t}))`。但这里存在一个并发的机会。如果你有一个廉价的预测器说"接下来 4 个 token 可能是 [a, b, c, d]"，你就可以在**大模型的单次正向传播**中验证所有 5 个位置，并接受最长的匹配前缀。
+后代的产量看起来是连续性的:`x_{t+1} = sample(p(· | x_{1:t}))`如果您有一个廉价的预测器,它说"下一个4个代币可能是 [a,b,c,d]"您可以验证所有5个位置在a**single forward pass of the big model**接收最长的相匹配的前.
 
-Leviathan、Kalai、Matias（2023，《通过推测解码实现 Transformer 的快速推理》）通过一个巧妙的接受/拒绝规则实现了这一点，该规则保留了目标模型的采样分布。相同的输出分布，速度提升 2-4 倍。
+利维雅坦,卡莱,马蒂亚斯 (2023,通过投机解码从变体中快速推理) 通过一个聪明的接受/拒绝规则来实现这一点,以保持目标模型的样本分布.同样的输出分布, 2-4 倍更快.
 
 ## 概念
 
-### 双模型架构
+### 两种模式的设置
 
-- **目标模型** `M_p`：你实际想要采样的那个大、慢、高质量的模型。分布为 `p(x)`。
-- **草稿模型** `M_q`：一个小、快、质量较低的模型。分布为 `q(x)`。规模为目标模型的 5-30 分之一。
+- **Target model** `M_p`您实际上想要的样本是大,慢,高质量的模型.`p(x)`现在,我们要去.
+- **Draft model** `M_q`快速,低质量的小型模型.`q(x)`五到三倍小.
 
-每个步骤：
+每一步:
 
-1. 草稿模型自回归地提议 `K` 个 token：`x_1, x_2, ..., x_K ~ q`。
-2. 目标模型并行地对所有 `K+1` 个位置执行一次正向传播，为每个被提议的 token 生成 `p(x_k)`。
-3. 按照下面的修正拒绝采样规则，从左到右接受/拒绝每个 token。接受最长的匹配前缀。
-4. 如果任何 token 被拒绝，从修正分布中采样替代 token 并停止。否则从 `p(· | x_1...x_K)` 中采样一个额外 token。
+1. 拟议的模型草案`K`代币自动下降: `x_1, x_2, ..., x_K ~ q`现在,我们要去.
+2. 目标模型在所有情况下运行一个前进通行`K+1`位并行,产生`p(x_k)`对于每一个拟议的代币.
+3. 通过下面修改的拒绝样本规则,从左到右接受/拒绝每个代币. 接受最长的匹配前.
+4. 如果任何代币被拒绝,请从纠正的分布中取代代代币的样本,然后停止.`p(· | x_1...x_K)`现在,我们要去.
 
-如果草稿与目标完全匹配，你每执行一次目标正向传播就能得到 K+1 个 token。如果草稿在位置 1 就错了，你只能得到 1 个 token。
+如果草案完全匹配目标,你会得到每一个目标前进的K+1代币.如果草案在位置1上错误,你只会得到1代币.
 
-### 精确性规则
+### 准确性规则
 
-推测解码在分布意义上**与从 p 采样等价**。拒绝规则如下：
+预测解码是**provably equivalent in distribution to sampling from p**拒绝的规则:
 
 ```
-对于每个草稿 token x_t：
+For each drafted token x_t:
     r ~ Uniform(0, 1)
     if r < p(x_t) / q(x_t):
-        接受 x_t
+        accept x_t
     else:
-        从残差分布采样替代：(p - q)+ / ||(p - q)+||_1
-        停止
+        sample replacement from residual: (p - q)+ / ||(p - q)+||_1
+        stop
 ```
 
-其中 `(p - q)+` 表示逐点差值的正部。当草稿与目标一致时（`p ≈ q`），接受率接近 1。当它们不一致时，残差分布的构造方式使得整体采样仍然精确地符合 `p`。
+在哪里`(p - q)+`标志着点差的正面部分.`p ≈ q`) 接受率接近 1. 当他们不同意时,残余分布是这样构建的,使整体样本仍然是准确的`p`现在,我们要去.
 
-**贪心情况。** 对于 temperature=0 的采样，只需检查 `argmax(p) == x_t`。如果是，接受；如果不是，输出 `argmax(p)` 并停止。
+**Greedy case.**对于温度=0的样本,请检查`argmax(p) == x_t`如果是,接受;如果不是,输出`argmax(p)`停止.
 
-### 预期加速比
+### 预期的增速
 
-如果草稿模型的 token 级接受率为 `α`，则每次目标正向传播期望产出的 token 数为：
+如果草案模型的代币级接受率为`α`预期每次目标前进通行产生的代币为:
 
 ```
-E[tokens] = (1 - α^{K+1}) / (1 - α)        # K = 草稿长度，α ∈ [0, 1]
+E[tokens] = (1 - α^{K+1}) / (1 - α)        # K = draft length, α in [0, 1]
 ```
 
-在 `α = 0.8, K = 4` 时：`(1 - 0.8^5)/(1 - 0.8) = 3.36` 个 token/次正向传播。一次目标正向传播的成本约为 `cost_q * K + cost_p`（K 次草稿步骤加一次目标验证）。如果 `cost_p >> cost_q * K`，则吞吐量加速比为 `3.36× / 1 = 3.36×`。
+在`α = 0.8, K = 4`其他`(1 - 0.8^5)/(1 - 0.8) = 3.36`预期期期货的代币.`cost_q * K + cost_p`(K草案步骤加上一个目标验证).`cost_p >> cost_q * K`速度增速率为`3.36× / 1 = 3.36×`通过量.
 
-唯一的关键参数是 `α`，它完全取决于草稿与目标的对齐程度。一个好的草稿模型是一切的基础。
+唯一真正的参数是`α`根据"项目目标"的结合, 一个好的项目是一切.
 
-### 训练草稿：蒸馏
+### 培训项目:蒸
 
-随机的小模型无法成为好的草稿。标准配方是从目标模型蒸馏：
+随机的小模型做了一个糟糕的草稿.
 
-1. 选择一个小型架构（对于 70B 目标模型约 1B，对于 7B 目标模型约 500M）。
-2. 在大型文本语料上运行目标模型，存储其下一个 token 的分布。
-3. 用目标模型的分布（而非真实 token）对草稿模型进行 KL 散度训练。
+1. 选择一个小的架构 (70B目标的~1B,7B目标的~500M).
+2. 运行目标模型在一个大文本体内;存储其下一个代币分布.
+3. 根据目标分布 (而不是实地真相代币) 进行KL分歧训练.
 
-结果：在代码上 `α` 通常为 0.6-0.8，在自然语言对话上为 0.7-0.85。生产中加速 2-3 倍。
+结果是:`α`在编码中通常是0.6-0.8,在自然语言聊天中是0.7-0.85.
 
-### EAGLE：树形草稿 + 特征复用
+### :树木绘制+重用特征
 
-Li、Wei、Zhang、Zhang（2024，《EAGLE：推测采样需要重新思考特征不确定性》）观察到标准推测解码中存在两个低效之处：
+李,韦,张,张 (2024, ":投机性样本需要重新思考特征不确定性") 观察到标准投机性解码中的两个效率低下:
 
-1. 草稿执行 K 次串行步骤，每次都完整计算整个栈。但草稿可以复用它从最近一次验证中获得的目标的特征（隐藏状态）——目标已经计算了丰富的表示，而草稿正从头开始重新推导。
-2. 草稿输出一个线性链。如果草稿能输出一个*候选树*（每个节点有多个猜测），目标的单次正向传播就可以通过树形注意力掩码并行验证多条候选路径，并选择最长的被接受分支。
+1. 草案执行K序列步骤,每个都是完整的. 但草案可能会重新利用目标的特性 (隐藏状态) 从最近验证 目标已经计算了丰富的表示,该草案是从零中重新衍生.
+2. 如果草案可以输出候选人的*树* (每个节点都会多次猜测),目标的单一向前传递可以通过树注意力面具并行验证多个候选人的路径,并选择最长的接受分支.
 
-EAGLE-1 的改变：
-- 草稿输入 = 目标模型在位置 t 的最终隐藏状态，而非原始 token。
-- 草稿架构 = 1 个 transformer decoder 层（而非独立的模型）。
-- 输出 = 每层深度 K = 4-8 个候选，深度 4-6 层。
+-1变化:
+- 预示输入 = 目标在位置 t 的最后隐藏状态,而不是原始代币.
+- 草案架构 = 1 变压器解码器层 (不是单独的小模型).
+- 输出 = K 的树 = 每个深度4-8个候选,深度4-6.
 
-EAGLE-2（2024）引入了动态树拓扑：在草稿不确定时树变宽，在确信时保持窄。在不增加验证成本的情况下提高了 `α_effective`。
+子-2 (2024) 增加了动态树木拓:树在不确定的地段上长得更宽,而在自信的地方保持狭窄.`α_effective`没有增加验证成本.
 
-EAGLE-3（Li 等人，2025，《EAGLE-3：通过训练时测试加速大语言模型推理》）消除了固定的顶层特征依赖，并用新的"测试时模拟"损失训练草稿——草稿在匹配目标测试时分布的输出上进行训练，而非教师强制训练分布。接受率从 0.75（EAGLE-2）提升到 0.82（EAGLE-3），平均每个验证的 token 数从 3.0 提升到 4.5。
+3 (Li等) 2025年",EAGLE-3:通过训练时间测试扩大大型语言模型的推理加速") 消除了固定的顶层功能依赖性,并将草案训练以新的"测试时间模拟"损失. 接受率从0.75 (EAGLE-2) 升至0.82 (EAGLE-3) ,平均代币/验证率从3.0升至4.5.
 
-### 树形注意力验证
+### 树木注意力检查
 
-当草稿输出一棵树时，目标模型使用**树形注意力掩码**在单次正向传播中完成验证——这是一种因果掩码，编码了树拓扑而非纯线性结构。每个 token 只关注其在树中的祖先节点。验证过程仍然是一次正向传播、一次矩阵乘法；拓扑掩码仅增加少量 KV 条目。
+目标模型通过一个单个前进传输来验证树的输出.**tree attention mask**一个因果化面具,它编码树木拓而不是纯线.每个代币只为树上的祖先服务.验证通过仍然是前面,一条马特尔;拓化面具只花费了几次额外的KV入口.
 
 ```
         root
@@ -99,38 +99,38 @@ EAGLE-3（Li 等人，2025，《EAGLE-3：通过训练时测试加速大语言�
     c  d   e   f
 ```
 
-如果 `a, b` 是竞争的第一个 token 候选，`c, d, e, f` 是第二个 token 候选，这六个位置在一次正向传播中全部被验证。输出是任意被接受路径上最长的前缀。
+如果`a, b`竞争的第一代代标志候选人`c, d, e, f`输出是任何接受的路径上最长的前.
 
-### 适用场景与不适用场景
+### 当它胜利时,当它不胜利时
 
-**适用的场景：**
-- 对话/补全中可预测的文本（代码、常见英语、结构化输出）。`α` 较高。
-- 解码期间有未利用 GPU 算力的场景（显存受限阶段）。树形草稿利用了可用的 FLOPs。
+**Wins:**
+- 通过可预测的文本进行聊天/完成 (代码,普通英语,结构化输出). `α`了.
+- 设置在解码过程中未使用的GPU计算 (内存绑定阶段).树草图使用可用的FLOP.
 
-**不适用/无优势的场景：**
-- 高度随机的输出（高温下的创意写作）。`α` 趋近 `1/|vocab|`。
-- 高并发批处理服务——批处理已经充分利用了 FLOPs，没有太多空间给树形验证。
-- 非常小的目标模型，草稿并不小多少。
+**Loses / no win:**
+- 极高的性输出 (高温创意写作).`α`落到`1/|vocab|`现在,我们要去.
+- 批量服务具有非常高的同时批量已经填补了FLOP,对树木验证的空间很少.
+- 非常小的目标模型,其中的草案并不小.
 
-生产环境通常报告对话 2-3 倍的墙钟时间加速，代码生成 3-5 倍，创意写作几乎为零。
+制作商店通常会报告聊天的速度2~3倍,代码生成3~5倍,创意写作几乎是零.
 
 ```figure
 speculative-decoding
 ```
 
-## 构建
+## 建立它
 
-`code/main.py`：
+`code/main.py`其他:
 
-- 一个参考实现 `speculative_decode(target, draft, prompt, K, temperature)`，实现精确的拒绝规则，并验证其保留了目标分布（经验 KL 散度 < 0.01，对比纯目标采样）。
-- 一个 EAGLE 风格的树形草稿器，构建深度为 K、top-p 分支的树。
-- 一个树形注意力掩码构建器，为验证器生成正确的因果模式。
-- 一个接受率测试框架，在微型 LM 上运行两者（从一个 GPT-2-medium 目标蒸馏一个 GPT-2-small 草稿）。
+- 参考`speculative_decode(target, draft, prompt, K, temperature)`执行确切的拒绝规则并验证它保留了目标分布 (实验性KL <0.01对平凡目标采样).
+- 树的设计师, 构建一个深度K树,
+- 树木注意力面具制造器,为验证器产生了正确的因果模式.
+- 通过一个小LM (从GPT-2-中目标中除一个GPT-2-小) 运行的接受率带.
 
 ```python
 def speculative_step(p_target, q_draft, K, temperature=1.0):
-    """一次推测解码步骤。返回被接受的 token 列表。"""
-    # 1. 草稿 K 个 token
+    """One round of speculative decoding. Returns list of accepted tokens."""
+    # 1. Draft K tokens
     draft_tokens = []
     q_probs = []
     state = draft_state_init()
@@ -141,10 +141,10 @@ def speculative_step(p_target, q_draft, K, temperature=1.0):
         q_probs.append(probs[t])
         state = draft_step(state, t)
 
-    # 2. 目标模型在所有草稿位置 + 1 个额外位置计算 p
+    # 2. Target computes p at every drafted position + 1 extra
     p_probs_all = target_forward_batched(p_target, draft_tokens, temperature)
 
-    # 3. 从左到右接受/拒绝
+    # 3. Accept/reject left-to-right
     accepted = []
     for k, tok in enumerate(draft_tokens):
         r = np.random.uniform()
@@ -155,56 +155,56 @@ def speculative_step(p_target, q_draft, K, temperature=1.0):
             residual /= residual.sum()
             accepted.append(np.random.choice(len(residual), p=residual))
             return accepted
-    # 4. 全部 K 个被接受 → 从目标采样 bonus token
+    # 4. All K accepted → sample bonus token from target
     accepted.append(np.random.choice(len(p_probs_all[-1]), p=p_probs_all[-1]))
     return accepted
 ```
 
-## 使用方式
+## 用它
 
-- **vLLM** 和 **SGLang** 提供了原生的推测解码支持。参数：`--speculative_model`、`--num_speculative_tokens`。通过 `--spec_decoding_algorithm eagle` 参数支持 EAGLE-2/3。
-- **NVIDIA TensorRT-LLM** 原生支持 Medusa 和 EAGLE 树。
-- **参考草稿模型**：`Qwen/Qwen3-0.6B-spec`（为 Qwen3-32B 提供草稿）、`meta-llama/Llama-3.2-1B-Instruct-spec`（为 70B 提供草稿）。
-- **Medusa 头**（Cai 等人，2024，《Medusa：一种带有多个解码头的简单 LLM 推理加速框架》）：不是用草稿模型，而是在目标模型本身添加 K 个并行预测头。部署更简单，但接受率略低于 EAGLE。
+- **vLLM**其他**SGLang**飞船第一级的猜测解码.`--speculative_model`现在`--num_speculative_tokens`通过 `--spec_decoding_algorithm eagle`旗.
+- **NVIDIA TensorRT-LLM**支持梅杜萨和树的本土.
+- **Reference draft models**其他`Qwen/Qwen3-0.6B-spec`(Qwen3-32B草案),`meta-llama/Llama-3.2-1B-Instruct-spec`(70B草案)
+- **Medusa heads**(Cai et al. 2024,"Medusa:简单的LLM推理加速框架与多个解码头"):而不是一个草案模型,将K平行预测头添加到目标本身.更简单的部署,接受度略低于EAGLE.
 
-## 交付物
+## 运送它
 
-本课将产出 `outputs/skill-speculative-tuning.md`——一个技能，用于分析目标模型的工作负载并选择：草稿模型、K（草稿长度）、树宽、温度，以及何时回退到普通解码。
+这一课产生了`outputs/skill-speculative-tuning.md`一个技能,可以描述目标模型的工作负载,并选择:草案模型,K (草案长度),树宽度,温度,以及何时回到简单的解码.
 
-## 练习
+## 运动
 
-1. 实现精确的拒绝规则并经验验证。通过 `speculative_decode` 和通过纯目标采样各运行 10K 次样本；计算两个输出分布之间的 TV 距离。应小于 0.01。
+1. 执行确切的拒绝规则,经验验证它.`speculative_decode`通过简单的目标样本采集,计算两个输出分布之间的电视距离. 应为<0.01.
 
-2. 计算加速比公式。给定固定的 `α` 和 `K`，绘制每次目标正向传播期望的 token 数。找出 α ∈ {0.5, 0.7, 0.9} 时的最优 K。
+2. 计算加快公式,给定了`α`其他`K`图表预期的代币每目标前进. 找出α ∈ {0.5,0.7,0.9} 的最佳K.
 
-3. 训练一个微型草稿模型。取一个 124M 的 GPT-2 目标模型，在 100M token 上用 KL 损失蒸馏一个 30M 的 GPT-2 草稿模型。在保留文本上测量 `α`。预期结果：0.6-0.7。
+3. 训练一个小的草稿. 拿一个124MGPT-2目标,并在100M代币上除一个30MGPT-2草稿.`α`预期:0.6至0.7.
 
-4. 实现 EAGLE 风格的树形草稿。不是线性链，而是在每层输出 top-3 分支。构建树形注意力掩码。验证目标模型是否接受了最长正确分支。
+4. 执行EIGLE样式的树草图. 代替链条,将草图输出的每一个深度上三个分支. 构建树注意力面具. 检查目标接受最长正确的分支.
 
-5. 测量失败模式。在 temperature=1.5（高随机性）下运行推测解码。展示 α 崩溃，以及由于草稿开销导致算法比纯解码更慢。
+5. 测量失败模式.在温度=1.5 (高性) 运行投机解码.显示 α 崩,算法由于开支的草图而比普通解码慢.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|---------|
-| 目标模型 | "大模型" | 你希望采样的慢速高质量模型（p 分布） |
-| 草稿模型 | "推测器" | 小型快速预测器（q 分布）；规模为目标的 5-30 分之一 |
-| K / 草稿长度 | " lookahead" | 每次验证过程中推测的 token 数量 |
-| α / 接受率 | "命中率" | 草稿提议被接受的 token 级概率 |
-| 精确拒绝规则 | "接受测试" | r < p/q 比较，保留目标分布 |
-| 残差分布 | "修正的 p-q" | (p - q)+ / ||(p - q)+||_1，拒绝时需要采样的分布 |
-| 树形草稿 | "分支推测" | 草稿输出一棵候选树，用树形注意力掩码在一次通过中验证 |
-| 树形注意力掩码 | "拓扑掩码" | 编码树拓扑的因果掩码，使每个节点只关注其祖先 |
-| Medusa 头 | "并行头" | 目标模型上的 K 个额外预测头；无需独立草稿模型 |
-| EAGLE 特征复用 | "隐藏状态草稿" | 草稿输入是目标的最后隐藏状态，而非原始 token，从而缩小草稿规模 |
-| 测试时模拟损失 | "EAGLE-3 训练" | 在匹配目标测试时分布的输出上训练草稿，而非教师强制 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Target model | "The big model" | The slow, high-quality model you want samples from (p distribution) |
+| Draft model | "The speculator" | The small, fast predictor (q distribution); 5-30x smaller |
+| K / draft length | "Look-ahead" | Number of speculated tokens per verify pass |
+| α / acceptance rate | "Hit rate" | Per-token probability that the draft's proposal is accepted |
+| Exact rejection rule | "The accept test" | r < p/q compare that preserves target's distribution |
+| Residual distribution | "Corrected p-q" | (p - q)+ / ||(p - q)+||_1, the distribution to sample from on rejection |
+| Tree drafting | "Branching speculation" | Draft outputs a tree of candidates, verified in one pass with tree-structured attention mask |
+| Tree attention mask | "Topological mask" | Causal mask encoding the tree topology so each node attends only to its ancestors |
+| Medusa heads | "Parallel heads" | K extra prediction heads on the target itself; no separate draft model |
+| EAGLE feature reuse | "Hidden-state draft" | Draft input is target's last hidden state, not raw tokens, shrinking the draft |
+| Test-time simulation loss | "EAGLE-3 training" | Train draft on outputs matching target's test-time distribution, not teacher forcing |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Leviathan、Kalai、Matias，2023 — 《通过推测解码实现 Transformer 的快速推理》](https://arxiv.org/abs/2211.17192) — 精确拒绝规则和理论加速分析
-- [Chen、Borgeaud、Irving 等人，2023 — 《通过推测采样加速大语言模型解码》](https://arxiv.org/abs/2302.01318) — DeepMind 的并发推测采样论文
-- [Cai、Li、Geng、Wang、Wang、Zhu、Dao，2024 — 《Medusa：一种带有多个解码头的简单 LLM 推理加速框架》](https://arxiv.org/abs/2401.10774) — 草稿模型的并行头替代方案
-- [Li、Wei、Zhang、Zhang，2024 — 《EAGLE：推测采样需要重新思考特征不确定性》](https://arxiv.org/abs/2401.15077) — 特征复用和树形草稿
-- [Li 等人，2024 — 《EAGLE-2：使用动态草稿树加速语言模型推理》](https://arxiv.org/abs/2406.16858) — 动态树拓扑
-- [Li 等人，2025 — 《EAGLE-3：通过训练时测试扩展大语言模型推理加速》](https://arxiv.org/abs/2503.01840) — 训练时测试时分布匹配
-- [Fu、Haotian、Peng 等人，2024 — 《使用前向解码打破 LLM 推理的序列依赖性》](https://arxiv.org/abs/2402.02057) — Jacobi/前向解码，一种无需推测器的替代方案
+- [Leviathan, Kalai, Matias, 2023 — "Fast Inference from Transformers via Speculative Decoding"](https://arxiv.org/abs/2211.17192)准确的拒绝规则和理论加速分析
+- [Chen, Borgeaud, Irving et al., 2023 — "Accelerating Large Language Model Decoding with Speculative Sampling"](https://arxiv.org/abs/2302.01318)深思维的同时投机性采样论文
+- [Cai, Li, Geng, Wang, Wang, Zhu, Dao, 2024 — "Medusa: Simple LLM Inference Acceleration Framework with Multiple Decoding Heads"](https://arxiv.org/abs/2401.10774)平行头替代草案模型
+- [Li, Wei, Zhang, Zhang, 2024 — "EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty"](https://arxiv.org/abs/2401.15077)重用特征和树木设计
+- [Li et al., 2024 — "EAGLE-2: Faster Inference of Language Models with Dynamic Draft Trees"](https://arxiv.org/abs/2406.16858)动态树木拓
+- [Li et al., 2025 — "EAGLE-3: Scaling up Inference Acceleration of Large Language Models via Training-Time Test"](https://arxiv.org/abs/2503.01840)火车时间测试时间匹配
+- [Fu, Haotian, Peng et al., 2024 — "Break the Sequential Dependency of LLM Inference Using Lookahead Decoding"](https://arxiv.org/abs/2402.02057)  Jacobi/lookahead解码,一个无投机者的替代方案
