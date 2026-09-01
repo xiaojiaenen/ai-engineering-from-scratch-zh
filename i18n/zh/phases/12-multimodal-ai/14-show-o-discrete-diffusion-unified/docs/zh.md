@@ -1,141 +1,141 @@
-# Show-o 与离散扩散统一模型
+# 展示和分辨散的统一模型
 
-> Transfusion 混合了连续和离散表示。Show-o（Xie 等人，2024年8月）反其道而行：文本 token 使用因果下一步 token 预测，图像 token 使用受 MaskGIT 启发的掩码离散扩散。两者位于同一个 transformer 中，配合混合注意力掩码。结果在一个骨干网络、每种模态一个分词器、一个扩展了掩码预测的损失公式之上，统一了 VQA、文生图、图像修复和混合模态生成。本课讲解 Show-o 的设计——为何掩码离散扩散是一种并行、少步数的图像生成器——并与 Transfusion 和 Emu3 进行对比。
+> 输血混合连续和分离的表现. 显示 (Xie等同,2024年8月) 则是另一种方式:文字代币使用因果下一个代币预测,图像代币使用面具的分离传播, 两人都坐在一个变压器里, 结果将VQA,文字到图像,涂料和混合模式生成在一个背骨上统一,每个模式每一个代币,一个损失式 (下一个代币扩展到掩盖预测). 这一课标介绍了"Show-o"设计,为什么隐形分离散射是平行,几步的图像生成器,与转和Emu3有着对比.
 
-**类型：** 学习
-**语言：** Python（标准库、掩码离散扩散采样器）
-**前置知识：** 第 12 · 13 课（Transfusion）
-**时间：** 约 120 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, masked-discrete-diffusion sampler)
+**Prerequisites:** Phase 12 · 13 (Transfusion)
+**Time:** ~120 minutes
 
 ## 学习目标
 
-- 解释掩码离散扩散：均匀掩码 token 然后要求 transformer 恢复它们的调度策略。
-- 在速度和质量上比较并行图像解码（Show-o、MaskGIT）与自回归图像解码（Chameleon、Emu3）。
-- 说出 Show-o 在一个检查点中处理的三个任务：T2I、VQA、图像修复。
-- 选择一种掩码调度（余弦、线性、截断）并分析其对样本质量的影响。
+- 解释掩盖的分离散射:掩盖代币的时间表,然后要求变压器恢复它们.
+- 根据速度和质量,比较平行图像解码 (Show-o, MaskGIT) 与自动降低图像解码 (Chameleon, Emu3).
+- 举个名单,在一个检查点上,Show-o处理的三个任务:T2I,VQA,图像涂料.
+- 选择一个掩盖时间表 (,线性,缩短) 并考虑其对样品质量的影响.
 
-## 问题所在
+## 问题
 
-Transfusion 的双损失训练虽然有效，但动态更复杂——连续扩散损失与离散 NTP 损失处于不同的数值尺度上。平衡损失权重是一个超参数搜索过程。架构虽然有效但复杂。
+输血的两损失训练工作,但具有更棘手的动态. 持续扩散损失在与分离NTP损失不同的数值尺度上生活.平衡损失权重是超参数搜索. 建筑是有效的,但复杂的.
 
-Show-o 的方案是：保持两种模态都是离散的（像 Chameleon），但通过掩码离散扩散并行生成图像，而非顺序生成。训练目标变为一个统一的掩码 token 预测，自然地推广了下一步 token 预测。
+展示-o的答案:保持两种模式分离 (如马里昂),但通过掩饰分离散射而不是连续生成平行图像.训练目标成为一个单一的掩饰代币预测,自然将下一个代币预测概括.
 
-## 核心概念
+## 概念
 
-### 掩码离散扩散（MaskGIT）
+### 面具的离散传播 (MaskGIT)
 
-Chang 等人（2022）的原始 MaskGIT 技巧非常优雅。从全掩码图像开始（每个 token 都是特殊的 `<MASK>` id）。每一步并行预测所有掩码 token，然后保留置信度最高的 top-K 预测，重新掩码其余部分。经过约 8-16 次迭代，所有 token 都被填完。每步解封多少 token 的调度经过调优——余弦调度效果良好。
+格IT的原始技巧是优雅的.从一个完全蒙面的图像开始 (每个代币都是特殊的图像).`<MASK>`在每一步,预测所有面具代币并行,然后保持最自信的预测,再重新掩盖其余. ~ 8-16 个代之后,所有代币都填写.每步需要揭开多少代币的时间表调整.
 
-训练很简单：从 [0, 1] 中均匀采样一个掩码比例，应用到图像的 VQ token 上，训练 transformer 恢复被掩码的部分。与 BERT 对文本做的事情如出一辙，只是扩展到了图像生成。
+训练简单:从 [0, 1] 样本模拟一个掩盖比率,将其应用到图像的VQ代币,训练变压器恢复掩盖的代币. 正如BERT对文本所做的,扩展到图像生成.
 
-### Show-o：一个 transformer，混合掩码
+### 展示:一个变压器,混合面具
 
-Show-o 将 MaskGIT 放入因果语言模型 transformer 中。注意力掩码为：
+展示将MaskGIT放进一个因果语言模型变压器.
 
-- 文本 token：因果（标准 LLM）。
-- 图像 token：图像块内完全双向（因此掩码 token 在预测时能看到其他所有图像 token）。
-- 文本到图像：文本 attend 到先前图像，图像 attend 到先前文本。
+- 文字代码:因果性 (标准的LLM).
+- 图像代币:图像区块内完全双向 (因此,掩盖的代币可以在预测过程中看到其他图像代币).
+- 文字对图像:文字与以前的图像相结合,图像与以前的文字相结合.
 
-训练在以下模式间交替：
-1. 文本序列的标准 NTP。
-2. T2I 样本：文本 → 图像，图像 token 被掩码，使用掩码 token 预测损失。
-3. VQA 样本：图像 → 文本，文本 token 被掩码（实际上只是 NTP）。
+培训的替代者:
+1. 标准NTP在文本序列上.
+2. 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签: 标签
+3. 面具的文本代码 (实际上只是NTP) 的图像 →文本.
 
-统一损失是对 `<MASK>` token 的交叉熵，涵盖了文本 NTP（只有最后一个 token 是"掩码"的）和图像掩码扩散（随机子集被掩码）。
+统一的损失是交叉化.`<MASK>`代币,涵盖文字NTP (仅最后一个代币是"掩盖") 和图像掩盖传播 (随机子集是掩盖).
 
 ### 并行采样
 
-Show-o 在约 16 步内生成一张图像，而非自回归每 token ~1000 步或扩散 ~20 步。每一步并行预测所有掩码 token；提交 top-K 置信度最高的；重复。
+显示-o在~1000 (每代币自行降低) 或~20 (传播) 代码的位置上生成16个步骤.在每个步骤上,并行预测所有隐藏代币; 提交顶部K自信; 重复.
 
-对比：
-- Chameleon / Emu3（token 级自回归）：N_tokens 次前向传递，每张图像通常 1024-4096 次。
-- Transfusion（连续扩散）：约 20 步，每步一次完整 transformer 传递。
-- Show-o（掩码离散扩散）：约 16 步，每步一次完整 transformer 传递。
+进行比较:
+- 马里昂/EMU3 (自行降低代币):N_代币前进传递,通常每张图像为1024-4096.
+- 输血 (持续扩散):~20个步骤,每个步骤都通过一个完整的变压器.
+- 显示 (掩盖的分离散射):~16个步骤,每个步骤都通过一个完整的变压器.
 
-在同等规模模型下，Show-o 比 Chameleon 更快，步数与 Transfusion 大致相当且每步成本更低（离散词表 logits vs 连续 MSE 损失）。
+显示-o比相似规模模型的马里昂更快,大致与输血步骤数量相匹配,每步成本更低 (微妙的语音符与持续的MSE损失).
 
-### 一个检查点中的多个任务
+### 在一个检查点的任务
 
-Show-o 支持四种推理任务，通过提示格式选择：
+通过快速格式选择的推断支持四项任务:
 
-- 文本生成：标准自回归文本输出。
-- VQA：图像输入，文本输出。
-- T2I：文本输入，通过掩码离散扩散输出图像。
-- 图像修复：部分 token 被掩码的图像，填入缺失部分。
+- 文字生成:标准的自动退缩文字输出.
+- 图像进来,短信出.
+- 通过掩盖的分离传播输入文字,输出图像.
+- 涂料:有一些隐藏的代币的图像,填写.
 
-图像修复能力来自掩码预测训练，是免费获得的。掩码 VQ-token 网格中的某个区域，输入其余部分加文本提示，预测掩码 token。
+面具预测训练免费提供了涂料功能. 面具预测网格的一个区域, 输送其余部分加上文本提示, 预测面具预测.
 
-### 掩码调度
+### 掩盖时间表
 
-每步解封多少 token 的调度决定质量。Show-o 推荐使用余弦调度：
+按每一步揭开多少代币的时间表,决定了质量.
 
 ```
 mask_ratio(t) = cos(pi * t / (2 * T))   # t = 0..T
 ```
 
-第 0 步时所有 token 被掩码（比例 1.0）。第 T 步时无 token 被掩码。余弦调度将质量集中在预测最有信息的中间范围比例上。线性调度也能工作，但更快进入平台期。
+在步骤0时,所有代币都被掩盖 (比率1.0).在步骤T时,没有一个被掩盖. 科西因集中质量在中范围的比率上,预测最有信息性. 线性时间表也更快地工作,但高原速度更快.
 
-### Show-o2
+### 展示2
 
-Show-o2（2025 年后续工作，arXiv 2506.15564）扩展了 Show-o：更大的 LLM 基座、更好的分词器、改进的掩码调度。保持相同的架构模式。
+展示2 (2025后续, arXiv 2506.15564) 尺度展示:更大的LLM基础,更好的标记,更好的面具时间表.相同的建筑模式.
 
-### Show-o 的定位
+### 在Show-o坐的地方
 
-在 2026 年的分类法中：
+在2026年分类:
 
-- 离散 token + NTP：Chameleon、Emu3。简单但推理慢。
-- 离散 token + 掩码扩散：Show-o、MaskGIT、LlamaGen、Muse。并行采样，仍受分词器Lossy影响。
-- 连续 + 扩散：Transfusion、MMDiT、DiT。质量最高，训练更复杂。
-- 连续 + 流匹配在 VLM 中：JanusFlow、InternVL-U。最新一代。
+- 微观代币+NTP:马龙,Emu3. 简单但缓慢的推断.
+- 微观代币+隐藏的传播:Show-o,MaskGIT,LlamaGen,Muse.并行采样,仍然被代币器输掉.
+- 持续+扩散:输血,MMDiT,DiT. 质量最高,训练更复杂.
+- 在VLM中连续+流量匹配:JanusFlow,InternVL-U. 最新.
 
-按任务选择：当你需要在开放模型中同时获得 T2I + 图像修复 + VQA 且速度合理时选 Show-o；当质量 paramount 且你能接受双损失基础设施时选 Transfusion。
+按任务选择:当您想要一个开放型号的T2I+涂料+VQA时,请选择;当质量至关重要时,并且您可以负担两损失的管道时,请输血.
 
 ```figure
 masked-diffusion-unmask
 ```
 
-## 使用它
+## 用它
 
-`code/main.py` 模拟了 Show-o 采样：
+`code/main.py`模拟显示样本:
 
-- 一个 16 个 VQ token 的玩具网格。
-- 一个基于提示和当前未掩码 token 预测 logits 的模拟"transformer"。
-- 8 步余弦调度的并行掩码采样。
-- 打印中间状态（掩码模式演变）和最终 token。
+- 一个玩具网,包含16个VQ代币.
+- 根据提示和目前未掩盖的代币预测登录的假变压器.
+- 通过8个步骤进行并行面具样本采集,
+- 打印中间状态 (面具模式演变) 和最后的代币.
 
-运行它，观察掩码一步步溶解。
+运行它,看面具一步一步溶解.
 
-## 交付物
+## 运送它
 
-本课产出 `outputs/skill-unified-gen-model-picker.md`。针对一个既需要理解能力（VQA、图像描述）又需要生成能力（T2I、图像修复）且要求开放权重的产品，在 Show-o 系列、Transfusion/MMDiT 系列和 Emu3/Chameleon 系列之间做出选择，并给出具体权衡。
+这一课产生了`outputs/skill-unified-gen-model-picker.md`由于需要理解 (VQA,字幕) 和生成 (T2I,涂料) 的产品,需要对开放权重的限制,
 
-## 练习
+## 运动
 
-1. 掩码离散扩散在约 16 步内采样。为什么不能是 1 步？如果第 0 步就解封所有 token，会发生什么？
+1. 假设在步骤0中,你将全部解开什么?
 
-2. 图像修复在掩码扩散中是免费获得的。提出一个产品用例（真实或假设），说明 Show-o 的图像修复能力优于专项模型。
+2. 涂料是免费的,如果涂料被掩盖的传播. 提出一种产品使用情况 (真实或假设),其中Show-o的涂料比专业模型更好.
 
-3. 余弦调度 vs 线性调度：追踪 T=8 时每步未掩码 token 的数量。哪种更均衡？
+3. 随机时间表与线性时间表:按T=8的步骤追踪每步未掩盖的代币数量.
 
-4. 一张 512×512 的 Show-o 图像是 1024 个 token。在词表大小 K=16384 时，模型输出 1024 × log₂(16384) = 14,336 比特（约 1.75 KiB）数据。Stable Diffusion 输出 512×512×24 比特 = 6,291,456 比特（约 768 KiB）原始像素。压缩比是多少？换取了怎样的质量？
+4. 显示图像为512x512显示图像为1024个代币.在词汇K=16384,模型发射1024 * log2(16384) = 14,336位 (~1.75 KiB) 的数据.稳定扩散输出512*512*24位 = 6,291,456位 (~768 KiB) 的原始像素.压缩比是什么,它购买什么质量?
 
-5. 阅读 LlamaGen（arXiv:2406.06525）。LlamaGen 的类别条件自回归图像模型与 Show-o 的掩码方法有何不同？
+5. 如何使LlamaGen的类条件自动降低图像模型与Show-o的掩饰方法不同?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|------------------------|
-| 掩码离散扩散 | "MaskGIT 风格" | 训练预测掩码 token；推理时迭代解封置信度最高的预测 |
-| 余弦调度 | "解封调度" | 推理步数间的掩码比例衰减；将置信度增长集中在中间范围 |
-| 并行解码 | "一次所有 token" | 每一步在一次前向传递中预测完整的掩码 token 序列，然后提交 top-K |
-| 混合注意力 | "因果 + 双向" | 文本 token 上因果、图像块内双向的掩码 |
-| 图像修复 | "填充生成" | 以部分 token 被掩码的图像为条件，预测缺失部分；从训练目标中免费获得 |
-| 提交率 | "每步 top-K" | 每次迭代声明"完成"的 token 数量；控制推理速度与质量的权衡 |
+| Masked discrete diffusion | "MaskGIT-style" | Training to predict masked tokens; at inference, iteratively unmask the most-confident predictions |
+| Cosine schedule | "Unmask schedule" | Decay of mask ratio over inference steps; concentrates confidence growth at mid-range |
+| Parallel decoding | "All tokens at once" | Every step predicts the full sequence of masked tokens in one forward pass, then commits top-K |
+| Hybrid attention | "Causal + bidirectional" | Mask that is causal over text tokens and bidirectional within image blocks |
+| Inpainting | "Fill-in generation" | Condition on an image with some tokens masked, predict the missing ones; free from the training objective |
+| Commitment rate | "Top-K per step" | How many tokens are declared "done" per iteration; controls inference vs quality trade-off |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Xie 等人 — Show-o (arXiv:2408.12528)](https://arxiv.org/abs/2408.12528)
+- [Xie et al. — Show-o (arXiv:2408.12528)](https://arxiv.org/abs/2408.12528)
 - [Show-o2 (arXiv:2506.15564)](https://arxiv.org/abs/2506.15564)
-- [Chang 等人 — MaskGIT (arXiv:2202.04200)](https://arxiv.org/abs/2202.04200)
-- [Sun 等人 — LlamaGen (arXiv:2406.06525)](https://arxiv.org/abs/2406.06525)
-- [Chang 等人 — Muse (arXiv:2301.00704)](https://arxiv.org/abs/2301.00704)
+- [Chang et al. — MaskGIT (arXiv:2202.04200)](https://arxiv.org/abs/2202.04200)
+- [Sun et al. — LlamaGen (arXiv:2406.06525)](https://arxiv.org/abs/2406.06525)
+- [Chang et al. — Muse (arXiv:2301.00704)](https://arxiv.org/abs/2301.00704)
