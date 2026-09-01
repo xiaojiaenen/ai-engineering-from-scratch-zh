@@ -1,114 +1,112 @@
-```markdown
-# STaR、V-STaR、Quiet-STaR — 自教推理
+#  静静   自学推理
 
-> 最小的自改进循环就藏在推理过程之中。模型生成思维链，保留那些得出正确答案的，然后在这些样本上微调。这就是 STaR。V-STaR 引入验证器，使推理时的选择效果更好。Quiet-STaR 将推理过程下推到每个 token。这三种方法都有效。但它们都不是魔法——这个循环会保留任何恰好能得出正确答案的捷径。
+> 只有一个小的自我改善循环, 模型会产生一个思想链, 保持那些答案的正确答案, 这就是STAR. 通过V-STaR添加验证器,因此推断时间选择更好. 静静的STAR推出了合理性到每一个标志. 这三种都能. 循环保存了任何偶然的快捷方式,
 
-**类型：** Learn
-**语言：** Python (stdlib, bootstrap-loop simulator)
-**前置知识：** Phase 13 · 01-03 (推理与 CoT)、Phase 15 · 01 (长周期框架)
-**时间：** ~60 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, bootstrap-loop simulator)
+**Prerequisites:** Phase 13 · 01-03 (Reasoning and CoT), Phase 15 · 01 (long-horizon framing)
+**Time:** ~60 minutes
 
-## 问题所在
+## 问题
 
-教授模型推理能力的直接方式是收集人工编写的推理过程。但这昂贵、缓慢，且受限于高质量思维链的人工标注数量。
+让一个模型学习理性,最简单的方式是收集人类写的理性痕迹.
 
-STaR（Self-Taught Reasoner，Zelikman 等，2022）提出一个问题：如果模型自己编写推理过程，并用已知答案来评判呢？循环如下：
+问:如果模型写出自己的理性,并根据已知答案评分它们呢?
 
-1. 采样一个推理过程加答案。
-2. 如果最终答案正确，保留该推理过程。
-3. 在保留的样本上微调模型。
-4. 重复。
+1. 试试一个推理跟答案.
+2. 如果最后的答案是正确的,
+3. 细节调整了保存的痕迹.
+4. 复制.
 
-这确实有效。GSM8K 和 CommonsenseQA 都在没有新人工标注的情况下得到了提升。但循环存在固有偏差：任何产生正确答案的推理过程都会被保留，无论推理本身是否严谨。V-STaR（Hosseini 等，2024）用学习的验证器来修补这一点；Quiet-STaR（Zelikman 等，2024）将思路泛化到逐 token 的内部推理。
+虽然GSM8K和CommonsenseQA都没有新的人类注释,但循环有内置偏见:任何产生正确答案的逻辑都保留,无论逻辑本身是否是正确的.V-STaR (Hosseini等人,2024) 与学术验证器补丁;Quiet-STaR (Zelikman等人,2024) 将这个想法概括为特定的内部逻辑.
 
-## 概念解析
+## 概念
 
-### STaR：基于有效经验的自举
+### 启动了什么工作
 
-从具有一定弱推理能力的基础模型开始。在每个训练问题上，采样一个推理过程加答案。如果答案匹配标签，保留（问题，推理，答案）三元组。在保留集合上微调模型。重复。
+开始从一个有点弱的推理能力的基础模型. 在每个训练问题上,取一个推理加答案. 如果答案匹配标签,保持 (问题,推理,答案) 三倍. 细节调整模型在保持的集. 重复.
 
-其中一个关键技巧很重要。如果模型始终无法解决某个问题，循环就无法从其上学到东西。STaR 引入了**合理化**机制：对于模型失败的问题，注入正确答案作为提示，并重新提示模型生成导向该答案的推理过程。合理化的推理会被添加到训练集。
+模型如果永远无法解决问题,循环就无法学习.**rationalization**对于模型失败的问题,注入正确的答案作为提示,然后重新提示模型产生导致它的合理性.
 
-原始论文结果（Zelikman 等，2022）：一个 GPT-J 基础模型通过带合理化的多次 STaR 轮次，在 GSM8K 上从 5.8% 提升到 10.7%——约 5 个百分点的绝对提升。在 CommonsenseQA 上，STaR 训练的 GPT-J 6B 达到 72.5%，与经过人工标注推理微调的 GPT-3 175B（约 73%）相当——后者是一个约 30 倍更大的模型。
+结果在原始论文 (Zelikman等人, 2022):GPT-J基模型通过重复STaR轮流从5.8%提高到10.7%通过合理化约5个百分点绝对.在 CommonsenseQA上,STaR训练的GPT-J 6B达到72.5%,与精细调整的GPT-3 175B (~73%) 相比.
 
-### V-STaR：用 DPO 训练验证器
+### 通过DPO训练验证员
 
-STaR 会丢弃不正确的推理。Hosseini 等（2024）观察到这些同样是有价值的资料：每对（推理，"是否正确"）都可以用来训练验证器。他们对正确和不正确的解使用直接偏好优化（DPO）来构建一个排序器。在推理时，采样 N 个推理并选择验证器评分最高的那个。
+霍塞尼等人 (2024) 观察到这些也是数据:每对 (rationale, "这是正确的") 都可以训练验证器.他们使用直接偏好优化对正确和不正确的解决方案构建排名器.在推断时,取样N理性,选择验证器的最佳选择.
 
-报告的提升：在 GSM8K 和 MATH 上，相比之前的自改进基线提升 4 到 17 个百分点，大部分增益来自在推理时使用验证器进行选择，而非用于额外的生成器微调。
+报告的特拉值:在GSM8K和MATH上,比以前的自我改进基线上+4至+17个百分点,大部分收益来自使用验证器进行推断时间选择而不是进行额外的发电机细节调整.
 
-### Quiet-STaR：逐 token 的内部推理
+### 静态STAR:每代币的内部理性
 
-Zelikman 等（2024）提出一个问题：如果模型学会在每个 token 位置生成简短的内部推理，而不仅仅是在问题和答案之间呢？Quiet-STaR 训练模型在每个预测 token 前输出隐藏的"思考"，然后通过学习的权重将思考感知的预测与基线预测混合。
+泽利克曼等人问:如果模型在每个代币位置上学习生成一个短的内部理性,而不仅仅是问题和答案之间呢?静静的STaR训练模型在每个预测代币之前发出隐藏的"想法",然后通过学习的权重将意识预测与基线预测混合.
 
-结果：Mistral 7B 在 GSM8K 上获得 5.9% 到 10.9% 的绝对零样本提升，在 CommonsenseQA 上从 36.3% 提升到 47.2%，且无需任务特定的微调。模型学会了"何时思考"——难 token 得到更长的内部推理，简单 token 几乎不需要。
+结果:Mistral 7B在 GSM8K 上从5.9%提高到10.9%, CommonsenseQA 提高了36.3%到47.2%,没有具体任务的细节调整.该模型学会了"什么时候思考"硬代币得到更长的内部理性;简单代币几乎没有.
 
-### 为何三者共享安全顾虑
+### 为什么三个人都担心安全
 
-三种方法都使用最终答案作为梯度信号。通过有缺陷的推理得出正确答案的推理——利用捷径、猜测或使用不可泛化的模式——会得到正向强化。在分布内问题上，捷径有效。在分布外问题上，它会无声地失效。
+通过错误的推理来达到正确的答案,利用快捷方式,猜测或使用非通用模式,得到积极的加强.在分布式问题上,快捷方式工作.在分布式问题上,它默默地打破.
 
-V-STaR 的验证器通过学习的推理排序来缓解这个问题，但验证器是在相同标签集上训练的。它可能学会偏好格式良好但错误的推理，而非诚实的不确定表达。更安全的设计是将 STaR 风格的数据与（a）过程监督奖励模型（奖励中间步骤，而非仅奖励答案）和（b）能打破简单捷径的预留 OOD 评估结合起来。
+验证器通过学习对理性进行排名来缓解,但验证器受训在同一标签组上.它可以学习更喜欢格式良好的错误推理,而不是诚实的不确定性.更安全的设计是将STaR类型的数据结合 (a) 过程监督的奖励模型 (奖励中介步骤,而不仅仅是答案) 和 (b) 持续的OOD评估,破坏简单的快捷方式.
 
-### 对比
+### 进行比较
 
-| 方法 | 训练信号 | 推理成本 | 数据浪费 | 已知失败模式 |
+| Method | Training signal | Inference cost | Data waste | Known failure mode |
 |---|---|---|---|---|
-| STaR | 若正确则保留（推理，答案） | 1x | 丢弃所有不正确推理 | 捷径推理 |
-| STaR + 合理化 | 上述 + 注入正确答案的重试 | 1x | 较少 | 合理化推理可能不自然 |
-| V-STaR | STaR + 基于两类数据的 DPO 验证器 | Nx（best-of-N） | 最少 | 验证器可能强化自信的错误 |
-| Quiet-STaR | 逐 token 推理 + 混合权重 | 1.5-3x | 最少 | 仍是答案条件化的梯度 |
+| STaR | keep (rationale, answer) if correct | 1x | discards all incorrect rationales | shortcut rationales |
+| STaR + rationalization | above + correct-answer hinted retries | 1x | less | rationalized rationales may be implausible |
+| V-STaR | STaR + DPO verifier from both classes | Nx (best-of-N) | minimal | verifier can reinforce confident wrongness |
+| Quiet-STaR | per-token rationale + mixing weight | 1.5-3x | minimal | still answer-conditioned gradient |
 
-### 在 2026 技术栈中的位置
+### 在2026年堆中,
 
-STaR 是古老的方法。但这一模式在 2025-2026 年无处不在。可验证数学问题上的强化学习（DeepSeek-R1、Kimi-k1.5、o1）是将 STaR 的答案条件化梯度信号放大。过程奖励模型（Lightman 等，2023；OpenAI 的"Let's verify step by step"）是过程监督的替代方案。AlphaEvolve（第 3 课）是 STaR 的代码版本，用程序评估器替代标签。Darwin Godel Machine（第 4 课）是让 STaR 作用于智能体脚手架本身。
+塔尔已经老了. 但这种模式在2025年至2026年, 对于可验证的数学问题 (DeepSeek-R1,Kimi-k1.5,o1) 的RL是STaR的答案条件梯度信号,扩大. 过程奖励模型 (Lightman等人,2023年;OpenAI的"让我们一步一步验证") 是过程监督的替代方案. 编程程序评估器,而不是标签. 达尔文·戈德机器 (课4) 是特工架子本身的STaR.
 
-理解 STaR 能让所有这些技术豁然开朗。它是最小可行自改进循环的原型。
+了解STaR使所有这些点击. 它是最小可行的自我改进循环.
 
 ```figure
 reflection-loop
 ```
 
-## 实践应用
+## 用它
 
-`code/main.py` 在玩具算术任务上运行模拟 STaR 循环。你可以观察：
+`code/main.py`在玩具算术任务上运行模拟的STaR循环.
 
-- 准确率如何在自举轮次中提升。
-- 捷径如何悄然渗入：模拟器包含一个"惰性"推理类，它有 40% 的概率得出正确答案但泛化性差。观察 STaR 是否会保留它们。
-- 验证器（V-STaR 风格）如何在推理时提供帮助，但无法完全剪除训练期间引入的捷径。
+- 精度如何超越杆弹.
+- 模拟器包括一个"惰"的理性类, 40% 的时间得到了正确的答案,但很糟糕地概括.
+- 如何帮助推断,但不能完全剪除训练中引入的快捷方式.
 
-## 交付物
+## 运送它
 
-`outputs/skill-star-loop-reviewer.md` 帮助你在训练自教推理管线之前进行审计。
+`outputs/skill-star-loop-reviewer.md`在训练之前,它可以帮助你审核一个提出的自学推理管道.
 
-## 练习
+## 运动
 
-1. 运行模拟器。将捷径频率设为零，然后设为 0.4。即使两者在训练分布上都达到 >90%，最终准确率在这两种运行之间会有多大差距？
+1. 运行模拟器. 设置快捷径频率为零,然后为0.4. 虽然两个运行之间的最终精度差异多大,但它们都在训练分布上达到90%以上?
 
-2. 在模拟器中添加预留的 OOD 测试。从不同分布中抽样问题，并在分布内和 OOD 集合上评估自举后的模型。量化差距。
+2. 添加一个持续的OOD测试到模拟器中.从不同的分布中绘制问题,并评估在分发中和OOD组中启动的模型.量化差距.
 
-3. 阅读 Quiet-STaR 论文（arXiv:2403.09629）第 3 节。分别用三句话解释"思考结束"token 和混合权重头。
+3. 阅读"静静的TAR"论文 (arXiv:2403.09629) 第3节.
 
-4. 将 STaR 的"保留若正确"过滤器与过程监督替代方案对比，后者独立奖励每个推理步骤。识别标注成本差异和合理的质量差异。
+4. 比较STaR的保持如果正确的过器与一个由过程监督的替代品,以独立奖励每个合理步骤. 确定标签成本差异和可行的质量差异.
 
-5. 设计一个能在部署模型中捕获捷径推理的评估方案。不必完美——必须能打破 STaR 循环会强化的最简捷径。
+5. 设计一个评估,它会在部署的模型中捕获快捷方式理性. 它不必是完美的它必须打破一个STaR循环强化最简单的快捷方式.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |---|---|---|
-| STaR | "自教推理器" | 在模型生成的、能得出正确答案的推理上微调；重复 |
-| Rationalization | "提示重试" | 注入正确答案并在模型失败的问题上重新提示生成推理 |
-| V-STaR | "验证器 STaR" | 用 DPO 在正确和不正确推理上训练验证器，用于推理时选择 |
-| Quiet-STaR | "逐 token 推理" | 在每个 token 位置生成隐藏思考；与基线预测混合 |
-| Answer-conditioned gradient | "基于结果的信号" | 训练循环奖励最终答案，而非推理步骤 |
-| Process reward model | "步骤级验证器" | 按步骤正确性训练的奖励模型，而非结果——与 STaR 对比 |
-| Shortcut rationale | "正确答案，错误推理" | 通过不可泛化模式得出标签的推理；STaR 会保留这些 |
+| STaR | "Self-Taught Reasoner" | Fine-tune on model-generated rationales that land correct answers; repeat |
+| Rationalization | "Hinted retry" | Inject the correct answer and re-prompt for a rationale on problems the base model fails |
+| V-STaR | "Verifier STaR" | DPO-train a verifier on both correct and incorrect rationales, use it for inference-time selection |
+| Quiet-STaR | "Per-token rationales" | Generate hidden thoughts at every token position; mix with baseline prediction |
+| Answer-conditioned gradient | "Outcome-based signal" | The training loop rewards final answers, not reasoning steps |
+| Process reward model | "Step-level verifier" | Reward model trained on per-step correctness, not outcome — contrasts with STaR |
+| Shortcut rationale | "Right answer, wrong reasoning" | A rationale that reaches the label via a non-generalizing pattern; STaR keeps these |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Zelikman 等（2022）。STaR: Bootstrapping Reasoning With Reasoning](https://arxiv.org/abs/2203.14465) — 原始论文。
-- [Hosseini 等（2024）。V-STaR: Training Verifiers for Self-Taught Reasoners](https://arxiv.org/abs/2402.06457) — 添加 DPO 验证器用于推理时选择。
-- [Zelikman 等（2024）。Quiet-STaR: Language Models Can Teach Themselves to Think Before Speaking](https://arxiv.org/abs/2403.09629) — 逐 token 内部推理。
-- [Lightman 等（2023）。Let's Verify Step by Step](https://arxiv.org/abs/2305.20050) — 过程奖励模型，替代的梯度信号。
-- [DeepSeek-R1 论文（arXiv:2501.12948）](https://arxiv.org/abs/2501.12948) — 可验证任务上的强化学习，将 STaR 扩展至前沿训练。
-```
+- [Zelikman et al. (2022). STaR: Bootstrapping Reasoning With Reasoning](https://arxiv.org/abs/2203.14465)原始的纸.
+- [Hosseini et al. (2024). V-STaR: Training Verifiers for Self-Taught Reasoners](https://arxiv.org/abs/2402.06457)为推断时间选择添加了DPO验证器.
+- [Zelikman et al. (2024). Quiet-STaR: Language Models Can Teach Themselves to Think Before Speaking](https://arxiv.org/abs/2403.09629)每代币的内部理性.
+- [Lightman et al. (2023). Let's Verify Step by Step](https://arxiv.org/abs/2305.20050)过程奖励模型,替代梯度信号.
+- [DeepSeek-R1 paper (arXiv:2501.12948)](https://arxiv.org/abs/2501.12948)                                                                                                                                                                                                                                                              

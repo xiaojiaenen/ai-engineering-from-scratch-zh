@@ -1,128 +1,128 @@
-# 检查点与回滚
+# 检查点和回车
 
-> 每一次图状态转换都会持久化。当工作节点崩溃时，其租约过期，另一个工作节点会在最新的检查点处接管。Cloudflare Durable Objects 可以在数小时甚至数周内保持状态。提案-提交模式（第15课）为每个动作定义回滚计划。动作后验证闭合循环。欧盟人工智能法案第14条规定高风险系统必须进行有效的人工监督——在实践中，这意味着检查点必须可查询、回滚必须经过演练、审计轨迹必须在部署后仍然存活。最危险的故障模式：如果没有幂等键和前置条件检查，在瞬态故障后的重试可能会重复执行一个已批准的动作。动作后验证正是捕获这种情况的机制。
+> 图形状态的每一个转变都持续. 工人车时,租期限会过期, 云耐用物体保持状态数小时或数周. 建议后承诺 (课 15) 定义每项行动的反弹计划. 后行动验证结束了循环. 根据欧盟人工智能法第14条,高风险系统必须有有效的人类监督. 严重故障模式:没有无效密钥和先决条件检查,过渡故障后再次尝试可以双重执行已经批准的操作. 行动后的验证是发现的.
 
-**类型：** 学习
-**语言：** Python（标准库，检查点和回滚状态机）
-**前置知识：** 第15课 · 12（持久化执行），第15课 · 15（提案-提交）
-**时间：** 约60分钟
+**Type:** Learn
+**Languages:** Python (stdlib, checkpoint and rollback state machine)
+**Prerequisites:** Phase 15 · 12 (Durable execution), Phase 15 · 15 (Propose-then-commit)
+**Time:** ~60 minutes
 
 ## 问题
 
-持久化执行（第12课）使崩溃的代理可恢复。提案-提交（第15课）使已批准的动作可审计。本课将它们结合：当已批准的动作部分执行、崩溃并恢复时会发生什么？回滚在何时运行，针对什么状态？
+持续执行 (课 12) 使一个失败的代理重新启动.提出然后承诺 (课 15) 使一个批准的行动可审计. 这一课加入他们:如果一个批准的行动部分执行,崩,并恢复,会发生什么?什么时候反弹运行,和什么状态?
 
-实际系统以不同方式连接这些组件：
+实际系统的方法是不同的:
 
-- **LangGraph** 将每次图状态转换检查点到 PostgreSQL。工作节点崩溃时，租约释放，另一个工作节点在最新检查点恢复。工作流在 `interrupt()` 处暂停，这本身也会持久化。
-- **Cloudflare Durable Objects** 按密钥持有跨数小时或数周的状态。将计算与已批准动作的存储放在一起。
-- **Microsoft Agent Framework** 在工作流 API 中暴露 `Checkpoint` 原语；重放加上幂等性覆盖重试。
+- **LangGraph**在每次转移到PostgreSQL的时间内,租合同会被释放,另一个工人在最后的检查点恢复.`interrupt()`现在,我们已经知道,
+- **Cloudflare Durable Objects**按键状态保持几个小时或几周. 合并计算与批准行动的存储.
+- **Microsoft Agent Framework**暴露`Checkpoint`工作流 API中的原始性;重播加上无能性涵盖重试.
 
-在所有情况下，实际有效的组合是：幂等键（防止重复执行）+ 前置条件检查（状态仍与我们批准时的状态一致）+ 动作后验证（副作用实际发生）+ 验证失败时的回滚。
+在每种情况下,实际上有效的组合是:无效关键 (防止双重执行) +先决条件检查 (状态仍然是我们批准的) +后行动验证 (副作用实际发生) +验证失败的反转.
 
 ## 概念
 
-### 每次转换都持久化
+### 每次过渡都持续
 
-图状态转换是将工作流从命名状态移动到另一个的任何步骤。朴素实现仅在特定点提交时持久化；生产实现持久化每次转换。成本（一些额外的写入）相对于可靠性收益（重放可落到任意位置，租约恢复精确）来说很小。
+图形状态转型是从一个命名状态到另一个工作流动的任何步骤. 简单的实现只存在于特定的承诺点上;生产实现在每个转型上持续.成本 (一些额外的写作) 与可靠性增长相比较小 (重播到处都会降落,租恢复是精确的).
 
-### 租约恢复
+### 租回收
 
-当工作节点崩溃时，工作流不会丢失；租约（声明此工作节点正在执行此运行的短生命周期主张）简单地过期。另一个工作节点在最新检查点处接管并恢复。租约机制使生产系统能够在滚动部署时存活而不丢失进行中的工作。
+工人失败时,工作流程不会丢失;租 (即该工人执行这次运行的短暂声明) 简单地过期.另一个工人接到最新的检查点并恢复.租机制是让生产系统在运行中生存的,而不会失去飞行工作.
 
-### 幂等性加上前置条件
+### 无能性加上先决条件
 
-仅凭幂等性是不够的。考虑：一个工作流被批准"当余额 > $1000 时从 A 转账 $100 到 B"。工作流被提交，在中间执行时崩溃，然后恢复。如果只检查幂等键，执行恢复后，转账运行一次（正确）。但考虑到在崩溃和恢复之间，A 的余额通过另一个工作流降至 $500。幂等性检查仍然通过；前置条件不通过。没有前置条件检查，我们会造成透支。
+考虑一下:一个工作流程被批准以"转移"$100 from A to B when balance > $1000. "工作流已提交,执行中崩,然后恢复.如果只检查无效率密钥,然后执行恢复,转移运行一次 (正确).但考虑到在崩和恢复之间,A的余额通过不同的工作流程下降到500美元.无效率检查仍然通过;先决条件没有.没有先决条件检查,我们发送过账.
 
-每个重要动作都需要两者：
+每个后果行动都需要:
 
-- **幂等键**：防止重复执行。
-- **前置条件检查**：确认状态仍与批准时一致。
+- **Idempotency key**防止双重执行.
+- **Precondition check**证实国家仍与批准的内容一致.
 
-### 动作后验证
+### 行动后的验证
 
-"工具返回了 200"不是验证。真正的验证会重新读取目标状态并确认副作用实际发生。模式包括：
+实际验证重新读取目标状态并确认副作用实际发生.
 
-- 数据库更新：`UPDATE ... RETURNING *` 然后断言返回的行匹配预期状态。
-- 邮件发送：提交后检查已发送文件夹中的消息 ID。
-- 文件写入：重新读取文件并计算哈希。
-- API 调用：对目标资源进行后续 `GET`。
+- 数据库更新:`UPDATE ... RETURNING *`然后确认返回的行匹配的预期状态.
+- 发送电子邮件:在发送后检查发送文件查询消息身份.
+- 文件写:读取文件并将其加密.
+- 接下来的应用程序`GET`目标资源.
 
-如果验证失败，工作流处于已知的错误状态。回滚启动。
+如果验证失败,工作流程已知坏状态.
 
-### 回滚计划
+### 翻车计划
 
-提案-提交（第15课）中的每个重要动作都带有回滚计划。类型包括：
+建议后承诺 (课 15) 的每一个后续行动都包含了反弹计划.
 
-- **带内回滚**：直接反向副作用（`INSERT` 后 `DELETE`，发送后发送更正邮件）。
-- **补偿事务**：一个中和原始动作的新动作（标准 SAGA 模式）。
-- **带外回滚**：通知人工，暂停工作流，将错误状态留作调查。
+- **In-band rollback**直接扭转副作用 (`DELETE`之后`INSERT`现在`Send-correction-email`在发送后).
+- **Compensating transaction**:一种新的行动,它可以消除原始的 (标准SAGA模式).
+- **Out-of-band rollback**警报人类,暂停工作流程,离开坏状态进行调查.
 
-"无法撤销"的无操作回滚必须在提案中命名。没有回滚的动作需要在提交时更强的 HITL（第15课的挑战-响应）。
+没有反弹的行动需要在承诺时间上加强HITL (课题15挑战和反应).
 
-### 欧盟人工智能法案第14条的实操解读
+### 欧盟人工智能法第14条 操作阅读
 
-第14条要求高风险系统进行"有效的人工监督"。在实操层面，实施者将其解读为：
+执行者将其运用为以下方式:
 
-- 检查点可被审计员查询。
-- 回滚经过演练（至少完整测试一次）。
-- 审计轨迹在部署后存活（检查点后端不是临时的）。
-- 失败的验证会被报警，而不是静默日志。
+- 检查点可以由审计师查询.
+- 轮反弹进行了练习 (至少一次进行了端到端测试).
+- 审计轨迹存活着部署 (检查点后台不是短暂的).
+- 失败的验证会被警报,而不是默默记录.
 
-一个在提交中途崩溃、恢复并完成副作用而没有验证+回滚路径的工作流，无法通过第14条的测试。
+工作流程在执行中崩,恢复并完成副作用,而没有验证+反弹路径,不会经过第14条测试.
 
-### 危险的故障模式：重复执行
+### 断故障模式:双执行模式
 
-该领域最常见的生产事故：
+在这个领域最常见的生产事件:
 
-1. 动作批准，幂等键 k。
-2. 提交开始，执行，返回 200。
-3. 工作流在持久化"已提交"状态前崩溃。
-4. 工作流恢复；看到"已批准但未提交"；重新执行。
-5. 副作用触发两次。
+1. 行动批准,无权关键 k.
+2. 承诺开始,执行,返回200.
+3. 在"承诺"状态持续之前,工作流失效.
+4. 工作流程恢复;查看"批准但未承诺";重新执行.
+5. 副作用两次发生.
 
-缓解措施：在执行前持久化"进行中"意图，使用幂等键执行，然后在动作后验证成功后才标记"已提交"。如果动作触发但状态写入失败，你知道需要验证（如有必要则重新触发）。如果状态写入成功但动作失败，你通过恢复路径验证并恰好触发一次。
+减轻:在执行之前坚持"在飞行"的意图,使用无效密钥执行,然后仅在后操作验证成功后标记"承诺".如果操作执行和状态写失败,你知道要验证和 (如果必要) 重复执行.如果状态写成功和操作失败,你通过恢复路径检查和执行确切一次.
 
 ```figure
 checkpoint-replay
 ```
 
-## 实践
+## 用它
 
-`code/main.py` 实现了具有幂等性、前置条件、验证和回滚的检查点工作流。驱动程序模拟四种场景：干净运行、崩溃后重试（幂等性捕获）、前置条件失败（工作流中止而不触发）、验证失败（回滚触发）。
+`code/main.py`驾驶员模拟四种情况:清洁运行,事故后重新尝试 (无效捕获),预先条件失败 (工作流失无需开火),验证失败 (滚动火灾).
 
-## 交付
+## 运送它
 
-`outputs/skill-rollback-rehearsal.md` 为提议的工作流设计回滚演练测试，并审计检查点后端的审计轨迹持久性。
+`outputs/skill-rollback-rehearsal.md`设计一个拟议的工作流程的反弹试验,并对检查轨迹持续性进行检查.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。验证四种场景。对于提交中途崩溃的情况，确认动作在重试过程中恰好触发一次。
+1. 跑步`code/main.py`检查四种情况, 确认一次性行动,
 
-2. 修改"先标记完成，再执行"模式，使状态写入在动作之后触发。重新运行崩溃场景。测量有多少重复动作触发。
+2. 修改"先标记完成,然后做"模式,以便状态在操作后写火灾. 重复崩情况.测量多次重复操作火灾.
 
-3. 为特定生产动作设计回滚计划（例如"发布到 Slack 频道"）。分类为带内、补偿或带外。说明理由。
+3. 设计一个特定生产行动的反弹计划 (例如"将其转载到Slack频道"). 归类为带内,补偿或带外. 理由选择.
 
-4. 选取一个你了解的工作流。识别每个状态转换。标注每个的持久性需求（持久化/不持久化）。统计当前未持久化的数量。
+4. 确定每个状态转变. 标记每个状态转变的耐用性要求 (持续/不持续). 计算你目前没有持续的转变.
 
-5. 演练回滚测试：设计一个端到端测试，运行实际工作流，崩溃它，并确认回滚路径触发。测试断言什么？
+5. 复制反转测试:设计一个端到端测试,运行一个真正的工作流程,崩它,并确认反转路径的火灾.测试声称什么?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |---|---|---|
-| 检查点 | "保存点" | 每次图状态转换都持久化到可靠存储 |
-| 租约 | "工作节点声明" | 工作节点正在执行运行的短生命周期主张；崩溃后过期 |
-| 前置条件 | "状态门控" | 断言状态仍与已批准动作一致 |
-| 动作后验证 | "重新读取检查" | 确认副作用在目标系统中实际发生 |
-| 带内回滚 | "直接撤销" | 用逆操作反向副作用 |
-| 补偿事务 | "SAGA 撤销" | 一个中和原始动作的新动作 |
-| 先标记完成 | "状态写入顺序" | 在从提交返回前持久化已提交状态 |
-| 第14条 | "欧盟人工智能法案人工监督" | 实操：可查询检查点、演练回滚、可审计轨迹 |
+| Checkpoint | "Save point" | Every graph-state transition persists to a durable store |
+| Lease | "Worker claim" | Short-lived claim that a worker is executing a run; expires on crash |
+| Precondition | "State gate" | Assertion that the state is still consistent with the approved action |
+| Post-action verify | "Re-read check" | Confirm the side effect actually happened in the target system |
+| In-band rollback | "Direct undo" | Reverse the side effect with the inverse operation |
+| Compensating transaction | "SAGA undo" | A new action that neutralizes the original |
+| Mark-as-done-first | "Status write order" | Persist the committed status before returning from commit |
+| Article 14 | "EU AI Act human oversight" | Operational: queryable checkpoints, rehearsed rollbacks, auditable trail |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Microsoft Agent Framework — Checkpointing and HITL](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop) — 检查点原语和租约恢复。
-- [Cloudflare Agents — Human in the loop](https://developers.cloudflare.com/agents/concepts/human-in-the-loop/) — Durable Objects 作为状态基底。
-- [EU AI Act — Article 14: Human oversight](https://artificialintelligenceact.eu/article/14/) — 监管基线。
-- [Anthropic — Measuring agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy) — 长周期工作流的可靠性框架。
-- [Anthropic — Claude Code Agent SDK: agent loop](https://code.claude.com/docs/en/agent-sdk/agent-loop) — Claude Code Routines 的工作流形状。
+- [Microsoft Agent Framework — Checkpointing and HITL](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop)检查点原始和租回收.
+- [Cloudflare Agents — Human in the loop](https://developers.cloudflare.com/agents/concepts/human-in-the-loop/) 作为状态基板的持久物体.
+- [EU AI Act — Article 14: Human oversight](https://artificialintelligenceact.eu/article/14/)监管基准.
+- [Anthropic — Measuring agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy)可靠性框架长远工作流程.
+- [Anthropic — Claude Code Agent SDK: agent loop](https://code.claude.com/docs/en/agent-sdk/agent-loop) 克劳德代码程序工作流程形状.

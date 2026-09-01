@@ -1,114 +1,112 @@
-```markdown
-# 人环（Human-in-the-Loop）：提议-承诺模式
+# 求婚的人:提出,然后承诺
 
-> 2026 年对人环（HITL）的共识是具体的。它不是"代理询问，用户点击批准"。它是提议-承诺模式：提议的操作被持久化到耐久存储中，附带幂等键；向审核者呈现意图、数据谱系、权限范围、影响半径和回滚计划；只有在获得正面确认后才会提交；执行后验证以确认副作用实际发生。LangGraph 的 `interrupt()`、Microsoft Agent Framework 的 `RequestInfoEvent` 和 Cloudflare 的 `waitForApproval()` 都实现了相同的形状。典型的失效模式是橡皮图章式批准：未经审查就点击了"批准"。文档记录的反制措施是带有明确清单的挑战-响应机制。
+> 关于HITL的2026年共识是具体的. 它不是"代理要求,用户点击批准". 它是提出-然后承诺:建议的行动是继续使用无权密钥的持久存储器;向审查者显示了意图,数据谱系,触摸的权限,爆炸半径和反弹计划;只有在积极的确认后进行;执行后验证以确认副作用实际发生. 长格拉夫的`interrupt()`另外,我们还可以使用微软代理框架的 PostgreSQL 检查点.`RequestInfoEvent`云的`waitForApproval()`标准的标准是: 通过"通过"的,没有审查的. 文件的减轻是挑战和反应,有明确的检查列表.
 
-**类型：** 学习
-**语言：** Python（标准库，带幂等性的提议-承诺状态机）
-**前置知识：** 第 15 阶段 · 12（耐久执行）、第 15 阶段 · 14（安全触发器）
-**时间：** 约 60 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, propose-then-commit state machine with idempotency)
+**Prerequisites:** Phase 15 · 12 (Durable execution), Phase 15 · 14 (Tripwires)
+**Time:** ~60 minutes
 
-## 问题所在
+## 问题
 
-代理执行了一个操作。用户必须决定：批准还是不批准。如果决策是即时的，那很可能不是真正的审查。如果决策是结构化的，虽然慢但值得信赖。工程问题是如何让结构化审查成为阻力最小的路径。
+经纪人采取行动.用户必须决定:批准或不批准.如果决定是即时的,它可能不是审查.如果决定是结构化的,它是缓慢的,但可信的.工程问题是如何使结构化的审查成为最少抵抗的道路.
 
-2023 年的人环模式是一个同步提示："代理想发送邮件给 X，内容为 Y——批准？"用户点击"批准"。每个人都觉得系统是安全的。实际上，这种表面现象被大量使用了：用户快速批准，批准难以预测，当代理出错时，审计轨迹显示用户无法回忆的漫长批准历史。
+2023年HITL模式是一个同步提示:"代理想发送电子邮件给X,体 Y 批准?"用户点击批准.每个人都觉得系统安全.实际上,这个表面很大程度上是纹:用户快速批准,批准预测很少,当代理错误时,审计轨迹显示了用户无法回忆的长期批准历史.
 
-2026 年的模式——提议-承诺——将人环置于耐久基础之上，附带结构化元数据，并要求正面承诺。每个托管代理 SDK 都提供了版本：LangGraph `interrupt()`、Microsoft Agent Framework `RequestInfoEvent`、Cloudflare `waitForApproval()`。API 名称不同，但形状一致。
+2026 模式 建议然后承诺 将HITL移动到一个耐用基板上,附加结构化元数据,并需要积极承诺.每个管理代理SDK发送一个版本:LangGraph `interrupt()`微软代理框架`RequestInfoEvent`云`waitForApproval()` API名称不同,形状不同.
 
 ## 概念
 
-### 提议-承诺状态机
+### 提出,然后承诺的国家机器
 
-1. **提议。** 代理生成一个提议的操作。持久化到耐久存储（PostgreSQL、Redis、Durable Object）。包括：
-   - 意图（代理为什么要这样做）
-   - 数据谱系（什么来源导致了这个提议）
-   - 权限范围（涉及哪些作用域 / 文件 / 端点）
-   - 影响半径（最坏情况是什么）
-   - 回滚计划（如果提交，如何撤销）
-   - 幂等键（每个提议唯一；重新提交返回相同记录）
-2. **呈现。** 审核者看到包含所有元数据的提议。审核者是人（不是代理自我审查）。
-3. **提交。** 正面确认。操作执行。
-4. **验证。** 执行后，重新读取副作用并确认。如果验证步骤失败，系统处于已知的不良状态，告警机制启动。
+1. **Propose.**代理生成一个拟议的操作. 持续到一个持久的存储器 (PostgreSQL, Redis,持久的对象). 包括:
+   - 意图 (为什么代理人这样做)
+   - 数据系 (该提案的来源)
+   - 触及的权限 (哪些范围 / 文件 / 终点)
+   - 爆炸半径 (最坏情况是什么)
+   - 倒退计划 (如果已实施,我们如何撤销它)
+   - 无效关键 (每项提案均为独一无二;重新提交的记录相同)
+2. **Surface.**审查者看到所有元数据的提案. 审查者是一个人 (而不是审查自己的代理人).
+3. **Commit.**确认了,行动执行了.
+4. **Verify.**执行后,副作用被检查并确认. 如果验证步骤失败,系统处于已知坏状态,并启动警报.
 
-### 幂等键
+### 无能之钥匙
 
-没有幂等键，瞬态故障后的重试可能导致已批准的操作被执行两次。具体示例：用户批准"从 A 转账 $100 到 B"。网络抖动。工作流重试。用户已批准一次，但转账执行了两次。幂等键将批准与单个、唯一的副作用绑定；第二次执行成为空操作。
+没有无效率关键,过渡失败后重试可以双重执行批准的操作.具体例子:用户批准"从A转移100美元到B".网络闪.工作流重试.用户一次批准,但转移执行两次.无效率关键将批准与单个独特的副作用联系在一起;第二次执行是无效.
 
-这与 Stripe 和 AWS API 使用的幂等性模式相同。在 Microsoft Agent Framework 文档中明确指出将其用于代理批准。
+对于代理批准,它被明确使用在微软代理框架文件中.
 
-### 耐久性：为什么批准能超越进程
+### 耐用性:为什么批准的过程过期
 
-批准等待室是代理不拥有的状态部分。工作流暂停（第 12 课）。当批准到达时，工作流从该点恢复。这就是为什么 LangGraph 将 `interrupt()` 与 PostgreSQL 检查点配对，而不是仅使用内存状态——两天后的批准仍能找到完整的工作流。
+通过等待室是一个代理人不拥有的状态.工作流程被暂停 (课12).`interrupt()`通过 PostgreSQL 检查点,而不是仅仅在内存状态, 两天后的批准仍然发现工作流程完整.
 
-### 橡皮图章式批准与挑战-响应反制措施
+### 印批准和挑战和响应减轻
 
-人环的默认 UI（"批准" / "拒绝"按钮）产生快速批准，没有真正的审查。文档记录的反制措施：一个挑战-响应清单，要求在启用"批准"按钮之前对特定问题给出正面回答。具体形状：
+默认的HITLUI ("批准" / "拒绝"按) 产生了快速的批准,没有真正的审查. 文档减轻:需要在批准按启用之前对特定问题作出积极答案的挑战和响应检查清单.
 
-- "你理解这个操作涉及什么资源吗？[ ]"
-- "你已验证影响半径可接受吗？[ ]"
-- "如果失败你有回滚计划吗？[ ]"
+- "你知道这是什么资源吗?"
+- "你是否确定爆炸半径是可接受的?"
+- "如果这失败,你有没有反弹计划吗?"
 
-不是为官僚主义而官僚主义——这是一个强制函数。无法勾选这些框的审核者要么要求澄清（升级），要么拒绝（安全默认值）。Anthropic 的代理安全研究明确引用清单驱动的 HITL 作为橡皮图章式批准模式的反制措施。
+没有官僚主义本身是一个强制性功能.不能点击框的评论员要么要求澄清 (升级) 或拒绝 (安全默认).人类代理安全研究明确引用了检查清单驱动的HITL作为印批准模式的减轻.
 
-### 什么算作有影响力的操作
+### 什么是重要的
 
-不是每个操作都需要提议-承诺模式。2026 年的指导：
+没有任何行动都需要提出,然后承诺.
 
-- **有影响力的操作**（总是需要 HITL）：不可逆写入、金融交易、出站通信、生产数据库变更、破坏性文件系统操作。
-- **可逆操作**（有时需要 HITL）：本地文件编辑、 staging 环境变更、带明确回滚的可逆写入。
-- **读取和检查**（从不 HITL）：读取文件、列出资源、调用只读 API。
+- **Consequential actions**无可逆的文件,金融交易,出口通信,生产数据库的变化,破坏性文件系统操作.
+- **Reversible actions**(有时HITL):编辑本地文件,阶段化变化,可逆的写作,清晰的反转.
+- **Reads and inspections**读取文件,列出资源,调用只读取API.
 
-### 事后验证
+### 行动后的验证
 
-"提交已运行"不同于"副作用已发生"。网络分区和竞态条件可能导致认为成功的工作流，而后端未持久化。验证步骤在提交后重新读取目标资源以确认。这与带 `RETURNING` 子句的数据库事务或在 `PutObject` 后调用 AWS `GetObject` 的模式相同。
+"提交运行"与"副作用发生"不同.网络分区和比赛条件可以产生一个认为成功的工作流程,而后端没有持续.验证步骤在提交确认后重新阅读目标资源.这是与数据库交易相同的模式.`RETURNING`条款或 AWS `GetObject`之后`PutObject`现在,我们要去.
 
-### EU AI Act 第 14 条
+### 欧盟人工智能法第14条
 
-第 14 条要求欧盟的高风险 AI 系统实施有效的人工监督。"有效"不是装饰性的。监管语言明确排除橡皮图章模式。带挑战-响应的提议-承诺是 Microsoft Agent 治理工具包合规文档中能够经受第 14 条审查的形状。
+根据第14条,在欧盟高风险人工智能系统的有效监督."有效"并非装饰性的.监管语言特别排除了印模式.提出,然后承诺,挑战和回应是微软代理管理工具包合规文件中保存的第14条审查的形状.
 
 ```figure
 mx-propose-then-commit
 ```
 
-## 使用它
+## 用它
 
-`code/main.py` 在标准库 Python 中实现提议-承诺状态机。耐久存储是 JSON 文件。幂等键是 (thread_id, action_signature) 的哈希。驱动程序模拟三种情况：干净的批准流程、瞬态故障后的重试（不应重复执行），以及橡皮图章式默认值与挑战-响应流程。
+`code/main.py`执行一个建议然后执行状态机在 stdlib Python. 持久存储是一个 JSON 文件. 无效密钥是 (thread_id, action_signature) 的哈希. 驱动程序模拟了三个情况:清洁的批准流,过渡失败后的重试 (不得执行双重),以及印默认对挑战和响应流.
 
-## 交付它
+## 运送它
 
-`outputs/skill-hitl-design.md` 审查提议的 HITL 工作流是否符合提议-承诺形状，并标记缺失的元数据、幂等性、验证或挑战-响应层。
+`outputs/skill-hitl-design.md`审查拟议的HITL工作流程,以提出后承诺的形式和缺少元数据,无权,验证或挑战和响应层的标志.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。确认已批准提议的重试使用耐久记录且不重新执行。现在修改幂等键以包含时间戳，并展示重试导致重复执行。
+1. 跑步`code/main.py`确认批准的提案的重试使用了持久记录,而不是重复执行. 现在更改无效键,包括时间印,并显示重试双重执行.
 
-2. 扩展提议记录，添加 `rollback` 字段。模拟执行验证步骤失败的情况。展示回滚自动触发。
+2. 延长提案记录`rollback`执行执行过程中验证步骤失败. 显示自动反弹.
 
-3. 阅读 Microsoft Agent Framework 的 `RequestInfoEvent` 文档。识别 API 包含的一个元数据字段，而玩具引擎缺失的。添加它并解释它防范什么风险。
+3. 阅读微软代理框架的文章`RequestInfoEvent`文件. 识别一个元数据领域,API包括玩具机器缺失. 添加它并解释它保护什么.
 
-4. 为特定操作设计一个挑战-响应清单（例如，"发布到公共 Twitter 账户"）。审核者必须回答哪三个问题？为什么是这三个？
+4. 设计一个特定行动的挑战和答案检查清单 (例如"发布到公共Twitter帐户").评论员必须回答哪些三个问题?为什么这三个问题?
 
-5. 选择一个同步"批准？"提示就足够的场景（不需要耐久存储）。解释原因，并说明你接受的 Risks Class。
+5. 选择一个同步的"批准"提示 (不需要持久的存储) 足够的情况.解释原因,并列出你接受的风险类别.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |---|---|---|
-| 提议-承诺 | "两阶段批准" | 持久化提议 + 正面提交 + 验证 |
-| 幂等键 | "重试安全令牌" | 每个提议唯一；第二次执行成为空操作 |
-| 数据谱系 | "来自哪里" | 导致提议的具体源内容 |
-| 影响半径 | "最坏情况" | 如果操作出错的影响范围 |
-| 橡皮图章 | "快速批准" | 未经真正审查就点击"批准" |
-| 挑战-响应 | "强制清单" | 审核者必须对特定问题正面确认 |
-| RequestInfoEvent | "MS 代理框架原语" | 带结构化元数据的耐久 HITL 请求 |
-| `interrupt()` / `waitForApproval()` | "框架原语" | LangGraph / Cloudflare 中相同形状的实现 |
+| Propose-then-commit | "Two-phase approval" | Persisted proposal + positive commit + verify |
+| Idempotency key | "Retry-safe token" | Unique per proposal; second execution no-ops |
+| Data lineage | "Where it came from" | The specific source content that led to the proposal |
+| Blast radius | "Worst case" | Scope of effect if the action goes wrong |
+| Rubber-stamp | "Fast approval" | "Approve" clicked without genuine review |
+| Challenge-and-response | "Forcing checklist" | Reviewer must positively acknowledge specific questions |
+| RequestInfoEvent | "MS Agent Framework primitive" | Durable HITL request with structured metadata |
+| `interrupt()` / `waitForApproval()` | "Framework primitives" | LangGraph / Cloudflare equivalents of the same shape |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Microsoft Agent Framework — Human in the loop](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop) — `RequestInfoEvent`、耐久批准。
-- [Cloudflare Agents — Human in the loop](https://developers.cloudflare.com/agents/concepts/human-in-the-loop/) — `waitForApproval()` 和 Durable Objects。
-- [Anthropic — Measuring agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy) — HITL 作为长周期风险的补救措施。
-- [EU AI Act — Article 14: Human oversight](https://artificialintelligenceact.eu/article/14/) — 高风险系统的监管基线。
-- [Anthropic — Claude's Constitution (January 2026)](https://www.anthropic.com/news/claudes-constitution) — 围绕监督的宪法框架。
-```
+- [Microsoft Agent Framework — Human in the loop](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop) `RequestInfoEvent`经过长期的批准.
+- [Cloudflare Agents — Human in the loop](https://developers.cloudflare.com/agents/concepts/human-in-the-loop/) `waitForApproval()`它们是可靠的.
+- [Anthropic — Measuring agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy)HITL作为缓解长远风险.
+- [EU AI Act — Article 14: Human oversight](https://artificialintelligenceact.eu/article/14/)高风险系统的监管基准.
+- [Anthropic — Claude's Constitution (January 2026)](https://www.anthropic.com/news/claudes-constitution) 关于监督的宪法框架.
