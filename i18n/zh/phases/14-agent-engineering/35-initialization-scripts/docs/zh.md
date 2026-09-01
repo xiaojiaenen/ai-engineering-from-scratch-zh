@@ -1,131 +1,131 @@
-# Agent 初始化脚本
+# 代理的初始化脚本
 
-> 每次冷启动的会话都要交一次税。智能体读取相同的文件、重试相同的探测、重新发现相同的路径。一个初始化脚本支付一次税款，并将答案写入状态。
+> 每个开始冷的会议都会缴纳税收. 代理阅读相同的文件,再试同样的探测,再发现相同的路径. 一个 init 脚本一次支付税收,然后写出答案.
 
-**类型：** 构建
-**语言：** Python（标准库）
-**前置要求：** 阶段 14 · 32（极简工具链）、阶段 14 · 34（仓库记忆）
-**时间：** 约 45 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 32 (Minimal Workbench), Phase 14 · 34 (Repo Memory)
+**Time:** ~45 minutes
 
 ## 学习目标
 
-- 识别智能体在每个会话中不应重复完成的工作。
-- 构建一个确定性的初始化脚本，探测运行时、依赖项和仓库健康状况。
-- 持久化探测结果，使智能体读取它而不是重新运行检查。
-- 当初始化失败时，大声失败、快速失败，并提供一个查看位置。
+- 确定一个代理人不应该每次重复的工作.
+- 建立一个确定性 init 脚本,检查运行时间,依赖性和 repo 状态.
+- 继续检查结果,使代理阅读它,而不是重新检查.
+- 设置一个地方,当初始化失败时.
 
-## 问题所在
+## 问题
 
-开启一个会话。智能体猜测 Python 版本。猜测测试命令。列出仓库根目录五次以找到入口点。尝试导入一个未安装的包。询问用户配置文件在哪里。等到它进行实际编辑时，一万两千 token 已经花在了本应只需一个脚本就能完成的设置工作上。
+打开一个会议. 代理猜测Python版本. 猜测测试命令. 列出 repo 根五次找到入口点. 尝试导入未安装的包. 问用户配置文件居住在哪里. 到它真正编辑时,已经有了十万个代币已经进入设置工作,应该是单个脚本.
 
-解决方案是一个初始化脚本，它在智能体执行任何其他操作之前运行，并写入一个智能体在启动时读取的 `init_report.json`。
+解决方案是一个初始化脚本,在代理做任何其他事情之前运行,`init_report.json`代理在启动时读取.
 
 ## 概念
 
 ```mermaid
 flowchart TD
-  Start[会话开始] --> Init[init_agent.py]
-  Init --> Probes[探测运行时/依赖项/路径/环境变量/测试]
+  Start[Session Start] --> Init[init_agent.py]
+  Init --> Probes[probe runtime / deps / paths / env / tests]
   Probes --> Report[init_report.json]
-  Report --> Decision{健康？}
-  Decision -- 是 --> Agent[智能体循环]
-  Decision -- 否 --> Halt[大声失败、停止、向人类呈现]
+  Report --> Decision{healthy?}
+  Decision -- yes --> Agent[Agent Loop]
+  Decision -- no --> Halt[fail loud, halt, surface to human]
 ```
 
-### 初始化脚本的探测内容
+### 导向脚本探测的内容
 
-| 探测项 | 重要性 |
-|-------|--------|
-| 运行时版本 | 错误的 Python 或 Node 版本意味着静默的错误版本 bug |
-| 依赖项可用性 | 缺失的包后续造成的代价是现在发现的十倍 |
-| 测试命令 | 智能体必须知道如何验证；如果命令缺失，工具链就坏了 |
-| 仓库路径 | 硬编码路径会漂移；解析一次并固定下来 |
-| 环境变量 | 缺少 `OPENAI_API_KEY` 是一个故障面，而不是运行时谜团 |
-| 状态 + 看板新鲜度 | 来自崩溃会话的陈旧状态是一个陷阱 |
-| 上次已知良好提交 | 会话结束时交接 diff 的锚点 |
+| Probe | Why it matters |
+|-------|----------------|
+| Runtime versions | Wrong Python or Node version means silent wrong-version bugs |
+| Dependency availability | A missing package later costs ten times the cost of catching it now |
+| Test command | The agent must know how to verify; if the command is missing the workbench is broken |
+| Repo paths | Hard-coded paths drift; resolve them once and pin |
+| Environment variables | Missing `OPENAI_API_KEY` is a failure surface, not a runtime mystery |
+| State + board freshness | Stale state from a crashed session is a footgun |
+| Last-known-good commit | Anchor for the handoff diff at the end of the session |
 
-### 大声失败，快速失败，在一个地方失败
+### 声,快速,在一个地方
 
-探测失败意味着停止并向人类呈现。没有"智能体会自己搞定"这种事。初始化的全部意义在于拒绝在工具链损坏时启动。
+探测器失败意味着停止和表面的人. 没有"代理会弄清楚. " 整个点是拒绝开始当工作台被打破.
 
-### 幂等性
+### 无力
 
-连续运行两次。第二次运行应该是空操作，除了更新的时间戳。幂等性让你能够将脚本接入 CI、hooks 或预任务斜杠命令。
+运行两次连续.第二次运行应该是无运行,除了新的时间印. 无效率是让你将脚本连接到CI,子或任务前的切割命令.
 
-### 初始化脚本与启动规则的区别
+### 启动规则与初始规则
 
-规则（阶段 14 · 33）描述的是行动必须满足的条件。初始化脚本是确立那些规则可以被检查的脚本。没有初始化脚本的规则会变成"小心为妙"。没有规则的初始化脚本会变成精致的失败。
+规则 (阶段14 · 33) 描述了必须是真的的行为. 开始是脚本,确定这些规则可以检查. 没有 init 的规则成为"小心. "没有规则的开始变成了抛光的失败.
 
 ```figure
 wb-init-probes
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了 `init_agent.py`：
+`code/main.py`实现`init_agent.py`其他:
 
-- 五个探测：Python 版本、通过 `importlib.util.find_spec` 列出依赖项、测试命令可解析性、所需环境变量、状态文件新鲜度。
-- 每个探测返回 `(name, status, detail)`。
-- 脚本写入包含完整探测集的 `init_report.json`，如果任何阻断级探测失败则以非零状态退出。
+- 五个探测器:Python版本,通过 列出依赖性`importlib.util.find_spec`检测命令可解决性,环境要求,状态文件的新鲜性.
+- 每个探测器都回来了`(name, status, detail)`现在,我们要去.
+- 剧本写着`init_report.json`如果任何块重度探测器失败,
 
-运行它：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-脚本打印探测表，写入 `init_report.json`，在正常路径下退出零，或在失败时以非零状态和失败的探测列表退出。
+脚本打印了探测器的表,写了`init_report.json`通过一个错误的探测器,
 
-## 生产环境中的模式
+## 野生生产模式
 
-三种模式将一个有用的初始化脚本与仪式区分开来。
+三个模式将有用的 init 脚本与仪式分开.
 
-**上次已知良好提交锚定。** 将当前提交与上次成功合并时写入的 `LKG` 文件进行比对。如果差异超过预算（默认 50 个文件），拒绝启动并要求人类确认新的基线。这是 Cloudflare 的 AI 代码审查用于限定审查者智能体范围的方式：每个审查会话都锚定在相同的上次已知良好提交上，不会跨会话累积漂移。
+**Last-known-good commit anchoring.**检查当前的承诺`LKG`根据最新成功的合并文件.如果差异超过预算 (默认50文件),拒绝启动并要求一个人批准新的基线.这是Cloudflare的AI代码审查用来范围审查代理:每个审查会议着相同的最后知名好,从来没有化合物漂移在会议之间.
 
-**带 TTL 的锁文件。** 在首次成功探测通过后写入 `prereqs.lock`。后续运行信任该锁 N 小时（默认 24 小时）并跳过昂贵的探测。初始化脚本首先读取锁；如果锁是新鲜的且依赖清单哈希匹配，则短路。这与 Docker 用于层缓存的模式相同：幂等探测 + 内容哈希 = 跳过。
+**Lock files with TTL.**写一个`prereqs.lock`之后的运行信任锁 N 小时 (24h默认) 并跳过昂贵的探测器. init 脚本首先读取锁;如果它是新鲜的,并且依赖表达式匹配哈希,它会短路.这是Docker用于层缓存的相同模式:无权探测器 +内容哈希 =跳.
 
-**热路径中没有网络、没有 LLM、没有意外。** 初始化探测是确定性的管道。调用 LLM 来分类失败或访问外部服务检查许可证的探测不是探测；它是工作流。如果探测在干跑中耗时超过三秒，将其视为工具链异味，移出初始化或缓存其结果。
+**No network, no LLM, no surprises in the hot path.**试验室探测器是确定性管道.一个探测器调用LLM来分类故障或击中外部服务检查许可证不是探测器;它是一个工作流程.如果试验室在干燥运行中需要超过三秒,请把它视为工作桌气味,或者将其从 init移动或缓存结果.
 
-## 使用它
+## 用它
 
-在生产环境中：
+在生产中:
 
-- **Claude Code hooks。** `pre-task` hook 调用初始化脚本，如果失败则拒绝启动智能体。
-- **GitHub Actions。** 一个 `setup-agent` job 运行初始化脚本；智能体 job 依赖它。
-- **Docker 入口点。** 智能体容器在执行智能体运行时之前运行初始化脚本；失败时日志可见。
+- **Claude Code hooks.** `pre-task`如果它失败,Hook会调用 init脚本,拒绝发射代理.
+- **GitHub Actions.**`setup-agent`工作运行了 init脚本; 代理工作取决于它.
+- **Docker entrypoint.**代理容器在执行代理运行时间之前运行 init 脚本;在故障时记录表格.
 
-初始化脚本是可移植的，因为它不针对特定框架进行调用。Bash、Make 或任务文件都可以包装它。
+由于它没有调用特定框架,所以 init 脚本是便携式的.
 
-## 交付
+## 运送它
 
-`outputs/skill-init-script.md` 对项目进行访谈，将其设置工作分类为探测项，并发出一个项目特定的 `init_agent.py` 以及在智能体任何步骤之前运行它的 CI 工作流。
+`outputs/skill-init-script.md`项目进行采访,将其设置工作分为探测器,并发出项目具体的信息.`init_agent.py`另外一个CI工作流程,在任何代理步骤之前运行它.
 
-## 练习
+## 运动
 
-1. 添加一个探测，将当前提交与上次已知良好提交进行比对，如果超过 50 个文件发生变化则拒绝启动。
-2. 让脚本写入 `prereqs.lock` 文件，如果锁文件超过七天则拒绝启动。
-3. 添加一个 `--fix` 标志，自动安装缺失的开发依赖项，但未经批准从不修改运行时依赖项。
-4. 将探测从硬编码函数移动到 YAML 注册表。为之辩护。
-5. 为每个探测添加时间预算。运行超过三秒的探测是工具链异味。
+1. 添加一个探测器,将当前的提交与最后的已知-好提交区分开放,如果更改了50多个文件,则拒绝启动.
+2. 编写脚本`prereqs.lock`如果锁定时间超过7天,请申请并拒绝启动.
+3. 添加一个`--fix`旗自动安装缺失的开发器依赖,但从来没有在未经批准的情况下修改运行时间依赖.
+4. 移动探测器从硬码函数到YAML注册表.
+5. 探测器的时间比3秒长,就是工作桌的气味.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
-|------|-----------|---------|
-| 探测 | "一个检查" | 返回 `(name, status, detail)` 的确定性函数 |
-| 初始化报告 | "设置输出" | 写在状态旁边的包含探测结果的 JSON |
-| 幂等性 | "安全可重运行" | 连续两次运行产生除时间戳外相同的报告 |
-| 大声失败 | "不要吞咽" | 停止并向人类呈现；没有静默回退 |
-| 设置税 | "引导成本" | 智能体每个会话重新发现显而易见事项所花费的 token |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Probe | "A check" | A deterministic function returning `(name, status, detail)` |
+| Init report | "Setup output" | JSON written next to state with the probe results |
+| Idempotent | "Safe to re-run" | Two runs in a row produce identical reports modulo timestamp |
+| Fail loud | "Don't swallow" | Halt and surface to the human; no silent fallback |
+| Setup tax | "Bootstrap cost" | The tokens the agent spends per session rediscovering the obvious |
 
-## 延伸阅读
+## 进一步阅读
 
 - [Anthropic, Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
 - [GitHub Actions, composite actions for setup](https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-composite-action)
-- [microservices.io, GenAI dev platform: guardrails](https://microservices.io/post/architecture/2026/03/09/genai-development-platform-part-1-development-guardrails.html) — 预提交 + CI 检查作为初始化
-- [Augment Code, How to Build Your AGENTS.md (2026)](https://www.augmentcode.com/guides/how-to-build-agents-md) — 初始化期望
-- [Codex Blog, Codex CLI Context Compaction](https://codex.danielvaughan.com/2026/03/31/codex-cli-context-compaction-architecture/) — 会话启动作为压缩感知的初始化
-- 阶段 14 · 33 — 此脚本使能的一套规则
-- 阶段 14 · 34 — 此脚本播种的状态文件
-- 阶段 14 · 38 — 初始化脚本馈送的验证门
-- 阶段 14 · 40 — 消费初始化报告最后已知良好值的交接
+- [microservices.io, GenAI dev platform: guardrails](https://microservices.io/post/architecture/2026/03/09/genai-development-platform-part-1-development-guardrails.html)预约+IC检查作为初始
+- [Augment Code, How to Build Your AGENTS.md (2026)](https://www.augmentcode.com/guides/how-to-build-agents-md)初始期望
+- [Codex Blog, Codex CLI Context Compaction](https://codex.danielvaughan.com/2026/03/31/codex-cli-context-compaction-architecture/)开始会议作为紧缩意识的 init
+- 阶段 14 · 33  规则设置本脚本使
+- 阶段 14 · 34 状态文件这个脚本种子
+- 阶段 14 · 38 验证门 init脚本输入
+- 阶段14 · 40  消耗了初始报告最后已知好处的转让

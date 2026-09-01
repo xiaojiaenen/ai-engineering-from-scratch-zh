@@ -1,24 +1,24 @@
-# 多会话交接
+# 多次会议交换
 
-> 会话即将结束，但工作不会。交接包是将"代理工作了一小时"转变为"下一个会话在第一分钟就能高效产出"的关键产物。要有意识地构建它，而不是事后补写。
+> 交付包是把"代理工作了一个小时"变成"下一次会议在第一分钟就产生了效果". 建立它是有意的,不是后期思考.
 
-**类型：** 构建
-**语言：** Python (stdlib)
-**前置条件：** 第14阶段 · 34（仓库记忆），第14阶段 · 38（验证），第14阶段 · 39（评审员）
-**时间：** 约50分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 34 (Repo Memory), Phase 14 · 38 (Verification), Phase 14 · 39 (Reviewer)
+**Time:** ~50 minutes
 
 ## 学习目标
 
-- 识别每个交接包必备的七个字段。
-- 从工作台工件自动生成交接包，而非手写文本。
-- 将大型反馈日志裁剪为适合交接的摘要。
-- 使下一个会话的第一步动作确定性执行。
+- 确定每一个发送包需要的7个字段.
+- 通过手写散文,从工作桌上的文物中生成传递.
+- 切除大数据记录,并将其编写成一个简要的概述.
+- 让下一次会议的第一步决定性.
 
-## 问题所在
+## 问题
 
-会话结束。代理说"太好了，我们有进展了。"下一个会话打开。新代理问"我们上次停在哪里了？"第一个代理的答案已经消失。新代理重新发现、重新运行相同的命令、重新向人类提出相同的问题，燃烧三十分钟去恢复上一个会话最后三十秒的工作。
+会议结束. 代理说"很好,我们取得了进展". 下一个会议开幕. 下一个代理问"我们在哪里停下来?" 第一个代理的答案消失了. 下一个代理重新发现,重复执行相同的命令,重复问人类相同的问题,并燃烧三十分钟恢复前一个会议的最后三十秒.
 
-糟糕交接的代价，在任务的整个生命周期中，每个会话都在支付。修复方案是在会话结束时自动生成一个包：什么变了、为什么变、尝试了什么、什么失败了、还剩下什么、下次第一步做什么。
+错误的交付费用每次交付,每次交付费用都会持续到任务的寿命. 修正是交付结束时自动生成的数据包:什么改变了,为什么,什么尝试了,什么失败了,什么剩下,下次要做什么.
 
 ## 概念
 
@@ -29,129 +29,129 @@ flowchart LR
   Review[review_report.json] --> Generator
   Feedback[feedback_record.jsonl] --> Generator
   Generator --> Handoff[handoff.md + handoff.json]
-  Handoff --> Next[下一个会话]
+  Handoff --> Next[Next Session]
 ```
 
-### 每个交接包携带的七个字段
+### 每次交付都带有七个田野
 
-| 字段 | 回答的问题 |
+| Field | Question it answers |
 |-------|---------------------|
-| `summary` | 做了什么的一段落概述 |
-| `changed_files` | 一目了然的变更差异 |
-| `commands_run` | 实际执行了什么命令 |
-| `failed_attempts` | 尝试了什么以及为何失败 |
-| `open_risks` | 什么可能在下个会话出问题，附带严重程度 |
-| `next_action` | 下个会话的第一个具体步骤 |
-| `verdict_pointer` | 指向验证报告和评审报告的路径 |
+| `summary` | One paragraph of what was done |
+| `changed_files` | The diff at a glance |
+| `commands_run` | What was actually executed |
+| `failed_attempts` | What was tried and why it did not work |
+| `open_risks` | What could bite next session, with severity |
+| `next_action` | The first concrete step next session takes |
+| `verdict_pointer` | Path to the verification + review reports |
 
-`next_action` 字段是支撑性的。除了 `next_action` 之外包含一切的交接包只是状态报告，而非交接。
+其他`next_action`只有一个,只有一个,只有一个.`next_action`报告是状态报告,而不是转让.
 
-### 交接包是生成的，不是写出来的
+### 转让是产生的,而不是写的
 
-手写的交接包是在艰难日子最容易被跳过的东西。生成器读取工作台工件并发出包。代理的任务是把工作台留在生成器可以总结的状态，而不是手写总结。
+机器阅读工作桌的文物并发射包.代理人的工作是让工作桌在一个状态中,机器可以总结,而不是写总结.
 
-### 两种形式：人类可读和机器可读
+### 两种形式:可读于人和可读于机器
 
-`handoff.md` 是人类阅读的。`handoff.json` 是下一个代理加载的。两者来自同一源工件。如果二者不一致，JSON 胜出。
+`handoff.md`人类读到的.`handoff.json`它们来自同一源件,如果它们分歧,JSON获胜.
 
-### 反馈日志裁剪
+### 反日志剪裁
 
-完整的 `feedback_record.jsonl` 可能有数百条记录。交接包只携带最后 K 条加上所有非零退出的条目。下一个会话如果需要可以加载完整日志，但包本身保持精简。
+完全的`feedback_record.jsonl`转发只包含最后一个K加上每一个输入的输出,但没有零. 下一个会议将加载完整的日志,但包保持小.
 
-### 留下干净状态
+### 离开一个清洁的状态
 
-交接包描述工作。干净状态让工作可恢复。它们不是同一回事。如果下一个会话打开的是一个半应用的差异、代理忘记的临时文件、一个遗留分支、以及运行前就报错的测试，那么完美的 `handoff.md` 毫无价值。新代理会花前十分钟清理上一个代理留下的烂摊子，而不是开始构建，这种成本在每个会话中都叠加，贯穿任务整个生命周期。
+简单的描述工作,清洁的状态使工作可以重复.`handoff.md`如果下一个会议开放到一个半应用差异,一个临时文件代理忘记,一个流浪的分支,然后在它们甚至运行之前测试错误.下一个代理然后花费其第十分钟清理后的最后一个而不是建造,成本复合每一个会议的寿命任务.
 
-所以会话不是在功能工作时结束的。当工作台处于生成器可以总结、下一个会话可以信任的状态时，会话才结束。清理是它自己的阶段，在交接之前运行，而且它是一个检查，而不是习惯——因为习惯正是在艰难日子最容易被跳过的东西。
+清理是自己的阶段,在交付之前运行,这是一个检查,而不是习惯,因为一个习惯是在一个艰难的日子里被跳过的东西.
 
-| 检查项 | 干净意味着 | 脏状态阻塞因为 |
+| Check | Clean means | Dirty blocks because |
 |-------|-------------|----------------------|
-| 工作树 | 所有变更已提交或以附注形式明确暂存 | 半应用的差异看起来像是有意的变更，会误导下一个代理 |
-| 临时工件 | 没有遗留的 `*.tmp`、草稿目录、调试打印或注释掉的代码块 | 遗留文件污染差异和下一个代理的心理模型 |
-| 测试 | 全部通过，或者红色但失败已在 `open_risks` 中命名 | 静默的红色测试是一个陷阱，下一个会话会踩进去 |
-| 功能板 | `feature_list.json` 状态反映现实（第14阶段 · 36） | 过时的板子会引导下一个会话去做已经完成的工作 |
-| 分支 | 在预期分支上，无 detached HEAD，无孤立分支 | 错误的分支意味着下一个会话的首次提交落在错误位置 |
+| Working tree | Every change committed or explicitly stashed with a note | A half-applied diff looks like intentional work to the next agent |
+| Temp artifacts | No `*.tmp`, scratch dirs, debug prints, or commented-out blocks left behind | Stray files pollute the diff and the next agent's mental model |
+| Tests | Green, or red with the failure named in `open_risks` | A silent red test is a trap the next session steps in |
+| Feature board | `feature_list.json` status reflects reality (Phase 14 · 36) | A stale board sends the next session to work that is already done |
+| Branch | On the expected branch, no detached HEAD, no orphan branches | Wrong branch means the next session's first commit lands in the wrong place |
 
-清理阶段输出一份 `clean_state.json` 列出阻塞性问题；空列表是交接生成器写入包之前断言的前置条件。建立在脏树之上的交接包不是交接，而是传递的混乱。两个工件配对：清理证明工作台可以安全离开，交接证明下一个会话知道从哪里开始。
+清洁阶段发射了`clean_state.json`通过一个脏的树上建立的置不是置,而是转发的混乱.这两个文物对:清洁证明工作台是安全的离开,置证明下一个会议知道从哪里开始.
 
 ```figure
 wb-handoff-packet
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了：
+`code/main.py`执行:
 
-- 一个加载器，将状态、裁决、评审和反馈整合进单个 `WorkbenchSnapshot`。
-- 一个 `generate_handoff(snapshot) -> (markdown, payload)` 函数。
-- 一个过滤器，选取最后 K 条反馈条目加上所有非零退出条目。
-- 一个演示运行，在脚本旁边写入 `handoff.md` 和 `handoff.json`。
+- 收藏状态,判决,审查和反的载体.`WorkbenchSnapshot`现在,我们要去.
+- `generate_handoff(snapshot) -> (markdown, payload)`功能.
+- 选取最后的K反输入和所有非零出口.
+- 写一个演示程序`handoff.md`其他`handoff.json`在剧本旁边.
 
-运行：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-输出：打印的交接体，以及磁盘上的两个文件。
+输出:印制的传输机体,加上磁盘上的两个文件.
 
-## 生产环境中的实践模式
+## 野生生产模式
 
-Codex CLI、Claude Code 和 OpenCode 各自有不同的压缩方案；结构化交接包构建在所有三者之上。
+编程CLI,克劳德编程Code和OpenCode每个都运送不同的缩放故事;结构化的交付包都位于三个以上.
 
-**压缩策略各异，但包的模式不变。** Codex CLI 的 POST /v1/responses/compact 是服务端的不透明 AES 密文（OpenAI 模型快速路径）；备选方案是本地"交接摘要"，以 `_summary` 用户角色消息追加。Claude Code 在 95% 上下文时运行五阶段渐进式压缩。OpenCode 做基于时间戳的消息隐藏加上五段标题的 LLM 摘要。三种不同机制，满足同一需求：将压缩后幸存的内容序列化为可移植工件。包就是那个工件。
+**Compaction strategies vary; the packet schema does not.**编辑器CLI的POST /v1/responses/compact是一个服务器侧不透明的AES (OpenAI模型的快速路径);倒退是局部"补贴总结"附加为`_summary`开源代码在 95% 的语境中运行了五阶段的渐进式缩小.开源代码基于时间标签的信息隐藏以及一个五头的LLM摘要.三个不同的机制,相同的需要:将压缩存活的东西串行成便携式文物.包是那个文物.
 
-**新会话交接不同于压缩。** 压缩延长会话；交接干净地结束一个会话并开启下一个。Hermes Issue #20372 的框架（2026年4月）是正确的：当就地压缩开始降级时，代理应写入紧凑交接包、结束会话、然后在新鲜上下文中恢复。包是让这种过渡低成本的关键。错误在于继续压缩直到质量崩溃；修复方案是为早期干净的交接预留预算。
+**Fresh-session handoff is not compaction.**紧缩延长一个会议; 交给一个干净关闭, 赫尔默斯号#20372框架 (2026年4月) 是正确的:当内部压缩开始降低时,代理应该写一个紧的交付,结束会议,并在新文本中恢复. 包裹是使得过渡便宜的. 错误是继续压缩,直到质量崩; 解决办法是预算早些时候,
 
-**每个分支和主题一个活跃交接。** 多代理协调在过时交接上的崩溃比在模型输出质量差上更严重。始终包含 `branch`、`last_known_good_commit`，以及 `status` 为 `active | superseded | archived`。过时交接被归档；只有活跃的那个驱动下一个会话。这是交接即笔记与交接即状态之间的区别。
+**One active handoff per branch and topic.**复合机器人协调在不良模型输出时会更容易出现故障.`branch`现在`last_known_good_commit`其他`status`其他`active | superseded | archived`现存的交付存储,只有活跃的交付驱动下一个会议.这是交付作为笔记和交付作为状态之间的区别.
 
-**在 50-75% 上下文预算前收尾，而非卡到墙边。** 手写模式手册（CLAUDE.md + HANDOVER.md）报告最佳结果在会话于 50-75% 上下文预算结束时，而非 95%。包生成器在压缩伪影污染源状态之前干净运行。上下文完整时写入成本很低；当模型已开始迷失方向时写入成本昂贵。
+**Wrap up before 50-75% context, not at the wall.**通过手写模式的玩法簿 (CLAUDE.md + HANDOVER.md) 报告了会议结束时最好的结果,而不是95%的文本预算. 包装生成器在压缩文物污染源状态之前运行得很清洁.文本完整时写作便宜;模型已经失去了位置时昂贵.
 
-## 使用它
+## 用它
 
-生产模式：
+生产模式:
 
-- **会话结束钩子。** 运行时在用户关闭聊天时触发生成器。包进入 `outputs/handoff/<session_id>/`。
-- **PR 模板。** 生成器的 markdown 同时作为 PR 正文。审阅者无需打开五个其他文件即可阅读。
-- **跨代理交接。** 用一个产品构建（Claude Code），用另一个继续（Codex）。包是通用语。
+- **Session-end hook.**运行时间在用户关闭聊天时启动发电机.`outputs/handoff/<session_id>/`现在,我们要去.
+- **PR template.**评论员们没有打开五份文件.
+- **Cross-agent handoff.**通过一个产品 (Claude Code) 构建,继续使用另一个产品 (Codex).
 
-包小而规整，生产成本低廉。成本节省在每个会话中复利增长。
+包装是小的,定期的,而且便宜的生产.
 
-## 交付它
+## 运送它
 
-`outputs/skill-handoff-generator.md` 产生一个针对项目工件路径调优的生成器、一个运行它的会话结束钩子，以及下一个代理启动时读取的 `handoff.json` 模式。
+`outputs/skill-handoff-generator.md`产生的生成器调整到项目的文物路径,一个结束会议的子,`handoff.json`下一个代理在启动时读到的方案.
 
-## 练习
+## 运动
 
-1. 添加 `assumptions_to_validate` 字段，揭示构建者记录的所有假设，但评审员未评分高于 1 的。
-2. 为失败运行与通过运行分别以不同方式裁剪反馈摘要。为这种不对称性辩护。
-3. 包含"向人类提问"列表。什么问题进入包，什么进入聊天消息，阈值是什么？
-4. 让生成器幂等：运行两次产生相同的包。需要什么保持稳定才能做到这一点？
-5. 添加"下个会话前置条件"章节，列出下一个会话行动前必须加载的精确工件清单。
+1. 添加一个`assumptions_to_validate`构建者登记的每一个假设都会出现,但审查者没有超过1的分数.
+2. 为了避免失败,要把反总结改成不同的,而不是通过的.
+3. 问一个问题可以进入包装或聊天信息的门是多少?
+4. 让发电机无力:运行两次就产生相同的包.
+5. 添加一个"下一个会议预设"部分,列出下一个会议必须在执行之前装载的精品.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际上是什么意思 |
+| Term | What people say | What it actually means |
 |------|----------------|------------------------|
-| 交接包 | "会话摘要" | 携带七个字段的生成工件，同时包含 markdown 和 JSON |
-| 下一步行动 | "先做什么" | 启动下一个会话的一个具体步骤 |
-| 反馈裁剪 | "日志摘要" | 最后 K 条记录加上所有非零退出 |
-| 状态报告 | "我们做了什么" | 缺少 `next_action` 的文档；有用，但不是交接 |
-| 裁决指针 | "收据" | 指向验证和评审报告的路径，用于追溯 |
+| Handoff packet | "Session summary" | Generated artifact carrying the seven fields, both markdown and JSON |
+| Next action | "What to do first" | The one concrete step that starts the next session |
+| Feedback trim | "Log summary" | Last K records plus every non-zero exit |
+| Status report | "What we did" | A document missing `next_action`; useful, but not a handoff |
+| Verdict pointer | "Receipt" | Path to the verification + review reports for traceability |
 
-## 延伸阅读
+## 进一步阅读
 
 - [Anthropic, Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
 - [OpenAI Agents SDK handoffs](https://openai.github.io/openai-agents-python/handoffs/)
-- [Codex Blog, Codex CLI Context Compaction: Architecture, Configuration, Managing Long Sessions](https://codex.danielvaughan.com/2026/03/31/codex-cli-context-compaction-architecture/) — POST /v1/responses/compact 和本地备选方案
-- [Justin3go, Shedding Heavy Memories: Context Compaction in Codex, Claude Code, OpenCode](https://justin3go.com/en/posts/2026/04/09-context-compaction-in-codex-claude-code-and-opencode) — 三厂商压缩对比
-- [JD Hodges, Claude Handoff Prompt: How to Keep Context Across Sessions (2026)](https://www.jdhodges.com/blog/ai-session-handoffs-keep-context-across-conversations/) — CLAUDE.md + HANDOVER.md，50-75% 上下文预算
-- [Mervin Praison, Managing Handoffs in Multi-Agent Coding Sessions: Fresh Context Without Losing Continuity](https://mer.vin/2026/04/managing-handoffs-in-multi-agent-coding-sessions-fresh-context-without-losing-continuity/) — 分布式系统框架
-- [Hermes Issue #20372 — 压缩变得危险时自动新会话交接](https://github.com/NousResearch/hermes-agent/issues/20372)
-- [Hermes Issue #499 — 上下文压缩质量 overhaul](https://github.com/NousResearch/hermes-agent/issues/499) — Codex CLI 中的交接导向提示
+- [Codex Blog, Codex CLI Context Compaction: Architecture, Configuration, Managing Long Sessions](https://codex.danielvaughan.com/2026/03/31/codex-cli-context-compaction-architecture/) POST /v1/响应/紧和本地回落
+- [Justin3go, Shedding Heavy Memories: Context Compaction in Codex, Claude Code, OpenCode](https://justin3go.com/en/posts/2026/04/09-context-compaction-in-codex-claude-code-and-opencode)三家供应商的压缩比较
+- [JD Hodges, Claude Handoff Prompt: How to Keep Context Across Sessions (2026)](https://www.jdhodges.com/blog/ai-session-handoffs-keep-context-across-conversations/)CLAUDE.md + HANDOVER.md,50-75%的文本预算
+- [Mervin Praison, Managing Handoffs in Multi-Agent Coding Sessions: Fresh Context Without Losing Continuity](https://mer.vin/2026/04/managing-handoffs-in-multi-agent-coding-sessions-fresh-context-without-losing-continuity/)分布式系统框架
+- [Hermes Issue #20372 — automatic fresh-session handoff when compression becomes risky](https://github.com/NousResearch/hermes-agent/issues/20372)
+- [Hermes Issue #499 — Context Compaction Quality Overhaul](https://github.com/NousResearch/hermes-agent/issues/499)Codex CLI中转移指导
 - [Microsoft Agent Framework, Compaction](https://learn.microsoft.com/en-us/agent-framework/agents/conversations/compaction)
 - [OpenCode, Context Management and Compaction](https://deepwiki.com/sst/opencode/2.4-context-management-and-compaction)
 - [LangChain, Context Engineering for Agents](https://www.langchain.com/blog/context-engineering-for-agents)
-- 第14阶段 · 34 — 生成器读取的状态文件
-- 第14阶段 · 38 — 包指向的验证裁决
-- 第14阶段 · 39 — 打包入包的评审报告
+- 阶段 14 · 34  状态文件发电器读取
+- 阶段14 · 38 验证判决
+- 阶段14 · 39  审查报告包装

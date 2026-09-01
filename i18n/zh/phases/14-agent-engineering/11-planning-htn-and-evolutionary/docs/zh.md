@@ -1,144 +1,144 @@
-# 使用 HTN 与进化搜索进行规划
+# 通过HTN和进化搜索进行规划
 
-> 符号规划处理那些规划可被证明正确的场景。进化代码搜索处理那些适应度函数可由机器验证的场景。ChatHTN（2025）和 AlphaEvolve（2025）展示了每种方法与 LLM 结合后能解锁什么能力。
+> 象征性规划处理了计划可以证明正确的情况.进化代码搜索处理了健身功能可以机器检查的情况.ChatHTN (2025) 和AlphaEvolve (2025) 显示了与LLM结合时每个程序都会解锁什么.
 
-**类型：** Build
-**语言：** Python（标准库）
-**前置条件：** Phase 14 · 02（ReWOO 与 Plan-and-Execute）
-**预计时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 02 (ReWOO and Plan-and-Execute)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 解释分层任务网络（HTN）：任务、方法、算子、前置条件、后置条件。
-- 描述 ChatHTN 的混合循环——符号搜索配合 LLM 回退分解。
-- 解释 AlphaEvolve 的进化循环及其为何只能配合程序化评估器使用。
-- 在标准库中实现一个玩具 HTN 规划器和一个玩具进化搜索。
+- 解释层次任务网络:任务,方法,操作员,先决条件,效果.
+- 描述ChatHTN的混合循环与LLM倒退分解的象征搜索.
+- 解释AlphaEvolve的进化循环,以及为什么它只能与程序评估器合作.
+- 执行玩具HTN规划器加上玩具进化搜索在STDlib.
 
 ## 问题
 
-ReWOO（第 02 课）、Plan-and-Execute 和 ReAct 已能覆盖大部分智能体规划场景。但它们未能很好覆盖两类情况：
+计划和执行,以及 ReAct 涵盖了大多数代理计划.
 
-1. **可证明正确性的规划。** 调度、航线规划、合规工作流——规划必须在构造上就是可靠的。一个偶尔会幻觉出某一步的 LLM 规划是不可接受的。
-2. **具备机器可验证适应度函数的优化。** 矩阵乘法、调度启发式、编译器优化——目标不是"一个正确的规划"，而是"最优的规划"。
+1. **Plans with provable correctness.**计划必须是合适的构建. 一个流动的LLM计划,有时会产生幻觉,是不可接受的.
+2. **Optimizations with a machine-checkable fitness function.**矩阵乘法,规划的论,编译器通过 目标不是"正确的计划",而是"最佳计划".
 
-HTN 规划与 AlphaEvolve 分别解决这两个不同的问题。两者都将 LLM 用作放大器，而非替代品。
+ HTN 规划和 AlphaEvolve 解决了两个不同的问题.
 
 ## 概念
 
-### 分层任务网络（HTN）
+### 层次任务网络
 
-HTN 包含：
+ HTN 是:
 
-- **任务（Tasks）**——复合任务（待分解）和原始任务（可直接执行）。
-- **方法（Methods）**——将复合任务分解为子任务的多种方式，各有其前置条件。
-- **算子（Operators）**——带有前置条件和后置条件的原始动作。
-- **状态（State）**——一组事实。
+- **Tasks**复合 (可分解) 和原始 (直接执行).
+- **Methods**方法将复合任务分解成子任务,有先决条件.
+- **Operators**具有先决条件和影响的原始行动.
+- **State**一系列事实.
 
-规划过程：给定目标任务和初始状态，找到一种分解方式，使其序列化为原始算子，且每一步的前置条件都能在之前的状态中得到满足。
+规划:给出目标任务和初始状态,找到一个分解为原始运营商,其先决条件是顺序满足的.
 
-HTN 早于 LLM 出现，至今仍是可证明正确性规划的行业参考。
+ HTN比 LLM更老,仍然是可证明正确的计划的参考.
 
-### ChatHTN（Gopalakrishnan 等人，2025）
+### 特纳 (Gopalakrishnan等, 2025)
 
-ChatHTN（arXiv:2505.11814）将符号 HTN 与 LLM 查询交错进行：
+聊天网络 (arXiv:2505.11814) 与LLM查询交换了象征性HTN:
 
-1. 尝试用现有方法分解当前复合任务。
-2. 若无适用方法，询问 LLM："在状态 `s` 下，你会如何分解 `task`？"
-3. 将 LLM 的响应翻译为候选子任务。
-4. 对照算子模式进行验证；拒绝无效分解。
-5. 递归执行。
+1. 试图用现有方法分解当前的复合任务.
+2. 如果没有方法,请问法师:"你会如何分解?`task`在州`s`"我没有什么.
+3. 转化LLM答案为候选子任务.
+4. 根据操作符方案验证;拒绝无效的分解.
+5. 复制.
 
-论文的核心论断：每个生成的规划都是可证明可靠的，因为 LLM 的建议仅作为候选分解进入系统，从不作为直接规划修改。符号层负责正确性；LLM 扩展方法库。
+论文的核心要求:每一个制造的计划都很合理,因为LLM建议只作为候选分解,从来没有作为直接的计划编辑.
 
-在线方法学习（OpenReview `gwYEDY9j2x`，2025 后续研究）引入一个学习者，通过回归泛化 LLM 产生的分解，最多可将 LLM 查询频率降低 75%。
+在线学习方法 (OpenReview `gwYEDY9j2x`通过回归将LLM产生的分解量缩,降低LLM查询频率至75%的学习者.
 
-### AlphaEvolve（Novikov 等人，2025）
+### 果 (果) 产品
 
-AlphaEvolve（arXiv:2506.13131，DeepMind，2025 年 6 月）是另一种不同的范式：由 Gemini 2.0 Flash/Pro 集成编排的进化代码搜索。
+亚尔法Evolve (arXiv:2506.13131,DeepMind,2025年6月) 是一个不同的野兽:由双子座2.0闪电/Pro组合主导的进化代码搜索.
 
-循环过程：
+环节:
 
-1. 从种子程序 + 程序化评估器（返回适应度分数）开始。
-2. LLM 集成提出变异方案。
-3. 将变异程序通过评估器运行。
-4. 保留最优者；再次变异。
+1. 开始一个种子程序 +一个程序评估员 (返回一个健身分数).
+2. 法律法学团队提出突变.
+3. 通过评估器进行突变.
+4. 保持最好的; 变化再次.
 
-已公布的成果：
+发布的获奖:
 
-- 56 年来首次在 4x4 复数矩阵乘法上超越 Strassen 算法（仅需 48 次标量乘法）。
-- 通过 Borg 调度启发式恢复了 Google 0.7% 的算力。
-- 在前沿工作负载上实现了 32% 的 FlashAttention 加速。
+- 在56年来,对4×4复杂矩阵乘法的斯特拉森的第一次改进 (48次 skalar乘法).
+- 只有0.7%的人通过Borg的时间表表表表度来恢复谷歌的计算.
+- 边境工作量增速32%.
 
-硬性约束：适应度函数必须是机器可验证的。对自然语言答案进行进化搜索无法收敛。
+们的们都在们的眼前,
 
-### 何时使用哪种方法
+### 什么时候使用
 
-| 问题类型 | 使用方案 | 原因 |
+| Problem class | Use | Why |
 |---------------|-----|-----|
-| 硬约束调度 | HTN + ChatHTN | 可证明的正确性 |
-| 编译器优化 | AlphaEvolve | 机器可验证的适应度 |
-| 多步任务执行 | ReAct / ReWOO | LLM 在环中，无形式化保证 |
-| 带测试的代码改进 | AlphaEvolve | 测试套件即评估器 |
-| 策略约束自动化 | HTN | 前置条件编码策略 |
+| Scheduling with hard constraints | HTN + ChatHTN | Provable soundness |
+| Compiler optimization | AlphaEvolve | Machine-checkable fitness |
+| Multi-step task execution | ReAct / ReWOO | LLM in the loop, no formal guarantees |
+| Code improvement with tests | AlphaEvolve | Tests are the evaluator |
+| Policy-bound automation | HTN | Preconditions encode policy |
 
-### 该模式易犯的错误
+### 在这个模式出现错误的地方
 
-- **没有算子的 HTN。** 若无前置条件/后置条件模式，正确性声明便不成立。ChatHTN 的"LLM 建议分解"需要模式来拒绝无效操作。
-- **没有真实评估器的 AlphaEvolve。** "问 LLM 代码是否更好"不是适应度函数。评估器必须是确定且快速的。
-- **过度设计。** 大多数智能体任务都不需要这两种方法。优先尝试 ReAct 或 ReWOO。
+- **HTN without operators.**没有先决条件/效果方案,稳定性要求崩.ChatHTN的"LLM建议分解"要求该方案拒绝无效的运动.
+- **AlphaEvolve without a real evaluator.**"问法师,如果代码更好"不是一个健身功能.
+- **Over-engineering.**大多数代理任务都不需要,先找ReAct或ReWOO.
 
 ```figure
 htn-tree-expand
 ```
 
-## 构建实现
+## 建立它
 
-`code/main.py` 实现了两个玩具：
+`code/main.py`实现两个玩具:
 
-- 一个基于标准库的 HTN 规划器，包含算子、方法、前置条件、后置条件，以及当无方法匹配复合任务时触发的 `LLMFallback`。"LLM" 是一个脚本化分解器，以便规划器可离线运行。
-- 一个基于标准库的算术表达式进化搜索：生成表达式，使其输出在测试集上最小化 `|f(x) - target|`。评估器是确定性的。
+- 具有操作员,方法,先决条件,效果和一个`LLMFallback`现在,我们需要一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个程序,一个,一个程序,一个,一个,一个程序,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个, 谁,一个
+- 通过数学的程序进行一个简单的进化搜索: 增长出口量最小化的表达式`|f(x) - target|`评估器是确定性的.
 
-运行：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-运行轨迹会展示 HTN 规划器分解复合任务（包含中途触发的 LLM 回退）以及进化循环收敛到目标表达式的过程。
+痕迹显示HTN规划器分解一个复合任务 (具有中期计划LLM倒退) 和进化循环在目标表达式上融合.
 
-## 使用指南
+## 用它
 
-- **HTN 规划器**——`pyhop`、`SHOP3`，或为领域特定的策略执行自行构建。
-- **ChatHTN**——研究代码；该模式（符号 + LLM 回退）可移植到任意 HTN 规划器。
-- **AlphaEvolve**——DeepMind 论文；该模式（集成 + 评估器）可复现。OpenEvolve 等开源分支正在涌现。
-- **智能体框架**——目前尚无框架原生支持 HTN 或 AlphaEvolve。可将其作为子智能体或后台工作进程实现。
+- **HTN planners** `pyhop`现在`SHOP3`或是为特定领域的政策执行而建立自己的.
+- **ChatHTN**研究代码;图案 (象征性+LLM倒退) 清洁地将其输送到任何HTN规划器.
+- **AlphaEvolve** DeepMind 论文;模式 (组件+评估器) 可复制.OpenEvolve 和类似的开源叉子正在出现.
+- **Agent frameworks**没有出货第一级 HTN或AlphaEvolve.
 
-## 交付产物
+## 运送它
 
-`outputs/skill-hybrid-planner.md` 生成一个混合规划器框架（HTN 或进化式），其中 LLM 的角色被明确界定。
+`outputs/skill-hybrid-planner.md`产生一个混合规划器架子 (HTN或进化) 具有明确的 LLM 角色.
 
-## 练习
+## 运动
 
-1. 为 HTN 规划器添加回溯：当算子的后置条件在运行时失败时，回滚并尝试下一个方法。
-2. 为 ChatHTN 添加 LLM 方法缓存：当 LLM 在状态模式 `P` 下分解任务 `T` 时，存储结果。下次调用时先检查方法库。
-3. 将进化搜索的评估器替换为真实的测试套件。进化一个能pass 20 个测试用例的排序函数，并报告收敛所需的代数。
-4. 阅读 AlphaEvolve 的评估器设计说明。为你关心的领域设计一个评估器（SQL 查询优化、测试套件最小化、部署 YAML）。
-5. 组合使用：用 HTN 将复合任务分解为子任务，然后对每个子任务的原始算子使用进化搜索。这种方法在哪些场景下表现出色，哪些场景下属于过度设计？
+1. 延长HTN规划器后续追踪:当运营商的后条件在运行时失败时,倒车并尝试下一个方法.
+2. 添加LLM方法缓存到ChatHTN:当LLM分解任务时`T`在状态模式中`P`在下一次电话中,请检查方法库.
+3. 改进进性搜索评估器,将其转换为实验套件. 开发一个通过20个测试案例的排序函数; 报告代数到融合.
+4. 阅读AlphaEvolve的评估器设计说明. 设计一个对您关心的域名进行评估器 (SQL查询优化,测试组最小化,部署YAML).
+5. 结合:使用HTN将复合任务分解为子任务,然后使用进化搜索在每个子任务的原始运算器上.它在哪里闪耀,它在哪里过度工程?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|------------------------|
-| HTN | "分层规划器" | 带算子、前置条件、后置条件的任务分解 |
-| Method | "分解规则" | 将复合任务拆分为子任务的方式 |
-| Operator | "原始动作" | 具有前置条件和后置条件的具体步骤 |
-| ChatHTN | "LLM + HTN" | 符号规划器在无匹配方法时询问 LLM |
-| AlphaEvolve | "进化代码搜索" | 集成 LLM 对代码进行变异；确定性评估器进行选择 |
-| Fitness function | "评估器" | 对输出进行确定性、机器可验证的评分 |
-| Online method learning | "缓存的 LLM 分解" | 存储并泛化 LLM 规划以降低查询成本 |
+| HTN | "Hierarchical planner" | Task decomposition with operators, preconditions, effects |
+| Method | "Decomposition rule" | Way to break a compound task into subtasks |
+| Operator | "Primitive action" | Concrete step with precondition and effect |
+| ChatHTN | "LLM + HTN" | Symbolic planner asks LLM when no method matches |
+| AlphaEvolve | "Evolutionary code search" | Ensemble LLMs mutate code; deterministic evaluator selects |
+| Fitness function | "Evaluator" | Deterministic, machine-checkable score over outputs |
+| Online method learning | "Cached LLM decomposition" | Store + generalize LLM plans to cut query cost |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Gopalakrishnan 等人，ChatHTN（arXiv:2505.11814）](https://arxiv.org/abs/2505.11814) —— 符号 + LLM 混合规划器
-- [Novikov 等人，AlphaEvolve（arXiv:2506.13131）](https://arxiv.org/abs/2506.13131) —— 带 LLM 变异的进化代码搜索
-- [Anthropic，Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) —— 何时选择规划器 vs 简单循环
+- [Gopalakrishnan et al., ChatHTN (arXiv:2505.11814)](https://arxiv.org/abs/2505.11814)象征性+LLM混合规划器
+- [Novikov et al., AlphaEvolve (arXiv:2506.13131)](https://arxiv.org/abs/2506.13131)与LLM突变的进化代码搜索
+- [Anthropic, Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)什么时候达到规划器与简单循环

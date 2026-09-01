@@ -1,145 +1,145 @@
-# 仓库记忆与持久化状态
+# 存储器内存和持久状态
 
-> 聊天记录是易失的。仓库是持久的。工作台将智能体状态存储在版本化文件中，这样下一次会话、下一个智能体和下一个审查者都能从同一个真实来源读取。
+> 聊天历史是不稳定的. 备忘录是持久的. 工作桌商店代理状态在版本文件中,所以下一个会议,下一个代理,下一个评论者都从同一个来源的真相读取.
 
-**类型：** 构建
-**语言：** Python（stdlib + `jsonschema` 可选）
-**前置：** 第 14 阶段 · 32（最小化工作台）
-**耗时：** 约 60 分钟
+**Type:** Build
+**Languages:** Python (stdlib + `jsonschema` optional)
+**Prerequisites:** Phase 14 · 32 (Minimal Workbench)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 定义什么属于仓库记忆，什么属于聊天记录。
-- 为 `agent_state.json` 和 `task_board.json` 编写 JSON Schema。
-- 构建一个状态管理器，能够加载、验证、修改并以原子方式持久化状态。
-- 利用 schema 在写入之前拒绝无效状态，防止其污染工作台。
+- 定义属于备忘录和属于聊天历史的内容.
+- 作者 JSON 方案`agent_state.json`其他`task_board.json`现在,我们要去.
+- 建立一个状态管理员, 负载,验证,变化, 保持状态的原子.
+- 通过该方案,在他们破坏工作台之前,拒绝坏的写作.
 
-## 问题所在
+## 问题
 
-智能体结束了一次会话，聊天关闭，下次会话打开并询问从哪里开始。模型说"让我检查下文件"，读取了过时的笔记，然后重复完成了的工作。或者更糟——它重写了一个已完成文件，因为没人告诉它那个文件已经完成了。
+代理完成一个会议.聊天结束.下一个会议打开,问从哪里开始.模型说"让我检查文件",阅读过时的笔记,然后重新完成工作.或者更糟糕的是,它重写完成的文件,因为没有人告诉它文件已经完成.
 
-工作台的修复方案是仓库记忆：状态以 JSON 文件形式存在于仓库中，在 schema 下写入，以原子方式持久化，便于代码审查时 diff。聊天是临时流；仓库才是记录系统。
+工作台的修复是 repo 存储器:状态在 repo 中的 JSON 文件中存在,写在一个方案下,保持在原子上,在代码审查中保持差异.聊天是一个过渡的传输; repo 是记录系统.
 
 ## 概念
 
 ```mermaid
 flowchart LR
-  Agent[智能体循环] --> Manager[状态管理器]
+  Agent[Agent Loop] --> Manager[StateManager]
   Manager --> Schema[agent_state.schema.json]
-  Schema --> Validate{是否合法？}
-  Validate -- 是 --> Write[agent_state.json]
-  Validate -- 否 --> Reject[拒绝并抛出异常]
+  Schema --> Validate{valid?}
+  Validate -- yes --> Write[agent_state.json]
+  Validate -- no --> Reject[refuse + raise]
   Write --> Manager
 ```
 
-### 什么属于仓库记忆
+### 什么属于备忘录
 
-| 属于 | 不属于 |
-|------|--------|
-| 当前任务 id | 原始聊天转录 |
-| 本次会话触碰过的文件 | Token 级推理痕迹 |
-| 智能体做出的假设 | "用户似乎很沮丧" |
-| 未解决的阻碍 | 采样完成的输出 |
-| 下一步行动 | 厂商特定的模型 id |
+| Belongs | Does not belong |
+|---------|-----------------|
+| Active task id | Raw chat transcripts |
+| Touched files this session | Token-level reasoning traces |
+| Assumptions the agent made | "The user seemed frustrated" |
+| Open blockers | Sampled completions |
+| Next action | Vendor-specific model ids |
 
-测试标准是持久性：三个月后在 CI 重跑中这还有用吗？如果有，放入仓库；如果没有，放入遥测。
+如果是,再测试,如果是,再测试.如果是,再测试.如果是,再测试.
 
-### 先定义 Schema 的状态
+### 方案第一状态
 
-JSON Schema 是契约。没有它，每个智能体都发明新字段，每个审查者都要学习新结构，每个 CI 脚本都必须对旧版本做特殊处理。有了它，无效写入会被拒绝。
+没有它,每个代理都会发明新的字段,每个评论员都会学习新的形状,每个CI脚本都必须将过去的版本特殊情况进行处理.
 
-Schema 涵盖：
+方案包括:
 
-- 必填键。
-- 允许的 `status` 值。
-- 禁止的值（例如数组不允许 `null`）。
-- 模式约束（任务 id 匹配 `T-\d{3,}`）。
-- 用于迁移的版本字段。
+- 需要钥匙.
+- 允许`status`价值观
+- 禁止值 (例如:`null`对于阵列).
+- 模式限制 (任务标识匹配 `T-\d{3,}`)
+- 转移版本字段
 
-### 原子写入
+### 原子写道
 
-状态写入需要容忍部分失败：写入临时文件，fsync，然后 rename 覆盖目标。状态文件是真实来源；半个写入的文件比完全没有文件更糟。
+状态写作需要生存部分失败:写到一个tempfile,fsync,重命名目标.状态文件是真相来源;半写的一个比根本没有文件更糟糕.
 
-### 迁移
+### 移民
 
-当 schema 发生变化时，在 schema 版本号升级旁附带迁移脚本。状态文件携带 `schema_version` 字段；管理器拒绝加载无法迁移的版本。
+当图案改变时,将一个迁移脚本发送到图案弹旁边.状态文件包含一个 `schema_version`管理器拒绝从无法迁移的版本中加载文件.
 
 ```figure
 wb-state-persist
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现了：
+`code/main.py`执行:
 
-- `agent_state.schema.json` 和 `task_board.schema.json`。
-- 仅用 stdlib 的验证器（JSON Schema 子集：required、type、enum、pattern、items）。
-- `StateManager.load`、`StateManager.update`、`StateManager.commit`，以原子方式的"写临时文件再 rename"实现持久化。
-- 一个演示脚本，修改状态、持久化、重新加载，并证明往返一致。
+- `agent_state.schema.json`其他`task_board.schema.json`现在,我们要去.
+- 仅使用 stdlib 验证器 (JSON 方案的子集:要求,类型,enum,模式,项目).
+- `StateManager.load`现在`StateManager.update`现在`StateManager.commit`原子的时间和重命名写字.
+- 演示,改变状态,持续,重新加载,证明了回路.
 
-运行：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-该脚本写入 `workdir/agent_state.json` 和 `workdir/task_board.json`，在两轮之间修改它们，并在每个步骤打印验证后的状态。
+剧本写着`workdir/agent_state.json`其他`workdir/task_board.json`通过两轮转换,每一步都会打印验证状态.
 
-## 生产环境中的模式
+## 野生生产模式
 
-四种模式将这个课程的最低要求转化为多智能体重型仓库可存活的东西。
+经过四种模式,课程的最低值变成了多代理单机能生存的东西.
 
-**原子式的"写临时文件再 rename"不是可选的。** 一份 March 2026 的 Hive 项目 bug 报告清晰记录了失败模式：`state.json` 通过 `write_text()` 写入，异常被捕获并静默吞掉。部分写入导致会话在损坏状态下恢复，且没有任何信号提示。修复方案始终如一：使用 `tempfile.mkstemp` 在与目标相同的目录中创建临时文件，写入，`fsync`，然后 `os.replace`（POSIX 和 Windows 上的原子 rename）。本课程中的 `atomic_write` 正是这样实现的。
+**Atomic temp-and-rename is not optional.**2026年3月的Hive项目错误报告清晰记录了故障模式: `state.json`通过`write_text()`部分写左派会议恢复反对腐败状态没有信号. 解决方案总是:`tempfile.mkstemp`在与目标相同的目录中,写下,`fsync`现在`os.replace`现在我们要做什么?`atomic_write`现在,我知道.
 
-**为每个非幂等工具调用附加幂等键。** 如果智能体在调用工具后、检查点结果前崩溃，恢复时会重试该工具调用。对读操作安全；对发送邮件、数据库插入、文件上传来说则很危险。做法是：在执行前将每个工具调用 ID 记录到 `pending_calls.jsonl`。重试时检查该 ID；若已存在，则跳过调用并使用缓存结果。Anthropic 和 LangChain 在 2026 年的指南中都提到了这一点；LangGraph 的 checkpointer 同样因为此原因持久化待处理写入。
+**Idempotency keys on every non-idempotent tool call.**如果一个代理在调用工具后崩,但在检查结果之前,恢复重新尝试工具调用.安全阅读;危险于电子邮件,DB插入,文件上传.模式:在执行之前记录每个工具调用ID在一个`pending_calls.jsonl`在重试时,检查身份证;如果存在,请跳过电话并使用缓存结果.安тропо克和兰格链都在2026年指导中呼叫这项指导;兰格拉夫的检查点仍然在等待写作的原因相同.
 
-**将大型制品与状态分离。** 不要将 CSV、长转录或生成的文件存入 `agent_state.json`。将制品保存为独立文件（或上传到对象存储），仅在状态中保留路径。检查点保持小巧快速；制品独立增长。
+**Separate large artifacts from state.**不要在 CSV,长的转录或生成的文件中存储`agent_state.json`保存文物作为一个独立的文件 (或上传到物体存储) 并只保持路径状态.检查点保持小和快速;文物独立增长.
 
-**事件溯源用于审计，快照用于恢复。** 每次修改时追加到事件日志（`state.events.jsonl`）；定期快照到 `state.json`。恢复时读取快照，然后重放快照时间戳之后的任何事件。这消耗更多磁盘空间，但让你能够逐字重放智能体的决策——这对调试长周期运行至关重要。Postgres 内部使用相同的结构来管理 WAL。
+**Event sourcing for audit, snapshots for resume.**添加到事件日志 (`state.events.jsonl`) 在每种突变中; 定期截图`state.json`简历读取快照,然后重复快照的时间印记后的任何事件. 这成本更多的磁盘,但允许您重复代理决定字面上在调试长视线运行时至关重要.
 
-**有 Schema 迁移，或拒绝加载。** `schema_version` 整数就是契约。当管理器在未知版本加载文件时，它拒绝读取。在 schema 升级旁附带迁移脚本；`tools/migrate_state.py` 在每个启动时幂等运行。
+**Schema migrations or refuse to load.**其他`schema_version`整数是合同.当管理员在未知的版本上加载文件时,它拒绝阅读. 寄一个迁移脚本到图案弹旁边; `tools/migrate_state.py`在每一个创业公司上都会无力运行.
 
-## 如何使用
+## 用它
 
-在生产环境中：
+在生产中:
 
-- **LangGraph checkpointer。** 思路相同，存储方式不同。checkpointer 将图状态持久化到 SQLite、Postgres 或自定义后端。本课程教授的 schema 是在 checkpointer 失效、需要手动读取状态时的替代品。
-- **Letta 记忆块。** 具有结构化 schema 的持久化块（第 14 阶段 · 08）。将同样的纪律应用于长期运行的角色。
-- **OpenAI Agents SDK 会话存储。** 可插拔后端，感知 schema。本课程中的状态文件即本地文件后端。
+- **LangGraph checkpointers.**检查点保持图形状态到SQLite,Postgres,或一个自定义后端.这个课程教导的方案是你达到什么当检查点死亡,你需要手动阅读状态.
+- **Letta memory blocks.**持续的区块,有结构化方案 (阶段14 · 08).
+- **OpenAI Agents SDK session store.**现在我们要做什么?
 
-## 交付物
+## 运送它
 
-`outputs/skill-state-schema.md` 生成一个项目特定的 JSON Schema 配对（状态 + 看板）、一个绑定到原子写入的 Python `StateManager`，以及一个迁移脚手架，确保下次 schema 升级不会破坏工作台。
+`outputs/skill-state-schema.md`生成一个项目特定的JSON Schema对 (状态 + 板),一个Python `StateManager`通过电缆,将原子写作,以及一个迁移架子,
 
-## 练习
+## 运动
 
-1. 添加 `last_human_touch` 时间戳。拒绝任何在人类编辑后五秒内由智能体发起的写入。
-2. 扩展验证器以支持 `oneOf`，使一个任务可以是构建任务或审查任务，各自有不同的必填字段。
-3. 添加 `schema_version` 字段，并编写从 v1 到 v2 的迁移脚本（将 `blockers` 重命名为 `risks`）。
-4. 将存储后端从本地文件迁移到 SQLite。保持 `StateManager` API 不变。
-5. 让两个智能体同时对同一个状态文件进行写入，引入 50ms 写入竞争。会发生什么，原子 rename 如何挽救局面？
+1. 添加一个`last_human_touch`拒绝任何代理在人类编辑后的五秒内写作.
+2. 扩展验证器到支持`oneOf`因此,一个任务可以是构建任务或具有不同的要求领域的审查任务.
+3. 添加一个`schema_version`字段并写从v1到v2的迁移 (重命名 `blockers`为了`risks`)
+4. 将存储后端从本地文件移动到SQLite.`StateManager`它们的API相同.
+5. 运行两个代理对同一状态文件, 50ms写作竞赛.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| 仓库记忆 | "笔记文件" | 在仓库受跟踪文件中、在 schema 约束下的状态存储 |
-| 先 Schema | "验证输入" | 在写入器之前定义契约，拒绝漂移 |
-| 原子写入 | "直接 rename 就行" | 写入临时文件、fsync、rename，使得部分失败无法造成损坏 |
-| 迁移 | "Schema 升级" | 将 vN 状态转换为 v(N+1) 状态的脚本 |
-| 记录系统 | "单一真实来源" | 工作台视作权威的那个产物 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Repo memory | "Notes file" | State stored in tracked files in the repo, under schema |
+| Schema-first | "Validate inputs" | Define the contract before the writer, refuse drift |
+| Atomic write | "Just rename" | Write to temp, fsync, rename, so partial failures cannot corrupt |
+| Migration | "Schema bump" | A script that turns vN state into v(N+1) state |
+| System of record | "Source of truth" | The artifact the workbench treats as authoritative |
 
-## 延伸阅读
+## 进一步阅读
 
-- [JSON Schema 规范](https://json-schema.org/specification.html)
-- [LangGraph checkpointer](https://langchain-ai.github.io/langgraph/concepts/persistence/)
-- [Letta 记忆块](https://docs.letta.com/concepts/memory)
-- [Fast.io，AI 智能体状态检查点：实用指南](https://fast.io/resources/ai-agent-state-checkpointing/) —— 带幂等性的先 Schema 检查点
-- [Fast.io，AI 智能体工作流状态持久化：2026 最佳实践](https://fast.io/resources/ai-agent-workflow-state-persistence/) —— 并发控制、TTL、事件溯源
-- [Hive Issue #6263 —— 非原子 state.json 写入被静默忽略](https://github.com/aden-hive/hive/issues/6263) —— 真实项目中的失败模式
-- [eunomia，检查点/恢复系统：演进、技术、应用](https://eunomia.dev/blog/2025/05/11/checkpointrestore-systems-evolution-techniques-and-applications-in-ai-agents/) —— 源自操作系统历史的 CR 原语在智能体中的应用
-- [Indium，2026 年长周期 AI 智能体的 7 种状态持久化策略](https://www.indium.tech/blog/7-state-persistence-strategies-ai-agents-2026/)
-- [Microsoft Agent Framework，压缩](https://learn.microsoft.com/en-us/agent-framework/agents/conversations/compaction) —— 厂商检查点管理器
-- 第 14 阶段 · 08 —— 记忆块和休眠期计算
-- 第 14 阶段 · 32 —— 本课程用 schema 化的三文件最小集
-- 第 14 阶段 · 40 —— 从同一 schema 读取的交接包
+- [JSON Schema specification](https://json-schema.org/specification.html)
+- [LangGraph checkpointers](https://langchain-ai.github.io/langgraph/concepts/persistence/)
+- [Letta memory blocks](https://docs.letta.com/concepts/memory)
+- [Fast.io, AI Agent State Checkpointing: A Practical Guide](https://fast.io/resources/ai-agent-state-checkpointing/) 方案首次检查,无限性
+- [Fast.io, AI Agent Workflow State Persistence: Best Practices 2026](https://fast.io/resources/ai-agent-workflow-state-persistence/)同时控制,TTL,事件采购
+- [Hive Issue #6263 — non-atomic state.json writes silently ignored](https://github.com/aden-hive/hive/issues/6263)在一个真正的项目中失败模式
+- [eunomia, Checkpoint/Restore Systems: Evolution, Techniques, Applications](https://eunomia.dev/blog/2025/05/11/checkpointrestore-systems-evolution-techniques-and-applications-in-ai-agents/)从操作系统历史中对代理应用的CR原始
+- [Indium, 7 State Persistence Strategies for Long-Running AI Agents in 2026](https://www.indium.tech/blog/7-state-persistence-strategies-ai-agents-2026/)
+- [Microsoft Agent Framework, Compaction](https://learn.microsoft.com/en-us/agent-framework/agents/conversations/compaction)供应商检查站经理
+- 阶段14 · 08  记忆区块和睡眠时间计算
+- 阶段14 · 32 这个课程规划了三档次最小值
+- 阶段14 · 40 从同一方案中读取的传递包

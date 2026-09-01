@@ -1,67 +1,67 @@
-# 基于角色的 Agent 团队 —— 角色、任务、流程
+# 基于角色的代理团队 角色,任务,过程
 
-> 四个原语：Agent（智能体）、Task（任务）、Crew（团队）、Process（流程）。两种顶层形态：Crews（自主的、基于角色的协作）和 Flows（事件驱动的、确定性的）。CrewAI 是 2026 年的参考实现，其文档直言不讳："对于任何生产就绪的应用，请从 Flow 开始。"
+> 两个顶级形状: 团队 (自主,基于角色的协作) 和流动 (事件驱动,定决). CrewAI是2026年参考实现,其文件是直接的: "对于任何准备生产的应用程序,从流动开始".
 
-**类型：** 学习 + 构建
-**语言：** Python（标准库）
-**前置知识：** 第 14 阶段 · 12（工作流模式），第 14 阶段 · 14（Actor 模型）
-**时间：** 约 75 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 12 (Workflow Patterns), Phase 14 · 14 (Actor Model)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 说出 CrewAI 的四个原语（Agent、Task、Crew、Process）各自负责什么。
-- 区分 Sequential、Hierarchical 和计划中的 Consensus 流程；为不同负载选择合适的类型。
-- 区分 Crews（自主的基于角色的协作）与 Flows（事件驱动的确定性），并解释文档的生产建议。
-- 使用 `@tool` 装饰器和 `BaseTool` 子类来连接工具；思考结构化输出与自由文本的差异。
-- 说出 CrewAI 的四种内存类型及其适用场景。
-- 实现一个 stdlib 三 Agent Crew（研究员、作家、编辑）来生成简报。
-- 识别 CrewAI 的三个失败模式：prompt 膨胀、manager LLM 开销、脆弱的交接。
+- 给CrewAI的四个原始人 (代理,任务,机组人员,过程) 名称,以及每个人的所有物.
+- 区分序列,层次和计划的共识过程; 每个工作负载中选择一个.
+- 区分Crew (自主角色) 和Flows (事件驱动的确定性),并解释 doc's生产建议.
+- 具有电线工具的`@tool`装饰师和`BaseTool`部分类;关于结构化输出与自由文本的理由.
+- 给出四种CrewAI内存类型,以及每种类型的效果.
+- 执行一个由三名特工组成的工作组 (研究人员,作家,编辑) 制作简报.
+- 发现三种 CrewAI失败模式:快速膨胀,管理者-LLM税,脆弱的交付.
 
-## 问题所在
+## 问题
 
-采用多 Agent 框架的团队总会撞到同一面墙。"自主协作"在演示中听起来很棒。然后客户提交了一个 bug，你需要确定性的重放。或者财务问每轮运行 LLM 路由的 Crew 成本是多少。或者 on-call 需要知道是哪个 Agent 在凌晨 3 点卡住了。
+采用多代理框架的团队都在同一墙上. "自主合作"在演示中听起来很好.然后一个客户提交了一个错误,你需要确定性重播.或者金融问一个LLM路由人员每次运行成本多少.或者在调用时需要知道哪个代理停滞在3AM.
 
-自由形式的 LLM 路由 Crew 无法干净地回答这些问题。纯 DAG 可以全部回答，但失去了头脑风暴 Agent 所需的探索性结构。
+纯粹的DAG回答所有,但失去探索形式一个脑风暴代理需要.
 
-CrewAI 的分裂方式诚实地面对了这个权衡。Crews 用于协作的、基于角色的、探索性工作。Flows 用于事件驱动的、代码主导的、可审计的生产环境。同一个框架，两种形态，根据场景选择。
+团队的分离是诚实的. 团队为合作,基于角色,探索工作. 活动驱动,代码所有,可审计的生产流动. 同样的框架,两个形状,每表面选择.
 
 ## 概念
 
-### 四个原语
+### 四个原始
 
-CrewAI 的表层很小。记住这些，剩下的就是配置。
+机组人员的表面很小,记住这个,剩下的都在配置.
 
-- **Agent。** `role + goal + backstory + tools + (可选) llm`。backstory 是承重的。它塑造语气、判断、以及 Agent 何时停止。Tools 是 Agent 可以调用的函数（见下文）。
-- **Task。** `description + expected_output + agent + (可选) context + (可选) output_pydantic`。一个可重用的工作单元。`expected_output` 是契约。`context` 列出上游任务的输出会传入的地方。`output_pydantic` 强制结构化形状。
-- **Crew。** 容器。持有 `agents` 列表、`tasks` 列表、`process`，以及可选的 `memory`、`verbose`、`manager_llm` 设置。
-- **Process。** 执行策略。Sequential、Hierarchical、Consensus（计划中）。决定运行的形状。
+- **Agent.** `role + goal + backstory + tools + (optional) llm`后台故事是承载性的.它塑造音调,判断,当代理停止.工具是代理可以调用的功能 (下面更多).
+- **Task.** `description + expected_output + agent + (optional) context + (optional) output_pydantic`能重复使用的工作单位.`expected_output`现在,我们要做什么?`context`列出出输出输入的上游任务. `output_pydantic`它们的结构是结构性的.
+- **Crew.**集装箱,拥有列表`agents`列表`tasks`其他`process`其他选择性`memory`其他`verbose`其他`manager_llm`设置
+- **Process.**执行策略:序列,层次,共识 (计划). 选择运行的形状.
 
-Agent 之间不能直接看到对方。Task 引用 Agent。Crew 对任务进行排序。Process 决定谁选择下一个任务。这就是整个心智模型。
+经纪人不会直接见到彼此,任务是指标人员,机组人员是排序任务,过程决定谁选择下一个任务.这是整个心理模型.
 
-> **已验证于** CrewAI 0.86（2026-05）。新版本可能重命名或合并流程类型；在具体依赖某种形状之前，请查阅 [CrewAI 流程文档](https://docs.crewai.com/concepts/processes)。
+> **Validated against**更新版本可能会更改名称或合并过程类型; 查看[CrewAI Processes docs](https://docs.crewai.com/concepts/processes)在依赖特定的形状之前.
 
-### Sequential vs Hierarchical vs Consensus
+### 序列与等级与共识
 
-- **Sequential。** 任务按声明顺序执行。任务 N 的输出作为 `context` 提供给任务 N+1。成本最低。最可预测。当顺序固定时使用。
-- **Hierarchical。** 一个 Manager Agent（单独的 LLM 调用）在专家之间进行路由。CrewAI 根据你的 `manager_llm` 配置或默认值生成 Manager。Manager 每轮选择下一个任务，可以拒绝或重新路由。当你有四个或更多专家且顺序确实依赖于先前输出时使用。
-- **Consensus。** 计划中，当前未在公共 API 中实现。文档保留了这个名字用于未来的基于投票的流程。今天不要依赖它。
+- **Sequential.**任务按声明顺序运行.任务N的输出可用为 `context`需要一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个小组,一个,一个小组,一个,一个小组,一个,一个小组,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,一个,
+- **Hierarchical.**经理代理 (分别的LLM调用) 间专业人员的路线.`manager_llm`管理员每次选择下一个任务,可以拒绝或重新引导. 使用当你有四个或更多的专家,订单真正取决于之前的输出.
+- **Consensus.**现在,我们需要在公开API中进行计划,但目前没有实现. 文件保留了未来基于投票的程序的名字.
 
-Hierarchical 在每个专家调用之上增加了一个每轮的 LLM 调用（Manager）。在五步运行中，令牌开销可能翻三倍。仅在需要路由时才为此付费。
+层次性增加每轮LLM调用 (经理) 在每个专业调用之上.代币成本可以在五步运行中增加三倍.只需要路由时支付.
 
-### Crews vs Flows
+### 机组与流动
 
-这是 2026 年文档的首要框架。
+这就是医生在2026年将会带来的框架.
 
-- **Crew。** LLM 驱动的自主性。框架在运行时选择形状。适用于：研究、头脑风暴、初稿、路径本身就是答案的任何地方。难以重放。难以测试。原型开发成本低。
-- **Flow。** 你拥有的事件驱动图。`@start` 标记入口。`@listen(topic)` 标记当另一个步骤发出该 topic 时触发的步骤。每个步骤都是普通 Python（可以在内部调用 Crew）。适用于：生产环境。可观测。可测试。确定性。
+- **Crew.**基于LLM的自主化.框架在运行时选择形状.好用于:研究,大脑风暴,第一轮草稿,无论路径是答案的一部分.难以重复.难以测试.
+- **Flow.**根据事件的图表,你拥有.`@start`标记入口.`@listen(topic)`标志着一个步骤,当另一个步骤发射这个话题时,一个步骤.每个步骤是简单的Python (可以内部调用一个船员).
 
-2026 年的文档生产建议：从 Flow 开始。当自主性证明其成本合理时，将 Crews 折叠为 Flow 步骤内的 `Crew.kickoff()` 调用。Flow 给你审计轨迹，Crew 给你探索。组合使用，不要二选一。
+医生2026年产品建议:从流动开始.`Crew.kickoff()`流动给你审计轨道,机组给你探索.编写,不要挑选.
 
 ### 工具集成
 
-给 Agent 提供工具有三种方式。选择最适合你的最简单的那种。
+给一个代理一个工具的三个方法.
 
-1. **`@tool` 装饰器。** 纯函数变成工具。签名是 schema；docstring 是 LLM 看到的描述。最适合一次性辅助函数。
+1. **`@tool` decorator.**字符是方案,文件串是 LLM看到的描述.最适合一次性帮助者.
 
    ```python
    from crewai.tools import tool
@@ -72,7 +72,7 @@ Hierarchical 在每个专家调用之上增加了一个每轮的 LLM 调用（Ma
        return run_search(query)
    ```
 
-2. **`BaseTool` 子类。** 具有显式参数 schema、异步支持、重试的类工具。当工具有状态（客户端、缓存）或需要结构化参数时使用。
+2. **`BaseTool` subclass.**基于类的工具,有明确的 args 方案,支持异步,重试. 使用工具有状态 (客户端,缓存) 或需要结构化的 args.
 
    ```python
    from crewai.tools import BaseTool
@@ -91,133 +91,133 @@ Hierarchical 在每个专家调用之上增加了一个每轮的 LLM 调用（Ma
            return self.client.search(query, limit=limit)
    ```
 
-3. **内置工具包。** CrewAI 附带官方适配器：`SerperDevTool`、`FileReadTool`、`DirectoryReadTool`、`CodeInterpreterTool`、`RagTool`、`WebsiteSearchTool`。通过一次导入即可连接。
+3. **Built-in toolkits.**机组人员运输的第一方适配器: `SerperDevTool`现在`FileReadTool`现在`DirectoryReadTool`现在`CodeInterpreterTool`现在`RagTool`现在`WebsiteSearchTool`只有一个进口.
 
-结构化输出使用 Pydantic。在 Task 上传递 `output_pydantic=MyModel`。CrewAI 根据模型验证 LLM 响应，并进行转换或重试。配合严格的 `expected_output` 字符串使用。自由文本输出适合初稿；结构化输出是下游 Flow 可以消费的内容。
+结构化输出使用Pydantic.`output_pydantic=MyModel`工作人员验证了LLC反应与模型,或者强迫或重新尝试.`expected_output`文字字符串. 免费文本输出对于草稿来说很好;结构化输出是下游流可以消耗的.
 
-### 内存钩子
+### 记忆
 
-CrewAI 开箱即用地提供四种内存类型。它们可以组合：Crew 可以同时启用全部四种。
+机组人员可以同时启动四种内存类型.
 
-> **已验证于** CrewAI 0.86（2026-05）。最近的版本将所有内容通过统一的 `Memory` 系统路由，该系统包装了这四种存储。下面的概念模型仍然成立，但公共类表层可能在较新版本中收缩为单个 `Memory` 入口点；请查看 [CrewAI 内存文档](https://docs.crewai.com/concepts/memory) 了解当前 API。
+> **Validated against**最新版本通过统一的路线`Memory`下面的概念模型仍然存在,但公共类面可能会崩到一个`Memory`在更新的版本中,进入点;[CrewAI memory docs](https://docs.crewai.com/concepts/memory)对于当前的API.
 
-- **短期。** 单次运行内的对话缓冲区。运行结束时清除。
-- **长期。** 跨运行持久化。存储在向量数据库中（默认 Chroma，可替换）。通过与当前任务的相似度检索。
-- **实体。** 每个实体的事实。"客户 X 在企业套餐上。" 按实体键控，而非按相似度。跨运行存活。
-- **上下文。** 组装时检索。在 Agent 需要时拉取相关内存，而非预加载。
+- **Short-term.**只有一个次,就会谈缓冲器,最后就会被抹去.
+- **Long-term.**连续运行.存储在向量DB (默认Chroma,可交换). 通过与当前任务相似性获取.
+- **Entity.**实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体实体
+- **Contextual.**收集时间,在代理需要时,提取相关的记忆,而不是预装.
 
-在 Crew 上使用 `memory=True` 或按类型配置启用。由你配置的嵌入提供商支持（默认 OpenAI，可替换为本地）。内存是 CrewAI 相对于更薄框架的价值所在之一；纯 LangGraph 需要你自行连接每一种。
+启动机组使用`memory=True`存储器是CrewAI在较薄的框架中获得的位置之一;纯的LangGraph需要你自己将这些设置都线索.
 
-### 基于角色的团队适合的场景
+### 角色为基础的团队适合时
 
-- 三到六个具有命名角色和协作工作流的 Agent。起草、审查、规划、头脑风暴。
-- LLM 对下一步的判断本身就是价值的路由（Hierarchical）。
-- 团队更喜欢阅读 `role + goal + backstory` 而不是阅读图定义的任何地方。
+- 只有三到六名代理人,有名字,有合作工作流程,编写,审查,规划,大脑风暴.
+- 路由,在 LLM关于下一步的判断是价值的一部分 (层次).
+- 任何地方,团队更喜欢阅读.`role + goal + backstory`而不是阅读图表的定义.
 
-### 不适合的场景
+### 当他们没有
 
-- 具有严格顺序的确定性 DAG。使用 LangGraph（第 13 课）。图的形状是正确的抽象；CrewAI 的角色框架是摩擦。
-- 亚秒级延迟预算。Hierarchical 增加了往返次数。即使是 Sequential 也会对包含 backstory 和先前输出的 prompt 进行序列化。
-- 单 Agent 循环。跳过框架；一个 Agent 循环（第 1 课）加上工具注册表更简洁。
+- 确定性 DAG 具有严格的排序.使用LangGraph (课程 13).图形形是正确的抽象; CrewAI的角色框架是摩擦.
+- 连续性连续化提示包括背景故事和之前的输出.
+- 单代理循环. 跳过框架;一个代理循环 (课 1) 加上工具注册表更短.
 
-第 17 课（Agent 框架权衡）用矩阵展示了这些内容。简短版本：CrewAI 位于"协作基于角色"的角落。
+简短版本:CrewAI坐落在"基于角色的合作"角落.
 
-### 依赖形状
+### 依赖性形状
 
-独立于 LangChain。Python 3.10 到 3.13。使用 `uv`。Star 数：见 [crewAIInc/crewAI](https://github.com/crewAIInc/crewAI)（2026-05 快照）。AWS Bedrock 集成已有文档；厂商基准测试报告相比 LangGraph 在 QA 负载上有显著加速，但方法论（数据集、硬件、评估指标）未发布，因此将框架厂商数据视为仅具方向性。
+ Python 3.10 到 3.13 使用 `uv`星数:看看[crewAIInc/crewAI](https://github.com/crewAIInc/crewAI)据悉,AWS Bedrock 集成已有记录;供应商基准报告了QA 工作负载上的快速相比,但方法 (数据集,硬件,评估指标) 并没有公布,因此只将框架供应商数字视为指向.
 
-### 此模式出错的地方
+### 在这个模式出现错误的地方
 
-- **来自 backstory 的 prompt 膨胀。** 每个 Agent 一个 2000 词的 backstory，五个 Agent 的 Crew 在第一次工具调用前就烧完了上下文预算。保持 backstory 在 200 词以内。跨 Agent 复用短语；不要重复五次相同的风格指南。
-- **Manager-LLM 令牌开销。** Hierarchical 流程在每个专家调用前增加一次 Manager LLM 调用。在一个五任务 Crew 中，这是六次 LLM 调用而非五次，且 Manager 调用携带完整的任务列表加上先前输出。除非路由依赖于输出，否则切换到 Sequential。
-- **脆弱的交接。** 任务 N 的 `expected_output` 是"一个大纲"。任务 N+1 将其作为 `context` 读取并尝试解析三个部分。LLM 生成了四个。下游 Agent 即兴发挥。在任务 N 上使用 `output_pydantic` 修复，使任务 N+1 读取类型化对象而非自由文本。
-- **Crew 用于生产。** 未加 Flow 包装的自由形式 Crew 直接推向生产。输出变异性高；无法重放；on-call 无法将失败运行与成功运行进行对比。用 Flow 包装。
+- **Prompt-bloat from backstories.**每个代理和五名代理团队的2000字背景故事在第一次工具调用之前会燃烧背景预算. 保持背景故事在200字以下. 重复代理中短语;不要重复房子风格五次.
+- **Manager-LLM token tax.**在一个五任务组上,这是六个LLM电话而不是五个,而管理员电话带有完整的任务列表加上之前的输出. 切换到序列,除非路由取决于输出.
+- **Brittle handoffs.**任务N的`expected_output`任务N+1读为`context`法律法师生产了四个. 下游代理的广告.`output_pydantic`在任务N上,所以任务N+1读取输入的对象,而不是自由文本.
+- **Crew-as-prod.**无轮装机出货. 输出可变性很高;重播是不可能的; 在调用时不能分辨一个坏跑与一个好的. 装用流.
 
 ```figure
 ae-crew-vs-flow
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了两种形状的 stdlib 版本以及一个三 Agent Crew。
+`code/main.py`执行了两种形状的SDLB版本,加上一个三名特工机组.
 
-形状：
+形状:
 
-- `Agent`、`Task` 数据类，匹配 CrewAI 的表层。
-- `SequentialCrew.kickoff(inputs)` 按声明顺序运行任务，将输出作为 `context` 传递。
-- `HierarchicalCrew.kickoff(topic)` 添加一个 Manager Agent 每轮选择下一个专家，直到"done"停止。
-- `Flow` 带有 `@start` 和 `@listen(topic)` 装饰器、一个小型事件循环和追踪。
-- `tool(name)` 装饰器，镜像 CrewAI 的 `@tool` 形状。
-- `Memory` 带有 `short_term`、`long_term`、`entity` 存储；模拟相似度使用 numpy。
-- 模拟 LLM 响应是基于角色和输入前缀的硬编码字符串。无网络。确定性。
+- `Agent`现在`Task`数据类与CrewAI的表面相匹配.
+- `SequentialCrew.kickoff(inputs)`按声明顺序执行任务,按输出线程进行编程.`context`现在,我们要去.
+- `HierarchicalCrew.kickoff(topic)`总经理将每次选出下一个专家,
+- `Flow`随着`@start`其他`@listen(topic)`装饰器,一个小事件循环,一个痕迹.
+- `tool(name)`装饰师反映了CrewAI的`@tool`它们的形状.
+- `Memory`随着`short_term`现在`long_term`现在`entity`商店; 嘲笑的相似性使用了 numpy.
+- 假的LLM响应是硬码字符串,关键字角色加输入前. 没有网络. 确定性.
 
-具体示例：研究员、作家、编辑 Crew 生成关于"agent engineering 2026"的简报。研究员提取（模拟的）来源。作家起草。编辑精简。同一个 Crew 通过 Flow 运行以展示确定性形状。
+具体演示:研究人员,作家,编辑团队制作"代理工程2026"的简报.研究人员拉出 (嘲笑) 来源.作家草案.编辑紧缩.同一个团队通过流来显示确定性形状.
 
-运行：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-追踪涵盖：Sequential Crew 通过 `context` 传递输出、Hierarchical Crew 带有 Manager 选择（研究员、作家、编辑，然后"done"）、Flow 使用显式主题（`researched`、`drafted`、`edited`）运行相同的三个步骤、工具调用通过 `@tool` 路由、以及长期内存在两次 kickoff 之间存活。
+后续人员线路输出`context`管理者选择 (研究人员,作家,编辑,然后"完成"),流动运行相同的三个步骤,有明确的主题 (`researched`现在`drafted`现在`edited`),工具调用通过`@tool`长期记忆,在两次击中幸存下来.
 
-Crew 追踪是流动的；Manager 原则上可以重新排序。Flow 追踪是固定的。这个选择就是课程要点。
+机组人员的踪迹是流动的,管理者原则上可以重新订购. 流量痕迹是固定的. 这种选择是教训.
 
-## 使用它
+## 用它
 
-- **CrewAI Flow** 用于生产。即使 Flow 只是一个调用 `Crew.kickoff()` 的步骤。Flow 给你审计边界。
-- **CrewAI Crew（Sequential）** 用于明确顺序的协作工作，尤其是初稿和审查循环。
-- **CrewAI Crew（Hierarchical）** 当路由依赖于输出且你有四个或更多专家时。
-- **LangGraph**（第 13 课）用于显式状态机、持久恢复、严格顺序。
-- **AutoGen v0.4**（第 14 课）用于 Actor 模型并发和故障隔离。
-- **OpenAI Agents SDK**（第 16 课）用于具有交接和护栏的 OpenAI 优先产品。
-- **Claude Agent SDK**（第 17 课）用于具有子 Agent 和会话存储的 Claude 优先产品。
+- **CrewAI Flow**尽管流量只是一个要求`Crew.kickoff()`流量给出了审计界限.
+- **CrewAI Crew (Sequential)**对于清晰的合作工作,特别是第一份草案和审查循环.
+- **CrewAI Crew (Hierarchical)**路由取决于输出,并且您有四名或更多的专家.
+- **LangGraph**对于明确状态机器,持久简历,严格的排序.
+- **AutoGen v0.4**(课 14) 演员模型同步和故障隔离.
+- **OpenAI Agents SDK**(课 16) 对于使用手柄和护的OpenAI第一产品.
+- **Claude Agent SDK**(课 17) 对于用品,包括用品和会议店.
 
-## 交付
+## 运送它
 
-`outputs/skill-crew-or-flow.md` 为任务选择 Crew 还是 Flow 并搭建最小实现。拒绝没有 backstory 的 Crew、没有显式主题的 Flow、少于三个专家的 Hierarchical。
+`outputs/skill-crew-or-flow.md`对于一个任务,选出 Crew vs Flow,并设置最小的实现. 硬拒绝了 Crew-without-backstory,Flow-without-explicit-topics,有不到三位专家的层次性.
 
-## 陷阱
+## 陷
 
-- **Backstory 作为装饰。** 它塑造输出。为每个 Agent 测试三个变体；变异性是真实的。选择一个，冻结它。
-- **跳过 `expected_output`。** 没有每个任务的契约，下游任务会拾取 LLM 生成的任何内容。Crew 运行；审计失败。
-- **内存始终开启。** 长期内存每次运行都写入。向量数据库增长。检索变得嘈杂。将写入范围限定在事实持久的任务上。
-- **Manager prompt 漂移。** Hierarchical 的 Manager prompt 是隐式的。如果路由变得奇怪，以 verbose 模式转储并阅读。
-- **Crew 中的工具副作用。** Crew 可能比预期更频繁地调用工具。POST、DELETE、支付属于 Flow 步骤，绝不属于 Crew 工具。
+- **Backstory as flavor.**测试每位代理的3种变体,变体是真实的.
+- **Skipping `expected_output`.**没有每项任务的合同,下游任务都会接收到 LLM所产生的任何东西.
+- **Memory always-on.**长期写每一个运行. 矢量DB增长. 检索变得杂. 范围写到事实持续的任务.
+- **Manager prompt drift.**如果路由变得奇怪,放下语音模式,然后读.
+- **Tool side effects in Crews.**邮件,删除,支付属于流动步骤,从来没有一个船员工具.
 
-## 练习
+## 运动
 
-1. 将 Sequential Crew 转换为 Flow。计算变异性下降的触点数量。注意可读性下降的地方。
-2. 向 Crew 添加实体内存：关于客户的事实跨 kickoff 持久化。验证检索拉取正确的实体。
-3. 实现一个 Hierarchical 流程，其中 Manager 在作家的输出至少有三个段落之前拒绝路由到编辑。追踪重试过程。
-4. 为（模拟的）网络搜索实现一个 `BaseTool` 子类。比较追踪形状与 `@tool` 装饰器版本。
-5. 向编辑任务添加 `output_pydantic=Brief`，其中 `Brief` 具有 `title`、`summary`、`sections`。让作家任务输出一段格式错误的 JSON；验证追踪中 CrewAI 的重试行为。
-6. 阅读 CrewAI 的文档简介。将玩具程序移植到真正的 `crewai` API。stdlib 版本省略了哪些保证？
-7. 将 AgentOps 或 Langfuse（第 24 课）连接到真实运行。stdlib 版本中你遗漏了哪些追踪？
+1. 转换序列机组成流量,计算变化量下降的触摸点,注意可读性下降的地方.
+2. 通过检查检索,检查对实体的检索.
+3. 执行一个层次性进程,管理者拒绝向编辑提供路线,直到编辑输出至少有三个段落.
+4. 电线`BaseTool`为了在网上搜索的子类.`@tool`装饰品版本.
+5. 加入`output_pydantic=Brief`编辑任务,在哪里`Brief`没有`title`现在`summary`现在`sections`让编写任务输出错误的JSON一次;验证CrewAI在追踪中重新尝试行为.
+6. 读一读CrewAI的文件介绍,把玩具带到真实中.`crewai`什么保证是SDLB版本错过的?
+7. 导向代理运营或长 (课 24) 进行真正的运行.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
-|------|-----------|---------|
-| Agent | "角色" | 角色 + 目标 + backstory + 工具 |
-| Task | "工作单元" | 描述 + 预期输出 + 分配者 + 可选结构化输出 |
-| Crew | "Agent 团队" | Agent + Task + Process 的容器 |
-| Process | "执行策略" | Sequential / Hierarchical / Consensus（计划中） |
-| Flow | "确定性工作流" | 事件驱动、代码主导、可测试 |
-| Backstory | "角色 prompt" | Agent 的语气和判断塑造器 |
-| `@tool` | "函数工具" | 将函数变为 Agent 可调用的工具的装饰器 |
-| `BaseTool` | "类工具" | 具有参数 schema、重试、异步支持的类工具 |
-| Entity memory | "每个实体的事实" | 作用域限定为客户 / 账户 / 问题的内存 |
-| Long-term memory | "跨运行内存" | 向量支持的在 kickoff 之间存活的内存 |
-| Contextual memory | "即时检索" | 在 Agent 需要时拉取的内存 |
-| Manager LLM | "路由 Agent" | Hierarchical 流程中选择下一个任务的额外 LLM |
-| `expected_output` | "任务契约" | 告诉 Agent（和审计）返回什么形状字符串 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Agent | "Persona" | Role + goal + backstory + tools |
+| Task | "Unit of work" | Description + expected output + assignee + optional structured output |
+| Crew | "Agent team" | Container for Agents + Tasks + Process |
+| Process | "Execution strategy" | Sequential / Hierarchical / Consensus (planned) |
+| Flow | "Deterministic workflow" | Event-driven, code-owned, testable |
+| Backstory | "Persona prompt" | Tone and judgment shaper for the Agent |
+| `@tool` | "Function tool" | Decorator that turns a function into a tool the Agent can call |
+| `BaseTool` | "Class tool" | Class-based tool with args schema, retries, async support |
+| Entity memory | "Per-entity facts" | Memory scoped to a customer / account / issue |
+| Long-term memory | "Cross-run memory" | Vector-backed memory that survives between kickoffs |
+| Contextual memory | "Just-in-time retrieval" | Memory pulled at the moment the Agent needs it |
+| Manager LLM | "Router agent" | Extra LLM in Hierarchical process that picks the next task |
+| `expected_output` | "Task contract" | String that tells the Agent (and audit) what shape to return |
 
 ## 进一步阅读
 
-- [CrewAI 文档简介](https://docs.crewai.com/en/introduction)：概念和推荐的生产路径
-- [CrewAI Flows 指南](https://docs.crewai.com/en/concepts/flows)：事件驱动形状、`@start`、`@listen`
-- [CrewAI 工具参考](https://docs.crewai.com/en/concepts/tools)：`@tool`、`BaseTool`、内置工具包
-- [CrewAI 内存](https://docs.crewai.com/en/concepts/memory)：短期、长期、实体、上下文
-- [Anthropic，构建有效的 Agent](https://www.anthropic.com/research/building-effective-agents)：何时多 Agent 有帮助，何时没有帮助
-- [LangGraph 概述](https://docs.langchain.com/oss/python/langgraph/overview)：状态机替代方案
+- [CrewAI docs introduction](https://docs.crewai.com/en/introduction):概念和建议的生产路径
+- [CrewAI Flows guide](https://docs.crewai.com/en/concepts/flows)活动驱动的形状`@start`现在`@listen`
+- [CrewAI tools reference](https://docs.crewai.com/en/concepts/tools)其他`@tool`现在`BaseTool`集成工具包
+- [CrewAI memory](https://docs.crewai.com/en/concepts/memory)短期,长期,实体,文本性
+- [Anthropic, Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)什么时候多剂帮助,什么时候不帮助
+- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview)另一个国家机器

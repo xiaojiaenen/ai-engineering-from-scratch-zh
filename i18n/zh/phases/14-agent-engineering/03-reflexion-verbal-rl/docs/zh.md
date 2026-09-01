@@ -1,135 +1,135 @@
-# Reflexion：语言强化学习
+# 思考:口头增强学习
 
-> 基于梯度的强化学习需要数千次试验和 GPU 集群才能修复一种失败模式。Reflexion（Shinn 等人，NeurIPS 2023）用自然语言做到这一点：每次试验失败后，智能体写下反思，存入情景记忆，并在下一次试验中基于该记忆进行条件生成。这是 Letta 的睡眠计算、Claude Code 的 CLAUDE.md 学习记录和 pro-workflow 的 learn-rule 背后的模式。
+> 基于基梯的RL需要数千次试验和GPU集群来修复故障模式. 反思 (Shinn et al., NeurIPS 2023) 用自然语言进行:每次失败试验后,代理人写出反思,存储在情节记忆中,并将下一次试验定制在那个记忆上. 这就是莱塔的睡眠时间计算,克劳德·科德的CLAUDE.md学习和工作流动的学习规则背后的模式.
 
-**类型：** 构建
-**语言：** Python（标准库）
-**前置知识：** 第 14 阶段 · 01（智能体循环）、第 14 阶段 · 02（ReWOO）
-**时间：** 约 60 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 01 (Agent Loop), Phase 14 · 02 (ReWOO)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 说出 Reflexion 的三个组成部分（演员、评估器、自我反思器）以及情景记忆的作用。
-- 用标准库实现一个带有二元评估器、反思缓冲区和新重试的 Reflexion 循环。
-- 针对给定任务选择标量、启发式和自评反馈来源。
-- 解释为什么语言强化学习能捕捉到梯度强化学习需要数千次试验才能修复的错误。
+- 描述反思的三个组成部分 (演员,评估者,自我反射者) 和情节记忆的作用.
+- 执行一个与二进制评估器,反射缓冲器,和新的重试的 stdlib 反射循环.
+- 选择一个特定任务的尺度,论和自我评估反来源.
+- 解释为什么口头强化会发现基于梯度的RL需要数千次试验来修复的错误.
 
 ## 问题
 
-智能体在一次任务中失败了。在标准 RL 中，你会运行数千次更多试验，计算梯度，更新权重。昂贵、缓慢，而且大多数生产环境中的智能体并没有为每次失败配备训练预算。
+经纪人失败任务. 在标准RL中,你会运行数千个更多的试验,计算梯度,更新权重.昂贵,缓慢,大多数生产经纪人没有每次失败的训练预算.
 
-Reflexion（Shinn 等人，arXiv:2303.11366）提出了一个不同的问题：如果智能体思考它为什么会失败，然后在提示中加入这个思考再试一次呢？不需要权重更新。不需要梯度。只需在不同试验之间存储自然语言即可。
+思考 (Shinn et al., arXiv:2303.11366) 提出了一个不同的问题:如果代理人只是想知道为什么它失败了,然后再试试一次?没有重量更新.没有梯度.
 
-结果：在 ALFWorld 上，它击败了 ReAct 和其他未微调的基线。在 HotpotQA 上，它优于 ReAct。在代码生成（HumanEval/MBPP）上，它在当时设立了最先进水平。全程无需一次梯度步骤。
+结果:在ALFWorld上,它超过了ReAct和其他非精细调节的基线.在HotpotQA上,它在ReAct上改进.在代码生成 (HumanEval/MBPP) 上,它设置了当时的最先进状态.所有这些都没有单个梯度步骤.
 
 ## 概念
 
 ### 三个组成部分
 
 ```
-Actor         : 生成轨迹（类 ReAct 循环）
-Evaluator     : 评分轨迹——二元、启发式或自评
-Self-Reflector: 对失败写出一条自然语言反思
+Actor         : generates a trajectory (ReAct-style loop)
+Evaluator     : scores the trajectory — binary, heuristic, or self-eval
+Self-Reflector: writes a natural-language reflection on the failure
 ```
 
-再加一个数据结构：
+另外一个数据结构:
 
 ```
-Episodic memory: 之前反思的列表，前置到下一次试验的提示中
+Episodic memory: list of prior reflections, prepended to the next trial's prompt
 ```
 
-一次试验运行 Actor。Evaluator 对它评分。如果分数低，Self-Reflector 生成一条反思（"我选错了工具，因为我把问题误读为在问 X，而它实际上是在问 Y"）。反思进入情景记忆。下一次试验从头开始，但能看到那条反思。
+一次试验是演员.评价者评分.如果得分低,自反射器产生反射 ("我选择错误的工具,因为我读错了问题,因为问X,问Y").反射进入剧情记忆.下一次试验开始新鲜,但看到反射.
 
-### 三种评估器类型
+### 三种评估者类型
 
-1. **标量（Scalar）**——外部二元信号。ALFWorld 成功或失败。HumanEval 测试通过或不通过。最简单，信息量最高。
-2. **启发式（Heuristic）**——预定义的失败特征。"如果智能体连续产生相同的动作两次，标记为卡住。""如果轨迹超过 50 步，标记为低效。"
-3. **自评（Self-evaluated）**——LLM 对自己轨迹评分。在没有 ground truth 时需要。信号较弱；与工具落地验证配合良好（第 05 课 — CRITIC）。
+1. **Scalar**外部二进制信号.ALFWorld成功或失败.HumanEval测试通过或失败.最简单,最高信号.
+2. **Heuristic**预定义失败签名. "如果代理在连续两次执行相同的操作,标记为被困. " "如果轨迹超过50步,标记为不有效. "
+3. **Self-evaluated**法学士的轨迹是自有的. 需要在没有基础真理时. 信号较弱;与工具基础验证 (课05  关键) 很好.
 
-2026 年的默认方案是混合使用：有 ground truth 时用标量，没有时用自评，用启发式作为安全护栏。
+默认的2026是混合的:可用时的尺度,不用时的自行,
 
-### 为什么它能泛化
+### 为什么这将普遍化
 
-Reflexion 与其说是一种新算法，不如说是一个命名的模式。几乎每个生产环境中的"自修复"智能体都在运行某种变体：
+反思不是一个新的算法,而是一个命名的模式.几乎每个生产"自我治疗"代理运行某种变体:
 
-- Letta 的睡眠计算（第 08 课）：一个独立智能体反思过去的对话并写入记忆块。
-- Claude Code 的 `CLAUDE.md` / "保存记忆"模式：将反思捕获为学习记录，前置到未来会话中。
-- pro-workflow 的 `/learn-rule` 命令：将修正捕获为显式规则。
-- LangGraph 的反思节点：一个对输出评分并在需要时路由至改进的节点。
+- 雷塔的睡眠时间计算 (课程 08):一个独立的代理反思过去的对话,并写入记忆区块.
+- 克劳德·科德的`CLAUDE.md`记忆存储模式:作为学习的反射,预备未来的会议.
+- 支持工作流程`/learn-rule`命令:作为明确的规则所捕获的修正.
+- 兰格拉夫的反射节点:一个节点,以分出口和路线进行调整,如果需要.
 
-它们都源于同一个洞察：自然语言是一种足够丰富的媒介，可以在不同运行之间传递"我从失败中学到了什么"。
+所有这些都源于同一个见解:自然语言是足够丰富的媒介,
 
-### 何时有效，何时无效
+### 什么时候有效,什么时候不有效
 
-Reflexion 有效的场景：
+反思作用在:
 
-- 存在清晰的失败信号（测试失败、工具错误、答案错误）。
-- 任务类型可复现（同一类问题可以再次被提出）。
-- 反思有改进空间（有足够的动作预算）。
+- 存在明显的故障信号 (测试故障,工具错误,错误答案).
+- 任务类可复制 (可以再次提出相同类型的问题).
+- 反映了这一趋势的改善 (足够的行动预算).
 
-Reflexion 无帮助的场景：
+如果:
 
-- 智能体第一次就成功了。
-- 失败来自外部（网络中断、工具损坏）——反思"网络中断了"对未来运行无益。
-- 反思变成了迷信——存储一次偶发不稳定运行的叙述。
+- 经纪人已经在第一次尝试中成功了.
+- "网络故障"的反思不会帮助未来运行.
+- 反映变成了迷信, 保存了关于一次性滑的故事.
 
-2026 年的陷阱：记忆腐烂。反思不断积累；有些已过时或错误；随着情景缓冲区增长，重试变得越来越慢。缓解措施：定期压缩（第 06 课）、对反思设置 TTL，或用一个独立的睡眠清理智能体（Letta）。
+2026 陷:记忆腐烂.反射积累;有些是过时或错误的;随着事件缓冲器的增长,重启变得慢.减轻:周期性紧缩 (课06),反射的TTL,或单独的睡眠时间清洁剂 (Letta).
 
 ```figure
 react-trace
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 在一个玩具谜题上实现了 Reflexion：生成一个元素之和等于目标值的 3 元素列表。Actor 输出候选列表；Evaluator 检查总和；Self-Reflector 写一行关于哪里出错了的内容。反思进入情景记忆供下一次试验使用。
+`code/main.py`演员发出候选人名单;评价者检查了数量;自我反射者写了一行关于错误的内容.反射进入下一次试验的节目记忆.
 
-组件：
+组件:
 
-- `Actor`——一个脚本化策略，在看到反思时能自我改进。
-- `Evaluator.binary()`——对目标总和做通过/失败判断。
-- `SelfReflector`——生成一行对失败的诊断。
-- `EpisodicMemory`——具有 TTL 语义的有界列表。
+- `Actor`一个有脚本的政策,
+- `Evaluator.binary()` 通过/失败目标金额.
+- `SelfReflector`产生了单线诊断失败.
+- `EpisodicMemory`一个含有TL语义的有限列表.
 
-运行它：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-追踪显示三次试验。试验 1 失败，一条反思被存入，试验 2 看到反思后改进但仍失败，试验 3 成功。与基线运行（无反思）对比——它一直卡在试验 1 的答案。
+测试显示了三个试验.试验1失败,一个反射被存储,试验2看到反射并改善,但仍然失败,试验3成功.与基线运行 (没有反射) 进行比较它在试验1的答案中留下来.
 
-## 使用它
+## 用它
 
-LangGraph 以节点模式提供反射。Claude Code 的 `/memory` 命令和 pro-workflow 的 `/learn-rule` 将情景缓冲区外化为一个 markdown 文件。Letta 的睡眠计算在空闲时间运行 Self-Reflector，使主智能体保持低延迟。OpenAI Agents SDK 不直接提供 Reflexion；你需要用一个自定义 Guardrail 来实现它，根据分数拒绝轨迹，并用跨运行存活的记忆 `Session`。
+长度图像将反射作为一个节点模式.`/memory`管理和支持工作流程`/learn-rule`通过Letta的睡眠时间计算,在停机时间内运行自反射器,因此主要代理保持延迟.OpenAI Agents SDK不会直接运送反射;您使用一个自定义的 Guardrail 构建它,它会根据分数和内存拒绝轨迹`Session`它们可以在其他地区生存.
 
-## 交付
+## 运送它
 
-`outputs/skill-reflexion-buffer.md` 创建并维护一个具有反思捕获、TTL 和去重的场景缓冲区。给定一个任务类和一次失败，它输出一条真正对下一次试验有帮助的反思（而不是通用的"更小心"）。
+`outputs/skill-reflexion-buffer.md`创建和维护一个以反射捕捉,TTL和减倍的节奏缓冲器. 考虑到任务类和失败,它会发出一个反射,实际上帮助下一个试验 (不是一个通用"要更加小心").
 
-## 练习
+## 运动
 
-1. 从二元评估器切换到返回距离度量（距目标值多远）的标量评估器。收敛更快吗？
-2. 给反思添加 10 次试验的 TTL。超过那个点之后，旧反思是帮倒忙还是有帮助？
-3. 实现启发式评估器：如果相同动作重复出现则标记为卡住。这与 Self-Reflector 如何交互？
-4. 用一个无视反思的对手 Actor 运行 Reflexion。迫使 Actor 注意到反思的最小反思提示工程是什么？
-5. 阅读 Reflexion 论文的第 4 节关于 AlfWorld 的内容。从概念上复现 130% 成功率提升：与原始 ReAct 的关键差异是什么？
+1. 转换从二进制到规模评估器,返回距离指标 (距离目标是多远). 它是否更快地收缩?
+2. 增加10次试验的TTL. 旧的反思是否会伤害或帮助?
+3. 执行论评估器:如果同样的操作重复,标记试验为被固.
+4. 试着与一个不愿意反射的演员进行反射.
+5. 阅读AlfWorld的反思论文第4节. 概念上复制130%的成功率改善:什么是Delta与尼拉 ReAct的关键?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Reflexion | "自我修正" | Shinn 等人 2023 —— Actor、Evaluator、Self-Reflector 加上情景记忆 |
-| Verbal reinforcement | "无梯度的学习" | 将自然语言反思前置到下一次试验的提示中 |
-| Episodic memory | "按任务的反思" | 针对一类任务的有界缓冲反思列表 |
-| Scalar evaluator | "二元成功信号" | 来自 ground truth 的通过/失败或数值评分 |
-| Heuristic evaluator | "基于模式的检测器" | 预定义的失败特征（如卡住循环、步数过多） |
-| Self-evaluator | "LLM 自评自身轨迹" | 无 ground truth 时的弱信号后备——与工具落地验证配合使用 |
-| Memory rot | "过期的反思" | 情景缓冲区充满过时条目；通过压缩/TTL 修复 |
-| Sleep-time reflection | "异步自我反思" | 在非主路径上运行 Self-Reflector，使主智能体保持快速 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Reflexion | "Self-correction" | Shinn et al. 2023 — Actor, Evaluator, Self-Reflector plus episodic memory |
+| Verbal reinforcement | "Learning without gradients" | Natural-language reflection prepended to the next trial's prompt |
+| Episodic memory | "Per-task reflections" | Bounded buffer of prior reflections for one task class |
+| Scalar evaluator | "Binary success signal" | Pass/fail or numeric score from ground truth |
+| Heuristic evaluator | "Pattern-based detector" | Predefined failure signatures (e.g. stuck-loop, too-many-steps) |
+| Self-evaluator | "LLM-as-judge on own trace" | Lower-signal fallback when no ground truth — pair with tool-grounded verification |
+| Memory rot | "Stale reflections" | Episodic buffer fills with obsolete entries; fix with compaction/TTL |
+| Sleep-time reflection | "Async self-reflection" | Run Self-Reflector off the hot path so primary agent stays fast |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Shinn 等人，Reflexion：具有语言强化学习的智能体（arXiv:2303.11366）](https://arxiv.org/abs/2303.11366)——经典论文
-- [Letta，睡眠计算](https://www.letta.com/blog/sleep-time-compute)——生产环境中的异步反思
-- [Anthropic，AI 智能体的有效上下文工程](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)——将情景缓冲区作为上下文的一部分进行管理
-- [LangGraph 概述](https://docs.langchain.com/oss/python/langgraph/overview)——反思节点模式
+- [Shinn et al., Reflexion: Language Agents with Verbal Reinforcement Learning (arXiv:2303.11366)](https://arxiv.org/abs/2303.11366)法典论文
+- [Letta, Sleep-time Compute](https://www.letta.com/blog/sleep-time-compute)生产中的异步反射
+- [Anthropic, Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)作为环境的一部分管理事件缓冲
+- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview)反射节点模式

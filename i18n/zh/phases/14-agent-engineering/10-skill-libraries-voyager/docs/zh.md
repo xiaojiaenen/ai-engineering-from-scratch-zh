@@ -1,151 +1,147 @@
-# 技能库与终身学习（Voyager）
+# 技能图书馆和终身学习 (旅行社)
 
-> Voyager（Wang 等，TMLR 2024）将可执行代码视为技能。技能具有名称、可检索、可组合，并通过环境反馈进行优化。这是 Claude Agent SDK 技能、skillkit 以及 2026 年技能库模式的基础架构。
+> 旅行者 (Wang等等,TMLR 2024) 将可执行代码视为技能.技能通过环境反命名,可检索,可组合和精炼.这是克劳德代理SDK技能,技能套件和2026技能图书馆模式的参考架构.
 
-**类型：** 构建
-**语言：** Python（标准库）
-**前置条件：** 阶段 14 · 07（MemGPT），阶段 14 · 08（Letta Blocks）
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 07 (MemGPT), Phase 14 · 08 (Letta Blocks)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 命名 Voyager 的三个组件——自动课程、技能库、迭代提示——并说明各自的职责。
-- 解释为什么 Voyager 的行动空间是代码而非原始命令。
-- 实现一个带有注册、检索、组合和基于失败优化的标准库技能库。
-- 将 Voyager 的模式映射到 2026 年 Claude Agent SDK 技能和 skillkit 生态。
+- 命名旅行者三部份 自动课程,技能库,反复提示 和每个组件的作用.
+- 解释为什么旅行者编写了行动空间代码,而不是原始命令.
+- 实现一个具有注册,检索,组合和故障驱动的精炼的 stdlib技能库.
+- 绘制旅行者模式,将2026年克劳德特工 SDK技能和技能套件生态系统介绍.
 
-## 问题所在
+## 问题
 
-每次会话都从头重建所有能力的代理会犯三个错误：
+那些在每次会议中重建一切能力的人,都做了三件事:
 
-1. **浪费 token。** 每个任务都会重新引发相同的推理过程。
-2. **丢失进度。** 会话 A 中学到的纠正措施不会转移到会话 B。
-3. **长周期组合失败。** 复杂任务需要能力层次结构；一次性提示无法表达它们。
+1. **Waste tokens.**每个任务都会重新引发相同的推理.
+2. **Lose progress.**修改在A会话中学习的,不会转移到B会话中.
+3. **Fail on long-horizon composition.**复杂的任务需要能力等级; 一次提示不能表达它们.
 
-Voyager 的解决方案：将每个可重用的能力视为存储在库中的命名代码块，通过相似度检索，与其他技能组合，并通过执行反馈进行优化。
+旅行者的答案:把每一个可重复使用的功能都视为一个名字的代码,存储在图书馆里,
 
 ## 概念
 
-### 三个组件
+### 三个组成部分
 
-Voyager（arXiv:2305.16291）围绕以下结构构建代理：
+旅行者 (arXiv:2305.16291) 建立了一个代理在:
 
-1. **自动课程。** 一个由好奇心驱动的提议者根据代理的当前技能集和环境状态选择下一个任务。探索是自底向上的。
-2. **技能库。** 每个技能都是可执行代码。新技能在任务成功时添加。技能通过查询与描述的相似度进行检索。
-3. **迭代提示机制。** 失败时，代理收到执行错误、环境反馈和自我验证输出，然后优化技能。
+1. **Automatic curriculum.**根据代理人的当前技能和环境状态,一个好奇心驱动的提议者选择下一个任务.
+2. **Skill library.**每个技能都是可执行的代码.任务成功时,新技能被添加.技能通过查询到描述相似性获取.
+3. **Iterative prompting mechanism.**在失败时,代理收到执行错误,环境反和自我验证输出,然后改进技能.
 
-Minecraft 评估（Wang 等，2024）：相比基线，独特物品多 3.3 倍，石制工具快 8.5 倍，铁制工具快 6.4 倍，地图遍历时间长 2.3 倍。这些数字是 Minecraft 特有的，但模式可迁移。
+克莱夫特评估 (Wang等同等,2024):有3.3倍的独特物品,8.5倍的更快的石头工具,6.4倍的更快的铁工具,2.3倍的更长的地图穿越与基线.数字是克莱夫特特异性的,但模式转移.
 
 ### 行动空间 = 代码
 
-大多数代理发出原始命令。Voyager 发出 JavaScript 函数。一个技能是：
+许多代理都发出原始命令. 旅行者发出JavaScript功能.
 
 ```
 async function craftIronPickaxe(bot) {
-  // 挖掘 3 个铁矿
   await mineIron(bot, 3);
-  // 挖掘 2 根木棍
   await mineStick(bot, 2);
-  // 放置工作台
   await placeCraftingTable(bot);
-  // 合成铁镐
   await craft(bot, 'iron_pickaxe');
 }
 ```
 
-由子技能组合而成。按描述和嵌入键存储。以程序形式检索，而非提示。
+包含了次技能,存储在描述和嵌入键上,作为程序,而不是提示.
 
-这就是 2026 年 Claude Agent SDK 技能：一个带有指令的可检索代码块，代理按需加载。
+这就是2026年Claude Agent SDK技能:一个命名的可检索的代码加上指令,
 
-### 技能检索
+### 技能提升
 
-新任务："制作一把钻石镐"。代理：
+另一个任务是做钻石.
 
-1. 对任务描述进行嵌入。
-2. 查询技能库获取 top-k 相似技能。
-3. 检索 `craftIronPickaxe`、`mineDiamond`、`placeCraftingTable` 等。
-4. 从检索到的原语 + 新逻辑组合出新技能。
+1. 嵌入任务描述.
+2. 查询技能库,查询上级的类似技能.
+3. 检索`craftIronPickaxe`现在`mineDiamond`现在`placeCraftingTable`其他
+4. 构建了从检索的原始+新逻辑的新技能.
 
-这是模式 MCP 资源（第 13 阶段）和 Agent SDK 技能实现的：对知识/代码表面的检索，限定于当前任务。
+采用MCP资源 (第13阶段) 和代理SDK技能实现的模式:在知识/代码表面上检索,针对当前任务.
 
-### 迭代优化
+### 复制的精炼
 
-Voyager 的反馈循环：
+旅行者的反循环:
 
-1. 代理编写一个技能。
-2. 技能与环境运行。
-3. 返回三种信号之一：`success`（成功）、`error`（带堆栈跟踪）、`self-verification failure`（自我验证失败）。
-4. 代理使用信号作为上下文重写技能。
-5. 循环直到成功或达到最大轮次。
+1. 代理写出一个技能.
+2. 技能与环境相反.
+3. 报道三种信号中的一个:`success`现在`error`子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子`self-verification failure`现在,我们要去.
+4. 代理用信号作为背景重新写技能.
+5. 循环到成功或最大轮.
 
-这是 Self-Refine（课程 05）应用于带环境接地验证的代码生成。CRITIC（课程 05）是相同模式，以外部工具作为验证器。
+通过环境基准验证来生成代码,它是自定义 (课05) 应用的.
 
-### 课程与探索
+### 课程和探索
 
-Voyager 的课程模块根据代理已有的能力和尚未完成的任务提出类似"在湖边建造住所"的任务。提议者使用环境状态 + 技能清单选择一个略高于当前能力的任务——探索甜点区。
+旅行者课程模块提出了"在湖边建造避难所"等任务,根据代理人有什么以及尚未做什么. 提出者使用环境状态 +技能库存来选择一个任务,仅仅在当前能力度高于探索的甜点.
 
-对于生产代理，这转化为"缺失什么"运算符：给定当前技能库和领域，哪些技能我们尚未覆盖？团队通常手动实现此功能作为课程审查。
+对于生产代理人来说,这意味着"缺失了什么"的操作员:鉴于目前的技能库和域名,我们还没有涵盖哪些技能?
 
-### 此模式的问题所在
+### 在这个模式出现错误的地方
 
-- **技能库腐烂。** 相同技能因略微不同的描述被添加 10 次。写入时添加去重；检索只返回一个。
-- **组合技能漂移。** 父技能依赖于被优化的子技能。版本化技能；锁定到 v1 的父技能不会自动拾取 v3。
-- **检索质量。** 当技能库超过数百个时，基于向量检索技能描述的质量会下降。用标签过滤器和硬约束补充（"仅限 `category=tooling` 的技能"）。
+- **Skill library rot.**写作时添加除倍数,检索只返回一个.
+- **Composed-skill drift.**孩子的父母技能取决于孩子的精炼. 版本技能;一个被绑定到v1的父母不会神奇地接收v3.
+- **Retrieval quality.**随着库的数量增加,技能描述的向量检索会恶化.`category=tooling`")
 
 ```figure
 voyager-skills
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了一个标准库技能库：
+`code/main.py`实现了 stdlib 技能库:
 
-- `Skill`——名称、描述、代码（作为字符串）、版本、标签、依赖项。
-- `SkillLibrary`——注册、搜索（词元重叠）、组合（依赖项的拓扑排序）和优化（更新时版本号递增）。
-- 一个脚本代理，注册三个原语技能，组合第四个，触发失败，然后优化。
+- `Skill`名称,描述,代码 (作为字符串),版本,标签,依赖性.
+- `SkillLibrary`注册,搜索 (代币重叠),编写 (顶级类型的 deps),并精炼 (更新版本弹).
+- 编写剧本的代理,记录了三个原始技能, 编写了第四个, 击败了失败,
 
-运行：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-跟踪显示了库写入、检索、组合、失败的执行和 v2 优化——Voyager 循环端到端。
+痕迹显示图书馆写作,检索,编译,失败执行,
 
-## 使用它
+## 用它
 
-- **Claude Agent SDK 技能**（Anthropic）—— 2026 年参考实现：每个技能都有描述、代码和指令；在代理会话中按需加载。
-- **skillkit**（npm: skillkit）—— 跨 32+ AI 编码代理的跨代理技能管理。
-- **自定义技能库**—— 领域特定（数据代理的 SQL 技能，基础设施代理的 Terraform 技能）。Voyager 模式可缩小规模。
-- **OpenAI Agents SDK `tools`**—— 在低端；每个工具都是一个轻量级技能。
+- **Claude Agent SDK skills**根据2026年参考,每个技能都有描述,代码和指令,
+- **skillkit**跨代理技能管理,用于32+个AI编码代理.
+- **Custom skill libraries**域名特定 (数据代理的SQL技能,地形代理的Terraform技能).
+- **OpenAI Agents SDK `tools`**在低端;每个工具都是轻量级的技能.
 
-## 部署它
+## 运送它
 
-`outputs/skill-skill-library.md` 生成一个 Voyager 形状的技能库，为任何目标运行时接线注册、检索、版本控制和优化。
+`outputs/skill-skill-library.md`通过电子设备,我们可以在任何目标运行时间内进行编辑,检索,版本化和改进.
 
-## 练习
+## 运动
 
-1. 向 `compose()` 添加依赖项循环检测器。当技能 A 依赖于 B，而 B 又依赖于 A 时会发生什么？错误还是警告？
-2. 实现每个技能版本锁定。当父技能组合子技能 `crafting@1` 时，对 `crafting@2` 的优化不得静默升级父技能。
-3. 用 sentence-transformers 嵌入（或 BM25 标准库实现）替换词元重叠检索。在 50 技能玩具库上测量 retrieval@5。
-4. 添加一个"课程"代理：给定当前库和领域描述，提出 5 个缺失的技能。每周调用一次。
-5. 阅读 Anthropic 的 Claude Agent SDK 技能文档。将玩具库移植到 SDK 的技能模式。可发现性有什么变化？
+1. 添加依赖周期检测器`compose()`什么会发生,当技能A取决于B取决于A?错误与警告?
+2. 实现每技能版本的点. 当一个父母的技能构成孩子时`crafting@1`改进了`crafting@2`必须不默默地升级父母.
+3. 替换代代币重叠检索用语句变换器嵌入式 (或BM25 stdlib impl).在50技能玩具库中测量检索@5.
+4. 添加一个"课程"代理:鉴于当前的图书馆和域名描述,建议5个缺失技能.
+5. 读到人类的Claude Agent SDK技能文件. 将玩具库移植到 SDK的技能方案.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说什么 | 实际含义 |
-|------|-----------|---------|
-| Skill（技能） | "可复用能力" | 命名代码块 + 描述，通过相似度检索 |
-| Skill library（技能库） | "代理如何做的记忆" | 持久存储技能，可搜索和组合 |
-| Curriculum（课程） | "任务提议者" | 由当前能力差距驱动的自底向上目标生成器 |
-| Composition（组合） | "技能 DAG" | 技能调用技能；执行时拓扑排序 |
-| Iterative refinement（迭代优化） | "自我纠正循环" | 环境反馈 + 错误 + 自我验证折叠回下一版本 |
-| Action-space-as-code（行动空间即代码） | "程序化行动" | 发出函数而非原始命令，用于时间扩展行为 |
-| Dedup on write（写入时去重） | "技能折叠" | 近重复描述折叠为一个规范技能 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Skill | "Reusable capability" | Named chunk of code + description, retrievable by similarity |
+| Skill library | "Agent memory of how-to" | Persistent store of skills, searchable and composable |
+| Curriculum | "Task proposer" | Bottom-up goal generator driven by current capability gap |
+| Composition | "Skill DAG" | Skills invoking skills; topologically sorted on execution |
+| Iterative refinement | "Self-correcting loop" | Env feedback + errors + self-verification fold back into the next version |
+| Action-space-as-code | "Programmatic actions" | Emit functions, not primitive commands, for temporally extended behavior |
+| Dedup on write | "Skill collapse" | Near-duplicate descriptions collapse to one canonical skill |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Wang 等，Voyager（arXiv:2305.16291）](https://arxiv.org/abs/2305.16291) —— 原始技能库论文
-- [Claude Agent SDK 概览](https://platform.claude.com/docs/en/agent-sdk/overview) —— 技能作为 2026 年产品化
-- [Anthropic，使用 Claude Agent SDK 构建代理](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk) —— 实践中的技能和子代理
-- [Madaan 等，Self-Refine（arXiv:2303.17651）](https://arxiv.org/abs/2303.17651) —— Voyager 下方的优化循环
+- [Wang et al., Voyager (arXiv:2305.16291)](https://arxiv.org/abs/2305.16291)原始的技能图书馆论文
+- [Claude Agent SDK overview](https://platform.claude.com/docs/en/agent-sdk/overview)2026年生产能力
+- [Anthropic, Building agents with the Claude Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk)实践中的技能和潜力
+- [Madaan et al., Self-Refine (arXiv:2303.17651)](https://arxiv.org/abs/2303.17651)航母下面的精炼循环

@@ -1,102 +1,102 @@
-# 生产级 Agent 运行时——快速实例化与类型化工作流
+# 快速实例化和类型工作流程
 
-> 生产级 agent 运行时优化了原型框架所忽略的方面：实例化成本、类型化的工作流接口以及可直接部署的后端。2026 年的搭配：Agno（Python）专注于微秒级 agent 实例化和无状态 FastAPI 后端。Mastra 在 Vercel AI SDK 基础上提供 agent、工具、工作流、统一模型路由和组合存储。
+> 生产代理运行时间优化了原型框架忽略的内容:实例化成本,打字工作流表面和服务准备的后端. 2026 配对:Agno (Python) 旨在实现微秒代理实例化和无状态FastAPI后端.Mastra 将代理,工具,工作流程,统一模型路由和复合存储放在Vercel AI SDK基板上.
 
-**类型：** 学习
-**语言：** Python、TypeScript
-**前置知识：** Phase 14 · 01（Agent 循环）、Phase 14 · 13（LangGraph）
-**耗时：** 约 45 分钟
+**Type:** Learn
+**Languages:** Python, TypeScript
+**Prerequisites:** Phase 14 · 01 (Agent Loop), Phase 14 · 13 (LangGraph)
+**Time:** ~45 minutes
 
 ## 学习目标
 
-- 识别 Agno 的性能目标及其适用场景。
-- 列举 Mastra 的三个核心原语——Agents、Tools、Workflows——以及支持的服务器适配器。
-- 解释为何无状态会话级 FastAPI 后端是推荐的 Agno 生产路径。
-- 根据技术栈（Python 优先 vs TypeScript 优先）选择合适的方案（Agno 或 Mastra）。
+- 确定阿格诺的性能目标,以及它们什么时候重要.
+- 命名Mastra的三个原始物件 代理,工具,工作流程 和支持的服务器适配器.
+- 解释为什么无状态的FastAPI后端是AgnO生产路径的建议.
+- 选择给定的堆 (Python-first vs TypeScript-first).
 
-## 问题所在
+## 问题
 
-LangGraph、AutoGen、CrewAI 等框架较为沉重。希望“在我的运行时中快速实现纯粹的 agent 循环”的团队会转向 Agno（Python）或 Mastra（TypeScript）。两者都以牺牲部分框架原生原语为代价，换取更高的运行速度和与周围技术栈更紧密的契合度。
+拉格格拉夫,自动生成,CrewAI是框架重的.想要"只需要代理循环,快速,在我的运行时间"的团队可以使用Agno (Python) 或Mastra (TypeScript).这两者都以原始的速度和更紧密的适应环境堆来交易一些框架所有的原始.
 
-## 核心概念
+## 概念
 
-### Agno
+### 果
 
-- Python 运行时，原名 Phi-data。
-- “没有图、链或复杂的模式——只有纯粹的 Python。”
-- 官方文档中的性能指标：约 2μs agent 实例化时间、每个 agent 约占用 3.75 KiB 内存、支持约 23 个模型提供商。
-- 生产路径：无状态会话级 FastAPI 后端。每个请求启动一个全新的 agent；会话状态存储在数据库中。
-- 原生支持多模态（文本、图像、音频、视频、文件）及 agentic RAG。
+- 之前是Python运行时间,
+- "没有图形,链条,或复杂的模式,
+- 根据其文件的性能目标: ~ 2μs 代理实例化, ~ 3.75 KiB 存储量每代理, ~ 23 个模型提供商.
+- 制作路径:无状态的会话缩写 FastAPI 后端. 每个请求都启动一个新的代理;会话状态在DB中.
+- 产生的多模 (文字,图像,音频,视频,文件) 和代理RAG.
 
-当你每秒需要处理数千个短生命周期 agent 时（如聊天并发接入、评估流水线），这些速度指标很重要。而当单个 agent 运行长达 10 分钟时，这些指标的重要性则较低。
+速度目标在每秒有数千个短暂的代理时重要 (聊天风扇,评估管道),而当一个代理运行10分钟时,它们更不重要.
 
-### Mastra
+### 马斯特拉
 
-- TypeScript 编写，基于 Vercel AI SDK 构建。
-- 三个核心原语：**Agents**、**Tools**（使用 Zod 类型定义）、**Workflows**。
-- 统一模型路由器——跨 94 个提供商接入 3,300+ 个模型（2026 年 3 月数据）。
-- 组合存储：将内存、工作流、可观测性数据分别路由到不同的后端；大规模可观测性推荐搭配 ClickHouse。
-- Apache 2.0 许可证，但 `ee/` 目录受开源可用（source-available）的企业许可证约束。
-- 提供 Express、Hono、Fastify、Koa 的服务器适配器；原生支持 Next.js 和 Astro 集成。
-- 附带 Mastra Studio（本地调试端口 localhost:4111）。
-- 1.0 版本发布时（2026 年 1 月）已拥有 22k+ GitHub Star 和 300k+ 的周 npm 下载量。
+- 基于Vercel AI SDK的TypeScript.
+- 三个原始:**Agents**现在**Tools**子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子**Workflows**现在,我们要去.
+- 统一型路由器  3,300+ 型号在 94 个供应商中 (2026 年 3 月).
+- 复合存储:内存,工作流程,可观测到不同的后台;ClickHouse建议以实现规模观测.
+-  Apache 2.0 版本`ee/`源可用企业许可证下载的目录.
+- 服务器适配器用于Express,Hono,Fastify,Koa;第一级Next.js和Astro集成.
+- 导航Mastra Studio (本地主机:4111) 进行调试.
+- 据悉,GitHub的数据量超过22万,每周每小时下载量超过300万,
 
-### 定位对比
+### 定位
 
-两者都不是 LangGraph 的替代品。它们的竞争维度在于：
+他们都不想成为兰格拉夫.
 
-- **语言适配。** Agno 适合 Python 优先的团队；Mastra 适合 TypeScript 优先的团队。
-- **运行时体验。** Agno = 近乎零开销；Mastra = 深度集成 Vercel 生态。
-- **可观测性。** 两者均集成 Langfuse/Phoenix/Opik（第 24 课），但 Mastra Studio 为官方自研。
+- **Language fit.**首先为Python团队提供AgnO,而TypeScript则为Mastra.
+- **Runtime ergonomics.**亚格诺=近零的通用费用;马斯特拉=与Vercel生态系统集成.
+- **Observability.**两者都与Langfuse/Phoenix/Opik (课 24) 结合起来,但Mastra Studio是第一方.
 
-### 选型建议
+### 选出每一个
 
-- **Agno** —— Python 后端，大量短生命周期 agent，性能要求严格，FastAPI 技术栈。
-- **Mastra** —— TypeScript 后端，Next.js/Vercel 部署，统一多提供商模型路由，Zod 类型化工具。
-- **LangGraph**（第 13 课）—— 当持久化状态和显式图推理比纯速度更重要时。
-- **OpenAI / Claude Agent SDK** —— 当你需要采用提供商内置的产品化形态时（见第 16-17 课）。
+- **Agno**Python后端,许多短暂的代理,强大的性能要求,FastAPI商店.
+- **Mastra** 类型脚本后台,下一个.js / Vercel部署,统一的多提供商模型路由,Zod类型工具.
+- **LangGraph**长期状态和明确的图形推理比原始速度更重要.
+- **OpenAI / Claude Agent SDK**当你想要提供商的生产形状时 (课程1617).
 
-### 常见误区
+### 在这个模式出现错误的地方
 
-- **为性能而性能。** 仅因“2μs”听起来很酷就选用 Agno，但若工作负载是每次请求仅调用一次慢速 agent，则开销根本不是瓶颈。
-- **生态锁定。** Mastra 对 Vercel 的原生适配在 Vercel 上是优势，在其他平台上反而是劣势。
-- **企业许可证混淆。** Mastra 的 `ee/` 目录采用开源可用（source-available）协议，而非 Apache 2.0。若有分叉计划，请务必仔细阅读许可证。
+- **Perf-for-perf's-sake.**选择Agno因为2μs听起来很好,当工作负载是每次要求一个缓慢的代理调用.
+- **Ecosystem lock-in.**马斯特拉的Vercel味道整合是Vercel的加倍,其他地方是负的.
+- **Enterprise license confusion.**马斯特拉的`ee/`如果您打算叉,请阅读许可证.
 
 ```figure
 wb-runtime-spawn
 ```
 
-## 动手实践
+## 建立它
 
-本课主要为对比性质——任何单一代码示例都无法完全公平地展示两个框架。请参考 `code/main.py` 中的对照玩具示例：一个最小的“运行 agent、流式输出、持久化会话”流程被分别用两种方式实现（一次 Agno 风格，一次 Mastra 风格）。
+没有单个代码文物可以对这两个框架进行正义.`code/main.py`对于一款横边玩具:至少执行两次 (一次Agnō形,一次Mastra形) 的"运行代理,输出流,持续会议"流程.
 
-运行方式：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-两种结构不同但功能等价的可观测轨迹。
+两种结构不同但功能相等的痕迹.
 
-## 用法
+## 用它
 
-- **Agno** —— 需要高性能且采用 FastAPI 架构的 Python 后端。
-- **Mastra** —— 接入多个模型提供商并需要工作流原语的 TypeScript 后端。
-- 两者均提供官方可观测性钩子，且均可与 Langfuse 集成。
+- **Agno** Python后端需要速度和FastAPI形状.
+- **Mastra** 类型Script后台与许多提供商和工作流原始.
+- 两艘船都能使用第一方可观测,
 
-## 产出
+## 运送它
 
-`outputs/skill-runtime-picker.md` 将根据技术栈、延迟预算和运行形态，为 Agno、Mastra、LangGraph 或提供商 SDK 提供选型指南。
+`outputs/skill-runtime-picker.md`根据堆,延迟预算和运营形状,选择Agno,Mastra,LangGraph或提供商SDK.
 
-## 练习
+## 运动
 
-1. 阅读 Agno 官方文档。将标准库 ReAct 循环（第 01 课）移植到 Agno。哪些部分消失了？哪些部分保留了？
-2. 阅读 Mastra 官方文档。将同一个循环移植到 Mastra。工具的类型定义（Zod vs 无类型）发生了哪些变化？
-3. 基准测试：在你的技术栈上测量 agent 实例化延迟。Agno 的 2μs 对你的工作负载有意义吗？
-4. 设计迁移方案：如果你一直在 Python 中使用 CrewAI，迁移到 Agno 会有哪些地方不兼容？
-5. 阅读 Mastra 的 `ee/` 目录许可证条款。哪些限制会影响开源分叉？
+1. 读出阿格诺的文件,将Sdlib ReAct循环 (课1) 转移到阿格诺.
+2. 阅读Mastra的文件.将相同的循环移植到Mastra.工具打字 (Zod vs.什么都没有) 发生了什么变化?
+3. 测量代理实时延迟. 亚格诺的2μs对你的工作负载有什么关系?
+4. 如果您在Python中运行CrewAI,如果您搬到Agno,会有什么问题?
+5. 阅读马斯特拉的书`ee/`什么限制会影响一个开源叉子?
 
-## 核心术语
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|------------------------|
@@ -107,9 +107,9 @@ python3 code/main.py
 | Mastra Studio | "Local debugger" | localhost:4111 UI for introspecting agents |
 | Source-available | "Not OSS" | License permits source reading but restricts commercial use |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Agno Agent Framework docs](https://www.agno.com/agent-framework) — performance targets, FastAPI integration
-- [Mastra docs](https://mastra.ai/docs) — primitives, server adapters, Model Router
-- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) — the stateful-graph alternative
-- [Comet Opik](https://www.comet.com/site/products/opik/) — observability comparisons cited by Mastra integrations
+- [Agno Agent Framework docs](https://www.agno.com/agent-framework)绩效目标,FastAPI集成
+- [Mastra docs](https://mastra.ai/docs)原始设备,服务器适配器,路由器模型
+- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview)国家图的替代方案
+- [Comet Opik](https://www.comet.com/site/products/opik/)Mastra集成所引用的可观性比较
