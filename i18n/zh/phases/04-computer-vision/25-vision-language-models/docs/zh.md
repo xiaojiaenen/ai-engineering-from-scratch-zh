@@ -1,119 +1,119 @@
-# 视觉-语言模型 —— ViT-MLP-LLM 模式
+# 视觉语言模型  ViT-MLP-LLM模式
 
-> 视觉编码器将图像转换为 tokens。MLP 投影器将这些 tokens 映射到 LLM 的嵌入空间。语言模型完成其余工作。这种 ViT-MLP-LLM 模式就是 2026 年所有生产级 VLM 的架构。
+> 视觉编码器将图像转换为代币.一个MLP投影机将这些代币映射到LLM的嵌入空间中.一个语言模型完成其余.该模式是2026年每个生产VLM.
 
-**类型：** 学习 + 实践
-**语言：** Python
-**前置知识：** 第4阶段第14课（ViT）、第4阶段第18课（CLIP）、第7阶段第02课（自注意力）
-**时间：** 约 75 分钟
+**Type:** Learn + Use
+**Languages:** Python
+**Prerequisites:** Phase 4 Lesson 14 (ViT), Phase 4 Lesson 18 (CLIP), Phase 7 Lesson 02 (Self-Attention)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 阐述 ViT-MLP-LLM 架构并解释三个组件各自的作用
-- 对比 Qwen3-VL、InternVL3.5、LLaVA-Next 和 GLM-4.6V 在参数量、上下文长度和基准性能上的差异
-- 解释 DeepStack：为什么多级 ViT 特征比单一最后一层特征更能加强视觉-语言对齐
-- 使用跨模态错误率（CMER）在生产中衡量 VLM 幻觉并采取行动
+- 描述ViT-MLP-LLM架构,并解释三个组件中的每个组件有何贡献
+- 比较Qwen3-VL,InternVL3.5,LLaVA-Next和GLM-4.6V的参数数,文本长度和基准性能
+- 解释DeepStack:为什么多层 ViT 功能比单个最后层功能更加强视觉语言的配合
+- 测量生产中的VLM幻觉,使用跨模式错误率 (CMER) 并且对信号进行操作
 
-## 问题背景
+## 问题
 
-CLIP（第4阶段第18课）为图像和文本提供了共享嵌入空间，足以用于零样本分类和检索。但它无法回答"这张图片里有多少辆红色汽车？"因为 CLIP 不生成文本——它只计算相似度分数。
+CLIP (阶段4课 18) 给你一个共享嵌入空间图像和文本,这足以进行零镜头分类和检索.它不能回答"这个图像中有多少红色车?"因为 CLIP 没有生成文本它只得分相似性.
 
-视觉-语言模型（VLMs）—— Qwen3-VL、InternVL3.5、LLaVA-Next、GLM-4.6V —— 在 CLIP 家族的图像编码器上接一个完整的语言模型。模型能看到图像和问题，然后生成答案。在 2026 年的开源 VLM 中，它们在多模态基准（MMMU、MMBench、DocVQA、ChartQA、MathVista、OSWorld）上已能媲美或超越 GPT-5 和 Gemini-2.5-Pro。
+视觉语言模型 (VLM)  Qwen3-VL,InternVL3.5,LLaVA-Next,GLM-4.6V 将CLIP家族图像编码器转换为一个完整的语言模型.该模型看到图像加上一个问题并生成答案. 2026年,开源VLM在多模式基准 (MMMU,MMBench,DocVQA,ChartQA,MathVista,OSWorld) 上竞争或击败GPT-5和Gemini-2.5-Pro.
 
-这三大组件（ViT、投影器、LLM）是标准配置。模型间的差异在于选用哪种 ViT、哪种投影器、哪种 LLM，以及训练数据和微调方案的不同。理解这个模式后，替换任何组件都是机械性工作。
+模型中的不同是 ViT,哪个投影机,哪个投影机,哪个 LLM,培训数据和配列配方.一旦你理解了模式,交换任何组件都是机械的.
 
 ## 概念
 
-### ViT-MLP-LLM 架构
+### 维特-MLP-LLM架构
 
 ```mermaid
 flowchart LR
-    IMG["图像<br/>(H x W x 3)"] --> ViT["视觉编码器<br/>(ViT, CLIP-L,<br/>SigLIP, DINOv3)"]
-    ViT --> FEATS["图像 tokens<br/>(N, d_vit)"]
-    FEATS --> PROJ["投影器<br/>(2-4 层 MLP<br/>或 Q-former)"]
-    PROJ --> VTOK["LLM 空间的图像<br/>tokens<br/>(N, d_llm)"]
-    TXT["文本提示"] --> TOK["LLM 分词器"]
-    TOK --> TTOK["文本 tokens<br/>(M, d_llm)"]
-    VTOK --> CONCAT["交织或拼接"]
+    IMG["Image<br/>(H x W x 3)"] --> ViT["Vision encoder<br/>(ViT, CLIP-L,<br/>SigLIP, DINOv3)"]
+    ViT --> FEATS["Image tokens<br/>(N, d_vit)"]
+    FEATS --> PROJ["Projector<br/>(2-4 layer MLP<br/>or Q-former)"]
+    PROJ --> VTOK["Image tokens<br/>in LLM space<br/>(N, d_llm)"]
+    TXT["Text prompt"] --> TOK["LLM tokenizer"]
+    TOK --> TTOK["Text tokens<br/>(M, d_llm)"]
+    VTOK --> CONCAT["Interleave<br/>or concat"]
     TTOK --> CONCAT
-    CONCAT --> LLM["解码器 LLM<br/>(Qwen3, LLaMA 等)"]
-    LLM --> OUT["文本答案"]
+    CONCAT --> LLM["Decoder LLM<br/>(Qwen3, LLaMA, etc.)"]
+    LLM --> OUT["Text answer"]
 
     style ViT fill:#dbeafe,stroke:#2563eb
     style PROJ fill:#fef3c7,stroke:#d97706
     style LLM fill:#dcfce7,stroke:#16a34a
 ```
 
-1. **视觉编码器** — 预训练的 ViT（CLIP-L/14、SigLIP、DINOv3 或微调变体）。输出 patch tokens。
-2. **投影器** — 一个小型模块（2-4 层 MLP，或 Q-former），将视觉 tokens 映射到 LLM 的嵌入维度。这是微调的主要发生地。
-3. **LLM** — 纯解码器语言模型（Qwen3、Llama、Mistral、GLM、InternLM）。按顺序读取视觉和文本 tokens，生成文本。
+1. **Vision encoder**预训练的ViT (CLIP-L/14,SigLIP,DINOv3或精细调节的变体).
+2. **Projector**一个小模块 (2-4层MLP,或Q-former) 将视觉代币映射到LLM的嵌入维度. 这就是大多数细节调整发生的地方.
+3. **LLM**仅使用解码器语言模型 (Qwen3,Llama,Mistral,GLM,InternLM). 读取视觉+文本代币顺序,生成文本.
 
-三个组件理论上都可训练。实践中，视觉编码器和 LLM 基本冻结，主要训练投影器——用少量参数获得高效学习。
+实际上,视觉编码器和LLM基本上保持冷,而投影器则便宜地训练几十亿参数的信号.
 
-### DeepStack
+### 子
 
-传统投影只使用最后一个 ViT 层。DeepStack（Qwen3-VL）从多个 ViT 深度采样特征并进行堆叠。更深层次携带高级语义；较浅层次携带细粒度空间和纹理信息。同时输入两者到 LLM，填补了"图像包含什么"（语义）和"具体在哪里"（空间定位）之间的差距。
+尼拉投影只使用最后一个ViT层.DeepStack (Qwen3-VL) 样本从多个ViT深度特征并堆叠它们.深层带有高层次的语义;浅层带有细粒度的空间和纹理信息.将两者都输入LLM缩小了"图像包含什么" (语义) 和"究竟在哪里" (空间接地).
 
-### 三阶段训练
+### 三个培训阶段
 
-现代 VLM 分阶段训练：
+现代VLM在阶段进行训练:
 
-1. **对齐阶段** — 冻结 ViT 和 LLM。仅在图像-描述对上训练投影器。教会投影器将视觉空间映射到语言空间。
-2. **预训练** — 解冻全部组件。在大规模交错图像-文本数据（5 亿+ 对）上训练。构建模型的视觉知识。
-3. **指令微调** — 在精选的（图像、问题、答案）三元组上微调。教会对话行为和任务格式。这是将"具备视觉能力的 LM"转化为可用助手的关键步骤。
+1. **Alignment**结结ViT和LLM. 训练只在图像标题对. 教导投影机将视觉空间映射到语言空间.
+2. **Pre-training**解一切. 训练大规模的交织图像文本数据 (500万+对). 建立模型的视觉知识.
+3. **Instruction tuning**精细调节 (图像,问题,答案) 组合三重. 教授对话行为和任务格式. 这就是使"视觉意识的LM"成为可用的助理.
 
-大多数 LoRA 微调针对阶段 3，使用小规模标注数据集。
+大多数LoRA细调的目标是3阶段,
 
-### 模型家族对比（2026 年初）
+### 模型家庭比较 (2026年初)
 
-| 模型 | 参数量 | 视觉编码器 | LLM | 上下文 | 优势 |
+| Model | Params | Vision encoder | LLM | Context | Strengths |
 |-------|--------|----------------|-----|---------|-----------|
-| Qwen3-VL-235B-A22B（MoE） | 235B（22B 激活） | 自定义 ViT + DeepStack | Qwen3 | 256K | 通用 SOTA，GUI 智能体 |
-| Qwen3-VL-30B-A3B（MoE） | 30B（3B 激活） | 自定义 ViT + DeepStack | Qwen3 | 256K | 较小 MoE 替代方案 |
-| Qwen3-VL-8B（密集） | 8B | 自定义 ViT | Qwen3 | 128K | 生产环境密集模型默认选项 |
-| InternVL3.5-38B | 38B | InternViT-6B | Qwen3 + GPT-OSS | 128K | MMBench / MMVet 表现强劲 |
-| InternVL3.5-241B-A28B | 241B（28B 激活） | InternViT-6B | Qwen3 | 128K | 与 GPT-4o 竞争 |
-| LLaVA-Next 72B | 72B | SigLIP | Llama-3 | 32K | 开源，易于微调 |
-| GLM-4.6V | ~70B | 自定义 | GLM | 64K | 开源，OCR 能力强 |
-| MiniCPM-V-2.6 | 8B | SigLIP | MiniCPM | 32K | 适合边缘部署 |
+| Qwen3-VL-235B-A22B (MoE) | 235B (22B active) | custom ViT + DeepStack | Qwen3 | 256K | General SOTA, GUI agent |
+| Qwen3-VL-30B-A3B (MoE) | 30B (3B active) | custom ViT + DeepStack | Qwen3 | 256K | Smaller MoE alternative |
+| Qwen3-VL-8B (dense) | 8B | custom ViT | Qwen3 | 128K | Production dense default |
+| InternVL3.5-38B | 38B | InternViT-6B | Qwen3 + GPT-OSS | 128K | Strong MMBench / MMVet |
+| InternVL3.5-241B-A28B | 241B (28B active) | InternViT-6B | Qwen3 | 128K | Competitive with GPT-4o |
+| LLaVA-Next 72B | 72B | SigLIP | Llama-3 | 32K | Open, easy to fine-tune |
+| GLM-4.6V | ~70B | custom | GLM | 64K | Open-source, strong OCR |
+| MiniCPM-V-2.6 | 8B | SigLIP | MiniCPM | 32K | Edge-friendly |
 
-### 视觉智能体
+### 视觉剂
 
-Qwen3-VL-235B 在 OSWorld 上达到全球顶级性能——这是一个面向**视觉智能体**的基准，操作 GUI（桌面、移动、网页）。模型看到截图、理解 UI，并发出动作（点击、输入、滚动）。结合工具使用，可完成常见桌面任务的闭环。这就是 2026 年大多数"AI PC"演示背后的技术。
+wen3-VL-235B在OSWorld上达到全球最高绩效**visual agents**操作GUI (桌面,移动,网页).该模型会看到一个截图,理解UI,并发出操作 (点击,键字,滚动).与工具相结合,它关闭了常见桌面任务的循环.这是大多数2026年"AI PC"演示程序在罩杯下运行的.
 
-### 智能体能力 + RoPE 变体
+### 代理能力+ROPE变体
 
-VLM 需要知道视频中的某一帧处于什么**时间点**。Qwen3-VL 从 T-RoPE（时间旋转位置编码）演进到了**基于文本的时间对齐**——在视频帧之间交错显式的时间戳文本 tokens。模型看到"`<timestamp 00:32>` 帧，提示"，能够进行时间关系推理。
+维LM需要知道**when**文3-VL从T-RoPE (时间旋转位置嵌入) 发展到**text-based time alignment** 视频框架中插入的明确时刻标签文本代币.模型看到"`<timestamp 00:32>`能思考时间关系.
 
-### 对齐问题
+### 调整问题
 
-爬取数据集中 12% 的图像-文本对包含未完全基于图像的文本描述。在此数据上训练的 VLM 会悄无声息地学会幻觉——捏造对象、误读数字、虚构关系。在生产环境中，这是主要的失败模式。
+搜索数据集中的12%的图像-文本对包含未完全基于图像的描述.一个训练有素的VLM默默地学习幻觉,构造物体,误读数字,发明关系.在生产中,这是主导的失败模式.
 
-Skywork.ai 引入了**跨模态错误率（CMER）**来追踪这一问题：
+太空工作.ai 引入了**Cross-Modal Error Rate (CMER)**追踪:
 
 ```
-CMER = 文本置信度高但图像-文本相似度低（通过 CLIP 家族检查器）的输出比例
+CMER = fraction of outputs where the text confidence is high but the image-text similarity (via a CLIP-family checker) is low
 ```
 
-高 CMER 意味着模型正自信地说出与图像无关的内容。在生产监控中将 CMER 作为 KPI 可将幻觉率降低约 35%。关键技巧不是"修复模型"，而是"将高 CMER 输出路由到人工审核"。
+高CMER意味着模型自信地说出没有基于图像的东西.监测CMER并将其视为生产KPI在部署中降低了幻觉率约35%. 技巧不是"修复模型",而是"将高CMER输出引导到人类审查".
 
-### LoRA / QLoRA 微调
+### 精细调节与LoRA/QLoRA
 
-大多数团队无法负担 70B VLM 的全量微调。在注意力层和投影器层上使用 LoRA（秩 16-64），或使用 4-bit 基础权重的 QLoRA，可在单张 A100 / H100 上运行。成本：5,000-50,000 个样本，100-5,000 美元算力，2-10 小时训练时间。
+对于70BVLM的完整调整,大多数团队无法实现.在注意力+投影器层上,LoRA (排名16-64) 或4位基重量QLoRA,适合单个A100/H100.成本:5,000-50,000个例子,$100-$计算的5000个,训练2-10小时.
 
-### 空间推理仍然薄弱
+### 空间推理仍然很弱
 
-当前 VLM 在空间推理基准上得分 50-60%（上下、左右、计数、距离）。如果你的应用场景依赖"哪个物体在哪个物体上面"，需要进行充分验证——通用 VLM 的表现低于人类水平。纯空间任务的更好选择：专用的关键点/姿态估计器、深度模型，或带框几何后处理的目标检测模型。
+目前的VLM在空间推理基准上获得50-60%.如果您的使用情况取决于"哪个对象在哪个对象上",请认证大大一般VLM性能低于人类.纯空间任务的更好的替代方案是:专业的关键点/姿势估计器,深度模型或后处理的盒子几何学的检测模型.
 
 ```figure
 v4-vlm-projector
 ```
 
-## 动手实践
+## 建立它
 
-### 步骤 1：投影器
+### 步骤1:投影机
 
-这是你最常训练的部分。2-4 层 MLP 搭配 GELU。
+你最常训练的部分.
 
 ```python
 import torch
@@ -133,11 +133,11 @@ class Projector(nn.Module):
         return self.net(x)
 ```
 
-输入是 `(N_patches, d_vit)` 的 token 张量。输出是 `(N_patches, d_llm)`。LLM 将每个输出行视为另一个 token。
+输入是一个`(N_patches, d_vit)`输出是`(N_patches, d_llm)`法律法师将每一行输出都视为另一个标志.
 
-### 步骤 2：端到端组装 ViT-MLP-LLM
+### 步骤2:将ViT-MLP-LLM端到端组装
 
-最小化 VLM 的前向传播骨架。真实代码使用 `transformers`；这是概念性布局。
+实际代码使用的是`transformers`它们的概念结构.
 
 ```python
 class MinimalVLM(nn.Module):
@@ -146,20 +146,20 @@ class MinimalVLM(nn.Module):
         self.vit = vit
         self.projector = projector
         self.llm = llm
-        self.image_token_id = image_token_id  # 文本提示中的占位 token
+        self.image_token_id = image_token_id  # placeholder token in text prompt
 
     def forward(self, image, input_ids, attention_mask):
-        # 1. 视觉特征
+        # 1. vision features
         vision_tokens = self.vit(image)                     # (B, N_patches, d_vit)
         vision_embeds = self.projector(vision_tokens)       # (B, N_patches, d_llm)
 
-        # 2. 文本嵌入
+        # 2. text embeddings
         text_embeds = self.llm.get_input_embeddings()(input_ids)  # (B, M, d_llm)
 
-        # 3. 将图像占位 token 替换为视觉嵌入
+        # 3. replace image placeholder tokens with vision embeds
         merged = self._merge(text_embeds, vision_embeds, input_ids)
 
-        # 4. 运行 LLM
+        # 4. run LLM
         return self.llm(inputs_embeds=merged, attention_mask=attention_mask)
 
     def _merge(self, text_embeds, vision_embeds, input_ids):
@@ -169,17 +169,17 @@ class MinimalVLM(nn.Module):
             positions = (input_ids[b] == self.image_token_id).nonzero(as_tuple=True)[0]
             if len(positions) != expected:
                 raise ValueError(
-                    f"批次 {b} 有 {len(positions)} 个图像 tokens，但 vision_embeds 有 {expected} 个 patches。"
-                    "批次中每个样本必须预填充到相同数量的图像占位 token。")
+                    f"batch item {b} has {len(positions)} image tokens but vision_embeds has {expected} patches."
+                    " Every sample in the batch must be pre-padded to the same number of image placeholder tokens.")
             out[b, positions] = vision_embeds[b]
         return out
 ```
 
-文本中的 `<image>` 占位 token 会被真实图像嵌入替换——这是 LLaVA、Qwen-VL 和 InternVL 使用的相同模式。
+其他`<image>`文字中的位置符号被真正的图像嵌入所取代.
 
-### 步骤 3：CMER 计算
+### 步骤3: CMER计算
 
-轻量级运行时检查。
+轻量级的运行时间检查.
 
 ```python
 import torch.nn.functional as F
@@ -187,22 +187,22 @@ import torch.nn.functional as F
 
 def cross_modal_error_rate(image_emb, text_emb, text_confidence, sim_threshold=0.25, conf_threshold=0.8):
     """
-    image_emb, text_emb: 图像和生成文本的嵌入（内部归一化）
-    text_confidence:     [0, 1] 范围内每个 token 概率的均值
-    返回：                高置信度但图像-文本对齐度低的输出比例
+    image_emb, text_emb: embeddings of image and generated text (normalised internally)
+    text_confidence:     mean per-token probability in [0, 1]
+    Returns:             fraction of high-confidence outputs with low image-text alignment
     """
     image_emb = F.normalize(image_emb, dim=-1)
     text_emb = F.normalize(text_emb, dim=-1)
-    sim = (image_emb * text_emb).sum(dim=-1)        # 余弦相似度
+    sim = (image_emb * text_emb).sum(dim=-1)        # cosine similarity
     high_conf_low_sim = (text_confidence > conf_threshold) & (sim < sim_threshold)
     return high_conf_low_sim.float().mean().item()
 ```
 
-将 CMER 作为生产 KPI。按端点、按提示类型、按客户进行监控。CMER 上升表明模型开始在某种输入分布上产生幻觉。
+视CMER为生产KPI. 监控它每端点,每提示类型,每客户. 升级CMER表明模型开始对一些输入分布产生幻觉.
 
-### 步骤 4：玩具 VLM 分类器（可运行）
+### 步骤 4:玩具VLM分类器 (可运行)
 
-演示投影器可以训练。输入伪造的"ViT 特征"；一个小型 LLM 风格的 token 预测类别。
+假的"ViT特征"进入,一个小的LLM风格的代币预测一个课程.
 
 ```python
 class ToyVLM(nn.Module):
@@ -217,15 +217,15 @@ class ToyVLM(nn.Module):
         return self.head(pooled)
 ```
 
-可以在合成（特征，类别）对上训练，少于 200 步即可收敛——足以证明投影器模式有效。
+足以显示投影机模式的运作.
 
-## 生产使用
+## 用它
 
-2026 年生产团队使用 VLM 的三种方式：
+2026年生产团队将使用VLM的三个方法:
 
-- **托管 API** — OpenAI Vision、Anthropic Claude Vision、Google Gemini Vision。无需基础设施，存在供应商风险。
-- **开源自建** — 通过 `transformers` 和 `vllm` 部署 Qwen3-VL 或 InternVL3.5。完全控制，前期投入较高。
-- **领域微调** — 加载 Qwen2.5-VL-7B 或 LLaVA-1.6-7B，在 5k-50k 自定义样本上 LoRA 微调，使用 `vllm` 或 `TGI` 服务。
+- **Hosted API**OpenAI视觉,人类克劳德视觉,谷歌双胞胎视觉.零下线,供应商风险.
+- **Open-source self-host** Qwen3-VL或InternVL3.5 通过`transformers`其他`vllm`完全控制,提前的努力.
+- **Fine-tune on domain**加载Qwen2.5-VL-7B或LLaVA-1.6-7B,LoRA在5k-50k定制示例上,使用`vllm`或`TGI`现在,我们要去.
 
 ```python
 from transformers import AutoProcessor, AutoModelForVision2Seq
@@ -240,7 +240,7 @@ messages = [{
     "role": "user",
     "content": [
         {"type": "image", "image": Image.open("plot.png")},
-        {"type": "text", "text": "这张图表展示了什么？"},
+        {"type": "text", "text": "What does this chart show?"},
     ],
 }]
 inputs = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=True, return_dict=True, return_tensors="pt").to("cuda")
@@ -248,39 +248,39 @@ generated = model.generate(**inputs, max_new_tokens=256)
 answer = processor.decode(generated[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
 ```
 
-`apply_chat_template` 隐藏了 `<image>` 占位 token 的分词细节；模型内部处理合并逻辑。
+`apply_chat_template`隐藏了`<image>`位置持有符号化;模型内部处理合并.
 
-## 交付成果
+## 运送它
 
-本课产出：
+这一课产生了:
 
-- `outputs/prompt-vlm-selector.md` — 根据精度、延迟、上下文长度和预算，选择 Qwen3-VL / InternVL3.5 / LLaVA-Next / API。
-- `outputs/skill-cmer-monitor.md` — 生成用于在生产 VLM 端点中集成跨模态错误率的代码，包括各端点仪表板和告警阈值。
+- `outputs/prompt-vlm-selector.md`选择Qwen3-VL / InternVL3.5 / LLaVA-Next / API 鉴于精度,延迟,文本长度和预算.
+- `outputs/skill-cmer-monitor.md`发出代码,以仪器生产VLM终端点,具有跨模式错误率,每个终端点仪表板和警报门.
 
-## 练习
+## 运动
 
-1. **（简单）** 对五张图片分别运行三个提示（"这是什么？"、"数一下物体数量"、"描述场景"），用手评估每个答案是否正确/部分正确/产生幻觉。计算初步的类 CMER 指标。
-2. **（中等）** 使用 LoRA（秩 16）在 500 张目标领域的图像及描述上微调 Qwen2.5-VL-3B 或 LLaVA-1.6-7B。对比零样本与微调后的 MMBench 风格准确率。
-3. **（困难）** 将 VLM 的图像编码器替换为 DINOv3，而非默认的 SigLIP/CLIP。仅重新训练投影器（冻结 LLM + 冻结 DINOv3）。衡量密集预测任务（计数、空间推理）是否有所改进。
+1. **(Easy)**在五张图像中通过任何开放的VLM执行三个提示 ("这是什么?","数对象","描述场景").每一个回答都按手进行正确/部分正确/幻觉.计算一个像CMR一样的率.
+2. **(Medium)**精细调 Qwen2.5-VL-3B或 LLaVA-1.6-7B,使用 LoRA (排名 16) 在标题的目标域的500个图像上.
+3. **(Hard)**取代VLM的图像编码器用DINOv3而不是其默认的SigLIP/CLIP.只重训投影器 (结LLM +结DINOv3).测量密集预测任务 (计算,空间推理) 是否改善.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|----------------------|
-| ViT-MLP-LLM | "VLM 模式" | 视觉编码器 + 投影器 + 语言模型；2026 年所有 VLM 的基础架构 |
-| Projector | "桥梁" | 2-4 层 MLP（或 Q-former），将视觉 tokens 映射到 LLM 嵌入空间 |
-| DeepStack | "Qwen3-VL 特征技巧" | 堆叠多级 ViT 特征，而非仅使用最后一层 |
-| Image token | "<image> 占位符" | 文本流中的特殊 token，被投影后的视觉嵌入替换 |
-| CMER | "幻觉 KPI" | 跨模态错误率；文本置信度高但图像-文本相似度低时数值较高 |
-| Visual agent | "会点击的 VLM" | 操作 GUI 的 VLM（OSWorld、移动、网页），支持工具调用 |
-| Q-former | "固定数量 token 桥梁" | BLIP-2 风格的投影器，输出固定数量的视觉查询 tokens |
-| Alignment / pre-training / instruction tuning | "三个阶段" | 标准 VLM 训练流水线 |
+| ViT-MLP-LLM | "The VLM pattern" | Vision encoder + projector + language model; every 2026 VLM |
+| Projector | "The bridge" | 2-4 layer MLP (or Q-former) that maps vision tokens into LLM embedding space |
+| DeepStack | "Qwen3-VL feature trick" | Multi-level ViT features stacked rather than last-layer only |
+| Image token | "<image> placeholder" | Special token in the text stream replaced by projected vision embeddings |
+| CMER | "Hallucination KPI" | Cross-Modal Error Rate; high when text confidence is high but image-text similarity is low |
+| Visual agent | "VLM that clicks" | VLM operating GUIs (OSWorld, mobile, web) with tool calls |
+| Q-former | "Fixed-count token bridge" | BLIP-2 style projector producing a fixed number of visual query tokens |
+| Alignment / pre-training / instruction tuning | "Three stages" | Standard VLM training pipeline |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Qwen3-VL 技术报告 (arXiv 2511.21631)](https://arxiv.org/abs/2511.21631)
-- [InternVL3.5 推进开源多模态模型 (arXiv 2508.18265)](https://arxiv.org/html/2508.18265v1)
-- [LLaVA-Next 系列](https://llava-vl.github.io/blog/2024-05-10-llava-next-stronger-llms/)
-- [BentoML: 2026 最佳开源 VLM](https://www.bentoml.com/blog/multimodal-ai-a-guide-to-open-source-vision-language-models)
-- [MMMU: 多学科多模态理解基准](https://mmmu-benchmark.github.io/)
-- [VLM 在制造业中的应用 (Robotics Tomorrow, 2026年3月)](https://www.roboticstomorrow.com/story/2026/03/when-machines-learn-to-see-like-experts-the-rise-of-vision-language-models-in-manufacturing/26335/)
+- [Qwen3-VL Technical Report (arXiv 2511.21631)](https://arxiv.org/abs/2511.21631)
+- [InternVL3.5 Advancing Open-Source Multimodal Models (arXiv 2508.18265)](https://arxiv.org/html/2508.18265v1)
+- [LLaVA-Next series](https://llava-vl.github.io/blog/2024-05-10-llava-next-stronger-llms/)
+- [BentoML: Best Open-Source VLMs 2026](https://www.bentoml.com/blog/multimodal-ai-a-guide-to-open-source-vision-language-models)
+- [MMMU: Multi-discipline Multimodal Understanding benchmark](https://mmmu-benchmark.github.io/)
+- [VLMs in manufacturing (Robotics Tomorrow, March 2026)](https://www.roboticstomorrow.com/story/2026/03/when-machines-learn-to-see-like-experts-the-rise-of-vision-language-models-in-manufacturing/26335/)
