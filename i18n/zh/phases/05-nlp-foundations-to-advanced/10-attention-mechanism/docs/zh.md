@@ -1,85 +1,79 @@
-```markdown
-# 注意力机制——突破性进展
+# 关注机制 突破
 
-> 解码器不再眯着眼看一个压缩摘要，而是开始审视整个源序列。此后的一切都是注意力机制加上工程实现。
+> 解码器停止眼看压缩的摘要,开始查看整个来源.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 阶段5 · 第09课（序列到序列模型）
-**耗时：** 约45分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 5 · 09 (Sequence-to-Sequence Models)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-第09课以"有节制的失败"收尾。在玩具复制任务上训练的 GRU 编解码器，从长度5时的89%准确率，下降到长度80时的接近随机水平。原因是结构性的，而非训练bug：编码器获取的所有信息必须塞进一个固定大小的隐藏状态，而解码器永远看不到其他任何内容。
+课程09结束时出现了测量故障.在玩具复制任务上训练的GRU编码器-解码器从89%的精度在长度5到近巧的长度80的原因是结构性,而不是训练错误:编码器收集的每一点信息都必须合适于一个固体尺寸的隐藏状态,解码器从来没有看到任何其他东西.
 
-Bahdanau、Cho 和 Bengio 在2014年发表了一个三行的修复方案。不再只给解码器最终编码器状态，而是保留所有编码器状态。在每个解码步骤，计算编码器状态的加权平均，其中权重表示"解码器此刻需要多看多少编码器位置 `i`？"这个加权平均就是上下文向量，且它在每个解码步骤都会变化。
+巴哈达纳,乔和孟基奥于2014年发布了一项三行修正.而不是给解码器只给出最后的编码器状态,保持每个编码器状态.在每个编码器步骤上,计算一个权重平均的编码器状态,重量说"解码器需要看多少编码器位置.`i`这就是重量平均的背景,它改变了每一步的解码器.
 
-这就是全部思想。Transformer 将其扩展。自注意力将其应用于单一序列。多头注意力并行运行它。但2014年的版本已经打破了瓶颈，一旦有了它，转向 Transformer 就是工程问题，而非概念问题。
+这就是整个想法.变压器扩展了它.自我注意力将它应用到单个序列上.多头注意力并行运行它.但2014版本已经打破了瓶,一旦你得到了它,变压器的枢纽是工程,而不是概念.
 
 ## 概念
 
-![Bahdanau 注意力：解码器查询所有编码器状态](../assets/attention.svg)
+![Bahdanau attention: decoder queries all encoder states](../assets/attention.svg)
 
-在每个解码步骤 `t`：
+在每个解码器步骤中`t`其他:
 
-1. 使用之前的解码器隐藏状态 `s_{t-1}` 作为**查询**。
-2. 将它与所有编码器隐藏状态 `h_1, ..., h_T` 进行打分。每个编码器位置一个标量。
-3. 对分数做 softmax 得到注意力权重 `α_{t,1}, ..., α_{t,T}`，它们之和为1。
-4. 上下文向量 `c_t = Σ α_{t,i} * h_i`。编码器状态的加权平均。
-5. 解码器接收 `c_t` 和上一个输出 token，生成下一个 token。
+1. 使用之前的解码器隐藏状态`s_{t-1}`作为一个**query**现在,我们要去.
+2. 给每一个编码器隐藏状态进行评分`h_1, ..., h_T`每个编码器位置都有一个 skalar.
+3. 软max的分数以获得注意力重量`α_{t,1}, ..., α_{t,T}`总数为1.
+4. 文本向量`c_t = Σ α_{t,i} * h_i`编码器状态的权重平均值.
+5. 解码器需要`c_t`另外一个输出代币,产生了下一个代币.
 
-加权平均是核心所在。当解码器需要将"Je"翻译为"I"时，它会高分加权"Je"对应的编码器状态，其他状态低分加权。当它需要"not"时，高分加权"pas"。上下文向量每一步都在重塑。
+权重平均值是点.当解码器需要将"Je"转换为"I",它重量化码器状态为"Je"高,其他的低.当它需要"不",它重量化"pas"高.文本向量重量化每个步骤.
 
-## 形状（这是所有人踩坑的地方）
+## 形状 (咬人所有的人)
 
-这是每个注意力实现第一次都会出错的地方。请仔细阅读。
+这就是每次注意力实施的第一次错误.
 
-| 内容 | 形状 | 备注 |
+| Thing | Shape | Notes |
 |-------|-------|-------|
-| 编码器隐藏状态 `H` | `(T_enc, d_h)` | 若是 BiLSTM，`d_h = 2 * d_hidden` |
-| 解码器隐藏状态 `s_{t-1}` | `(d_s,)` | 单个向量 |
-| 注意力分数 `e_{t,i}` | 标量 | 每个编码器位置一个 |
-| 注意力权重 `α_{t,i}` | 标量 | 对所有 `i` 做 softmax 后 |
-| 上下文向量 `c_t` | `(d_h,)` | 与编码器状态形状相同 |
+| Encoder hidden states `H` | `(T_enc, d_h)` | If BiLSTM, `d_h = 2 * d_hidden` |
+| Decoder hidden state `s_{t-1}` | `(d_s,)` | One vector |
+| Attention score `e_{t,i}` | scalar | One per encoder position |
+| Attention weight `α_{t,i}` | scalar | After softmax over all `i` |
+| Context vector `c_t` | `(d_h,)` | Same shape as an encoder state |
 
-**Bahdanau（加性）分数。** `e_{t,i} = v_α^T * tanh(W_a * s_{t-1} + U_a * h_i)`。
+**Bahdanau (additive) score.** `e_{t,i} = v_α^T * tanh(W_a * s_{t-1} + U_a * h_i)`现在,我们要去.
 
-- `s_{t-1}` 形状为 `(d_s,)`，`h_i` 形状为 `(d_h,)`。
-- `W_a` 形状为 `(d_attn, d_s)`，`U_a` 形状为 `(d_attn, d_h)`。
-- 它们相加后进入 tanh 的形状为 `(d_attn,)`。
-- `v_α` 形状为 `(d_attn,)`。与 `v_α` 的內积坍缩为一个标量。**这就是 `v_α` 的作用。** 它不是魔法。它是将注意力维度向量投影为标量分数的映射。
+- `s_{t-1}`具有形状`(d_s,)`现在`h_i`具有形状`(d_h,)`现在,我们要去.
+- `W_a`具有形状`(d_attn, d_s)`现在,我们要去.`U_a`具有形状`(d_attn, d_h)`现在,我们要去.
+- 它们的子里面的积分有形状.`(d_attn,)`现在,我们要去.
+- `v_α`具有形状`(d_attn,)`内部产品与`v_α`升到一个度.**This is what `v_α` does.**它们不是魔法,而是投影,使注意力光向量变成了尺度分数.
 
-**Luong（乘性）分数。** 三种变体：
+**Luong (multiplicative) score.**它们有三个变体:
 
-- `dot`：`e_{t,i} = s_t^T * h_i`。要求 `d_s == d_h`。硬性约束。如果编码器是双向的请跳过。
-- `general`：`e_{t,i} = s_t^T * W * h_i`，`W` 形状为 `(d_s, d_h)`。消除了等维约束。
-- `concat`：本质上是 Bahdanau 形式。由于前两种更廉价，很少使用。
+- `dot`其他`e_{t,i} = s_t^T * h_i`需要`d_s == d_h`如果你的编码器是双向的,就跳过.
+- `general`其他`e_{t,i} = s_t^T * W * h_i`随着`W`形状`(d_s, d_h)`消除了同等度的限制.
+- `concat`基本上是巴哈达努形式.
 
-**一个值得命名的 Bahdanau / Luong 陷阱。** Bahdanau 使用 `s_{t-1}`（生成当前词*之前*的解码器状态）。Luong 使用 `s_t`（*之后*的状态）。混淆它们会产生微妙的错误梯度，极其难以调试。选择一篇论文并坚持其约定。
+**One Bahdanau / Luong gotcha worth naming.**巴哈达努使用`s_{t-1}`路恩使用了 语,`s_t`它们混合后,产生了微妙的错误梯度,非常难以调试.
 
 ```figure
 attention-heatmap
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤1：加性（Bahdanau）注意力
+### 步骤1:添加剂 (Bahdanau) 注意
 
 ```python
 import numpy as np
 
 
 def additive_attention(decoder_state, encoder_states, W_a, U_a, v_a):
-    # 投影解码器和编码器状态
     projected_dec = W_a @ decoder_state
     projected_enc = encoder_states @ U_a.T
-    # 相加并通过 tanh
     combined = np.tanh(projected_enc + projected_dec)
-    # 投影到标量分数
     scores = combined @ v_a
-    # 归一化为权重
     weights = softmax(scores)
-    # 加权求和得到上下文向量
     context = weights @ encoder_states
     return context, weights
 
@@ -90,9 +84,9 @@ def softmax(x):
     return e / e.sum()
 ```
 
-对照上面的表格检查你的形状。`encoder_states` 形状为 `(T_enc, d_h)`。`projected_enc` 形状为 `(T_enc, d_attn)`。`projected_dec` 形状为 `(d_attn,)` 并广播。`combined` 形状为 `(T_enc, d_attn)`。`scores` 形状为 `(T_enc,)`。`weights` 形状为 `(T_enc,)`。`context` 形状为 `(d_h,)`。提交它。
+检查你的形状与上面的表.`encoder_states`具有形状`(T_enc, d_h)`现在,我们要去.`projected_enc`具有形状`(T_enc, d_attn)`现在,我们要去.`projected_dec`具有形状`(d_attn,)`广播.`combined`具有形状`(T_enc, d_attn)`现在,我们要去.`scores`具有形状`(T_enc,)`现在,我们要去.`weights`具有形状`(T_enc,)`现在,我们要去.`context`具有形状`(d_h,)`运送它.
 
-### 步骤2：Luong dot 和 general
+### 步骤2: 卢昂点和一般
 
 ```python
 def dot_attention(decoder_state, encoder_states):
@@ -108,11 +102,11 @@ def general_attention(decoder_state, encoder_states, W):
     return weights @ encoder_states, weights
 ```
 
-每种只有三行。这就是 Luong 的论文能发表的原因。在大多数任务上准确率相同，代码量大幅减少。
+由于这就是为什么卢昂的论文登陆了. 在大多数任务上,相同的准确性,更少的代码.
 
-### 步骤3：一个数值示例
+### 步骤3:一个工作的数值示例
 
-给定三个编码器状态（大致对应"cat"、"sat"、"mat"），以及主要与第一个对齐的解码器状态，注意力分布会集中在位置0。如果解码器状态转移到与最后一个对齐，注意力会移到位置2。上下文向量随之跟踪。
+鉴于有三个编码状态 (大致是"猫","卫星","") 和一个与第一个最一致的编码状态,注意力分布集中在位置0. 如果编码状态转向最后的位置,注意力将转移到位置2.
 
 ```python
 H = np.array([
@@ -130,23 +124,23 @@ print("weights:", w.round(3))
 weights: [0.464 0.305 0.231]
 ```
 
-第一行获胜。然后将解码器状态移向第三个编码器状态，观察权重如何移动。就是这样。注意力就是显式的对齐。
+首先是获胜的,然后把解码器状态移到第三个编码器状态,然后观察重量转移.
 
-### 步骤4：为什么这是通往 Transformer 的桥梁
+### 步骤4:为什么这就是转换器的桥梁
 
-将上述语言映射为 Q/K/V：
+翻译上述语言为Q/K/V:
 
-- **查询（Query）** = 解码器状态 `s_{t-1}`
-- **键（Key）** = 编码器状态（我们与之打分的对象）
-- **值（Value）** = 编码器状态（我们加权求和的对象）
+- **Query**= 解码器状态`s_{t-1}`
+- **Key**= 编码状态 (我们对比的分数)
+- **Value**=编码状态 (我们重量和总数)
 
-在经典注意力中，键和值是同一个东西。自注意力将它们分离：你可以让一个序列查询自身，并对 K 和 V 使用不同的学习投影。多头注意力并行运行它，使用不同的学习投影。Transformer 将整个过程堆叠多次并抛弃 RNN。
+在经典的注意力中,密钥和值是一样的.自我注意力分开它们:你可以对一个序列进行查询,使用不同的学习投影为K和V.多头注意力与不同的学习投影并行运行.变压器堆叠整个阶段多次,然后放下RNN.
 
-数学是一样的。形状是一样的。从 Bahdanau 注意力到缩放点积注意力的教学跳跃主要是符号上的差异。
+数学是相同的.形状是相同的.从巴哈达纳注意力到扩展点产品注意力的教学跳跃主要是符号.
 
-## 使用它
+## 用它
 
-PyTorch 和 TensorFlow 直接提供注意力机制。
+鱼和鱼流直接送上注意力.
 
 ```python
 import torch
@@ -165,65 +159,64 @@ print(output.shape, weights.shape)
 torch.Size([2, 5, 128]) torch.Size([2, 5, 10])
 ```
 
-这是一个 Transformer 注意力层。查询批量5个位置，键/值批量10个位置，每个128维，8个头。`output` 是新的上下文增强查询。`weights` 是你可以可视化的 5x10 对齐矩阵。
+查询组5个位置,关键/值组10个位置,每个128个,8个头.`output`对于这些问题来说,`weights`它们是5×10的对齐矩阵,
 
-### 经典注意力仍然重要的场景
+### 当古典的注意力仍然重要时
 
-- 教学。单头、单层、基于 RNN 的版本使每个概念都清晰可见。
-- 在 Transformer 不适合的终端设备序列任务中。
-- 2014-2017年的任何论文。如果不了解 Bahdanau 的约定，你会误读它。
-- 机器翻译中的细粒度对齐分析。原始注意力权重是可解释性工具，即使在 Transformer 模型上也如此，而阅读它们需要知道它们是什么。
+- 单头,单层,基于RNN的版本使每个概念都可见.
+- 变压器不适合的设备上序列任务.
+- 你会错误地读到任何2014-2017年报纸,
+- 精细的对齐分析在MT中. 粗的注意力重量即使在变压器模型上也是一个可解释的工具,
 
-### 注意力权重即解释的陷阱
+### 关注重量作为解释陷
 
-注意力权重看起来可解释。它们是跨位置之和为1的权重；你可以绘制它们；高权重意味着"看了这里"。审稿人很喜欢它们。
+关注重量看起来可以解释.它们是重量,可以在一个位置上加起来;你可以绘制它们;高意味着"看到了这个".评论家喜欢它们.
 
-它们不像看起来那样可解释。Jain 和 Wallace（2019）表明，注意力分布可以被置换并由任意替代方案替换，而不会改变某些任务上的模型预测。永远不要在没有消融实验或反事实检查的情况下报告注意力权重作为推理证据。
+简和瓦莱斯 (2019) 表明,注意力分布可以通过任意替代品来改变,而不会改变某些任务的模型预测.永远不要报告注意力重量作为没有抽象或反事实检查的推理证据.
 
-## 交付
+## 运送它
 
-保存为 `outputs/prompt-attention-shapes.md`：
+保存如`outputs/prompt-attention-shapes.md`其他:
 
 ```markdown
 ---
 name: attention-shapes
-description: 调试注意力实现中的形状 bug。
+description: Debug shape bugs in attention implementations.
 phase: 5
 lesson: 10
 ---
 
-给定一个有缺陷的注意力实现，你要识别出形状不匹配。输出：
+Given a broken attention implementation, you identify the shape mismatch. Output:
 
-1. 哪个矩阵形状错误。命名该张量。
-2. 它应该具有的形状，由 (d_s, d_h, d_attn, T_enc, T_dec, batch_size) 推导。
-3. 一行修复。转置、reshape 或投影。
-4. 一个用于捕获回归测试。通常是：断言 `output.shape == (batch, T_dec, d_h)` 且 `weights.shape == (batch, T_dec, T_enc)` 且 `weights.sum(dim=-1) close to 1`。
+1. Which matrix has the wrong shape. Name the tensor.
+2. What its shape should be, derived from (d_s, d_h, d_attn, T_enc, T_dec, batch_size).
+3. One-line fix. Transpose, reshape, or project.
+4. A test to catch regressions. Typically: assert `output.shape == (batch, T_dec, d_h)` and `weights.shape == (batch, T_dec, T_enc)` and `weights.sum(dim=-1) close to 1`.
 
-拒绝推荐那些会静默广播的修复方案。隐藏广播的 bug 之后会以静默的准确率下降形式浮现，这是最糟糕的一类注意力 bug。
+Refuse to recommend fixes that silently broadcast. Broadcast-hiding bugs surface later as silent accuracy degradation, the worst kind of attention bug.
 
-对于 Bahdanau 混淆，坚持解码器输入是 `s_{t-1}`（步前状态）。对于 Luong，是 `s_t`（步后状态）。对于点积，指出查询和键之间的维度不匹配是最常见的初学者错误。
+For Bahdanau confusion, insist the decoder input is `s_{t-1}` (pre-step state). For Luong, `s_t` (post-step state). For dot-product, flag dimension mismatch between query and key as the most common first-time error.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 实现 softmax 掩码，使编码器中的填充 token 获得零注意力权重。在具有变长序列的批量上测试。
-2. **中等。** 将多头注意力添加到 Luong `general` 形式。将 `d_h` 分割为 `n_heads` 组，每个头运行注意力，然后拼接。验证单头情况与之前的实现匹配。
-3. **困难。** 在第09课的玩具复制任务上，用 Bahdanau 注意力训练 GRU 编解码器。绘制准确率 vs 序列长度的曲线。与无注意力基线比较。你应该看到差距随长度增长而扩大，确认注意力提升了瓶颈。
+1. **Easy.**实施`softmax`测试一批具有变长序列的批量.
+2. **Medium.**增加多头关注的路昂`general`形式,分开`d_h`进入`n_heads`检查单头案例是否符合您的早期实施.
+3. **Hard.**训练一个GRU编码器-解码器,用巴哈达纳注意力从第09课开始的玩具复制任务. 剧情精度与序列长度. 与没有注意力基线相比较.随着长度的增加,你应该看到差距扩大,确认注意力提高了瓶.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| 注意力 | 看东西 | 对值序列的加权平均，权重由查询-键相似度计算得出。 |
-| 查询、键、值 | QKV | 三个投影：Q 询问，K 是被匹配的对象，V 是要返回的内容。 |
-| 加性注意力 | Bahdanau | 前馈分数：`v^T tanh(W q + U k)`。 |
-| 乘性注意力 | Luong dot / general | 分数为 `q^T k` 或 `q^T W k`。更廉价，在大多数任务上准确率相同。 |
-| 对齐矩阵 | 那张漂亮的图 | 注意力权重作为 `(T_dec, T_enc)` 网格。阅读它来查看模型关注了什么。 |
+| Attention | Looking at things | Weighted average of a value sequence, weights computed from a query-key similarity. |
+| Query, Key, Value | QKV | Three projections: Q asks, K is what to match, V is what to return. |
+| Additive attention | Bahdanau | Feed-forward score: `v^T tanh(W q + U k)`. |
+| Multiplicative attention | Luong dot / general | Score is `q^T k` or `q^T W k`. Cheaper, same accuracy on most tasks. |
+| Alignment matrix | The pretty picture | Attention weights as a `(T_dec, T_enc)` grid. Read it to see what the model attended to. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Bahdanau, Cho, Bengio (2014). Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473) — 原论文。
-- [Luong, Pham, Manning (2015). Effective Approaches to Attention-based Neural Machine Translation](https://arxiv.org/abs/1508.04025) — 三种分数变体及其比较。
-- [Jain and Wallace (2019). Attention is not Explanation](https://arxiv.org/abs/1902.10186) — 可解释性警告。
-- [Dive into Deep Learning — Bahdanau Attention](https://d2l.ai/chapter_attention-mechanisms-and-transformers/bahdanau-attention.html) — 带 PyTorch 的可运行教程。
-```
+- [Bahdanau, Cho, Bengio (2014). Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473)报纸.
+- [Luong, Pham, Manning (2015). Effective Approaches to Attention-based Neural Machine Translation](https://arxiv.org/abs/1508.04025)三种分数变体及其比较.
+- [Jain and Wallace (2019). Attention is not Explanation](https://arxiv.org/abs/1902.10186)可解释性警告.
+- [Dive into Deep Learning — Bahdanau Attention](https://d2l.ai/chapter_attention-mechanisms-and-transformers/bahdanau-attention.html)可用 PyTorch 进行通行.

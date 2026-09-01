@@ -1,64 +1,64 @@
-# Transformer之前的文本生成 —— N-gram语言模型
+# 转变器之前的文字生成  N-gram语言模型
 
-> 如果某个词出乎意料，说明模型很差。困惑度将意外程度量化为一个数值。平滑技术使其保持有限。
+> 如果一个字令人惊,模型是坏的. 困惑使一个数字惊. 滑滑使它有限.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 阶段5·01（文本处理）、阶段2·14（朴素贝叶斯）
-**时间：** 约45分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 5 · 01 (Text Processing), Phase 2 · 14 (Naive Bayes)
+**Time:** ~45 minutes
 
-## 问题背景
+## 问题
 
-在transformers出现之前，在RNN之前，在词嵌入之前，语言模型通过统计某词跟随前`n-1`个词的频率来预测下一个词。统计"the cat"→"sat"出现47次，"the cat"→"jumped"出现12次，"the cat"→"refrigerator"出现0次。归一化后得到概率分布。
+在变压器之前,RNN之前,词嵌入之前,一个语言模型通过计算它跟上之前的词的频率来预测下一个词`n-1`字数"猫" → "坐" 47 次,"猫" → "跳" 12 次,"猫" → "冰箱" 0 次.正常化以获得概率分布.
 
-这就是n-gram语言模型。从1980年到2015年，它驱动了每一个语音识别器、每一个拼写检查器、每一个基于短语的机器翻译系统。当你需要低成本的设备端语言建模时，它仍在运行。
+这是一个n-gram语言模型. 它运行了每一个语音识别器,每一个拼音检查器,以及每一个基于短语的机器翻译系统, 从1980年到2015年.
 
-真正有趣的问题是：如何处理未见过（未训练到）的n-gram。一个原始的基于计数的模型会给所有未见过的事物分配零概率，而这会灾难性地导致问题——因为句子很长，几乎每个长句子都至少包含一个未出现的序列。五十年的平滑研究就是为了解决这个问题，Kneser-Ney平滑是其中成果，现代深度学习也继承了其经验主义传统。
+问题是如何处理未见的n-gram.一个基于原始数值的模型将未见的任何东西的概率分配为零,这是灾难性的,因为句子长,几乎每个长句子至少包含一个未见的序列.五十年的平滑研究解决了这一问题.Kneser-Ney平滑是结果,现代深度学习继承了它的经验传统.
 
 ## 概念
 
-![N-gram模型：计数、平滑、生成](../assets/ngram.svg)
+![N-gram model: count, smooth, generate](../assets/ngram.svg)
 
 ### 预测游戏
 
-在所有这些技术出现之前，有一个实验定义了什么是语言模型。遮住英文句子的下一个字母。让人猜，一个一个猜，直到猜对。记下猜的次数。对几百个字母重复这个过程。
+在这种机器出现之前,有一次实验定义了语言模型. 覆盖一个英语句子的下一个字母. 要求别人猜测,一次猜测,直到他们做得好. 写下猜测数量. 重复几百个字母.
 
-这些猜测次数不是 trivia。它们是对文本的无损重新编码：把猜测次数序列交给第二个相同的猜测者，他们就能重建每一个字母，因为在每个位置上，他们知道哪些猜测排在前面。你能用更少的符号重新编码的信息，每个符号携带的信息更少，所以猜测次数统计给英语的熵设定了一个上限。
+猜测数量不是小事.它们是文本的无损重新编码:把数量序列交给第二个相同的猜测器,他们可以重建每个字母,因为在每个位置,他们知道哪些猜测是第一.一个可以重新编码的信息,在更少的符号中,每个符号的信息都少,所以猜测数量统计对英语的位上设置了一个限.
 
-Shannon在1951年做了这个实验，得到了一个至今仍支配该领域的数字。一个27符号的字母表（26个字母加空格）每字母可携带`log2(27) ≈ 4.75`比特。人类猜测者使用100个字母的上下文时，每字母落在0.6到1.3比特之间。英语大约是四分之三的强制移动。模型必须学习到的结构，在任何模型能够学习它之前就被测量出来了。
+农在1951年进行了这个测试,并得到了一个数字,它仍然统治这个领域.一个27个符号的字母 (26个字母加上空间) 可以携带`log2(27) ≈ 4.75`字母中每位位数.人类猜测100字母的文本,每字母中降落在0.6到1.3位之间.英语是约四分之三的强迫动作.模型必须学习的结构在任何模型都学会之前被测量.
 
-自此之后的每一个语言模型，都是这个游戏的一个机械玩家；本课中每一个评估数字，都是对游戏的评分：
+每个语言模型都是这个游戏的机械玩家,
 
-- **交叉熵损失**是模型每个符号平均需要的比特数。训练LM就是最小化它在猜词游戏中的得分。
-- **困惑度**是`2^比特数`（或`e^nats`）：在模型完成猜测后，仍面临的分支因子。均匀猜测27个符号对应困惑度27；每字母1比特的玩家困惑度为2。
-- **上下文长度是玩家的记忆。** trigram模型用两个token的记忆玩这个游戏。transformer用100K token的记忆玩同一个游戏。规则从未改变；玩家变强了。
+- **Cross-entropy loss**训练一个LM字面上是减少猜测游戏的分数.
+- **Perplexity**是`2^bits`(或`e^nats`选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是: 选的方法是:
+- **Context length is the player's memory.**两种记忆代币可以使用,一个变压器可以使用100万代币玩,规则从来没有改变,玩家变得更好.
 
-一个需要注意的单位切换：游戏评分每字母用比特（`log2`），而下面n-gram公式中每词token用nats（自然对数）——因为困惑度在nats下是`e^H`，在bits下是`2^H`，两者是同一测量、不同单位。
+一个单元转换到轨道:每字母的游戏分数 (`log2`),而下面的n-gram公式在 nats (自然日志) 中每字符标记分数,并且由于困难`e^H`在纳斯等级中`2^H`在位中,两个视图在不同的单位中是相同的测量.
 
 ```figure
 prediction-game
 ```
 
-**N-gram概率：** `P(w_i | w_{i-n+1}, ..., w_{i-1})`。固定`n`（通常trigram取3，4-gram取4）。从计数计算：
+**N-gram probability:** `P(w_i | w_{i-n+1}, ..., w_{i-1})`修复`n`根据数值计算:
 
 ```text
 P(w | context) = count(context, w) / count(context)
 ```
 
-**零计数问题。** 训练中未出现的任何n-gram都会被分配概率零。一项针对Brown语料库的2007年研究发现，即使是一个4-gram模型，也有30%的 held-out 4-gram在训练中从未出现。没有平滑就无法对任何真实文本进行评估。
+**The zero-count problem.**任何在训练中没有看到的 n-gram 得到了零的概率.2007年对布朗体的研究发现,即使是4克模型的30%的4克在训练中没有看到.你不能在没有平滑的情况下评估任何真实文本.
 
-**平滑方法（按复杂程度递增）：**
+**Smoothing approaches, in order of sophistication:**
 
-1. **Laplace（加一平滑）。** 每个计数加1。简单，对稀有事件效果很差。
-2. **Good-Turing。** 基于词频的频数，将概率质量从高频率事件重新分配到未见过事件。
-3. **插值。** 用可训练权重组合n-gram、(n-1)-gram等估计。
-4. **回退。** 若n-gram计数为零，则回退到(n-1)-gram。Katz回退对此进行了规范化。
-5. **绝对discounting。** 从所有计数中减去固定折扣`D`，重新分配到未见过事件。
-6. **Kneser-Ney。** 绝对discounting + 为低阶模型精心设计的选择：使用*延续概率*（一个词出现在多少个不同上下文中）而非原始频率。
+1. **Laplace (add-one).**增加一个每次数量.
+2. **Good-Turing.**根据频率的频率,将更高频率事件的概率量重新分配到未见的事件.
+3. **Interpolation.**结合 n-gram, (n-1)-gram等估计和调节可的重量.
+4. **Backoff.**如果 n-gram 算是零,则回到 (n-1) - gram.
+5. **Absolute discounting.**减去固定折扣`D`对于所有人来说,
+6. **Kneser-Ney.**绝对折扣加上低级模型的聪明选择:使用 *延续概率* (单词出现在多少场合) 而不是原始频率.
 
-Kneser-Ney的洞察很深刻。"San Francisco"是一个常见bigram。unigram "Francisco"几乎只出现在"San"之后。朴素绝对discounting会给予"Francisco"高unigram概率（因为计数高）。Kneser-Ney注意到"Francisco"只出现在一个上下文中，因此相应降低其延续概率。结果：以"Francisco"结尾的新bigram会被赋予适当低的概率。
+子-子的洞察力深深. "旧金山"是一个普通的字母. 单形"弗朗西斯科"主要出现在"圣." 无常的绝对折扣给"弗朗西斯科"高单形概率 (因为数量很高). 克内塞-尼指出",弗朗西斯科"只出现在一个背景下,因此降低了其延续可能性. 结果:以"弗朗西斯科"结束的小说大图得到适当的低概率.
 
-**评估：困惑度。** held-out测试集上平均负对数似然的指数。越低越好。困惑度100意味着模型处于困惑状态，就像在100个词中均匀选择一样。
+**Evaluation: perplexity.**平均负记载概率的指数是每一个字的平均负记载概率.较低的比较好.一个困难度为100意味着模型是像它一样混的,它会在100个字中选择均.
 
 ```text
 perplexity = exp(- (1/N) * Σ log P(w_i | context_i))
@@ -68,9 +68,9 @@ perplexity = exp(- (1/N) * Σ log P(w_i | context_i))
 ngram-backoff
 ```
 
-## 构建
+## 建立它
 
-### 步骤1：trigram计数
+### 步骤1:三重数
 
 ```python
 from collections import Counter, defaultdict
@@ -96,9 +96,9 @@ def raw_probability(ngrams, contexts, context, word):
     return ngrams.get(ctx + (word,), 0) / contexts[ctx]
 ```
 
-输入是标记化句子的列表。输出是n-gram计数和上下文计数。`<s>`和`</s>`是句子边界。
+输入是标记式句子的列表. 输出是 n 克数和文本数. `<s>`其他`</s>`它们是句子的边界.
 
-### 步骤2：Laplace平滑
+### 步骤2: 拉普拉斯平滑
 
 ```python
 def laplace_probability(ngrams, contexts, vocab_size, context, word):
@@ -108,9 +108,9 @@ def laplace_probability(ngrams, contexts, vocab_size, context, word):
     return numerator / denominator
 ```
 
-每个计数加1。虽然实现了平滑，但会过度分配概率质量给未见过事件，同样伤害到已知的稀有事件。
+增加1个数量, 顺利,但过度分配质量, 给未见的事件,
 
-### 步骤3：Kneser-Ney（bigram，插值）
+### 步骤3:Kneser-Ney (大图,插入)
 
 ```python
 def kneser_ney_bigram_model(corpus_tokens, discount=0.75):
@@ -152,9 +152,9 @@ def kneser_ney_bigram_model(corpus_tokens, discount=0.75):
     return prob
 ```
 
-三个关键部分。`continuation_prob`捕捉"这个词出现在多少个不同上下文中？"（Kneser-Ney的创新）。`lambda_prev`是折扣释放出的质量，用于加权回退。最终概率是discounted主项加上加权延续项。
+三个移动部分.`continuation_prob`现在,我们在研究中发现了"这个词在多少不同的环境中出现?" (Kneser-Ney创新).`lambda_prev`基本的概率是减产的主要术语加上加权延续术语.
 
-### 步骤4：用采样生成文本
+### 步骤4:通过采样生成文本
 
 ```python
 import random
@@ -178,9 +178,9 @@ def generate(prob_fn, vocab, prefix, max_len=30, seed=0):
     return tokens
 ```
 
-按概率比例采样。每次seed给出不同输出。若要类似beam-search的输出，每步选argmax（贪婪），并加入小随机性旋钮（温度）。
+采样与概率相对.每种种子总是产生不同的输出. 为了像光束搜索的输出,在每个步骤中选择 argmax (贪) 并添加一个小的随机性按 (温度).
 
-### 步骤5：困惑度
+### 步骤5:困惑
 
 ```python
 import math
@@ -198,59 +198,59 @@ def perplexity(prob_fn, sentences):
     return math.exp(-total_log_prob / total_tokens)
 ```
 
-越低越好。对Brown语料库，一个调好的4-gram KN模型可达困惑度约140。transformer LM在相同测试集上可达15-30。差距约10倍。这就是该领域转向的原因。
+对于布朗体,一个精确调整的4克KN模型达到140左右的困难.一个变压器LM在同一测试组上达到15-30分.差距大约是10倍.这差距是为什么场移动.
 
-## 使用场景
+## 用它
 
-- **经典NLP教学。** 最清晰的平滑、MLE和困惑度入门。
-- **KenLM。** 生产级n-gram库。在低延迟敏感的语音和MT系统中用作重排序器。
-- **设备端自动补全。** 键盘中的trigram模型。至今仍在使用。
-- **基线。** 在宣称你的神经LM表现良好之前，始终计算n-gram LM的困惑度。如果你的transformer没有大幅超越KN，那就是有问题。
+- **Classical NLP teaching.**您可以得到最明显的光滑,MLE和困惑.
+- **KenLM.**作为语音和MT系统的回数器,低延迟的重要.
+- **On-device autocomplete.**键盘中的三重图模型.
+- **Baselines.**如果你的变压器没有超过KN,那么有些问题.
 
-## 交付
+## 运送它
 
-保存为`outputs/prompt-lm-baseline.md`：
+保存如`outputs/prompt-lm-baseline.md`其他:
 
 ```markdown
 ---
 name: lm-baseline
-description: 在训练神经LM之前，构建可复现的n-gram语言模型基线。
+description: Build a reproducible n-gram language model baseline before training a neural LM.
 phase: 5
 lesson: 16
 ---
 
-给定语料库和目标用途（下一个词预测、重排序、困惑度基线），输出：
+Given a corpus and target use (next-word prediction, rescoring, perplexity baseline), output:
 
-1. N-gram阶数。通用英语用trigram，语料库大时用4-gram，语音重排序用5-gram。
-2. 平滑。Modified Kneser-Ney为默认；Laplace仅用于教学。
-3. 库。生产用`kenlm`，教学用`nltk.lm`，除非是为了学习否则不要自己实现。
-4. 评估。训练集和测试集使用一致分词下的held-out困惑度。
+1. N-gram order. Trigram for general English, 4-gram if corpus is large, 5-gram for speech rescoring.
+2. Smoothing. Modified Kneser-Ney is the default; Laplace only for teaching.
+3. Library. `kenlm` for production, `nltk.lm` for teaching, roll your own only to learn.
+4. Evaluation. Held-out perplexity with consistent tokenization between train and test sets.
 
-拒绝报告在不同分词系统之间比较的困惑度——困惑度数字仅在相同分词下才可比较。标记测试集中的OOV率；除非你在训练中预留特殊`<UNK>` token，否则KN处理OOV效果很差。
+Refuse to report perplexity computed with different tokenization between systems being compared — perplexity numbers are comparable only under identical tokenization. Flag OOV rate in test set; KN handles OOV poorly unless you reserve a special <UNK> token during training.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 在1000句莎士比亚语料库上训练trigram LM。生成20个句子。它们会在局部合理但全局不连贯。这是经典演示。
-2. **中等。** 对KN模型在held-out莎士比亚子集上计算困惑度。与Laplace比较。你应该看到KN降低困惑度30-50%。
-3. **困难。** 构建trigram拼写校正器：给定错词及其上下文，生成修正并按LM上下文概率排名。在Birkbeck拼写语料库（公开）上评估。
+1. **Easy.**训练一个三重形 LM 在一个1000句的莎士比亚体. 产生20句. 他们将是本地可信的,但全球不一致.这是正宗的演示.
+2. **Medium.**根据Shakespeare的分数,将KN模型的复杂性实现.
+3. **Hard.**建立一个三重形字母拼写校正器:给出错误拼写的词及其背景,在LM下生成对照和根据背景概率排名.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
-|------|---------|---------|
-| N-gram | 词序列 | 连续`n`个token的序列。 |
-| 平滑 | 避免零概率 | 重新分配概率质量，使未见过事件获得非零概率。 |
-| 困惑度 | LM质量指标 | `exp(-平均对数概率)`在held-out数据上。越低越好。 |
-| 回退 | 回退到较短上下文 | 若trigram计数为零，则使用bigram。Katz回退对此形式化了。 |
-| Kneser-Ney | 最佳n-gram平滑 | 绝对discounting + 延续概率用于低阶模型。 |
-| 延续概率 | KN特有 | `P(w)`按`w`出现的上下文数加权，而非原始计数。 |
-| 文本熵 | 每符号信息量 | 给定上下文时编码下一个符号所需平均比特数。Shannon 1951年对印刷英语（最多100字母上下文）估计：0.6-1.3比特/字母，在任何模型存在之前就被测量出来。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| N-gram | Word sequence | Sequence of `n` consecutive tokens. |
+| Smoothing | Avoiding zeros | Reallocating probability mass so unseen events get non-zero probability. |
+| Perplexity | LM quality metric | `exp(-average log-prob)` on held-out data. Lower is better. |
+| Backoff | Fallback to shorter context | If trigram count is zero, use bigram. Katz backoff formalizes this. |
+| Kneser-Ney | Best smoothing for n-grams | Absolute discounting + continuation probability for the lower-order model. |
+| Continuation probability | KN-specific | `P(w)` weighted by number of contexts `w` appears in, not by raw count. |
+| Entropy of text | Information per symbol | Average bits needed to encode the next symbol given the context. Shannon's 1951 estimate for printed English with up to 100 letters of context: 0.6-1.3 bits/letter, measured before any model existed. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Shannon (1951). Prediction and Entropy of Printed English](https://www.princeton.edu/~wbialek/rome/refs/shannon_51.pdf) — 定义目标的猜词游戏实验，每个语言模型仍在优化它。
-- [Jurafsky and Martin — Speech and Language Processing, Chapter 3 (2026 draft)](https://web.stanford.edu/~jurafsky/slp3/3.pdf) — n-gram LM和平滑的标准处理。
-- [Chen and Goodman (1998). An Empirical Study of Smoothing Techniques for Language Modeling](https://dash.harvard.edu/handle/1/25104739) — 确立Kneser-Ney为最佳n-gram平滑器的论文。
-- [Kneser and Ney (1995). Improved Backing-off for M-gram Language Modeling](https://ieeexplore.ieee.org/document/479394) — KN原始论文。
-- [KenLM](https://kheafield.com/code/kenlm/) — 快速生产级n-gram LM，2026年仍在用于对延迟敏感的应用。
+- [Shannon (1951). Prediction and Entropy of Printed English](https://www.princeton.edu/~wbialek/rome/refs/shannon_51.pdf)每种语言模型都能优化目标的猜测游戏实验.
+- [Jurafsky and Martin — Speech and Language Processing, Chapter 3 (2026 draft)](https://web.stanford.edu/~jurafsky/slp3/3.pdf)可视化处理 n 克LM和滑滑.
+- [Chen and Goodman (1998). An Empirical Study of Smoothing Techniques for Language Modeling](https://dash.harvard.edu/handle/1/25104739)是确定Kneser-Ney为最好的 n-gram平滑的论文.
+- [Kneser and Ney (1995). Improved Backing-off for M-gram Language Modeling](https://ieeexplore.ieee.org/document/479394)原始 KN 纸.
+- [KenLM](https://kheafield.com/code/kenlm/)快速生产n克LM,仍在2026年用于延迟敏感应用.
