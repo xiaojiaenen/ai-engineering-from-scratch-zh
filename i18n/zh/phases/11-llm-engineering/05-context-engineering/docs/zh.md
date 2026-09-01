@@ -1,48 +1,48 @@
-# 上下文工程：窗口、预算、记忆与检索
+# 文本工程:Windows,预算,内存和检索
 
-> 提示词工程是子集，上下文工程才是全部。提示词是你输入的一串字符串。上下文是进入模型窗口的一切：系统指令、检索到的文档、工具定义、对话历史、少样本示例以及提示词本身。2026年最顶尖的AI工程师是上下文工程师。他们决定什么放进窗口、什么留在外面、按什么顺序排列。
+> 提示工程是一个子集.语境工程是整个游戏.提示是你输入的字符串.背景是所有进入模型窗口的东西:系统说明,检索的文件,工具定义,对话历史,几次示例,以及提示本身.2026年最好的人工智能工程师是语境工程师.他们决定什么进去,什么留下,以及什么顺序.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** 阶段10（从零构建LLM）、阶段11 第01-02课
-**时间：** 约90分钟
-**相关：** 阶段11 · 15（提示词缓存）—— 缓存友好的布局是上下文工程的扩展。阶段5 · 28（长上下文评估）—— 了解如何用NIAH/RULER测量"中途丢失"。
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 10 (LLMs from Scratch), Phase 11 Lesson 01-02
+**Time:** ~90 minutes
+**Related:**阶段11 · 15 (即时缓存) 缓存友好的布局是文本工程的延伸. 5 · 28 (长文本评估) 阶段是如何使用NIAH/RULER测量中途丢失.
 
 ## 学习目标
 
-- 计算所有上下文窗口组件的token预算（系统提示词、工具、历史、检索文档、生成预留空间）
-- 实现上下文窗口管理策略：对话历史的截断、摘要和滑动窗口
-- 优先排序并排列上下文组件，以最大化模型对最相关信息注意力
-- 构建上下文组装器，根据查询类型和可用窗口空间动态分配token
+- 计算所有语境窗口组件 (系统提示,工具,历史记录,检索文件,生成头空间) 的代币预算
+- 实现文本窗口管理策略:截图,总结和对话历史滑动窗口
+- 优先考虑和排序文本组件,以最大限度地使模型关注最相关的信息
+- 建立一个基于查询类型和可用窗口空间的语境组装器,
 
-## 问题所在
+## 问题
 
-Claude Opus 4.7 有 200K token 窗口（beta版1M）。GPT-5 有 400K。Gemini 3 Pro 有 2M。Llama 4 号称 10M。这些数字听起来巨大，直到你填满它们。
+克劳德·奥普斯 4.7 有200K的代币窗口 (1M在beta). GPT-5 有400K. 双子座 3 Pro 有2M. Llama 4 声称10M. 这些数字听起来很大,直到你填充它们.
 
-这是一个编码助手的真实分解。系统提示词：500 tokens。50个工具的定义：8,000 tokens。检索到的文档：4,000 tokens。对话历史（10轮）：6,000 tokens。当前用户查询：200 tokens。生成预算（最大输出）：4,000 tokens。总计：22,700 tokens。这仅占 128K 窗口的 18%。
+系统提示:500个代码. 50个工具的工具定义:8,000个代码. 获取的文档:4,000个代码. 对话历史 (10轮):6,000个代码. 当前用户查询:200个代码. 代码预算 (最大输出):4,000个代码. 总数: 22,700个代码. 这仅占128K窗口的18%.
 
-但注意力并不随上下文长度线性增长。拥有 128K token 上下文的模型需要支付二次方注意力成本（vanilla transformer 中是 O(n^2)，尽管大多数生产模型使用高效的注意力变体）。更重要的是，检索准确率会下降。"干草堆中的针"测试表明，模型在长上下文中难以找到放在中间的信息。Liu 等人（2023）的研究显示，LLM 能以近乎完美的准确率检索长上下文开头和结尾的信息，但对于放在中间的信息（上下文40-70%的位置），准确率为下降10-20%。这种"中途丢失"效应因模型而异，但影响所有当前架构。
+但注意力并不是按照背景长度进行线性扩展. 一种拥有128K语境代币的模型在尼拉变压器中支付了四方形注意力成本 (O(n^2),尽管大多数生产模型使用高效的注意力变体. 更重要的是,检索的精度会降低. 模型在长文本中难以找到信息. 等人研究 (2023) 显示,在长文本开始和结束时,LLM几乎完全准确地获取信息,但在中间的信息 (文本中的位置为40-70%) 的准确度下降了10-20%. 这种"中途失落"效果因模型而异,但影响了所有当前的建筑.
 
-实际教训：拥有 200K token 并不意味着使用 200K token 是有效的。一个精心策划的 10K token 上下文通常胜过堆砌的 100K token 上下文。上下文工程是在上下文窗口中最大化信噪比的学科。
+实际的教训:拥有200K代币并不意味着使用200K代币是有效的.一个精心策划的10K代币背景通常比一个倾倒的100K代币背景更高. 语境工程是在语境窗口内最大化信号-噪音比率的学科.
 
-你放入窗口的每一个token都挤占了可能承载更相关信息的一个token。每一个无关的工具定义、每一个过时的对话轮次、每一块不能回答问题的检索文本片段——都会让模型略微降低完成任务的能力。
+每个你放入窗口的代币都会取代一个可能带有更多相关信息的代币. 每个无关的工具定义,每一个过时的对话转,每一个不回答问题的检索文本,
 
 ## 概念
 
-### 上下文窗口是一种稀缺资源
+### 文本窗口是稀缺的资源
 
-把上下文窗口想象成RAM，而不是磁盘。它快速且可直接访问，但有限。你无法装下所有内容，你必须选择。
+设想文本窗口是RAM,而不是磁盘. 它快速,直接访问,但有限. 你不能容纳一切. 你必须选择.
 
 ```mermaid
 graph TD
-    subgraph Window["上下文窗口 (128K tokens)"]
+    subgraph Window["Context Window (128K tokens)"]
         direction TB
-        S["系统提示词\n~500 tokens"] --> T["工具定义\n~2K-8K tokens"]
-        T --> R["检索上下文\n~2K-10K tokens"]
-        R --> H["对话历史\n~2K-20K tokens"]
-        H --> F["少样本示例\n~1K-3K tokens"]
-        F --> Q["用户查询\n~100-500 tokens"]
-        Q --> G["生成预算\n~2K-8K tokens"]
+        S["System Prompt\n~500 tokens"] --> T["Tool Definitions\n~2K-8K tokens"]
+        T --> R["Retrieved Context\n~2K-10K tokens"]
+        R --> H["Conversation History\n~2K-20K tokens"]
+        H --> F["Few-shot Examples\n~1K-3K tokens"]
+        F --> Q["User Query\n~100-500 tokens"]
+        Q --> G["Generation Budget\n~2K-8K tokens"]
     end
 
     style S fill:#1a1a2e,stroke:#e94560,color:#fff
@@ -54,30 +54,30 @@ graph TD
     style G fill:#1a1a2e,stroke:#0f3460,color:#fff
 ```
 
-每个组件都在争夺空间。添加更多工具定义意味着对话历史的空间更少。添加更多检索上下文意味着少样本示例的空间更少。上下文工程是将此预算分配到最大化任务表现的艺术。
+每个组件都在争夺空间.添加更多工具定义意味着对话历史的空间减少.添加更多获取的文本意味着少量示例的空间.文本工程是分配这个预算的艺术,以最大限度地提高任务性能.
 
-### 中途丢失
+### 迷失在中间
 
-上下文工程中最重要的一项经验发现。模型更能关注上下文的开头和结尾的信息。中间的信息获得的注意力分数较低，更可能被忽略。
+环境工程中最重要的实验发现.模型更好地关注文本的开始和结束时的信息.中间的信息获得了较低的注意力分数,更有可能被忽视.
 
-Liu 等人（2023）对此进行了系统性测试。他们在20个无关文档中放置一个相关文档在不同位置，并测量回答准确率。当相关文档排在第一或最后时，准确率为85-90%。当它排在中间（第10个，共20个）时，准确率下降到60-70%。
+等人 (2023) 系统地测试了这一点.他们将相关文件放在20个无关的文件中,并测量了答案的准确性.当相关文件是第一个或最后的时,准确性为85-90%.当它在中间时 (20个位置的10个),准确性下降到60-70%.
 
-这对工程实践有直接影响：
+这对工程业产生了直接影响:
 
-- 把最重要的信息放在开头（系统提示词、关键指令）
-- 把当前查询和最相关的上下文放在最后（近因效应有帮助）
-- 将上下文的中间部分视为最低优先级区域
-- 如果必须在中间包含信息，在末尾重复关键点
+- 首先要把最重要的信息放在第一位 (系统提示,关键指令)
+- 关键词: 关键词: 关键词: 关键词:
+- 处理环境中部为最低优先级区域
+- 如果要在中间包含信息,最后重复关键点
 
 ```mermaid
 graph LR
-    subgraph Attention["上下文中的注意力分布"]
+    subgraph Attention["Attention Distribution Across Context"]
         direction LR
-        P1["位置 0-20%\n高注意力\n(系统提示词)"]
-        P2["位置 20-40%\n中等"]
-        P3["位置 40-70%\n低注意力\n(中途丢失)"]
-        P4["位置 70-90%\n中等"]
-        P5["位置 90-100%\n高注意力\n(当前查询)"]
+        P1["Position 0-20%\nHIGH attention\n(system prompt)"]
+        P2["Position 20-40%\nMODERATE"]
+        P3["Position 40-70%\nLOW attention\n(lost in middle)"]
+        P4["Position 70-90%\nMODERATE"]
+        P5["Position 90-100%\nHIGH attention\n(current query)"]
     end
 
     style P1 fill:#51cf66,color:#000
@@ -87,54 +87,54 @@ graph LR
     style P5 fill:#51cf66,color:#000
 ```
 
-### 上下文组件
+### 文本组件
 
-**系统提示词**：设定角色、约束和行为规则。它排在第一位，在各轮对话中保持不变。Claude Code 的系统提示词（包括工具定义和行为指令）大约使用 6,000 tokens。保持精简。系统提示词中的每个词都会在每次API调用中重复。
+**System prompt**克劳德代码使用大约6,000个代币用于系统提示,包括工具定义和行为说明.保持紧密.系统提示中的每个字都在每个API调用中重复.
 
-**工具定义**：每个工具增加 50-200 tokens（名称、描述、参数schema）。50个工具按每个150 tokens计算，在任何对话发生之前就已经消耗了 7,500 tokens。动态工具选择——只包含与当前查询相关的工具——可以减少 60-80%。
+**Tool definitions**每个工具都会添加50-200个代币 (名称,描述,参数方案).每一个50个代币的50个工具在任何对话发生之前,每个代币都会达到7,500个代币.
 
-**检索上下文**：来自向量数据库的文档、搜索结果、文件内容。检索的质量直接决定响应的质量。糟糕的检索比不检索更糟——它用噪声填满窗口并 actively 误导模型。
+**Retrieved context**检索的质量直接决定了响应的质量. 检索不良比没有检索更糟糕 - - 它会填满窗口的噪音,并积极误导模型.
 
-**对话历史**：每个之前的用户消息和助手回复。随对话长度线性增长。50轮对话，每轮200 tokens，就有10,000 tokens的历史。其中大部分与当前查询无关。
+**Conversation history**交换时间:每次用户消息和助理响应. 交谈长度随着交谈时间的推移而增长. 每次交换时50次交谈的200个代币相当于10,000个历史代币. 大多数是与当前查询无关的.
 
-**少样本示例**：展示期望行为的输入/输出对。两个或三个精心选择的示例，往往比数千token的指令更能提高输出质量。但它们占用空间。
+**Few-shot examples**输入/输出对,证明所需的行为. 两到三个精心选择的例子通常会提高输出质量,超过数千个指令代币.
 
-**生成预算**：为模型响应保留的tokens。如果把窗口填满，模型就没有空间回答。为生成预留至少 2,000-4,000 tokens。
+**Generation budget**模型的代币为模型的响应保留. 如果填充到容量的窗口,模型就没有答案的空间. 储备至少2000至4,000代币用于生成.
 
-### 上下文压缩策略
+### 环境压缩策略
 
-**历史摘要**：与其逐字保留所有之前的轮次，不如定期摘要对话。"我们讨论了X，决定Y，用户想要Z"用100 tokens替换了花费2,000 tokens的10轮对话。当历史超过阈值时（例如5,000 tokens）运行摘要。
+**History summarization**总结对话的时间: "我们讨论了X,决定了Y,用户想要Z"在100代币中取代了2000代币的10次转换. 运行总结时历史超过门 (例如5000代币).
 
-**相关性过滤**：根据当前查询对每个检索到的文档打分，丢弃低于阈值的文档。如果你检索了10个分块但只有3个相关，丢弃其他7个。有3个高度相关的分块比10个平庸的分块更好。
+**Relevance filtering**您的文件在一个门以下. 如果您检索了10个块,但只有3个是相关的,则丢弃其他7.比10个中等的部分更好有3个非常相关的块.
 
-**工具剪枝**：分类用户查询意图，只包含与该意图相关的工具。代码问题不需要日历工具。日程问题不需要文件系统工具。这可以将工具定义从8,000 tokens减少到1,000。
+**Tool pruning**编码问题不需要日历工具.编程问题不需要文件系统工具. 这可以将工具定义从8,000个代币降至1,000个.
 
-**递归摘要**：对于非常长的文档，分阶段摘要。先摘要每个部分，然后摘要这些摘要。一份50页的文档可以变成500 tokens的精简摘要，捕捉关键点。
+**Recursive summarization**首先要总结每个部分,然后要总结.一个50页的文档变成一个500个代币的摘要,捕捉到关键点.
 
 ### 记忆系统
 
-上下文工程跨越三个时间维度。
+文本工程跨越了三个时间视野.
 
-**短期记忆**：当前对话。直接存储在上下文窗口中。随每轮对话增长。通过摘要和截断管理。
+**Short-term memory**直接存储在文本窗口中.随着每次转折而增长.通过总结和缩短来管理.
 
-**长期记忆**：跨对话持久化的事实和偏好。"用户偏好TypeScript。" "项目使用PostgreSQL。" 存储在数据库中，在会话开始时检索。Claude Code 将其存储在 CLAUDE.md 文件中。ChatGPT 将其存储在其记忆功能中。
+**Long-term memory**文件:在对话中持续存在的事实和偏好. "用户更喜欢TypeScript". "项目使用PostgreSQL."存储在数据库中,在会议开始时获取.Claude Code将这些存储在CLAUDE.md文件中.ChatGPT将其存储在其内存功能中.
 
-**情景记忆**：可能相关的特定过去交互。"上周二，我们调试了auth模块中的类似问题。" 以嵌入形式存储，当当前对话与过去的情景匹配时检索。
+**Episodic memory**通过"Auth"模块调试了类似的问题. 存储为嵌入式,当当前对话与过去事件匹配时获取.
 
 ```mermaid
 graph TD
-    subgraph Memory["记忆架构"]
+    subgraph Memory["Memory Architecture"]
         direction TB
-        STM["短期记忆\n(当前对话)\n直接在上下文窗口中"]
-        LTM["长期记忆\n(事实、偏好)\n数据库 -> 会话开始时检索"]
-        EM["情景记忆\n(过去交互)\n嵌入 -> 相似度匹配时检索"]
+        STM["Short-term Memory\n(current conversation)\nDirect in context window"]
+        LTM["Long-term Memory\n(facts, preferences)\nDB -> retrieved on session start"]
+        EM["Episodic Memory\n(past interactions)\nEmbeddings -> retrieved on similarity"]
     end
 
-    Q["当前查询"] --> STM
+    Q["Current Query"] --> STM
     Q --> LTM
     Q --> EM
 
-    STM --> CW["上下文窗口"]
+    STM --> CW["Context Window"]
     LTM --> CW
     EM --> CW
 
@@ -144,28 +144,28 @@ graph TD
     style CW fill:#1a1a2e,stroke:#ffa500,color:#fff
 ```
 
-### 动态上下文组装
+### 动态语境组件
 
-关键洞察：不同的查询需要不同的上下文。静态系统提示词 + 静态工具 + 静态历史是浪费的。最好的系统针对每个查询动态组装上下文。
+关键见解:不同的查询需要不同的语境.静态系统提示 +静态工具 +静态历史是浪费的.最好的系统每一个查询动态组装语境.
 
 1. 分类查询意图
-2. 选择相关工具（不是所有工具）
-3. 检索相关文档（不是固定集合）
-4. 包含相关历史轮次（不是全部历史）
-5. 添加与任务类型匹配的少样本示例
-6. 按重要性排序一切：关键在前，重要在后，可选的在中间
+2. 选择相关工具 (不是所有工具)
+3. 检索相关文件 (不是固定集)
+4. 包含相关历史转折 (不是全部历史)
+5. 添加与任务类型相匹配的几次示例
+6. 按重要点排序:最先关键,最后重要,中间是可选的
 
-这就是优秀AI应用和卓越AI应用的区别。模型是相同的。上下文才是差异化因素。
+这就是区分一个好的人工智能应用程序和一个伟大的应用程序的原因.
 
 ```figure
 lost-in-the-middle
 ```
 
-## 构建它
+## 建立它
 
-### 步骤1：Token计数器
+### 步骤1: 代币计数器
 
-无法衡量就无法预算。构建一个简单的token计数器（使用空格分割的近似方法，因为精确计数取决于tokenizer）。
+构建一个简单的代币计数 (使用白空分数的近似,因为确切的计数取决于代币表).
 
 ```python
 import json
@@ -181,9 +181,9 @@ def count_tokens_json(obj):
     return count_tokens(json.dumps(obj))
 ```
 
-### 步骤2：上下文预算管理器
+### 步骤2: 环境预算管理员
 
-核心抽象。预算管理器跟踪每个组件使用的token数量并强制执行限制。
+预算管理员会追踪每个组件使用多少代币,并执行限制.
 
 ```python
 class ContextBudget:
@@ -225,22 +225,22 @@ class ContextBudget:
     def report(self):
         total_used = sum(self.allocations.values())
         lines = []
-        lines.append(f"上下文预算报告 ({self.max_tokens:,} token 窗口)")
+        lines.append(f"Context Budget Report ({self.max_tokens:,} token window)")
         lines.append("-" * 50)
         for component, tokens in self.allocations.items():
             pct = tokens / self.max_tokens * 100
             bar = "#" * int(pct / 2)
             lines.append(f"  {component:<25} {tokens:>6} tokens ({pct:>5.1f}%) {bar}")
         lines.append("-" * 50)
-        lines.append(f"  {'已使用':<25} {total_used:>6} tokens ({total_used/self.max_tokens*100:.1f}%)")
-        lines.append(f"  {'生成预留':<25} {self.generation_reserve:>6} tokens")
-        lines.append(f"  {'剩余':<25} {self.remaining():>6} tokens")
+        lines.append(f"  {'Used':<25} {total_used:>6} tokens ({total_used/self.max_tokens*100:.1f}%)")
+        lines.append(f"  {'Generation reserve':<25} {self.generation_reserve:>6} tokens")
+        lines.append(f"  {'Remaining':<25} {self.remaining():>6} tokens")
         return "\n".join(lines)
 ```
 
-### 步骤3：中途丢失重排序
+### 步骤3: 失落的中部重组
 
-实现重排序策略：最重要的项放开头和结尾，最不重要的放中间。
+实施重组策略:最重要的项目首先和最后,最不重要的项目在中间.
 
 ```python
 def reorder_lost_in_middle(items, scores):
@@ -269,9 +269,9 @@ def score_relevance(query, documents):
     return scores
 ```
 
-### 步骤4：对话历史压缩器
+### 步骤4:对话历史压缩机
 
-摘要旧的对话轮次以回收token预算。
+总结一下,老话语回归,回归代币预算.
 
 ```python
 class ConversationManager:
@@ -303,15 +303,15 @@ class ConversationManager:
             if len(content) > 100:
                 content = content[:100] + "..."
             parts.append(f"{t['role']}: {content}")
-        return "之前: " + " | ".join(parts)
+        return "Previous: " + " | ".join(parts)
 
     def get_context(self):
         parts = []
         if self.summaries:
-            parts.append("[对话摘要]")
+            parts.append("[Conversation Summary]")
             for s in self.summaries:
                 parts.append(s)
-        parts.append("[最近对话]")
+        parts.append("[Recent Conversation]")
         for t in self.turns:
             parts.append(f"{t['role']}: {t['content']}")
         return "\n".join(parts)
@@ -320,59 +320,59 @@ class ConversationManager:
         return count_tokens(self.get_context())
 ```
 
-### 步骤5：动态工具选择器
+### 步骤5:动态工具选择器
 
-只包含与当前查询相关的工具。分类意图，然后过滤。
+仅包括与当前查询相关的工具. 分类意图,然后过.
 
 ```python
 TOOL_REGISTRY = {
     "read_file": {
-        "description": "读取文件内容",
+        "description": "Read contents of a file",
         "tokens": 120,
         "categories": ["code", "files"],
     },
     "write_file": {
-        "description": "向文件写入内容",
+        "description": "Write content to a file",
         "tokens": 150,
         "categories": ["code", "files"],
     },
     "search_code": {
-        "description": "在代码库中搜索模式",
+        "description": "Search for patterns in codebase",
         "tokens": 130,
         "categories": ["code"],
     },
     "run_command": {
-        "description": "执行shell命令",
+        "description": "Execute a shell command",
         "tokens": 140,
         "categories": ["code", "system"],
     },
     "create_calendar_event": {
-        "description": "创建新的日历事件",
+        "description": "Create a new calendar event",
         "tokens": 180,
         "categories": ["calendar"],
     },
     "list_emails": {
-        "description": "列出最近的邮件",
+        "description": "List recent emails",
         "tokens": 160,
         "categories": ["email"],
     },
     "send_email": {
-        "description": "发送邮件消息",
+        "description": "Send an email message",
         "tokens": 200,
         "categories": ["email"],
     },
     "web_search": {
-        "description": "搜索网络信息",
+        "description": "Search the web for information",
         "tokens": 140,
         "categories": ["research"],
     },
     "query_database": {
-        "description": "在数据库上运行SQL查询",
+        "description": "Run a SQL query on the database",
         "tokens": 170,
         "categories": ["code", "data"],
     },
     "generate_chart": {
-        "description": "从数据生成图表",
+        "description": "Generate a chart from data",
         "tokens": 190,
         "categories": ["data", "visualization"],
     },
@@ -415,9 +415,9 @@ def select_tools(query, token_budget=2000):
     return relevant, total_tokens
 ```
 
-### 步骤6：完整上下文组装管线
+### 步骤 6: 完整的环境组合管道
 
-将一切串联起来。给定一个查询，动态组装最优上下文。
+根据查询,动态组装最佳的文本.
 
 ```python
 class ContextEngine:
@@ -425,18 +425,19 @@ class ContextEngine:
         self.budget = ContextBudget(max_tokens, generation_reserve)
         self.conversation = ConversationManager(max_history_tokens=5000)
         self.system_prompt = (
-            "你是一个有用的AI助手。你可以使用工具进行代码编辑、文件管理、网络搜索和数据分析。"
-            "为每个任务使用适当的工具。简洁且准确。"
+            "You are a helpful AI assistant. You have access to tools for "
+            "code editing, file management, web search, and data analysis. "
+            "Use the appropriate tools for each task. Be concise and accurate."
         )
         self.knowledge_base = [
-            "Python 3.12 引入了使用方括号表示法的泛型类类型参数语法。",
-            "项目使用 PostgreSQL 16 配合 pgvector 进行嵌入存储。",
-            "认证由 Supabase Auth 处理，使用 JWT 令牌。",
-            "前端使用 Next.js 15 和 App Router 构建。",
-            "API 速率限制设置为每个用户每分钟 100 次请求。",
-            "部署管线使用 GitHub Actions 配合 Docker 多阶段构建。",
-            "所有新模块的测试覆盖率必须高于 80%。",
-            "代码库遵循仓库模式进行数据访问。",
+            "Python 3.12 introduced type parameter syntax for generic classes using bracket notation.",
+            "The project uses PostgreSQL 16 with pgvector for embedding storage.",
+            "Authentication is handled by Supabase Auth with JWT tokens.",
+            "The frontend is built with Next.js 15 using the App Router.",
+            "API rate limits are set to 100 requests per minute per user.",
+            "The deployment pipeline uses GitHub Actions with Docker multi-stage builds.",
+            "Test coverage must be above 80% for all new modules.",
+            "The codebase follows the repository pattern for data access.",
         ]
 
     def assemble(self, query):
@@ -472,122 +473,122 @@ class ContextEngine:
     def chat(self, query):
         self.conversation.add_turn("user", query)
         budget = self.assemble(query)
-        response = f"[回复：{query[:50]}...]"
+        response = f"[Response to: {query[:50]}...]"
         self.conversation.add_turn("assistant", response)
         return budget
 
 
 def run_demo():
     print("=" * 60)
-    print("  上下文工程管线演示")
+    print("  Context Engineering Pipeline Demo")
     print("=" * 60)
 
     engine = ContextEngine(max_tokens=128000, generation_reserve=4000)
 
-    print("\n--- 查询1：代码任务 ---")
-    budget = engine.chat("修复auth模块中JWT令牌过早过期的bug")
+    print("\n--- Query 1: Code task ---")
+    budget = engine.chat("Fix the bug in the authentication module where JWT tokens expire too early")
     print(budget.report())
 
-    print("\n--- 查询2：研究任务 ---")
-    budget = engine.chat("在PostgreSQL中实现向量搜索的最佳方法是什么？")
+    print("\n--- Query 2: Research task ---")
+    budget = engine.chat("What is the best approach for implementing vector search in PostgreSQL?")
     print(budget.report())
 
-    print("\n--- 查询3：对话历史积累后 ---")
+    print("\n--- Query 3: After conversation history builds up ---")
     for i in range(8):
-        engine.conversation.add_turn("user", f"关于系统实现细节的跟进问题第{i+1}个")
-        engine.conversation.add_turn("assistant", f"这是跟进问题{i+1}的回复，包含架构的技术细节")
+        engine.conversation.add_turn("user", f"Follow-up question number {i+1} about the implementation details of the system")
+        engine.conversation.add_turn("assistant", f"Here is the response to follow-up {i+1} with technical details about the architecture")
 
-    budget = engine.chat("现在实现我们讨论的更改")
+    budget = engine.chat("Now implement the changes we discussed")
     print(budget.report())
 
-    print("\n--- 工具选择示例 ---")
+    print("\n--- Tool Selection Examples ---")
     test_queries = [
-        "修复auth.py中的bug",
-        "安排周二与团队的会议",
-        "展示数据库查询性能统计",
-        "搜索错误处理的最佳实践",
+        "Fix the bug in auth.py",
+        "Schedule a meeting with the team for Tuesday",
+        "Show me the database query performance stats",
+        "Search for best practices on error handling",
     ]
 
     for q in test_queries:
         tools, tokens = select_tools(q)
         intents = classify_intent(q)
-        print(f"\n  查询: {q}")
-        print(f"  意图: {intents}")
-        print(f"  工具: {list(tools.keys())} ({tokens} tokens)")
+        print(f"\n  Query: {q}")
+        print(f"  Intents: {intents}")
+        print(f"  Tools: {list(tools.keys())} ({tokens} tokens)")
 
-    print("\n--- 中途丢失重排序 ---")
-    docs = ["文档A（最相关）", "文档B（有些相关）", "文档C（最无关）",
-            "文档D（相关）", "文档E（中度相关）"]
+    print("\n--- Lost-in-the-Middle Reordering ---")
+    docs = ["Doc A (most relevant)", "Doc B (somewhat relevant)", "Doc C (least relevant)",
+            "Doc D (relevant)", "Doc E (moderately relevant)"]
     scores = [0.95, 0.60, 0.20, 0.80, 0.50]
     reordered = reorder_lost_in_middle(docs, scores)
-    print(f"  原始顺序: {docs}")
-    print(f"  分数:         {scores}")
-    print(f"  重排序后:      {reordered}")
-    print(f"  （最相关的在开头和结尾，最无关的在中间）")
+    print(f"  Original order: {docs}")
+    print(f"  Scores:         {scores}")
+    print(f"  Reordered:      {reordered}")
+    print(f"  (Most relevant at start and end, least relevant in middle)")
 ```
 
-## 使用它
+## 用它
 
-### Harness管理的上下文
+### 带管理的环境
 
-Claude Code 采用分层方式管理上下文。系统提示词包含行为规则和工具定义（约6K tokens）。当你打开文件时，其内容会被注入为上下文。当你搜索时，结果会被添加。旧的对话轮次会被摘要。CLAUDE.md 提供跨会话持久的长期记忆。
+克劳德代码使用层次方法管理文本.系统提示包含行为规则和工具定义 (~6K代币).当您打开文件时,其内容被注入为文本.当您搜索时,结果被添加.旧对话转换总结.CLAUDE.md提供长期内存,持续在整个会议中.
 
-关键的工程决策：Claude Code 不会把你的整个代码库倾倒到上下文中。它按需检索相关文化。这就是上下文工程的实践。
+关键的工程决定:Claude Code不把整个代码库放入文本中. 它在需求上检索相关文件.
 
-### 动态上下文加载
+### 动态文本加载
 
-Cursor 将整个代码库索引到嵌入中。当你输入查询时，它使用向量相似度检索最相关的文件和代码块。只有这些片段进入上下文窗口。50万行的代码库被压缩到最相关的5-10个代码块中。
+库尔索将整个代码库索引成嵌入式.当你输入查询时,它会使用向量相似性检索最相关的文件和代码块.只有这些块进入文本窗口. 500K 行的代码库被压缩成5到10个最相关的代码块.
 
-这个模式是：嵌入所有内容，按需检索，只包含相关的。
+现在,我们需要的东西,
 
-### 助手长期记忆
+### 长期记忆助理
 
-ChatGPT 将用户偏好和事实存储为长期记忆。每次会话开始时，相关记忆被检索并包含在系统提示词中。"用户偏好Python"只花费5个tokens，但在跨会话中节省数百tokens的重复指令。
+聊天GPT将用户的偏好和事实存储为长期内存.每次对话开始,相关的记忆都会被检索到系统提示中. "用户更喜欢Python"的代价为5个代币,但在对话中保存了数百个重复指令的代币.
 
-### RAG作为上下文工程
+### 作为文本工程的RAG
 
-检索增强生成是经过形式化的上下文工程。你不是将知识塞入模型的权重（训练）或系统提示词（静态上下文）中，而是在查询时检索相关文档并将其注入上下文窗口。整个RAG管线——分块、嵌入、检索、重排序——都是为了一个目标：把正确的信息放入上下文窗口。
+复苏增强的生成是文本工程正式化. 您在查询时检索相关文件,并将它们注入文本窗口. 整个RAG管道-- 碎片化,嵌入,检索,重新排名-- 存在于解决一个问题:将正确的信息放入文本窗口.
 
-## 交付
+## 运送它
 
-本课产出 `outputs/prompt-context-optimizer.md`——一个可复用的提示词，用于审计上下文组装策略并推荐优化。输入你的系统提示词、工具数量、平均历史长度和检索策略，它会识别token浪费并提出改进建议。
+这一课产生了`outputs/prompt-context-optimizer.md`-- 复用提示,审计一个语境组装策略并建议优化. 给它提供系统提示,工具数量,平均历史长度和检索策略,
 
-它还产出 `outputs/skill-context-engineering.md`——基于任务类型、上下文窗口大小和延迟预算的设计上下文组装管线的决策框架。
+它还产生了`outputs/skill-context-engineering.md`--基于任务类型,背景窗口大小和延迟预算的决策框架.
 
-## 练习
+## 运动
 
-1. 为 ContextBudget 类添加一个"token浪费检测器"。它应标记使用超过预算30%的组件，并为每种组件类型建议特定的压缩策略（摘要历史、剪枝工具、重排序文档）。
+1. 加入一个"代币废物检测器"到 ContextBudget类. 它应该标记使用超过30%的预算的组件,并建议针对每个组件类型的压缩策略 (概括历史,剪切工具,重新排名文件).
 
-2. 为检索上下文实现语义去重。如果两个检索到的文档相似度超过80%（通过词重叠或其嵌入的余弦相似度），只保留得分更高的那个。测量这回收了多少token预算。
+2. 实现检索文本的语义排序.如果两个检索文档80%以上相似 (通过词汇重叠或嵌入式相似性),只保留更高分数的文本.测量这项文本的恢复额.
 
-3. 构建一个"上下文回放"工具。给定一个对话记录，通过ContextEngine回放并可视化预算分配如何逐轮变化。绘制每个组件随时间变化的token使用量。识别上下文开始被压缩的轮次。
+3. 建立一个"语境重播"工具. 给出对话转录,通过语境引擎重播它,并可视化预算分配如何随时变化. 随着时间的推移,绘制每个组件的代币使用情况. 确定文本开始压缩的转折.
 
-4. 实现基于优先级的工具选择器。与其做二元包含/排除，不如为每个工具分配与当前查询的相关性分数。按降序相关性顺序包含工具，直到工具预算耗尽。比较包含5、10、20和50个工具时的任务表现。
+4. 实现基于优先级的工具选择器. 取而代之的是,将每个工具分配到当前查询中的相关性分数. 包含工具在下降相关性顺序中,直到工具预算被耗尽. 与 5, 10, 20 和 50 个工具的任务性能进行比较.
 
-5. 构建多策略上下文压缩器。实现三种压缩策略（截断、摘要、关键句子提取）并在20个文档集上基准测试。衡量压缩率与信息保留之间的权衡（压缩后的版本是否仍包含查询的答案？）。
+5. 建立一个多策略背景压缩机. 实施三种压缩策略 (缩小,总结,取取出关键句子) 并根据20份文件进行比较. 测量压缩比和信息保留之间的权衡 (压缩版本是否仍然包含查询答案?).
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
-|------|----------|----------|
-| 上下文窗口 | "模型能读多少" | 模型在单次前向传播中处理的token最大数量（输入+输出）—— GPT-5为400K，Claude Opus 4.7为200K（beta版1M），Gemini 3 Pro为2M |
-| 上下文工程 | "高级提示词工程" | 决定什么进入上下文窗口、按什么顺序、以什么优先级的学科——涵盖检索、压缩、工具选择和记忆管理 |
-| 中途丢失 | "模型忘记中间的内容" | 经验发现，LLM更好地关注上下文的开头和结尾，放在中间的信息准确率下降10-20% |
-| Token预算 | "还剩多少tokens" | 跨组件明确分配上下文窗口容量（系统提示词、工具、历史、检索、生成）并有每个组件的限制 |
-| 动态上下文 | "即时加载内容" | 根据意图分类、相关工具选择和检索结果，为每个查询以不同方式组装上下文窗口 |
-| 历史摘要 | "压缩对话" | 用简洁摘要替换逐字的旧对话轮次，在保留关键信息的同时降低token成本 |
-| 工具剪枝 | "只包含相关工具" | 分类查询意图，只包含匹配的工具体定义，将工具token成本降低60-80% |
-| 长期记忆 | "跨会话记住" | 存储在数据库中并在会话开始时检索的事实和偏好——CLAUDE.md、ChatGPT Memory 及类似系统 |
-| 情景记忆 | "记住特定过去事件" | 以嵌入形式存储的过去交互，在当前查询与过去对话相似时检索 |
-| 生成预算 | "回答的空间" | 为模型输出保留的tokens——如果上下文完全填满窗口，模型就没有空间响应 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Context window | "How much the model can read" | The maximum number of tokens (input + output) the model processes in a single forward pass -- 400K for GPT-5, 200K (1M beta) for Claude Opus 4.7, 2M for Gemini 3 Pro |
+| Context engineering | "Advanced prompt engineering" | The discipline of deciding what goes into the context window, in what order, and at what priority -- encompasses retrieval, compression, tool selection, and memory management |
+| Lost-in-the-middle | "Models forget stuff in the middle" | Empirical finding that LLMs attend better to the beginning and end of context, with 10-20% accuracy drop for information placed in the middle |
+| Token budget | "How many tokens you have left" | An explicit allocation of context window capacity across components (system prompt, tools, history, retrieval, generation) with per-component limits |
+| Dynamic context | "Loading stuff on the fly" | Assembling the context window differently for each query based on intent classification, relevant tool selection, and retrieval results |
+| History summarization | "Compressing the conversation" | Replacing verbatim old conversation turns with a concise summary, reducing token cost while preserving key information |
+| Tool pruning | "Only including relevant tools" | Classifying query intent and only including tool definitions that match, reducing tool token cost by 60-80% |
+| Long-term memory | "Remembering across sessions" | Facts and preferences stored in a database and retrieved at session start -- CLAUDE.md, ChatGPT Memory, and similar systems |
+| Episodic memory | "Remembering specific past events" | Past interactions stored as embeddings and retrieved when the current query is similar to a past conversation |
+| Generation budget | "Room for the answer" | Tokens reserved for the model's output -- if the context fills the window completely, the model has no room to respond |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Liu 等，2023——"迷失在中间：语言模型如何使用长上下文"](https://arxiv.org/abs/2307.03172)——关于位置依赖性注意力的权威研究，表明模型在长上下文中间的信息处理上有困难
-- [Anthropic的上下文检索博客文章](https://www.anthropic.com/news/contextual-retrieval)——Anthropic如何处理上下文感知的分块检索，将检索失败减少49%
-- [Simon Willison的"上下文工程"](https://simonwillison.net/2025/Jun/27/context-engineering/)——命名该学科并将其与提示词工程区分开的博客文章
-- [LangChain关于RAG的文档](https://python.langchain.com/docs/tutorials/rag/)——检索增强生成作为上下文工程模式的实际实现
-- [Greg Kamradt的干草堆中的针测试](https://github.com/gkamradt/LLMTest_NeedleInAHaystack)——揭示所有主流模型位置依赖性检索失败基准
-- [Pope 等，《高效缩放Transformer推理》(2022)](https://arxiv.org/abs/2211.05102)——为什么上下文长度驱动内存和延迟，以及KV cache、MQA和GQA如何改变预算计算
-- [Agrawal 等，《SARATHI：通过拼接解码与分块预填充实现高效LLM推理》(2023)](https://arxiv.org/abs/2308.16369)——使长提示词在TTFT中昂贵但在TPOT中便宜的两阶段推理；上下文打包权衡背后的真相
-- [Ainslie 等，《GQA：从多头检查点训练广义多查询Transformer模型》(EMNLP 2023)](https://arxiv.org/abs/2305.13245)——分组查询注意力论文，在不损失质量的情况下将生产解码器中的KV内存减少8倍
+- [Liu et al., 2023 -- "Lost in the Middle: How Language Models Use Long Contexts"](https://arxiv.org/abs/2307.03172)模型在长时间的背景下与信息扎
+- [Anthropic's Contextual Retrieval blog post](https://www.anthropic.com/news/contextual-retrieval)-- 如何让人类对文本意识的部分检索进行处理,
+- [Simon Willison's "Context Engineering"](https://simonwillison.net/2025/Jun/27/context-engineering/)-- 博客文章命名了该学科,
+- [LangChain documentation on RAG](https://python.langchain.com/docs/tutorials/rag/)-- 实际实施以检索增强发电作为文本工程模式
+- [Greg Kamradt's Needle in a Haystack test](https://github.com/gkamradt/LLMTest_NeedleInAHaystack)-- 标志显示所有主要模型中存在位置依赖的检索失败
+- [Pope et al., "Efficiently Scaling Transformer Inference" (2022)](https://arxiv.org/abs/2211.05102)背景长度为什么驱动内存和延迟,以及KV缓存,MQA和GQA如何改变预算计算.
+- [Agrawal et al., "SARATHI: Efficient LLM Inference by Piggybacking Decodes with Chunked Prefills" (2023)](https://arxiv.org/abs/2308.16369)两个期的推断,使得长时间的提示在TTFT中昂贵,但在TPOT中便宜;
+- [Ainslie et al., "GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints" (EMNLP 2023)](https://arxiv.org/abs/2305.13245)通过集成的查询注意力纸, 无损质量, 切断了生产解码器中的KV内存8倍.
