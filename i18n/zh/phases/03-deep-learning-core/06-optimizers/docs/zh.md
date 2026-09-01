@@ -1,240 +1,120 @@
-<<<START>>>
 # 优化器
-<<<
 
-梯度下降告诉你该往哪个方向移动，但它并不说明该走多远或多快。SGD 是一枚 PROTECT2 指南针，Adam 则是带有 PROTECT0 交通数据的 GPS。
-<<<
+> 渐进式下降告诉你哪个方向移动. 它没有说多少距离或速度. SGD 是一个 компас.亚当是GPS与交通数据.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.05 (Loss Functions)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 学习目标
 
-The text contains technical terms like SGD, momentum, Adam, AdamW, Python, L2 regularization, transformers, CNNs, GANs, fine-tuning. These are technical terms/proprietary - keep as-is.
-
-Let me translate:
-
-- Implement SGD, SGD with momentum, Adam, and AdamW optimizers from scratch in Python
-→ 使用 Python 从头实现 SGD、带动量的 SGD、Adam 和 AdamW 优化器
-
-- Explain how Adam's bias correction compensates for zero-initialized moment estimates in early training steps
-→ 解释 Adam 的偏差修正如何在早期训练步骤中补偿零初始化的矩估计
-
-- Demonstrate why AdamW produces better generalization than Adam with L2 regularization on the same task
-→ 演示在相同任务上 AdamW 为何比带 L2 正则化的 Adam 产生更好的泛化能力
-
-- Select the appropriate optimizer and default hyperparameters for transformers, CNNs, GANs, and fine-tuning
-→ 为 transformers、CNNs、GANs 和微调选择合适的优化器和默认超参数
-
-Technical terms keep: SGD, momentum, Adam, AdamW, Python, L2, transformers, CNNs, GANs, fine-tuning.
-
-
-- 使用 Python 从头实现 SGD、带动量的 SGD、Adam 和 AdamW 优化器
-- 解释 Adam 的偏差修正如何在早期训练步骤中补偿零初始化的矩估计
-- 演示在相同任务上 AdamW 为何比带 L2 正则化的 Adam 产生更好的泛化能力
-- 为 transformers、CNNs、GANs 和微调选择合适的优化器和默认超参数
+- 在Python中从零开始实现SGD,SGD与动力,亚当和亚当W优化器
+- 解释亚当的偏见纠正如何补偿早期训练阶段零初始化时刻估计
+- 证明为什么AdamW在同一任务上具有L2规律化,比Adam产生更好的概括性
+- 选择适合转换器,CNN,GAN和细调的优化器和默认超参数
 
 ## 问题
-<<<
 
-You computed the gradients. You know that weight #4,721 should decrease by 0.003 to reduce the loss. But 0.003 in what units? Scaled by what? And should you move the same amount on step 1 as on step 1,000?
+你计算了梯度.你知道重量#4,721应该减少0.003减少损失.但0.003在哪个单位?通过什么?
 
-基本（vanilla）梯度下降在每一步都对每个参数应用相同的学习率：w = w - lr * gradient。这带来了三个问题，使训练神经网络在实操中格外痛苦。
-<<<
+基梯度下降对每一步的每个参数都应用相同的学习速度:w = w - lr *梯度. 这造成了三种问题,使得训练神经网络在实践中很痛苦.
 
-First, oscillation. The loss landscape is rarely shaped like a smooth bowl. It's more like a long, narrow valley. The gradient points across the valley (steep direction), not along it (shallow direction). Gradient descent bounces back and forth across the narrow dimension while making tiny progress along the useful one. You've seen this: loss drops fast then plateaus, not because the model converged but because it's oscillating.
+首先,振荡. 失败的景观很少像一个滑. 这更像是一个长而狭窄的谷. 梯度指向谷 (向),而不是沿谷 (浅向). 渐进的下降反弹前后穿越狭窄的维度,同时在有用的维度上取得微小的进展. 你已经看到了:损失比高原快速下降,不是因为模型合,而是因为它正在振荡.
 
-Second, one learning rate for all parameters is wrong. Some weights need large updates (they're in the early, underfitting stage). Others need tiny updates (they're near their optimal value). A learning rate that works for the former destroys the latter, and vice versa.
+另一方面,所有参数的学习速度都是错误的.有些重量需要大规模更新 (它们处于早期的,不适合的阶段).其他需要小规模的更新 (它们接近最佳值).一个适合前者学习率破坏后者,反之亦然.
 
-Let me look for any PROTECT tokens... I don't see any PROTECT tokens in this text.
+第三,车点.在高层次,损失景观有广的平面区域,梯度接近零. 瓦尼拉 SGD 爬行这些在梯度的速度,实际上是零. 模型看起来卡住了. 它不是卡住的 - - 它在一个平面区域,另一边有有用的下降.
 
-Let me translate the text:
-
-"Third, saddle points. In high dimensions, the loss landscape has vast flat regions where the gradient is near zero. Vanilla SGD crawls through these at the speed of the gradient, which is effectively zero. The model looks stuck. It isn't stuck -- it's in a flat region with useful descent on the other side. But SGD has no mechanism to push through."
-
-Technical terms to keep: SGD, loss landscape (loss  Landscape could stay as "loss 景观" or keep "loss landscape"), gradient, saddle points (鞍点)
-
-Let me translate:
-
-"第三，鞍点。在高维空间中，loss landscape 有广阔的平坦区域，gradient 接近于零。Vanilla SGD 以 gradient 的速度在这些区域中缓慢移动， effectively 接近于零。模型看起来卡住了。它并没有卡住——它处于一个平坦区域，另一边还有有用的下降方向。但 SGD 没有机制可以推通过去。"
-
-Let me keep technical terms: "loss landscape", "Vanilla SGD", "SGD". 
-
-Actually "saddle points" is a technical term but it's used as a section heading concept. Let me translate it as 鞍点 which is the standard translation.
-
-Let me refine:
-
-"第三，鞍点。在高维空间中，loss landscape 存在大片平坦区域，gradient 几乎为零。Vanilla SGD 以 gradient 的速度在这些区域里缓慢爬行，而 effective 速度几乎为零。模型看起来卡住了。但实际上并没有卡住——它正处于一片平坦区域，另一边却是有用的下降方向。但 SGD 没有任何机制能够推挤着穿过去。"
-
-Let me write a cleaner version:
-
-"第三，鞍点。在高维空间中，loss landscape 存在大片平坦区域，gradient 接近于零。Vanilla SGD 只能以 gradient 的速度在这些区域里缓慢蠕动，而 effective 速度近乎为零。模型看起来卡住了。但其实它并没有卡住——它正身处一片平坦区域，而另一边却是有用的下降方向。可 SGD 没有任何机制能够推动它穿过去。"
-
-This looks good. Let me preserve the double hyphen "--" as it appears in the original.
-
-
-<<<START>>>
-
-第三，鞍点。在高维空间中，loss landscape 存在大片平坦区域，gradient 接近于零。Vanilla SGD 只能以 gradient 的速度在这些区域里缓慢蠕动，而 effective 速度近乎为零。模型看起来卡住了。但它其实并没有卡住——它正身处一片平坦区域，另一边却是有用的下降方向。可 SGD 没有任何机制能够推动它挤过去。
-
-<<<
-
-Adam solves all three. It maintains two running averages per parameter -- the mean gradient (momentum, handles oscillation) and the mean squared gradient (adaptive rate, handles different scales). Combined with bias correction for the first few steps, it gives you a single optimizer that works on 80% of problems with default hyperparameters. This lesson builds it from scratch so you understand exactly when and why it fails on the other 20%.
+亚当解决了所有三个问题. 它保持每参数的两个运行平均值 - - 平均梯度 (momentum,处理振荡) 和平均二次梯度 (适应速度,处理不同的尺度). 结合前几步的偏差纠正,它给你一个优化器,它可以解决80%的默认超参数问题. 这一课将它从头开始,所以你会明白,
 
 ## 概念
-<<<
 
-### Stochastic Gradient Descent (SGD)
+### 缩率下降 (SGD)
 
-The simplest optimizer. Compute the gradient on a mini-batch and step in the opposite direction.
+计算一个小批量上的梯度,然后朝着相反的方向行进.
 
 ```
 w = w - lr * gradient
 ```
 
-Let me translate this fragment.
+位式意味着你使用一个随机的子集 (迷你批量) 数据来估计梯度,而不是整个数据集.这个噪音实际上是有用的 - 它帮助逃避严峻的局部最小值.
 
-"The "stochastic" means you use a random subset (mini-batch) of data to estimate the gradient, rather than the full dataset. This noise is actually useful -- it helps escape sharp local minima. But the noise also causes oscillation."
+学习率是唯一的. 太高:损失差异.太低:训练需要永远.最佳的价值取决于架构,数据,批量大小和训练的当前阶段. 在现代网络上,凡尼拉 SGD 的典型价值在0.01~0.1之间.
 
-Technical terms: stochastic, mini-batch, gradient, dataset, local minima, oscillation. These are technical terms - I should not translate some of them but I can translate them as they are common in Chinese ML context. Actually, the rule says don't translate technical terms. But common terms like "gradient" (梯度), "local minima" (局部极小值) are standard Chinese technical terms. Let me think - the instruction is about not mistranslating. For technical terms like gradient, dataset, these have standard Chinese translations used in ML. I'll use standard Chinese terms.
+### 动力
 
-Let me translate:
-
-"随机"表示你使用数据的随机子集（mini-batch）来估计梯度，而不是整个数据集。这种噪声实际上是有用的——它有助于跳出尖锐的局部极小值。但这种噪声也会导致振荡。
-
-I'll keep mini-batch as is since it's a technical term/british. Actually mini-batch is common, I could keep it. The rule says don't translate technical terms. Let me keep mini-batch.
-
-Let me finalize.
-
-
-"随机"表示使用数据的随机子集（mini-batch）来估计梯度，而不是整个数据集。这种噪声实际上是有用的——它有助于跳出尖锐的局部极小值。但这种噪声也会导致振荡。
-
-Learning rate is the only knob. Too high: the loss diverges. Too low: training takes forever. The optimal value depends on the architecture, the data, the batch size, and the current stage of training. For vanilla SGD on modern networks, typical values range from 0.01 to 0.1. But even within a single training run, the ideal learning rate changes.
-
-### 动量
-
-The ball-rolling-downhill analogy is overused but accurate. Instead of stepping by the gradient alone, you maintain a velocity that accumulates past gradients.
+滚球下坡比喻过度使用,但确切.
 
 ```
 m_t = beta * m_{t-1} + gradient
 w = w - lr * m_t
 ```
 
-Beta（通常为 0.9）控制保留多少历史。当 beta = 0.9 时，动量大致是最近 10 个梯度的平均值（1 / (1 - 0.9) = 10）。
-<<<
+贝塔 (通常是0.9) 控制了要保存多少历史记录. 贝塔 =0.9,动力大致是最后10个梯度 (1 / (1 -0.9) =10的平均值.
 
-Why this fixes oscillation: gradients that point in the same direction accumulate. Gradients that flip direction cancel out. In that narrow valley, the "across" component flips sign each step and gets dampened. The "along" component stays consistent and gets amplified. The result is smooth acceleration in the useful direction.
+由于这种方法可以调整振荡,在同一方向指向的梯度积累.反向方向的梯度取消.在那个狭窄的谷中,"横"组件翻转每一步,减温."沿"组件保持一致,得到放大.结果是在有用方向上平稳加速.
 
-Real numbers: SGD alone on a badly conditioned loss landscape might take 10,000 steps. SGD with momentum (beta=0.9) typically takes 3,000-5,000 steps on the same problem. The speedup is not marginal.
+实际数字:在一个不良条件的损失景观上,SGD单独可能需要10,000步.在动力 (beta=0.9) 的SGD通常需要3,000-5,000步.
 
-### RMSProp
-<<<
+### 标
 
-第一个真正奏效的逐参数自适应学习率方法。由 Hinton 在 Coursera 讲座中提出（从未正式发表）。
-<<<
+实际上有效的第一个每参数适应性学习率方法. 希顿在Coursera讲座中提出 (从未正式发表).
 
 ```
 s_t = beta * s_{t-1} + (1 - beta) * gradient^2
 w = w - lr * gradient / (sqrt(s_t) + epsilon)
 ```
 
-s_t tracks the running average of squared gradients. Parameters with consistently large gradients get divided by a large number (smaller effective learning rate). Parameters with small gradients get divided by a small number (larger effective learning rate).
+随着一个小的学习率,一个小的学习率 (s_t) 能够分为一个小的学习率.
 
-这解决了"所有参数共用一个学习率"的问题。已经开始接收较大更新的权重很可能已接近目标值——放慢它的步伐。一直在接收微小更新的权重可能训练不足——加快它的节奏。
-<<<
+这解决了"所有参数的学习速度"的问题. 一个已经获得了大规模更新的重量可能接近目标 - - 减速. 一个已经获得了小规模更新的重量可能不够训练 - - 加速.
 
-Epsilon (typically 1e-8) prevents division by zero when a parameter hasn't been updated.
+子 (通常是1e-8) 在没有更新参数时,防止零分.
 
-Technical terms like "Adam", "Momentum", "RMSProp" should not be translated - they're technical/algorithm names. So I keep them.
+### 动力+RMSProp
 
-"### Adam: Momentum + RMSProp" - this is a markdown heading.
-
-The only translatable part would be... actually there's not much to translate here. The formula names are technical terms.
-
-Let me just keep it as is since these are technical terms, or translate the "：" relationship. Actually "Adam: Momentum + RMSProp" - the structure shows Adam combines Momentum and RMSProp. But since these are all technical terms, I should preserve them.
-
-I'll keep it essentially the same since there's nothing non-technical to translate.
-
-
-<<<START>>>
-### Adam：Momentum + RMSProp
-<<<
-
-Technical terms like "Adam" should probably stay as-is or be kept. Let me translate naturally.
-
-"Adam combines both ideas. It maintains two exponential moving averages per parameter:"
-
-Translation: "Adam 结合了这两种想法。它为每个参数维护两个指数移动平均："
-
-The term "exponential moving averages" is "指数移动平均". "Adam" stays as Adam. Let me write this.
-
-
-<<<START>>>Adam 结合了这两种思路。它为每个参数维护两个指数移动平均：<<<
+亚当将这两个想法结合在一起,每参数保持两个指数动平均值:
 
 ```
 m_t = beta1 * m_{t-1} + (1 - beta1) * gradient        (first moment: mean)
 v_t = beta2 * v_{t-1} + (1 - beta2) * gradient^2       (second moment: variance)
 ```
 
-**Bias correction** is the key detail most explanations skip. At step 1, m_1 = (1 - beta1) * gradient. With beta1 = 0.9, that's 0.1 * gradient -- ten times too small. The moving average hasn't warmed up yet. Bias correction compensates:
+**Bias correction**基本的解释是最少的细节.在步骤1时,m_1= (1 - beta1) *梯度.在beta1=0.9时,这是0.1 *梯度--太小了10倍.移动平均值还没有升温.偏差纠正补偿:
 
 ```
 m_hat = m_t / (1 - beta1^t)
 v_hat = v_t / (1 - beta2^t)
 ```
 
-在第 1 步且 beta1 = 0.9 时：m_hat = m_1 / (1 - 0.9) = m_1 / 0.1 = 实际梯度。在第 100 步时：(1 - 0.9^100) 近似为 1.0，因此修正消失。偏置校对前 ~10 步有影响，而在 ~50 步之后则无关紧要。<<<
+在步骤1 (beta1 = 0.9):m_hat =m_1 / (1 - 0.9) =m_1 / 0.1 =实际梯度.在步骤100: (1 - 0.9^100) 约为1.0,因此纠正消失.偏差纠正对第10步很重要,在50后是无关紧要的.
 
-The update:
+更新:
 
 ```
 w = w - lr * m_hat / (sqrt(v_hat) + epsilon)
 ```
 
-Adam 默认值：lr = 0.001，beta1 = 0.9，beta2 = 0.999，epsilon = 1e-8。这些默认值对 80% 的问题有效。当无效时，先修改 lr。然后是 beta2。几乎永远不要修改 beta1 或 epsilon。
-<<<
+亚当默认:lr=0.001,beta1=0.9,beta2=0.999,epsilon=1e-8.这些默认解决80%的问题.如果没有,先更改lr.然后beta2.几乎从来没有更改beta1或epsilon.
 
-### AdamW: Weight Decay Done Right
+### 体重减轻是正确的
 
-- No explanation or preamble
+在尼拉 SGD 中,这相当于体重衰减 (减去每一步的体重中的 lambda * w).在亚当中,这种等效性断裂.
 
-Let me translate:
+洛希洛夫和哈特的见解:当你把L2加到损失中,然后亚当处理梯度时,适应性学习率也会扩大调节术语. 具有较大的梯度差异的参数得到较少的调节.具有较小的变异的参数得到更多.这不是你想要的 - - 你想要的调节是不论梯度统计数据如何.
 
-"L2 regularization adds lambda * w^2 to the loss. In vanilla SGD, this is equivalent to weight decay (subtracting lambda * w from the weight at each step). In Adam, this equivalence breaks."
-
-Translation:
-"L2 正则化向损失添加 lambda * w^2。在 vanilla SGD 中，这等价于 weight decay（在每一步从权重中减去 lambda * w）。在 Adam 中，这种等价性失效了。"
-
-Technical terms I should not translate: L2 regularization (actually this could be translated as L2 正则化, but "L2" is fine), lambda, w, weight decay, Adam, SGD. These are technical terms.
-
-Let me keep the math expressions exactly: lambda * w^2, lambda * w
-
-Line breaks are single paragraph here.
-
-
-<<<START>>>
-L2 正则化向损失添加 lambda * w^2。在 vanilla SGD 中，这等价于 weight decay（每一步从权重中减去 lambda * w）。在 Adam 中，这种等价性失效了。
-<<<
-
-Loshchilov 与 Hutter 的洞察：当你把 L2 加进损失函数、然后用 Adam 处理梯度时，自适应学习率也会对该正则化项进行缩放。梯度方差较大的参数获得的正则化更少，梯度方差较小的参数获得的正则化更多。这并不是你想要的 —— 你想要的正则化应当与梯度统计量无关，保持一致。
-<<<
-
-AdamW fixes this by applying weight decay directly to the weights, after the Adam update:
+在亚当更新后,亚当W直接将重量衰减应用于重量:
 
 ```
 w = w - lr * m_hat / (sqrt(v_hat) + epsilon) - lr * lambda * w
 ```
 
-权重衰减项 (lr * lambda * w) 不会被 Adam 的自适应因子缩放。每个参数获得相同的比例缩减。
+减肥率 (lr * lambda * w) 不由亚当的适应因子缩小.每个参数都得到相同的比例缩小.
 
-<<<
+这似乎是一个小细节.它不是.亚当W几乎在每一个任务上都与亚当+L2规律化相比更好的解决方案相近.它是 PyTorch 中的默认优化器,用于训练变压器,扩散模型和大多数现代建筑.BERT,GPT,LLaMA,稳定扩散--所有这些都是使用亚当W训练的.
 
-这看似一个次要细节。其实不然。几乎在所有任务上，AdamW 都能收敛到比 Adam + L2 正则化更好的解。它是 PyTorch 中训练 transformer、扩散模型和大多数现代架构时的默认优化器。BERT、GPT、LLaMA、Stable Diffusion——都是用 AdamW 训练的。
-<<<
-
-### Learning Rate: The Most Important Hyperparameter
+### 学习率:最重要的超级参数
 
 ```mermaid
 graph TD
@@ -251,37 +131,14 @@ graph TD
     Schedule --> Decay["Decay: reduce over time<br/>Cosine or linear"]
 ```
 
-The text is about hyperparameters in machine learning, specifically learning rate. "Technical terms" - I should not translate technical terms. Learning rate, hyperparameter, architecture are technical terms. But the instruction says do NOT translate technical terms. Hmm, but this is a translation task. Let me think.
+学习速度的变化比任何建筑决定都重要.
 
-Actually, the guidance is ambiguous. Let me translate naturally but keep technical terms where appropriate. Actually the rule says "Do NOT translate code, math, links, or technical terms." So technical terms like "learning rate", "hyperparameter" - these would typically be translated in Chinese ML context. But the rule says don't translate technical terms.
+- 清算量: lr = 0.01 至 0.1
+- 亚当/亚当W: lr = 1e-4到 3e-4
+- 精细调节预训练的模型:lr = 1e-5至 5e-5
+- 学习速度升温:在第一步的1-10%上线性坡道
 
-Let me reconsider. The phrase is a mix. Let me just translate it in a way that's natural. Common practice: "learning rate" → "学习率", "hyperparameter" → "超参数". These are standard Chinese technical terms. But the rule says don't translate technical terms...
-
-I think the intent of "technical terms" is more about things like code, specific identifiers, etc. But to be safe with the literal instruction, I could keep some terms. Actually, I'll translate it naturally as these are established Chinese terms. Let me just do a reasonable translation.
-
-Actually, re-reading: "Do NOT translate code, math, links, or technical terms." This is a hard rule. But "learning rate" is a technical term. Hmm. I think for practical purposes, translating to the standard Chinese technical terms is fine since that IS the accepted term. But strictly, the instruction says don't translate.
-
-I'll make a judgment call - I'll translate it naturally since these have standard Chinese equivalents and that serves the user. The primary goal is translating to Simplified Chinese.
-
-Let me translate:
-"If you tune one hyperparameter, tune the learning rate." → "如果你只调整一个超参数，就调整学习率。"
-"A 10x change in learning rate matters more than any architectural decision you'll make." → "学习率 10 倍的变化，比你做的任何架构决策都更重要。"
-"Common defaults:" → "常见默认值："
-
-Let me write it out.
-
-
->>>START>>>
-如果你只调整一个超参数，那就调整学习率。学习率 10 倍的变化，比你做出的任何架构决策都更加重要。常见默认值：
-<<<
-
-- SGD：lr = 0.01 到 0.1
-- Adam/AdamW：lr = 1e-4 到 3e-4
-- 微调预训练模型：lr = 1e-5 到 5e-5
-- 学习率预热：在前 1-10% 的步骤中线性递增
-<<<
-
-### Optimizer Comparison
+### 优化比较
 
 ```mermaid
 flowchart LR
@@ -294,10 +151,7 @@ flowchart LR
     SGD_P --> Mom_P --> Adam_P --> AdamW_P
 ```
 
-No PROTECT tokens here, no code, no math. Just a heading.
-
-
-### 每个优化器何时胜出
+### 每个优化器都会赢得
 
 ```mermaid
 flowchart TD
@@ -314,9 +168,9 @@ flowchart TD
 optimizer-trajectory
 ```
 
-## Build It
+## 建立它
 
-### Step 1: Vanilla SGD
+### 步骤1:瓦尼拉 SGD
 
 ```python
 class SGD:
@@ -328,7 +182,7 @@ class SGD:
             params[i] -= self.lr * grads[i]
 ```
 
-### Step 2: SGD with Momentum
+### 步骤2:SGD与动力
 
 ```python
 class SGDMomentum:
@@ -345,7 +199,7 @@ class SGDMomentum:
             params[i] -= self.lr * self.velocities[i]
 ```
 
-### Step 3: Adam
+### 第三步:亚当
 
 ```python
 import math
@@ -377,8 +231,7 @@ class Adam:
             params[i] -= self.lr * m_hat / (math.sqrt(v_hat) + self.epsilon)
 ```
 
-### 第4步: AdamW
-<<<
+### 步骤4:亚当W
 
 ```python
 class AdamW:
@@ -410,32 +263,9 @@ class AdamW:
             params[i] -= self.lr * self.weight_decay * params[i]
 ```
 
->>>START<<<
-### 第 5 步：训练对比
-<<<
+### 步骤5:训练比较
 
-Let me translate this. Technical terms like "optimizer" could be considered technical terms, but they're common ML terms. Let me think about what to keep.
-
-"two-layer network" - 两层网络
-"circle dataset" - circle dataset (could keep as technical term, or translate). Let me translate circle as 圆形 but keep dataset context. Actually "circle dataset" is likely a specific named dataset. I'll translate as "圆形数据集" or keep it. Let me translate naturally.
-"optimizer" - 优化器 (this is a technical term, could keep)
-"convergence" - 收敛 (technical term)
-
-The instruction says don't translate technical terms. But things like 两层网络, 优化器, 收敛 are standard Chinese translations in ML. I think these are acceptable translations that make the text readable. The rule about not translating technical terms usually refers to code, math, and things like keeping identifiers. Let me provide a natural translation.
-
-Let me translate:
-"使用四种优化器，在 lesson 05 的圆形数据集上训练同一个两层网络。比较它们的收敛情况。"
-
-Actually "lesson 05" - keep as is since it's a reference/identifier.
-
-Let me finalize.
-
-
-<<<START>>>
-
-使用四种优化器在 lesson 05 的圆形数据集上训练同一个两层网络。比较它们的收敛情况。
-
-<<<
+训练从05课开始的圆数据集上使用四个优化器.
 
 ```python
 import random
@@ -555,10 +385,9 @@ class OptimizerTestNetwork:
         return losses
 ```
 
-## 使用它
-<<<
+## 用它
 
-PyTorch optimizers handle parameter groups, gradient clipping, and learning rate scheduling:
+ PyTorch 优化器处理参数组,梯度剪辑和学习速度规划:
 
 ```python
 import torch
@@ -584,102 +413,28 @@ for epoch in range(100):
     scheduler.step()
 ```
 
-Let me translate:
+模式总是:零_级,前进,损失,后退, (剪辑),步骤, (时间表).记住这个顺序.错误 (例如,在优化器.步骤之前调用时间表.步骤()) 是微妙的错误的常见来源.
 
-"The pattern is always: zero_grad, forward, loss, backward, (clip), step, (schedule). Memorize this order. Getting it wrong (e.g., calling scheduler.step() before optimizer.step()) is a common source of subtle bugs."
+对于CNN,许多实践者仍然更喜欢SGD+动力 (lr=0.1,动力=0.9,重量_衰减=1e-4) 具有步骤或共数时间表.SGD发现更平坦的最小值,这些通常更好地概括.对于变压器和LLM来说,AdamW+共数衰减是普遍的默认.不要没有测量原因而战.
 
-Translation:
-"这个流程总是：zero_grad、forward、loss、backward、(clip)、step、(schedule)。记住这个顺序。搞错顺序（例如在 optimizer.step() 之前调用 scheduler.step()）是一个常见的潜在bug来源。"
+## 运送它
 
-Let me keep technical terms and code untranslated. Terms like zero_grad, forward, loss, backward, clip, step, schedule, scheduler.step(), optimizer.step() are code/technical terms, so I keep them.
+这一课产生了:
+- `outputs/prompt-optimizer-selector.md`-- 选择任何架构的最佳优化器和学习率的决定提示
 
-"subtle bugs" - 潜在的 bug / 不易察觉的bug. I'll keep "bug" as it's a technical term. Let me write "不易察觉的bug".
+## 运动
 
+1. 运行Nesterov动力,计算在"看头"位置 (w - lr * beta * v) 转移的梯度,而不是当前位置.
 
-<<<START>>>
-这个流程总是：zero_grad、forward、loss、backward、(clip)、step、(schedule)。记住这个顺序。顺序搞错（例如在 optimizer.step() 之前调用 scheduler.step()）是一个常见的、不易察觉的 bug 来源。
-<<<
+2. 实施学习速度升温时间表:在训练步骤的前10%中从0到max_lr的线性坡路,然后降低到0.与亚当+加热相比亚当没有加热的训练.测量圆数据集中达到90%的准确度需要多少时代.
 
-对于 CNN，许多从业者仍更偏好带 step 或 cosine 计划的 SGD + momentum（lr=0.1，momentum=0.9，weight_decay=1e-4）。SGD 倾向于找到更平坦的极小值，而这类极小值通常泛化能力更强。对于 transformer 和 LLM，带 warmup + cosine 衰减的 AdamW 是通用的默认选择。没有斟酌充分的理由，就别去对抗共识。
->>>
+3. 追踪亚当训练期间每个参数的有效学习率.有效率是lr * m_hat / (sqrt(v_hat) + eps).在10 ,50和200步后绘制有效率的分布.所有参数都以相同的速度更新吗?
 
-## Ship It
+4. 执行梯度剪辑 (按全球标准剪辑).设置最高梯度标准为1.0.使用高学习率 (lr=0.01为亚当) 进行剪辑和没有剪辑训练.计算几次跑步分离 (损失到NaN) 进行10个随机种子或没有剪辑.
 
-This lesson produces:
-- `outputs/prompt-optimizer-selector.md` -- a decision prompt for choosing the right optimizer and learning rate for any architecture
+5. 在一个大型权重网络上比较亚当与亚当W. 启动所有权重以随机值为 [-5, 5] (比正常大得多). 训练200个时代,体重_衰减=0.1. 绘制L2权重标准对两个优化器的训练.亚当W应该显示更快的体重缩小.
 
-## 练习
-
-<<<
-
-1. Implement Nesterov momentum, where you compute the gradient at the "lookahead" position (w - lr * beta * v) instead of the current position. Compare convergence to standard momentum on the circle dataset.
-
-- No explanation or preamble
-
-Technical terms not to translate: "learning rate warmup schedule", "linear ramp", "max_lr", "cosine decay", "Adam", "warmup", "epochs", "accuracy", "circle dataset", "10%", "0", "90%", "100%".
-
-Let me think about what counts as a technical term:
-- learning rate warmup schedule - could translate as "学习率预热调度"
-- max_lr - technical term, keep as is
-- linear ramp - "线性递增" or "线性上升"
-- cosine decay - "余弦衰减"
-- Adam - keep
-- warmup - keep as 预热 or 保留
-- epochs - keep as "轮次" or "epoch"
-- accuracy - "准确率"
-- circle dataset - "circle 数据集" or "环形数据集"
-- 90% - keep
-- 10% - keep
-- 0 - keep
-
-Let me translate while preserving technical terms.
-
-"2. Implement a learning rate warmup schedule: linear ramp from 0 to max_lr over the first 10% of training steps, then cosine decay to 0."
-
-Translation: "2. 实现学习率预热调度：在前10%的训练步数内，学习率从0线性递增到max_lr，然后余弦衰减到0。"
-
-"Train with Adam + warmup vs Adam without warmup."
-
-Translation: "分别使用 Adam + 预热 和 不加预热的 Adam 进行训练。"
-
-"Measure how many epochs it takes to reach 90% accuracy on the circle dataset."
-
-Translation: "测量在 circle 数据集上达到90%准确率需要多少个epoch。"
-
-Let me refine. The rules say don't translate technical terms. So max_lr, Adam, cosine decay, learning rate warmup - some are fine to translate but terms like max_lr, Adam stay.
-
-Let me finalize.
-
-
-<<<START>>>
-2. 实现学习率预热调度：在前10%的训练步数内，学习率从0线性递增到max_lr，随后余弦衰减到0。分别使用 Adam + 预热 与 不加预热的 Adam 进行训练。测量在 circle 数据集上达到90%准确率需要多少个epoch。
-<<<
-
-3. 在 Adam 训练期间跟踪每个参数的有效学习率。有效率为 lr * m_hat / (sqrt(v_hat) + eps)。绘制在 10、50 和 200 步之后有效率的分布图。所有参数是否以相同的速度被更新？
-<<<
-
-4. Implement gradient clipping (clip by global norm). Set the max gradient norm to 1.0. Train with and without clipping using a high learning rate (lr=0.01 for Adam). Count how many runs diverge (loss goes to NaN) with and without clipping over 10 random seeds.
-
-Let me translate:
-
-"5. Compare Adam vs AdamW on a network with large weights. Initialize all weights to random values in [-5, 5] (much larger than normal). Train for 200 epochs with weight_decay=0.1. Plot the L2 norm of weights over training for both optimizers. AdamW should show faster weight shrinkage."
-
-Translation:
-
-5. 在大权重网络上比较 Adam 与 AdamW。将所有权重初始化为 [-5, 5] 范围内的随机值（远大于正常值）。以 weight_decay=0.1 训练 200 个 epoch。绘制两种优化器在训练过程中权重的 L2 范数。AdamW 应表现出更快的权重收缩。
-
-Let me keep technical terms as they are: Adam, AdamW, weight_decay, epoch, L2 norm.
-
-Looks good.
-
-
-<<<START>>>
-
-5. 在大权重网络上比较 Adam 与 AdamW。将所有权重初始化为 [-5, 5] 范围内的随机值（远大于正常值）。以 weight_decay=0.1 训练 200 个 epoch。绘制两种优化器在训练过程中权重的 L2 范数。AdamW 应表现出更快的权重收缩。
-
-<<<
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -694,9 +449,9 @@ Looks good.
 | Learning rate schedule | "Changing lr over time" | A function that adjusts the learning rate during training; warmup + cosine decay is the modern default |
 | Gradient clipping | "Capping the gradient norm" | Scaling down the gradient vector when its norm exceeds a threshold; prevents exploding gradient updates |
 
-## Further Reading
+## 进一步阅读
 
-- Kingma & Ba, "Adam: A Method for Stochastic Optimization" (2014) -- the original Adam paper with convergence analysis and the bias correction derivation
-- Loshchilov & Hutter, "Decoupled Weight Decay Regularization" (2017) -- proved that L2 regularization and weight decay are not equivalent in Adam, and proposed AdamW
-- Smith, "Cyclical Learning Rates for Training Neural Networks" (2017) -- introduced the LR range test and cyclical schedules that remove the need to tune a fixed learning rate
-- Ruder, "An Overview of Gradient Descent Optimization Algorithms" (2016) -- the best single survey of all optimizer variants, with clear comparisons and intuitions
+- Kingma & Ba, "亚当:一种方法来实现斯托哈斯主义优化" (2014) -- 原始的亚当论文与融合分析和偏差纠正衍生
+- 洛希洛夫和哈特, "脱节体重衰减规范化" (2017) -- 证明L2规范化和体重衰减在亚当中并非等同,并提出亚当W
+- 史密斯,"训练神经网络周期性学习率" (2017) -- 引入了LR范围测试和周期性时间表,
+- 鲁德, "渐进下降优化算法的概述" (2016) - - 优化器变体中最好的单一调查,有明确的比较和直觉

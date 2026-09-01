@@ -1,102 +1,32 @@
-<<<START>>>
-# 正则化
-<<<
+# 规范化
 
-> Your model gets 99% on training data and 60% on test data. It memorized instead of learning. Regularization is the tax you impose on complexity to force generalization.
+> 你的模型得到了99%的训练数据和60%的测试数据. 它记得而不是学习.规范化是你对复杂性征收的税收,
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.06 (Optimizers)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 学习目标
 
-- No explanation or preamble
-
-Let me translate each bullet point:
-
-- Implement dropout with inverted scaling, L2 weight decay, batch normalization, layer normalization, and RMSNorm from scratch
-- Measure the train-test accuracy gap and diagnose overfitting using regularization experiments
-- Explain why transformers use LayerNorm instead of BatchNorm and why modern LLMs prefer RMSNorm
-- Apply the correct combination of regularization techniques based on the severity of overfitting
-
-Technical terms to keep: dropout, L2, RMSNorm, LayerNorm, BatchNorm, transformers, LLMs, train-test accuracy gap, overfitting, regularization
-
-Let me translate naturally:
-
-- 从零开始实现带倒置缩放的 dropout、L2 权重衰减、批归一化、层归一化和 RMSNorm
-- 通过正则化实验测量训练-测试准确率差距，并诊断过拟合
-- 解释为什么 transformer 使用 LayerNorm 而非 BatchNorm，以及为什么现代 LLM 更偏好 RMSNorm
-- 根据过拟合的严重程度，应用正确的正则化技术组合
-
-That looks good.
-
-
-<<<START>>>
-- 从零开始实现带倒置缩放的 dropout、L2 权重衰减、批归一化、层归一化和 RMSNorm
-- 通过正则化实验测量训练-测试准确率差距，并诊断过拟合
-- 解释为什么 transformer 使用 LayerNorm 而非 BatchNorm，以及为什么现代 LLM 更偏好 RMSNorm
-- 根据过拟合的严重程度，应用正确的正则化技术组合
-<<<
+- 实现倒置缩放,L2体重衰减,批量正常化,层正常化和从零开始的RMSNorm
+- 测量火车测试精度差距,并通过规范化实验诊断过度适应
+- 解释为什么变压器使用LayerNorm而不是BatchNorm,以及为什么现代LLM更喜欢RMSNorm
+- 根据过度适应的严重性,应对正确的规范技术组合
 
 ## 问题
-<<<
 
-拥有足够参数的神经网络可以记忆任何数据集。这不是一个假设——张等人（2017）通过在 ImageNet 上使用随机标签训练标准网络证明了这一点。这些网络在完全随机的标签分配下达到了近乎为零的训练损失。它们记忆了一百万个没有任何规律可学的随机输入-输出对。训练损失完美。测试准确率为零。
-<<<
+网络具有足够的参数可以记住任何数据集.这不是假设的 - 张等人 (2017) 通过在图像网上训练标准网络随机标签证明了这一点.网络在完全随机标签任务上达到接近零的训练损失.他们记住了百万个随机输入输出对,没有学习的模式.训练损失是完美的.测试精度是零.
 
-这就是过拟合问题，并且随着模型规模增大而愈发严重。GPT-3 有 1750 亿个参数。训练集约有 5000 亿个 token。拥有这么多参数，模型就有足够的能力逐字记忆训练数据的一大块内容。如果没有正则化，它只会照搬训练样本，而不是学习可泛化的模式。
-<<<
+由于这种情况,GPT-3的训练组具有约500亿个代币. 随着这么多的参数,模型具有足够的能力来文字记住大量的训练数据. 如果没有规范化,它只会重新生成训练示例,而不是学习可通用模式.
 
-训练性能与测试性能之间的差距就是过拟合差距。本课程中的每一项技术都从不同角度切入这个差距。Dropout 强制网络不依赖任何单一神经元。Weight decay 防止任何单一权重增长过大。Batch normalization 平滑损失景观，使优化器能找到更平坦、更具泛化能力的极小值。Layer normalization 做同样的事情，但在 Batch normalization 失效的地方也能工作（小批次、变长序列）。RMSNorm 通过舍弃均值计算，速度提升 10%。每一项技术都很简单。它们共同决定了模型是死记硬背还是真正泛化。
-
-<<<START>>>
-训练性能与测试性能之间的差距就是过拟合差距。本课程中的每一项技术都从不同角度切入这个差距。Dropout 强制网络不依赖任何单一神经元。Weight decay 防止任何单一权重增长过大。Batch normalization 平滑损失景观，使优化器能找到更平坦、更具泛化能力的极小值。Layer normalization 做同样的事情，但在 batch normalization 失效的地方也能工作（小批次、变长序列）。RMSNorm 通过舍弃均值计算，速度提升 10%。每一项技术都很简单。它们共同决定了模型是死记硬背还是真正泛化。
-<<<
+训练性能和测试性能之间的差距是过度适应的差距. 每个技术都从不同的角度攻击了这个差距. 由于失效,网络不依赖任何一个神经元. 减肥可以防止任何体重变得过大. 批量正常化使损失景观平滑,使优化器发现更平坦,更可通用的最小值. 层正常化也会做同样的事情,但在批量正常化失败的情况下就能工作 (小批量,变长序列). 通过降低平均计算,RMSNorm可以更快10%. 每个技术都是简单的. 它们是记忆模型和概括模型之间的区别.
 
 ## 概念
-<<<
 
-"### The Overfitting Spectrum" - this is a markdown header.
+### 过度适应的频谱
 
-"The Overfitting Spectrum" - translate to Simplified Chinese. "Overfitting" is a technical term (过度拟合/过拟合). The instruction says "Do NOT translate code, math, links, or technical terms." 
-
-Hmm, but "Overfitting" here is part of a header title. Let me think. The technical term "overfitting" - should I keep it or translate it? In Chinese ML literature, "overfitting" is commonly "过拟合" or "过度拟合". 
-
-The rule says don't translate technical terms. But this is a title/heading. Let me translate it as "过拟合谱" or "过拟合光谱" or "过拟合谱系".
-
-Actually "Spectrum" = 谱/光谱/系列. "The Overfitting Spectrum" could be "过拟合谱" or "过拟合谱系".
-
-Let me keep it as a reasonable translation: "### 过拟合谱系"
-
-Wait, but the rule about not translating technical terms - "overfitting" is a technical term. But if I don't translate it, the header would be "### The Overfitting Spectrum" which is just the original. That doesn't make sense for a translation task.
-
-I think the intent is: don't translate things like code, math formulas, links. Technical terms that are commonly translated in Chinese can be translated. "Overfitting" is commonly translated as "过拟合" in Chinese. So I'll translate it.
-
-Let me go with "### 过拟合谱系"
-
-
-### 过拟合谱系
-
-Let me translate:
-
-"Every model sits somewhere on a spectrum from underfitting (too simple to capture the pattern) to overfitting (so complex it captures noise). The sweet spot is in between, and regularization pushes models toward it from the overfit side."
-
-Technical terms like "underfitting", "overfitting", "regularization" - these are ML terms. The instructions say don't translate technical terms. However, these are common terms that could be translated. Let me think... Actually, in the context of ML, these are often translated: underfitting → 欠拟合, overfitting → 过拟合, regularization → 正则化. 
-
-The rule says "Do NOT translate ... technical terms." Hmm, but underfitting/overfitting are technical terms. Let me consider - the instruction is to not translate code, math, links, or technical terms. But regular translation of ML concepts into Chinese usually includes these terms.
-
-Actually, I think the safest interpretation is to translate natural language but keep proper technical terms. But underfitting/overfitting have standard Chinese translations that are widely used. Let me translate the surrounding text and provide the standard Chinese terms.
-
-Let me translate:
-"每个模型都位于从欠拟合（过于简单而无法捕捉规律）到过拟合（过于复杂而捕捉到噪声）的谱系中的某处。最佳点就在这中间，而正则化会从过拟合一侧推动模型朝这个最佳点移动。"
-
-This looks good. Let me finalize.
-
-
-<<<START>>>
-每个模型都位于从欠拟合（过于简单而无法捕捉规律）到过拟合（过于复杂而捕捉到噪声）这一谱系上的某处。最佳点就在这中间，而正则化会从过拟合一侧推动模型朝这一最佳点靠拢。
-<<<
+每个模型都在某个频谱上坐落,从不适合 (太简单无法捕捉模式) 到超适合 (太复杂以捕捉噪音).
 
 ```mermaid
 graph LR
@@ -109,98 +39,54 @@ graph LR
     Aug["Data Augmentation"] -->|"Pushes left"| Over
 ```
 
-### Dropout
+### 放弃
 
-最简单但也最具优雅解释的正则化技术。在训练过程中，以概率 p 随机将每个神经元的输出置为零。
-<<<
+在训练中,随机设置每个神经元的输出到零,概率为p.
 
 ```
 output = activation(z) * mask    where mask[i] ~ Bernoulli(1 - p)
 ```
 
-With p = 0.5, half the neurons are zeroed on every forward pass. The network must learn redundant representations because it can't predict which neurons will be available. This prevents co-adaptation -- neurons learning to rely on specific other neurons being present.
+网络必须学习冗余的表达,因为它无法预测哪些神经元将会有. 这阻止了共适应 - - 神经元学习依赖其他特定的神经元存在.
 
-Let me translate this text about the ensemble interpretation of dropout.
+综合解释:一个网络中N神经元和中断产生2^N可能的子网络 (每个神经元的组合都开放或关闭). 训练与中断约同时训练2^N子网络,每个分类在不同的小批量. 在测试时,你使用所有神经元 (没有放弃) 并将输出量量达 (1 - p) 来匹配训练期间预期的值. 这相当于平均2^N子网络的预测 - - 一个单个模型的巨大组.
 
-The ensemble interpretation: a network with N neurons and dropout creates 2^N possible subnetworks (every combination of which neurons are on or off). Training with dropout approximately trains all 2^N subnetworks simultaneously, each on different mini-batches. At test time, you use all neurons (no dropout) and scale outputs by (1 - p) to match the expected value during training. This is equivalent to averaging the predictions of 2^N subnetworks -- a massive ensemble from a single model.
-
-Let me translate carefully, keeping technical terms intact.
-
-
-集成解释：一个拥有 N 个神经元并应用 dropout 的网络会产生 2^N 种可能的子网络（即神经元开或关的每种组合）。使用 dropout 训练大约同时训练了全部 2^N 个子网络，每个子网络在不同的 mini-batch 上进行训练。在测试时，你使用全部神经元（不使用 dropout），并将输出缩放 (1 - p) 以匹配训练期间的期望值。这相当于对 2^N 个子网络的预测进行平均——从一个模型中得到了一个庞大的集成。
-
-In practice, the scaling is applied during training instead of testing (inverted dropout):
+实际上,在训练期间使用扩展而不是测试 (反转放弃):
 
 ```
 During training:  output = activation(z) * mask / (1 - p)
 During testing:   output = activation(z)   (no change needed)
 ```
 
-The technical term here might be "dropout" and "test code". Dropout is a technical term (in machine learning context). Let me keep "dropout" untranslated since it's a technical term. "test code" could be translated as "测试代码".
+这更干净,因为测试代码根本不需要知道退学.
 
-Let me translate:
-"这样更简洁，因为测试代码完全不需要了解 dropout。"
+默认故障率:变压器的p = 0.1,MLP的p = 0.5 ,CNN的p = 0.2-0.3.
 
+### 体重减退 (L2规律化)
 
-<<<START>>>这样更简洁，因为测试代码完全不需要了解 dropout。<<<
-
-默认率：transformers 的 p = 0.1，MLP 的 p = 0.5，CNN 的 p = 0.2-0.3。更高的 dropout = 更强的正则化 = 更严重的欠拟合风险。
-<<<
-
-### Weight Decay (L2 Regularization)
-
-Add the squared magnitude of all weights to the loss:
+增加所有权重的平方大小:
 
 ```
 total_loss = task_loss + (lambda / 2) * sum(w_i^2)
 ```
 
-Let me translate this text about gradient descent and regularization.
+规律化术语的梯度是lambda * w. 这意味着每一步,每个重量都缩小到零的比例.大重量受到更多的惩罚.模型被推向没有单个重量主导的解决方案.
 
-"The gradient of the regularization term is lambda * w. This means at every step, each weight is shrunk toward zero by a fraction proportional to its magnitude. Large weights get penalized more. The model is pushed toward solutions where no single weight dominates."
+为什么这有助于通用化:超级适应型号往往具有大重量,这会在训练数据中放大噪音.体重衰减使重量保持小,从而限制了模型的有效能力,迫使其依赖于强,可通用的特性而不是记忆的奇怪.
 
-Translation:
-正则化项的梯度是 lambda * w。这意味着每一步，每个权重都会按其大小的一个比例缩小（向零收缩）。较大的权重受到更严厉的惩罚。模型被推向没有任何单一权重占主导地位的解。
+果超值控制强度.
 
-Let me make it more natural.
+- 转变器的 AdamW 0.01
+- 对于CNN电视台的SGD,
+- 0.1 适合重量超级型号
 
+根据第06课中所述,体重减轻和L2规则化在SGD中相当,但在亚当中不是.
 
-<<<START>>>
-正则化项的梯度是 lambda * w。这意味着每一步，每个权重都会向零收缩一个与其幅值成比例的分量。较大的权重会受到更严厉的惩罚。模型被推向没有任何单一权重占主导地位的解。
-<<<
+### 批量正常化
 
-This fragment doesn't contain any PROTECT tokens, code, math, or links. It's just a paragraph. Let me translate it.
+在将其传递到下一个层之前,将每个层的输出正常化在迷你批量中.
 
-"Why this helps generalization: overfit models tend to have large weights that amplify noise in the training data. Weight decay keeps weights small, which limits the model's effective capacity and forces it to rely on robust, generalizable features rather than memorized quirks."
-
-Translation:
-"为何有助于泛化：过拟合模型往往具有较大的权重，会放大训练数据中的噪声。权重衰减保持权重较小，这限制了模型的有效容量，并迫使它依赖鲁棒、可泛化的特征，而非记忆化的怪癖。"
-
-Let me refine the translation. "quirks" here means unusual patterns. Let me think of a good translation. "记忆化的怪癖" or "记忆化的特殊模式". 
-
-Let me finalize.
-
-
-为何有助于泛化：过拟合模型往往具有较大的权重，从而放大训练数据中的噪声。权重衰减能使权重保持较小，这限制了模型的有效容量，并迫使它依赖鲁棒、可泛化的特征，而不是记忆化的怪癖。
-
-lambda 超参数控制强度。典型值：
-<<<
-
-- 0.01 for AdamW on transformers
-- 1e-4 for SGD on CNNs
-- 0.1 for heavily overfit models
-
->>>START>>>
-正如第 06 课所讨论的：weight decay 与 L2 regularization 在 SGD 中是等价的，但在 Adam 中并非如此。在使用 Adam 训练时，务必使用 AdamW（decoupled weight decay）。
-<<<
-
-### Batch Normalization
-
-在将各层的输出传递给下一层之前，针对小批量对这些层的输出进行归一化处理。
-<<<
-
-对于某一层的一批激活值：
-<<<
+对于某个层中的小型激活:
 
 ```
 mu = (1/B) * sum(x_i)           (batch mean)
@@ -209,30 +95,17 @@ x_hat = (x_i - mu) / sqrt(sigma^2 + eps)   (normalize)
 y = gamma * x_hat + beta        (scale and shift)
 ```
 
-Gamma and beta are learnable parameters that let the network undo the normalization if that's optimal. Without them, you'd be forcing every layer's output to be zero-mean unit-variance, which might not be what the network wants.
+没有它们,你将迫使每个层的输出变化为零平均单位变化,这可能不是网络想要的.
 
-**Training vs inference split:** During training, mu and sigma come from the current mini-batch. During inference, you use running averages accumulated during training (exponential moving average with momentum = 0.1, meaning 90% old + 10% new).
+**Training vs inference split:**在训练期间,mu和sigma来自当前的迷你批量.在推断过程中,你使用训练期间积累的运行平均值 (动力率为0.1的指数,即90%旧 +10%新).
 
-为什么 BatchNorm 有效仍存在争议。原始论文声称它能减少"内部协变量偏移"（层输入在更靠前的层更新时发生分布变化）。Santurkar 等（2018）证明这一解释是错误的。真正的原因在于：BatchNorm 让损失景观更平滑。梯度更具预测性，Lipschitz 常数更小，优化器可以更安全地取更大的步长。这正是 BatchNorm 能让你使用更高学习率并更快收敛的原因。
+现在还有人讨论 BatchNorm 为什么工作. 原文声称它减少了"内部变量转移" (随着早期层更新而变化的层输入分布). 桑图尔卡等 (2018) 显示了这种解释是错误的. 实际原因是,BatchNorm使损失景观更加平滑. 梯度更具预测性,利普斯奇特常数更小,优化器可以安全地采取更大的步骤. 这就是为什么BatchNorm允许你使用更高的学习率,
 
-Let me translate the text while preserving technical terms like "BatchNorm" and "PROTECT" tokens (there are none here).
+批量规则有一个基本的局限性:它取决于批量统计.在批量大小1时,平均和差异是无意义的.在小批量 (<32),统计数据是噪音和损伤性能.这对于对象检测 (记忆限制批量大小) 和语言建模 (测序长度不同的地方) 等任务来说很重要.
 
-Let me translate:
-"BatchNorm has a fundamental limitation: it depends on batch statistics. With batch size 1, the mean and variance are meaningless. With small batches (< 32), the statistics are noisy and hurt performance. This matters for tasks like object detection (where memory limits batch size) and language modeling (where sequence lengths vary)."
+### 层正常化
 
-Translation:
-"BatchNorm 存在一个根本性的限制：它依赖于批次统计量。当批次大小为 1 时，均值和方差毫无意义。对于较小的批次（< 32），统计量会有噪声并损害性能。这在目标检测（显存限制批次大小）和语言建模（序列长度会变化）等任务中很重要。"
-
-Technical terms to preserve: BatchNorm, object detection, language modeling. Let me keep BatchNorm in English. The "< 32" should be preserved as math/technical.
-
-
-<<<START>>>
-BatchNorm 存在一个根本性的限制：它依赖于批次统计量。当批次大小为 1 时，均值和方差毫无意义。对于较小的批次（< 32），统计量会引入噪声并损害性能。这在目标检测（显存会限制批次大小）和语言建模（序列长度会变化）等任务中尤为重要。
-<<<
-
-### Layer Normalization
-
-Normalize across features instead of across the batch. For a single sample:
+标准化在各个特征上,而不是在整个批量上.
 
 ```
 mu = (1/D) * sum(x_j)           (feature mean)
@@ -241,85 +114,24 @@ x_hat = (x_j - mu) / sqrt(sigma^2 + eps)
 y = gamma * x_hat + beta
 ```
 
-D is the feature dimension. Each sample is normalized independently -- no dependence on batch size. This is why transformers use LayerNorm instead of BatchNorm. Sequences have variable lengths, batch sizes are often small (or 1 during generation), and the computation is identical between training and inference.
+变压器使用LayerNorm而不是 BatchNorm.序列的长度可变,批量大小通常很小 (或在生成过程中是1),训练和推断之间的计算是相同的.
 
-在 transformers 中，LayerNorm 应用于每个 self-attention block 和每个 feed-forward block 之后（Post-LN），或在此之前（Pre-LN，训练更稳定）。
-<<<
+在变压器中,LayerNorm应在每一个自我注意区块和每一个输送前进区块 (后LN) 后或之前 (前LN,更稳定于训练).
 
-### RMSNorm
+### 标准
 
-<<<START>>>
-LayerNorm（不使用均值归零化）。由 Zhang & Sennrich (2019) 提出。
-<<<
+没有平均减小的LayerNorm. 张和森尼里希 (2019) 提出.
 
 ```
 rms = sqrt((1/D) * sum(x_j^2))
 y = gamma * x / rms
 ```
 
-Let me translate this fragment.
+没有平均计算,没有beta参数.观察:LayerNorm中重中心化 (平均减小) 对模型的性能贡献很少,但成本计算.删除它会带来同样的精度,大约10%的总成本.
 
-"That's it. No mean computation, no beta parameter. The observation: the re-centering (mean subtraction) in LayerNorm contributes very little to the model's performance, but costs computation. Removing it gives the same accuracy with about 10% less overhead."
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-Let me translate:
-
-"就这样。不再需要均值计算，也没有 beta 参数。观察结果：LayerNorm 中的重新中心化（均值减去）对模型性能贡献很小，但消耗计算。移除它可以在约 10% 的开销更少中获得相同的准确性。"
-
-Let me refine this:
-
-"That's it." -> "就这样。"
-
-"No mean computation, no beta parameter." -> "不再有均值计算，也没有 beta 参数。"
-
-"The observation:" -> "观察结果："
-
-"the re-centering (mean subtraction) in LayerNorm contributes very little to the model's performance, but costs computation." -> "LayerNorm 中的重新中心化（均值相减）对模型性能贡献甚微，却消耗计算。"
-
-"Removing it gives the same accuracy with about 10% less overhead." -> "移除它可以在减少约 10% 开销的情况下获得相同的准确性。"
-
-Technical terms like LayerNorm, beta, mean, overhead should be handled. The instructions say do NOT translate technical terms. But these are in prose. Let me think - LayerNorm is a proper noun/technical term, so keep it. beta is a parameter name, keep it. 
-
-Let me finalize.
-
-
-这样就完了。不再有均值计算，也没有 beta 参数。观察结果：LayerNorm 中的重新中心化（均值相减）对模型性能贡献甚微，却消耗计算量。移除它可以在减少约 10% 开销的情况下获得相同的准确率。
-
-<<<START>>>
-这样就完了。不再有均值计算，也没有 beta 参数。观察结果：LayerNorm 中的重新中心化（均值相减）对模型性能贡献甚微，却消耗计算量。移除它可以在减少约 10% 开销的情况下获得相同的准确率。
-<<<
-
-Let me translate:
-
-"LLaMA, LLaMA 2, LLaMA 3, Mistral, and most modern LLMs use RMSNorm instead of LayerNorm. At the scale of billions of parameters and trillions of tokens, that 10% savings is significant."
-
-Technical terms to preserve: LLaMA, LLaMA 2, LLaMA 3, Mistral, LLMs, RMSNorm, LayerNorm
-
-Translation:
-LLaMA、LLaMA 2、LLaMA 3、Mistral 以及大多数现代 LLM 都使用 RMSNorm 而非 LayerNorm。在数十亿参数和数万亿 token 的规模下，这 10% 的节省是显著的。
-
-
-<<<START>>>
-LLaMA、LLaMA 2、LLaMA 3、Mistral 以及大多数现代 LLM 都使用 RMSNorm 而非 LayerNorm。在数十亿参数与数万亿 token 的规模下，这 10% 的节省是不可忽视的。
-<<<
-
-"Normalization" is a technical term. But it's a heading. Let me think about whether to translate it. Normalization could be "归一化" or "标准化". This is a technical term so I should perhaps not translate it... but it's part of a markdown heading. 
-
-The rule says "Do NOT translate code, math, links, or technical terms." Normalization is a technical term. However, the heading itself needs to be readable. Let me consider - "Normalization Comparison" - this is a section heading. 
-
-I'll translate "Comparison" but keep "Normalization" since it's a technical term. Actually, let me reconsider. The instruction says to translate English Markdown fragments into Simplified Chinese. "Comparison" isn't technical. "Normalization" is technical.
-
-So "### Normalization Comparison" → "### Normalization 比较"
-
-Hmm, but that looks odd. Let me think about what's most appropriate. The rule is to NOT translate technical terms. Normalization is a technical term. So I should keep it.
-
-Let me write: "### Normalization 比较"
-
-Actually, this is a reasonable approach for keeping technical terms in English while translating the rest.
-
-
-<<<START>>>
-### Normalization 比较
-<<<
+### 规范化比较
 
 ```mermaid
 graph TD
@@ -340,52 +152,21 @@ graph TD
     end
 ```
 
-### Data Augmentation as Regularization
+### 数据增长作为规范化
 
-Not a model modification but a data modification. Transform training inputs while preserving labels:
+转换训练输入,同时保留标签:
 
-- Images: random crop, flip, rotation, color jitter, cutout
-- Text: synonym replacement, back-translation, random deletion
-- Audio: time stretch, pitch shift, noise addition
+- 图像:随机收获,翻转,旋转,颜色动,切割
+- 文字:代名词的替代,回译,随机删除
+- 音频:时间延伸,音调转移,噪音增加
 
-The effect is identical to regularization: it increases the effective size of the training set, making it harder for the model to memorize specific examples. A model that only sees each image once in its original form can memorize it. A model that sees 50 augmented versions of each image is forced to learn the invariant structure.
+效果与规律化相同:它增加了训练集的实际尺寸,使得模型更难记住特定的例子.只能在原始形式中看到每个图像的模型只能记住它.看到每个图像的50个增强版本的模型被迫学习不变结构.
 
-### Early Stopping
+### 早期停止
 
-Let me translate the text.
+最简单的调节剂:在验证损失开始增加时停止训练.模型尚未过度适应.实际上,您每一个时代都会跟踪验证损失,保存最好的模型,并继续训练,以实现"耐心"窗口 (通常5-20个时代).如果验证损失在耐心窗口内没有改善,您就会停止和加载最好的保存模型.
 
-"The simplest regularizer: stop training when validation loss starts increasing. The model hasn't overfit yet at that point. In practice, you track validation loss every epoch, save the best model, and continue training for a "patience" window (typically 5-20 epochs). If validation loss doesn't improve within the patience window, you stop and load the best saved model."
-
-Translation:
-
-最简单的正则化器：当验证损失开始上升时停止训练。此时模型尚未过拟合。在实践中，你每个 epoch 都追踪验证损失，保存最佳模型，并继续训练一个"耐心"窗口（通常为 5-20 个 epoch）。如果在耐心窗口内验证损失没有改善，你就停止并加载保存的最佳模型。
-
-Let me refine it a bit. Technical terms like "validation loss", "epoch", "overfit", "regularizer" - the instructions say don't translate technical terms. But "validation loss" and "epoch" are technical terms. Let me think about this.
-
-The rule says "Do NOT translate code, math, links, or technical terms." So I should keep technical terms. But some of these are hard to keep without translating. Let me think.
-
-- "regularizer" → 正则化器 (this is a standard technical term, keep as is essentially)
-- "validation loss" → 验证损失 (standard term)
-- "epoch" → epoch (keep in English as it's a technical term)
-- "overfit" → 过拟合
-- "patience" window → "耐心"窗口
-
-Actually, the instruction is to not translate technical terms. But it's tricky. Some people keep the English. I'll translate the prose naturally while keeping technical terms where appropriate. Since this is Simplified Chinese translation, I think translating common ML terms to their Chinese equivalents is fine and expected. But to be safe with the rule, I could keep "epoch" in English.
-
-Let me write a clean translation:
-
-最简单的正则化方法：当验证损失开始上升时停止训练。在那一刻，模型尚未过拟合。实践中，你会每个 epoch 监控验证损失，保存最佳模型，并继续训练一段"耐心"期（通常为 5-20 个 epoch）。如果在耐心期内验证损失没有改善，你就停止训练并加载保存的最佳模型。
-
-This looks good. Let me wrap it.
-
-
-最简单的正则化器：当验证损失开始上升时停止训练。在那一刻，模型尚未过拟合。在实践中，你会每个 epoch 监控验证损失，保存最佳模型，并继续训练一个"耐心"窗口（通常为 5-20 个 epoch）。如果在耐心窗口内验证损失没有改善，你就停止训练并加载保存的最佳模型。
-
-<<<START>>>
-最简单的正则化器：当验证损失开始上升时停止训练。在那一刻，模型尚未过拟合。在实践中，你会每个 epoch 监控验证损失，保存最佳模型，并继续训练一个"耐心"窗口（通常为 5-20 个 epoch）。如果在耐心窗口内验证损失没有改善，你就停止训练并加载保存的最佳模型。
-<<<
-
-### When to Apply What
+### 什么时候应用
 
 ```mermaid
 flowchart TD
@@ -410,22 +191,9 @@ flowchart TD
 l2-regularization
 ```
 
-## Build It
+## 建立它
 
-Let me translate:
-"### Step 1: Dropout (Train and Eval Mode)"
-"### 第 1 步：Dropout（训练和评估模式）"
-
-"Dropout" is a technical term (a neural network technique), so I should not translate it. Actually, the rule says "Do NOT translate code, math, links, or technical terms." Dropout is a technical term, so keep it. "Train and Eval Mode" - these are technical terms too. But they could be translated as 训练和评估模式. Let me keep the technical terms but the parenthetical can be translated.
-
-Actually, "Train" and "Eval" are abbreviations for training and evaluation. I could translate as 训练和评估模式. This is reasonable.
-
-Let me produce the final answer.
-
-
-<<<START>>>
-### 第 1 步：Dropout（训练和评估模式）
-<<<
+### 步骤1:放弃 (列车和Eval模式)
 
 ```python
 import random
@@ -462,8 +230,7 @@ class Dropout:
         return grads
 ```
 
-### 第 2 步：L2 权重衰减
-<<<
+### 步骤2:L2体重衰减
 
 ```python
 def l2_regularization(weights, lambda_reg):
@@ -476,7 +243,7 @@ def l2_gradient(weights, lambda_reg):
     return [lambda_reg * w for w in weights]
 ```
 
-### Step 3: Batch Normalization
+### 步骤3:批量正常化
 
 ```python
 class BatchNorm:
@@ -526,7 +293,7 @@ class BatchNorm:
         return output
 ```
 
-### Step 4: Layer Normalization
+### 步骤4: 层正常化
 
 ```python
 class LayerNorm:
@@ -549,7 +316,7 @@ class LayerNorm:
         return output
 ```
 
-### Step 5: RMSNorm
+### 步骤5:RMSNorm
 
 ```python
 class RMSNorm:
@@ -566,7 +333,7 @@ class RMSNorm:
         return output
 ```
 
-### Step 6: Training With and Without Regularization
+### 第六步: 训练,不定期训练
 
 ```python
 def sigmoid(x):
@@ -670,10 +437,9 @@ class RegularizedNetwork:
         return history
 ```
 
-## 使用它
-<<<
+## 用它
 
->>>PyTorch 将所有归一化和正则化以模块形式提供：<<<
+PyTorch提供了所有正常化和规律化的模块:
 
 ```python
 import torch
@@ -698,10 +464,9 @@ model.eval()
 out_test = model(torch.randn(1, 784))
 ```
 
-The `model.train()` / `model.eval()` toggle is critical. It switches dropout on/off and tells BatchNorm to use batch statistics vs running statistics. Forgetting `model.eval()` before inference is one of the most common bugs in deep learning. Your test accuracy will fluctuate randomly because dropout is still active and BatchNorm is using mini-batch statistics.
+其他`model.train()`现在,`model.eval()`切换关键. 它将停机关关闭/关闭开关,并告诉BatchNorm使用批量统计与运行统计. 忘记`model.eval()`测试精度会随机波动,因为中断仍然活跃,而BatchNorm正在使用迷你批量统计数据.
 
-对于 transformer，模式有所不同：
-<<<
+对于变压器来说,模式不同:
 
 ```python
 class TransformerBlock(nn.Module):
@@ -725,107 +490,26 @@ class TransformerBlock(nn.Module):
         return x
 ```
 
-LayerNorm，而不是 BatchNorm。Dropout p=0.1，而不是 p=0.5。这些是 transformer 的默认配置。
-<<<
+没有什么变压器,没有什么变压器.
 
-## Ship It
+## 运送它
 
-This lesson produces:
-- `outputs/prompt-regularization-advisor.md` -- a prompt that diagnoses overfitting and recommends the right regularization strategy
+这一课产生了:
+- `outputs/prompt-regularization-advisor.md`-- 提示诊断过度适应,并建议正确的规范化策略
 
-## 练习
+## 运动
 
-<<<
+1. 实现2D数据的空间放弃:而不是放弃单个神经元,放弃整个功能道.通过将连续特征的组作为道和放弃整个组来模拟这一点.将火车测试差距与圆数据集中的标准放弃相比较,以 hidden_size=32.
 
-Technical terms like "spatial dropout", "dropout", "feature channels", "hidden_size" - these are technical terms. The instruction says "Do NOT translate ... technical terms." Hmm, but this is a bit tricky. Let me think about what should be preserved.
+2. 执行从05课开始的标签滑滑,并与从本课结束的排行. 训练有四个配置:没有,只放弃,只放标. 测量每个列车测试的最终精度差距.哪个组合给出最小的差距?
 
-Actually, "hidden_size=32" should be preserved as is since it's code. Terms like "spatial dropout", "dropout" are technical terms that should probably be preserved or transliterated. But "feature channels", "train-test gap", "neurons" - these are more descriptive.
+3. 在隐藏层和您的圆数据集网络中的激活之间添加一个BatchNorm层. 在学习率0.01,0.05和0.1的情况下与 BatchNorm一起和没有 BatchNorm一起训练.
 
-Let me be careful. The instruction is to translate to Simplified Chinese but NOT translate technical terms. So terms like "spatial dropout", "dropout", "feature channels", "neurons" could be kept. But actually in ML context, these are often translated. Let me think about the balance.
+4. 执行早期停止:每个时代追踪测试损失,节省最佳权重,并在20个时代内测试损失未改善时停止.运行规律化网络1000个时代.报告哪个时代具有最佳测试精度,以及您节省了多少个计算时代.
 
-Actually, "Do NOT translate code, math, links, or technical terms." This means I should keep technical terms as-is. So "spatial dropout" stays, "dropout" stays, "feature channels" stays, "hidden_size" stays.
+5. 根据4层网络 (不仅是2) 的LayerNorm与RMSNorm比较. 启动两者均重量. 训练200个时代,并对比最后的精度,训练速度 (时间每时代),和梯度大小在第一层. 检查RMSNorm是更快的与相同的精度.
 
-Wait, but then the translation would be mostly English. Let me reconsider. The rule is about not translating certain things. Technical terms should remain in English (or be transliterated). Let me keep technical terms in their original form where they're clearly technical, but translate the general sentence structure.
-
-Let me draft:
-
-"1. For 2D data, implement spatial dropout: instead of dropping individual neurons, drop entire feature channels. Simulate this by treating groups of consecutive features as channels and dropping whole groups. Compare the train-test gap to standard dropout on the circle dataset with hidden_size=32."
-
-Translation:
-"1. 为 2D 数据实现 spatial dropout：与其 Drop 单个 neuron，不如 Drop 整个 feature channel。通过将连续特征视为 channel、并 Drop 整个 group 来模拟这一过程。在 hidden_size=32 的 circle 数据集上，将 train-test gap 与标准 dropout 进行比较。"
-
-Hmm, but the rules say do not translate technical terms. So I'll keep "spatial dropout", "neuron", "feature channel", "group" (maybe group is not technical), "train-test gap", "dropout", "hidden_size", "circle dataset".
-
-Let me reconsider "group" and "consecutive" - these are not technical terms. "consecutive" = 连续, "whole" = 整个.
-
-Let me refine:
-"1. 为 2D 数据实现 spatial dropout：不再 Drop 单个 neuron，而是 Drop 整个 feature channel。通过将连续的特征序列视为 channel、并 Drop 整个 channel 组来模拟这一过程。在 hidden_size=32 的 circle 数据集上，把 train-test gap 与标准 dropout 做对比。"
-
-Actually, let me reconsider whether to keep "Drop" in English or translate. "drop individual neurons" - drop is a technical action here. I think keeping it as "dropping" translated to "丢弃" would be fine, or keep "drop". Since drop is a technical term in the context of dropout... Actually "dropout" is the technical term, and "drop" is the verb. I think I can translate "drop" as 丢弃 to make it read more naturally, but the instruction says don't translate technical terms. Hmm.
-
-Let me be safe and keep the technical terms like spatial dropout, dropout, hidden_size, neuron, feature channel, train-test gap in English. For the verb "drop", I'll use 丢弃 (drop/remove) which is a normal Chinese word, not really a technical term. Actually "drop" in this context... let me just translate it as 丢弃 for readability.
-
-Let me reconsider. The task seems to be from a machine learning assignment. Let me produce a clean translation.
-
-Final draft:
-"1. 为 2D 数据实现 spatial dropout：与其丢弃单个 neuron，不如丢弃整个 feature channel。通过将连续的特征当作 channel、并丢弃整个 channel 组来模拟这一过程。在 hidden_size=32 的 circle 数据集上，将 train-test gap 与标准 dropout 进行对比。"
-
-This looks good. Let me check line breaks - the original is a single line (well, it's one paragraph). No line breaks to worry about except maybe the numbering.
-
-Let me finalize.
-
-
-<<<START>>>
-1. 为 2D 数据实现 spatial dropout：与其丢弃单个 neuron，不如丢弃整个 feature channel。通过将连续的特征当作 channel、并丢弃整个 channel 组来模拟这一过程。在 hidden_size=32 的 circle 数据集上，将 train-test gap 与标准 dropout 进行对比。
-<<<
-
-- Do not include any explanation or preamble
-
-Let me translate this technical content about machine learning (label smoothing, dropout, train-test accuracy).
-
-Technical terms like "label smoothing", "dropout", "train-test accuracy gap" - the rule says don't translate technical terms. But these are concepts. Let me think about what constitutes "technical terms". The rule says preserve technical terms. So I should keep terms like "dropout", "label smoothing" perhaps in a way... Actually, let me translate the general text but keep technical terms.
-
-Actually, in Chinese ML context, "dropout" is often kept as "dropout" or translated as "随机丢弃". "label smoothing" is "标签平滑". Let me translate naturally while keeping the meaning.
-
-Let me translate:
-
-"2. Implement label smoothing from lesson 05 combined with dropout from this lesson. Train with four configurations: neither, dropout only, label smoothing only, both. Measure the final train-test accuracy gap for each. Which combination gives the smallest gap?"
-
-Translation:
-"2. 结合第 05 课中的标签平滑和本课中的 dropout 来实现。使用四种配置进行训练：都不使用、仅用 dropout、仅用标签平滑、两者都用。分别测量各自的最终训练-测试准确率差距。哪种组合的差距最小？"
-
-This looks good. Let me preserve the formatting - it's a single paragraph. No line breaks to preserve except maybe. Let me output.
-
-
-2. 结合第 05 课中的标签平滑和本课中的 dropout 来实现。使用四种配置进行训练：都不使用、仅用 dropout、仅用标签平滑、两者都用。分别测量各自的最终训练-测试准确率差距。哪种组合的差距最小？
-
-<<<START>>>
-2. 结合第 05 课中的标签平滑和本课中的 dropout 来实现。使用四种配置进行训练：都不使用、仅用 dropout、仅用标签平滑、两者都用。分别测量各自的最终训练-测试准确率差距。哪种组合的差距最小？
-<<<
-
-3. Add a BatchNorm layer between the hidden layer and the activation in your circle-dataset network. Train with and without BatchNorm at learning rates 0.01, 0.05, and 0.1. BatchNorm should allow stable training at higher learning rates where the vanilla network diverges.
-
-4. 实现早停法：每个 epoch 跟踪测试损失，保存最佳权重，并在测试损失连续 20 个 epoch 未改善时停止。让正则化网络运行 1000 个 epoch。报告哪个 epoch 的测试准确率最高，以及你节省了多少个 epoch 的计算量。
-<<<
-
-Let me translate:
-
-"5. Compare LayerNorm vs RMSNorm on a 4-layer network (not just 2). Initialize both with the same weights. Train for 200 epochs and compare final accuracy, training speed (time per epoch), and gradient magnitudes at the first layer. Verify that RMSNorm is faster with the same accuracy."
-
-Technical terms to keep: LayerNorm, RMSNorm, 4-layer, epochs, accuracy, gradient magnitudes, weights.
-
-Let me translate:
-
-"5. 在4层网络上比较 LayerNorm 与 RMSNorm（不只是2层）。用相同的权重初始化两者。训练200个epoch，比较最终准确率、训练速度（每个epoch的时间）以及第一层的梯度大小。验证 RMSNorm 在相同准确率下更快。"
-
-This looks good.
-
-
-<<<START>>>
-5. 在4层网络上比较 LayerNorm 与 RMSNorm（不只是2层）。用相同的权重初始化两者。训练200个epoch，比较最终准确率、训练速度（每个epoch所需时间）以及第一层的梯度大小。验证 RMSNorm 在相同准确率下更快。
-<<<
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -840,9 +524,9 @@ This looks good.
 | Data augmentation | "More data from less" | Transforming training inputs (flip, crop, noise) to increase effective dataset size and force invariance learning |
 | Generalization gap | "Train-test split" | The difference between training and test performance; regularization aims to minimize this gap |
 
-## Further Reading
+## 进一步阅读
 
-- Srivastava et al., "Dropout: A Simple Way to Prevent Neural Networks from Overfitting" (2014) -- the original dropout paper with the ensemble interpretation and extensive experiments
-- Ioffe & Szegedy, "Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift" (2015) -- introduced BatchNorm and its training procedure, one of the most cited deep learning papers
-- Zhang & Sennrich, "Root Mean Square Layer Normalization" (2019) -- showed RMSNorm matches LayerNorm accuracy with reduced computation; adopted by LLaMA and Mistral
-- Zhang et al., "Understanding Deep Learning Requires Rethinking Generalization" (2017) -- the landmark paper showing neural networks can memorize random labels, challenging traditional views of generalization
+- 斯里瓦斯塔瓦等人",脱离:防止神经网络过度适应的简单方法" (2014) - - 带有组合解释和广泛的实验的原始脱离论文
+- 伊夫夫和谢杰迪, "批量正常化:通过减少内部变量转移加速深度网络培训" (2015) -- 介绍了BatchNorm及其培训程序,这是最受引用的深度学习论文之一
+- 张和森里希,"根中方层正常化" (2019) -- 显示RMSNorm与LayerNorm的准确性相匹配,计算量减少; LLaMA和Mistral采用
+- 张等人",理解深度学习需要重新思考通用化" (2017) -- 展示神经网络能够记住随机标签的具有里程碑意义的论文,挑战了传统的通用化观点

@@ -1,146 +1,41 @@
-# Activation Functions
+# 激活功能
 
-- No explanation or preamble
-
-Let me translate:
-
-"Without nonlinearity, your 100-layer network is a fancy matrix multiply. Activations are the gates that let neural networks think in curves."
-
-Translation:
-"没有非线性，你的100层网络只是一个花哨的矩阵乘法。激活函数是让神经网络能够以曲线方式思考的闸门。"
-
-Technical terms like "nonlinearity", "matrix multiply", "Activations", "neural networks" - the rules say do NOT translate technical terms. Hmm, but these are common terms. Let me think about what to keep.
-
-Actually "matrix multiply" is a technical term - could keep as 矩阵乘法 or keep the concept. "Activations" refers to activation functions - 激活函数. "neural networks" is 神经网络.
-
-Let me translate this properly while keeping technical terms where appropriate. Since it's natural language, I'll translate the whole thing. Technical terms in Chinese are standard.
-
-"Without nonlinearity" = 没有非线性
-"your 100-layer network is a fancy matrix multiply" = 你的100层网络只是一个花哨的矩阵乘法
-"Activations are the gates that let neural networks think in curves" = 激活函数是让神经网络能够以曲线方式思考的闸门
-
-I'll wrap it.
-
-
-<<<START>>>
-没有非线性，你的100层网络只是一次花哨的矩阵乘法。激活函数是让神经网络能够以曲线方式进行思考的闸门。
-<<<
+> 没有线性,你的100层网络就像一个精致的矩阵乘法. 激活是让神经网络在曲线中思考的门户.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.03 (Backpropagation)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 学习目标
 
-- 从零实现 sigmoid、tanh、ReLU、Leaky ReLU、GELU、Swish 和 softmax，并实现它们的导数
-- 通过 10+ 层测量不同激活函数的激活幅度，诊断梯度消失问题
-- 检测 ReLU 网络中的死神经元，并解释 GELU 如何避免这种失效模式
-- 为给定架构（transformer、CNN、RNN、输出层）选择正确的激活函数
-<<<
+- 实现sigmoid,tanh,ReLU,Leaky ReLU,GELU,Swish和softmax及其衍生品从零开始
+- 通过测量激活大小通过10+层不同激活的激活量来诊断消失梯度问题
+- 检测 ReLU 网络中死神经元,并解释为什么 GELU 避免了这种故障模式
+- 选择给定架构的正确激活函数 (变压器,CNN,RNN,输出层)
 
 ## 问题
-<<<
 
-Let me look at the content. There's some special character between "Stack" and "two" - it looks like there's a zero-width character (⁣) before "Stack". Let me preserve that.
+堆叠两个线性转换:y=W2(W1x+b1) +b2.扩展它:y=W2W1x+W2b1+b2.这只是y=Ax+c--一个线性转换.不管你堆叠多少线性层,结果都会崩到一个矩阵乘以.你的100层网络具有与单层相同的表示能力.
 
-Let me translate:
-- "Stack two linear transformations" → 堆叠两个线性变换
-- "y = W2(W1x + b1) + b2" → keep as code/math
-- "Expand it: y = W2W1x + W2b1 + b2." → 展开它：y = W2W1x + W2b1 + b2.
-- "That's just y = Ax + c -- a single linear transformation." → 这只是 y = Ax + c -- 单个线性变换
-- "No matter how many linear layers you stack, the result collapses to one matrix multiply." → 无论你堆叠多少层线性层，结果都会坍缩为一次矩阵乘法
-- "Your 100-layer network has the same representational power as a single layer." → 你100层的网络与单层具有相同的表达能力
+这不是理论上的好奇心. 这意味着一个深线网络实际上无法学习XOR,不能分类螺旋数据集,不能识别面孔.没有激活函数,深度是幻觉.
 
-Let me preserve the markdown formatting. The original has code formatting on the equations. Let me keep those.
-
-
-<<<START>>>
-Stack两个线性变换：y = W2(W1x + b1) + b2。展开它：y = W2W1x + W2b1 + b2。这其实就是 y = Ax + c -- 单个线性变换。无论你堆叠多少层线性层，结果都会坍缩为一次矩阵乘法。你100层的网络与单层拥有相同的表达能力。
-<<<
-
-<<<START>>>
-这不是一个理论上的奇闻异事。它意味着一个深度线性网络根本无法学习 XOR，无法对螺旋数据集进行分类，无法识别一张脸。没有激活函数，深度只是一种错觉。
-<<<
-
-Let me translate:
-
-"Activation functions break the linearity. They warp the output of each layer through a nonlinear function, giving the network the ability to bend decision boundaries, approximate arbitrary functions, and actually learn. But pick the wrong activation and your gradients vanish to zero (sigmoid in deep networks), explode to infinity (unbounded activations without careful initialization), or your neurons die permanently (ReLU with large negative biases). The choice of activation function directly determines whether your network learns at all."
-
-Technical terms to preserve: Activation functions, sigmoid, ReLU, gradients, neurons, decision boundaries, etc.
-
-Let me translate:
-
-"激活函数打破线性。它们通过非线性函数扭曲每一层的输出，使网络能够弯曲决策边界、近似任意函数，并真正进行学习。但如果选错了激活函数，你的梯度会消失到零（深度网络中的 sigmoid），爆炸到无穷（没有精心初始化的无界激活），或者你的神经元永久死亡（带有较大负偏差的 ReLU）。激活函数的选择直接决定了你的网络到底能否学习。"
-
-
-<<<START>>>
-
-激活函数打破线性。它们通过非线性函数扭曲每一层的输出，使网络能够弯曲决策边界、近似任意函数，并真正进行学习。但如果选错了激活函数，你的梯度会消失到零（深度网络中的 sigmoid），爆炸到无穷（没有精心初始化的无界激活），或者你的神经元永久死亡（带有较大负偏差的 ReLU）。激活函数的选择直接决定了你的网络到底能否学习。
-
-<<<
+激活函数打破了线性. 他们通过非线性函数扭曲每个层的输出,使网络能够曲决策界限,近似任意函数,并实际学习. 但选择错误的激活,你的渐变会消失到零 (深度网络中的sigmoid),爆炸到无限 (无限的激活,没有仔细的初始化), 网络是否能学习,直接决定了激活函数的选择.
 
 ## 概念
-<<<
 
-### 为什么非线性是必要的
+### 为什么不线性是必要的
 
-Let me translate:
+矩阵乘法是可复合的.乘以矩阵A乘以矩阵B乘以 AB乘以相同.这意味着堆10个线性层是数学上相当于一个线性层,一个大矩阵.所有这些参数,所有深度,都是浪费的.你需要一些东西来打破链.这是激活函数的作用.
 
-"Matrix multiplication is composable. Multiplying a vector by matrix A then matrix B is identical to multiplying by AB. This means stacking ten linear layers is mathematically equivalent to one linear layer with one big matrix. All those parameters, all that depth -- wasted. You need something to break the chain. That's what activation functions do."
-
-Let me translate:
-
-矩阵乘法是可组合的。用矩阵A乘以向量，再用矩阵B乘，等同于直接乘以AB。这意味着堆叠十个线性层在数学上等价于一个拥有一个大矩阵的线性层。所有这些参数，所有这些深度——都浪费了。你需要某些东西来打破这个链。这就是激活函数的作用。
-
-Technical terms: "matrix multiplication", "linear layers", "activation functions" - these are technical terms that I should keep. Actually, the instruction says "Do NOT translate... technical terms." So terms like "矩阵乘法" (matrix multiplication) might be considered technical terms. But typically when translating to Chinese, we do translate these into their Chinese equivalents. Let me re-read the rule.
-
-"Do NOT translate code, math, links, or technical terms."
-
-Hmm, this is tricky. Technical terms like "matrix multiplication" - the English term itself. I think the rule is about not translating things like code snippets, math expressions, links, and proper technical terms that have specific meanings. But actually, standard practice in translation is to render these into Chinese. Let me think about what makes sense here.
-
-Actually, I think the spirit of "don't translate technical terms" is more about things like API names, function names, specific library terms, code identifiers, etc. For general mathematical/ML concepts, translating to standard Chinese terminology is appropriate. Terms like "矩阵乘法" (matrix multiplication), "线性层" (linear layer), "激活函数" (activation function) are standard Chinese translations.
-
-Let me go with natural Chinese translation using standard technical terminology.
-
-"AB" is a math expression - keep as is.
-
-Let me finalize.
-
-
-矩阵乘法是可组合的。用矩阵 A 乘以向量，再用矩阵 B 乘，等同于直接乘以 AB。这意味着堆叠十个线性层在数学上等价于一个拥有一个大矩阵的线性层。所有这些参数，所有这些深度——都浪费了。你需要某些东西来打破这个链。这就是激活函数的作用。
-
-<<<START>>>
-矩阵乘法是可组合的。用矩阵 A 乘以向量，再用矩阵 B 乘，等同于直接乘以 AB。这意味着堆叠十个线性层在数学上等价于一个拥有一个大矩阵的线性层。所有这些参数，所有这些深度——都浪费了。你需要某些东西来打破这个链。这就是激活函数的作用。
-<<<
-
-Let me translate:
-
-"Here is the proof. A linear layer computes f(x) = Wx + b. Stack two:"
-
-Translation:
-"这是证明。线性层计算 f(x) = Wx + b。堆叠两个："
-
-The math f(x) = Wx + b should stay as-is. "linear layer" is a technical term but "线性层" is a common translation. Let me think - the rule says don't translate technical terms. But "linear layer" translates to "线性层" which is standard. I'll keep it translated since it's prose.
-
-Let me provide the translation.
-
-
-<<<START>>>
-这是证明。线性层计算 f(x) = Wx + b。堆叠两个：
-<<<
+线性层计算了f ((x) =Wx + b.
 
 ```
 Layer 1: h = W1 * x + b1
 Layer 2: y = W2 * h + b2
 ```
 
-"Substitute:" - this is likely a command or label meaning to replace something. I'll translate as "替换:"
-
-
-<<<START>>>
-替换：
-<<<
+替代品:
 
 ```
 y = W2 * (W1 * x + b1) + b2
@@ -148,249 +43,128 @@ y = (W2 * W1) * x + (W2 * b1 + b2)
 y = A * x + c
 ```
 
-One layer. Insert a nonlinear activation g() between layers:
+插入一个非线性激活g() 之间的层:
 
 ```
 h = g(W1 * x + b1)
 y = W2 * h + b2
 ```
 
-现在这种代入就无法成立了。W2 * g(W1 * x + b1) + b2 无法化简为单个线性变换。网络可以表示非线性函数。每增加一个带有激活函数的层，都会增加表示能力。
-<<<
+现在替代器断裂.W2 * g(W1 * x + b1) + b2不能缩小到单个线性转换.网络可以代表非线性函数.每一个具有激活的额外层增加了表示容量.
 
->>>,,,,### Sigmoid<<<
+### 状
 
-The original activation function for neural networks.
+对于神经网络的原始激活功能.
 
 ```
 sigmoid(x) = 1 / (1 + e^(-x))
 ```
 
-输出范围：(0, 1)。平滑、可微，将任意实数映射为概率型值。
-<<<
+输出范围: (0,1). 顺,可分化,将任何真数映射到类似概率的值.
 
-<<<START>>>
-导数：
-<<<
+衍生品:
 
 ```
 sigmoid'(x) = sigmoid(x) * (1 - sigmoid(x))
 ```
 
-The maximum value of this derivative is 0.25, occurring at x = 0. In backpropagation, gradients multiply through layers. Ten layers of sigmoid means the gradient gets multiplied by at most 0.25 ten times:
+转移的高值为0.25,发生在x=0. 转移时,梯度通过层次乘以.
 
 ```
 0.25^10 = 0.000000953674
 ```
 
-Let me look at the text. There are no PROTECT tokens here. Let me translate.
+信号的百万分之一不到.这是渐变问题.早期层的梯度变得如此小,重量几乎无法更新.网络似乎学习 - - 后层的损失减少 - - 但第一层是结的.深层的sigmoid网络根本没有训练.
 
-"Less than one millionth of the original signal. This is the vanishing gradient problem. Gradients in early layers become so small that weights barely update. The network appears to learn -- loss decreases in later layers -- but the first layers are frozen. Deep sigmoid networks simply do not train."
+另外一个问题:sigmoid输出总是正 (0到 1),这意味着重量上的梯度总是相同的标志.
 
-Technical terms: "vanishing gradient problem" (vanishing gradient 消失梯度), "gradients" (梯度), "weights" (权重), "layers" (层), "loss" (损失), "sigmoid" (sigmoid 逻辑斯谛). These are technical terms I should handle carefully. The rule says don't translate technical terms, so I should keep terms like sigmoid, loss, gradient maybe. Let me think - "do not translate technical terms" - so things like "sigmoid", "loss" might be kept in English or translated as commonly done. In ML Chinese context, common terms: 梯度 (gradient), 权重 (weight), 层 (layer), 损失 (loss), 消失梯度问题 (vanishing gradient problem). 
+### 
 
-Actually the instruction is to not translate technical terms - meaning keep them as they are. But some common technical terms have established Chinese translations. Let me be balanced - keep clearly technical/untranslatable terms like "sigmoid" in English, but translate descriptive text.
-
-Let me translate:
-"小于原始信号的百万分之一。这就是消失梯度问题。早期层的梯度变得如此之小，以至于权重几乎不更新。网络看起来在学习——后层的损失在下降——但最前几层被冻结了。深度 sigmoid 网络根本训练不起来。"
-
-The "--" em-dashes should be preserved as line breaks/markdown. Let me keep them.
-
-
-<<<START>>>
-小于原始信号的百万分之一。这就是消失梯度问题。早期层的梯度变得如此之小，以至于权重几乎不更新。网络看起来在学习——后层的损失在下降——但最前几层被冻结了。深度 sigmoid 网络根本训练不起来。
-<<<
-
-Additional problem: sigmoid outputs are always positive (0 to 1), which means gradients on weights are always the same sign. This causes zig-zagging during gradient descent.
-
-<<<START>>>
-### Tanh
-<<<
-
-<<<START>>>sigmoid 的中心化版本。<<<
+它们是"西格莫伊德"的中心版本.
 
 ```
 tanh(x) = (e^x - e^(-x)) / (e^x + e^(-x))
 ```
 
-Let me translate:
-- "Output range: (-1, 1)." - The output range part with math should be kept as is. "输出范围：(-1, 1)。"
-- "Zero-centered, which eliminates the zig-zag problem." - "Zero-centered" is a technical term. Let me think about how to handle this. I could translate it as "以零为中心". "which eliminates the zig-zag problem" - "从而消除了锯齿问题" or "消除了锯齿状问题".
+产出范围: (-1,1) 零中心,消除了扎克问题.
 
-Let me produce a natural translation.
-
-输出范围：(-1, 1)。以零为中心，从而消除了锯齿问题。
-
-
-<<<START>>>输出范围：(-1, 1)。以零为中心，从而消除了锯齿问题。<<<
-
-<<<START>>>
-导数：
-<<<
+衍生品:
 
 ```
 tanh'(x) = 1 - tanh(x)^2
 ```
 
-最大导数为 1.0，在 x = 0 处取得——比 sigmoid 好四倍。但梯度消失问题仍然存在。对于很大的正输入或负输入，导数会趋近于零。十层网络依然会压制梯度，只是没那么激进。
-<<<
+最高衍生值为1.0在x=0时 - - 比sigmoid好四倍.但消失梯度问题仍然存在.对于大量的正值或负值输入,衍生值接近零.十层仍然压碎梯度,但不那么积极.
 
-### ReLU: The Breakthrough
+### 突破
 
-Rectified Linear Unit. Popularized for deep learning by Nair and Hinton in 2010 (the function itself dates to Fukushima's 1969 work), it changed everything.
+修改线性单元. 2010 年由纳尔和希顿推广为深度学习 (该功能本身可以追溯到福岛1969年的作品),它改变了一切.
 
 ```
 relu(x) = max(0, x)
 ```
 
-输出范围：[0, infinity)。其导数平凡地简单：
-<<<
+输出范围: [0,无限).衍生式是微乎其微的简单:
 
 ```
 relu'(x) = 1  if x > 0
             0  if x <= 0
 ```
 
-No vanishing gradient for positive inputs. The gradient is exactly 1, passed straight through. This is why deep networks became trainable -- ReLU preserves gradient magnitude across layers.
+没有消逝梯度.梯度是正确的1,通过直线.这就是为什么深度网络变得可训练的原因.
 
-Let me translate:
+但有一个失败模式:死神经元问题.如果神经元的权重输入总是负面 (由于大负偏差或不幸的权重初始化),其输出总是零,其梯度总是零,它永远不会更新.它永久死亡.实际上,ReLU网络中的10-40%的神经元可以在训练中死亡.
 
-"But there is a failure mode: the dead neuron problem."
-"但是存在一种失败模式：死神经元问题。"
+### 泄漏的RLU
 
-"If a neuron's weighted input is always negative (due to a large negative bias or unfortunate weight initialization), its output is always zero, its gradient is always zero, and it never updates."
-"如果一个神经元的加权输入总是负数（由于较大的负偏置或不理想的权重初始化），它的输出总是零，梯度总是零，而且从不更新。"
-
-"It is permanently dead."
-"它会永久死亡。"
-
-"In practice, 10-40% of neurons in a ReLU network can die during training."
-"在实践中，ReLU 网络中 10-40% 的神经元在训练过程中可能会死亡。"
-
-Let me keep technical terms as-is where appropriate. "ReLU" is a technical term, keep it. "bias" = 偏置, "weight" = 权重, "gradient" = 梯度, "neuron" = 神经元. These are standard translations.
-
-Let me write the final translation.
-
-
-<<<START>>>
-但是存在一种失败模式：死神经元问题。如果一个神经元的加权输入总是负数（由于较大的负偏置或不理想的权重初始化），它的输出总是零，梯度总是零，而且从不更新。它会永久死亡。在实践中，ReLU 网络中 10-40% 的神经元在训练过程中可能会死亡。
-<<<
-
-### Leaky ReLU
-
-- No explanation or preamble
-
-"Dead neurons" is a technical term in neural networks/ML. I should keep it as a technical term but translate appropriately. "死神经元" is the standard Chinese term for dead neurons.
-
-Let me translate:
-"The simplest fix for dead neurons." → "修复死神经元的最简单方法。"
-
-
-<<<START>>>
-修复死神经元的最简单方法。
-<<<
+对于死神经元的最简单的补救方法.
 
 ```
 leaky_relu(x) = x        if x > 0
                 alpha * x if x <= 0
 ```
 
-- Do not include any explanation or preamble
+负面侧面的斜率是小的,而不是零,所以死神经元仍然得到一个梯度信号,
 
-Let me translate:
+### 现代的默认
 
-"Where alpha is a small constant, typically 0.01. The negative side has a small slope instead of zero, so dead neurons still get a gradient signal and can recover."
-
-Translation:
-"其中 alpha 是一个小常数，通常为 0.01。负侧有一个小的斜率而不是零，因此死神经元仍然能获得梯度信号并可以恢复。"
-
-Technical terms like "alpha", "gradient", "neurons" - the rule says don't translate technical terms. But alpha, gradient, neurons are English technical terms. Let me think - "gradient" is 梯度, "neurons" is 神经元. These are commonly translated in Chinese. The rule says don't translate "technical terms" but I think this refers to keeping code/math as is. Actually, let me reconsider - the instruction says "Do NOT translate code, math, links, or technical terms." 
-
-Hmm, so technical terms should not be translated. But that seems odd for a translation task. Let me interpret this reasonably - I'll keep the formula/variable names as is (like "alpha", "0.01"), but translate the prose. Words like "gradient" (梯度) and "neurons" (神经元) are standard Chinese ML terms, I'll translate them as they're commonly done. Actually the rule says don't translate technical terms... 
-
-Let me be pragmatic. The variable "alpha" stays as alpha. The number 0.01 stays. But gradient signal and dead neurons - these I'll translate to 梯度信号 and 神经元 since they're normal Chinese words. Actually to be safe, I could keep gradient as is. But "gradient" is really just 梯度 in Chinese ML context.
-
-I'll translate naturally while keeping technical names. Let me write:
-
-"其中 alpha 是一个小常数，通常为 0.01。负侧采用较小的斜率而非零斜率，因此死神经元仍能获得梯度信号，从而得以恢复。"
-
-
-<<<START>>>
-其中 alpha 是一个小常数，通常为 0.01。负侧采用较小的斜率而非零斜率，因此"死亡"神经元仍能获得梯度信号，从而得以恢复。
-<<<
-
-### GELU: The Modern Default
-
-Gaussian Error Linear Unit. Introduced by Hendrycks and Gimpel in 2016. Default activation in BERT, GPT, and most modern transformers.
+盖斯错误线性单位. 于2016年由亨德里克斯和吉普尔推出. 在BERT,GPT和大多数现代变压器中默认激活.
 
 ```
 gelu(x) = x * Phi(x)
 ```
 
-Where Phi(x) is the cumulative distribution function of the standard normal distribution. The approximation used in practice:
+在phi ((x) 是标准正常分布的累积分布函数.
 
 ```
 gelu(x) ~= 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
 ```
 
-GELU is smooth everywhere, allows small negative values (unlike ReLU which hard-clips to zero), and has a probabilistic interpretation: it weights each input by how likely it is to be positive under a Gaussian distribution. This smooth gating outperforms ReLU in transformer architectures because it provides better gradient flow and avoids the dead neuron problem entirely.
+格鲁在任何地方都是平滑的,允许小负值 (与硬剪切到零的ReLU不同),并且具有概率解释:它根据高斯分布中每一个输入的可能性进行权重.这种平滑的门口在变体架构中优于ReLU,因为它提供了更好的梯度流量,完全避免了死神经元问题.
 
-<<<START>>>
-### Swish / SiLU
-<<<
+### 瑞士 / 瑞士
 
-Self-gated activation discovered by Ramachandran et al. in 2017 through automated search.
+通过自动搜索发现的自闭关键激活.
 
 ```
 swish(x) = x * sigmoid(x)
 ```
 
-Swish 在形式上是 x * sigmoid(x)。谷歌通过对激活函数空间进行自动化搜索发现了它——即用神经网络来设计神经网络的部分组件。
-<<<
+通过自动搜索在激活函数空间上发现了它 - - 一个设计神经网络的神经网络.
 
-Like GELU, it is smooth, non-monotonic, and allows small negative values. The difference is subtle: Swish uses sigmoid for gating while GELU uses the Gaussian CDF. In practice, performance is nearly identical. Swish is used in EfficientNet and some vision models. GELU dominates in language models.
+像GELU一样,它是光滑的,非单调的,并允许小负值.区别微妙:Swish使用sigmoid为盖特,而GELU使用高斯CDF. 在实践中,性能几乎是一样的.Swish用于EfficientNet和一些视觉模型.GELU在语言模型中占主导地位.
 
-### Softmax：输出激活
-<<<
+### 软max:输出激活
 
-The text: "Not used in hidden layers. Softmax converts a vector of raw scores (logits) into a probability distribution."
-
-Technical terms like "Softmax", "logits", "hidden layers", "probability distribution" - these are technical terms. I should not translate technical terms. But "logits" is given in parentheses, which suggests it's a technical term.
-
-Let me translate naturally while preserving technical terms:
-
-Not used in hidden layers. - 不用于隐藏层。
-Softmax converts a vector of raw scores (logits) into a probability distribution. - Softmax 将原始得分（logits）向量转换为概率分布。
-
-Technical terms preserved: Softmax, logits, hidden layers (隐藏层 - this is a translation of a term... hmm). Actually "hidden layers" is a technical term. But translating it to 隐藏层 is standard. The rule says don't translate technical terms. But this is a common term. Let me think - "logits" is kept in parentheses as technical. "Softmax" kept. 
-
-I'll translate "hidden layers" as 隐藏层 since it's the standard Chinese term, and keep Softmax and logits as-is.
-
-Let me produce the translation.
-
-
-<<<START>>>
-不用于隐藏层。Softmax 将原始得分（logits）向量转换为概率分布。
-<<<
+软max将原始分数 (logits) 的向量转换为概率分布.
 
 ```
 softmax(x_i) = e^(x_i) / sum(e^(x_j) for all j)
 ```
 
-The text:
-"Every output is between 0 and 1. All outputs sum to 1. This makes it the standard final activation for multi-class classification. The largest logit gets the highest probability, but unlike argmax, softmax is differentiable and preserves information about relative confidence."
+每个输出均为0到1之间.所有输出总和为1.这使得它成为多类分类的标准最终激活.最大的逻辑得到最高概率,但与 argmax不同,软max是可分化的,并保留有关相对可靠性的信息.
 
-Technical terms like "logit", "argmax", "softmax", "differentiable", "activation" - I should not translate these as they're technical terms. Let me translate while keeping technical terms.
-
-Let me translate:
-"每个输出都在 0 到 1 之间。所有输出之和为 1。这使其成为多分类问题的标准最终激活函数。最大的 logit 获得最高的概率，但与 argmax 不同，softmax 是可微的，并保留了关于相对置信度的信息。"
-
-
-<<<START>>>
-每个输出都在 0 到 1 之间。所有输出之和为 1。这使其成为多分类问题的标准最终激活。最大的 logit 获得最高的概率，但与 argmax 不同，softmax 是可微的，并保留了关于相对置信度的信息。
-<<<
-
-### Comparison of Shapes
+### 形状的比较
 
 ```mermaid
 graph LR
@@ -406,7 +180,7 @@ graph LR
     G -->|"Smooth gradient<br/>everywhere"| Solution
 ```
 
-### 梯度流比较
+### 渐进流量比较
 
 ```mermaid
 graph TD
@@ -423,7 +197,7 @@ graph TD
     end
 ```
 
-### 何时使用哪种激活
+### 什么时候激活
 
 ```mermaid
 flowchart TD
@@ -446,21 +220,11 @@ flowchart TD
 softmax-temperature
 ```
 
-## Build It
+## 建立它
 
-### Step 1: Implement All Activation Functions with Derivatives
+### 执行所有激活函数,使用衍生值
 
-- No explanation or preamble
-
-The text is:
-"Each function takes a single float and returns a float. Each derivative function takes the same input and returns the gradient."
-
-Let me translate this naturally.
-
-
-<<<START>>>
-每个函数接收单个 float，并返回一个 float。每个导数函数接收相同的输入，并返回梯度。
-<<<
+每个函数都采用一个浮动,返回一个浮动. 每个衍生函数都采用相同的输入,返回梯度.
 
 ```python
 import math
@@ -514,10 +278,9 @@ def softmax(xs):
     return [e / total for e in exps]
 ```
 
-### Step 2: Visualize Where Gradients Die
+### 第二步: 想象出梯度的死亡
 
-在从 -5 到 5 的 100 个均匀分布的点上计算梯度。打印一个文本直方图，显示每个激活的梯度接近于零的位置。
-<<<
+计算在100个平间点的梯度,从 -5到 -5. 打印一个文字历史图,显示每个激活梯度接近零.
 
 ```python
 def gradient_scan(name, derivative_fn, start=-5, end=5, n=100):
@@ -542,9 +305,9 @@ gradient_scan("GELU", gelu_derivative)
 gradient_scan("Swish", swish_derivative)
 ```
 
-### Step 3: Vanishing Gradient Experiment
+### 第三步: 逐渐消失的实验
 
-Forward-pass a signal through N layers using sigmoid vs ReLU. Measure how the activation magnitude changes.
+通过N层通过sigmoid对ReLU进行前传信号.测量激活大小如何变化.
 
 ```python
 import random
@@ -568,9 +331,9 @@ vanishing_gradient_experiment(relu, "ReLU")
 vanishing_gradient_experiment(gelu, "GELU")
 ```
 
-### Step 4: Dead Neuron Detector
+### 步骤4: 死亡神经元探测器
 
-Create a ReLU network, pass random inputs through it, count how many neurons never fire.
+创建一个ReLU网络,通过它传递随机输入,计算多少神经元从来没有发射.
 
 ```python
 def dead_neuron_detector(n_inputs=5, hidden_size=20, n_samples=1000):
@@ -605,20 +368,9 @@ def dead_neuron_detector(n_inputs=5, hidden_size=20, n_samples=1000):
 dead_neuron_detector()
 ```
 
-### Step 5: Training Comparison -- Sigmoid vs ReLU vs GELU
+### 步骤5:训练比较 - 胺与ReluvsGelU
 
-Let me translate this.
-
-"在圆形数据集上训练同一个两层网络（圆内的点 = 类别 1，圆外的点 = 类别 0），使用三种不同的激活函数。比较收敛速度。"
-
-Technical terms like "network", "activations", "convergence speed" - "activations" here refers to activation functions. Let me keep it accurate. "activation" is a technical term but I can translate "activations" as "激活函数" which is the standard term. Actually the rule says don't translate technical terms, but activation functions are commonly translated in Chinese as 激活函数. I'll translate it naturally.
-
-Let me finalize.
-
-
-<<<START>>>
-在圆形数据集上训练同一个两层网络（圆内的点为类别 1，圆外的点为类别 0），分别使用三种不同的激活函数，并比较收敛速度。
-<<<
+运行相同的两个层网络在圆数据集 (圆内点 = 类 1, 外点 = 类 0) 通过三个不同的激活.
 
 ```python
 def make_circle_data(n=200, seed=42):
@@ -709,28 +461,9 @@ for name, losses in results.items():
     print(f"  {name:10s}: start={losses[0]:.4f} -> end={losses[-1]:.4f} (improvement: {(1 - losses[-1]/losses[0])*100:.1f}%)")
 ```
 
-## 使用它
-<<<
+## 用它
 
-Let me translate this.
-
-PyTorch - keep as is (technical term/product name)
-functional and module forms - these are technical terms, "functional" and "module" in PyTorch context. I should keep technical terms untranslated but translate the surrounding text.
-
-"PyTorch provides all of these as both functional and module forms:"
-
-Translation: "PyTorch 同时提供了这些的功能形式和模块形式："
-
-Let me refine. "functional and module forms" - functional form = 函数形式, module form = 模块形式. But these are technical terms. Hmm, the rule says don't translate technical terms. But "functional and module forms" here refers to the functional API and nn.Module API in PyTorch. 
-
-I think translating as "函数形式和模块形式" is acceptable and clearer. Actually, "functional" and "module" are PyTorch-specific terms. Let me keep them reasonable. I'll translate the general sentence structure.
-
-"PyTorch 同时提供这些功能的函数形式和模块形式："
-
-
-<<<START>>>
-PyTorch 同时提供了这些的函数形式和模块形式：
-<<<
+PyTorch提供了所有这些功能和模块形式:
 
 ```python
 import torch
@@ -756,98 +489,28 @@ model = nn.Sequential(
 )
 ```
 
-- No explanation or preamble
+变压器中的隐藏层:GELU. CNN中的隐藏层:ReLU. 排序的输出层:软max. 退回的输出层:没有 (线性). 概率的输出层:sigmoid.就这样.从这些默认开始.只要有证据,才会改变它们.
 
-Let me translate this text about activation functions.
+如果您正在从零开始构建,您可能不会使用RNN. 如果您的RLU网络中神经元正在死亡,请切换到GELU. 除非您有特定的原因,就不要寻找Leaky ReLU.
 
-"Hidden layers in a transformer: GELU. Hidden layers in a CNN: ReLU. Output layer for classification: softmax. Output layer for regression: none (linear). Output layer for probabilities: sigmoid. That's it. Start with these defaults. Change them only when you have evidence."
+## 运送它
 
-Technical terms to keep: transformer, GELU, CNN, ReLU, softmax, sigmoid - these are technical terms, keep them.
+这一课产生了:
+- `outputs/prompt-activation-selector.md`-- 一个可重复使用的提示,帮助你选择任何架构的正确激活函数
 
-Let me translate:
+## 运动
 
-Transformer中的隐藏层：GELU。CNN中的隐藏层：ReLU。分类的输出层：softmax。回归的输出层：无（线性）。概率输出层：sigmoid。就这么些。先使用这些默认值。只有在有证据时才更改。
+1. 实现参数 ReLU (PReLU),其中负倾斜alpha是可学习的参数. 运行它在圆数据集上,并与固定的泄漏 ReLU 进行比较.
 
+2. 运行消失梯度实验,用50层而不是10层. 绘制每层的大小为sigmoid,tanh,ReLU和GELU. 在哪个层上每个激活的信号有效达到零?
 
-<<<START>>>
-Transformer中的隐藏层：GELU。CNN中的隐藏层：ReLU。分类的输出层：softmax。回归的输出层：无（线性）。概率输出层：sigmoid。就这么些。先使用这些默认值。只有在有证据时才更改。
-<<<
+3. 实现ELU (指数直线单位): elu(x) = x 如果 x > 0,alpha * (e^x - 1) 如果 x <= 0. 将其死神经元的速度与同一个网络上的 ReLU 进行比较.
 
-RNNs and LSTMs use tanh for hidden state and sigmoid for gates, but if you're building from scratch today, you're probably not using RNNs. If neurons are dying in your ReLU network, switch to GELU. Don't reach for Leaky ReLU unless you have a specific reason -- GELU solves the dead neuron problem and gives better gradient flow.
+4. 建立一个在训练过程中运行的"梯度健康监测器":在每个阶段,计算每个层的平均梯度大小.
 
-## Ship It
+5. 修改训练比较,以使用从01课时的XOR数据集而不是圆.哪个激活式在XOR上最快收缩?为什么这与圆结果不同?
 
-Let me translate:
-"This lesson produces:" → "本课将产出："
-"a reusable prompt" → "一个可复用的提示词"
-"that helps you pick the right activation function for any architecture" → "它帮助你为任何架构选择合适的激活函数"
-
-Let me put it together while preserving the markdown structure.
-
-
-<<<START>>>
-本课将产出：
-- `outputs/prompt-activation-selector.md` -- 一个可复用的提示词，帮助你为任何架构选择合适的激活函数
-<<<
-
-## 练习
-
-<<<
-
-Technical terms like "Parametric ReLU", "PReLU", "Leaky ReLU", "alpha" should be kept as technical terms. But wait, the instruction says don't translate technical terms. However, "PReLU", "Leaky ReLU" are proper names of activation functions. Let me think about how to handle these.
-
-The rule says "Do NOT translate code, math, links, or technical terms." So I should keep technical terms. But these are activation function names. I'll keep PReLU, Leaky ReLU as is. "alpha" is a variable/math term, keep as is.
-
-Let me translate:
-"1. 实现参数化 ReLU（PReLU），其中负斜率 alpha 是一个可学习参数。在 circle 数据集上训练它，并与固定的 Leaky ReLU 进行比较。"
-
-Actually, for technical terms I should keep them. Let me reconsider. "Parametric ReLU" - this is a technical term. PReLU is the abbreviation. I'll keep these. "Leaky ReLU" is a technical term.
-
-Let me write the translation:
-
-"1. 实现参数化 ReLU（PReLU），其中负斜率 alpha 为可学习参数。在 circle 数据集上训练该模型，并与固定 Leaky ReLU 进行比较。"
-
-This looks good. Let me make sure I preserve the markdown (the "1." list item) and line breaks.
-
-I'll wrap it between <<<START>>> and <<<
-
-2. 使用 50 层而非 10 层运行消失梯度实验。绘制 sigmoid、tanh、ReLU 和 GELU 在各层的幅度。每个激活函数的信号在第几层会 effectively 降至零？
-<<<
-
-<<<START>>>
-3. 实现 ELU（指数线性单元）：elu(x) = x（当 x > 0 时），alpha * (e^x - 1)（当 x <= 0 时）。在相同网络中，将其神经元死亡比率与 ReLU 进行比较。
-<<<
-
-4. 构建一个在训练过程中运行的“梯度健康监控器”：在每个 epoch，计算每一层的平均梯度幅值。当任意一层的梯度低于 0.001 或超过 100 时打印警告。
-<<<
-
-Let me translate this:
-
-"5. Modify the training comparison to use the XOR dataset from Lesson 01 instead of circles. Which activation converges fastest on XOR? Why does this differ from the circle results?"
-
-Translation:
-"5. 修改训练比较，改用 Lesson 01 中的 XOR 数据集，而不是 circles。哪种激活函数在 XOR 上收敛最快？这与圆环结果有何不同？"
-
-Let me keep technical terms like "XOR", "Lesson 01", "activation", "converges" appropriately. The instructions say don't translate technical terms. "Activation" is a technical term (激活函数). Let me think - "activation" in neural networks context is "激活函数" or "激活". This is a technical term. I could keep it as "activation" or translate. The rule says don't translate technical terms. But activation is a somewhat standard term. Let me keep it minimal.
-
-Actually, let me reconsider. The rule is to not translate technical terms. So "activation" → maybe keep as "activation" or use "激活函数". In Chinese ML context, "激活" is commonly used. Let me translate it reasonably while keeping key terms.
-
-Let me write:
-"5. 修改训练对比，改用 Lesson 01 中的 XOR 数据集，而不是 circles。哪种 activation 在 XOR 上收敛最快？这与 circle 结果有何不同？"
-
-Hmm, but "circles" and "circle" - are these technical terms? They refer to the circles dataset. Let me keep "circles" as is since it's a dataset name.
-
-Let me refine:
-"5. 修改训练对比，改用 Lesson 01 中的 XOR 数据集，而不是 circles。哪种 activation 在 XOR 上收敛最快？这与 circle 的结果有何不同？"
-
-This seems good. Let me finalize.
-
-
-<<<START>>>
-5. 修改训练对比，改用 Lesson 01 中的 XOR 数据集，而不是 circles。哪种 activation 在 XOR 上收敛最快？这与 circle 的结果有何不同？
-<<<
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -864,10 +527,10 @@ This seems good. Let me finalize.
 | Saturation | "The flat part of sigmoid" | Regions where an activation's derivative approaches zero, blocking gradient flow |
 | Logit | "The raw score before softmax" | The unnormalized output of the final layer before applying softmax or sigmoid |
 
-## Further Reading
+## 进一步阅读
 
-- Nair & Hinton, "Rectified Linear Units Improve Restricted Boltzmann Machines" (2010) -- the paper that introduced ReLU and enabled training of deep networks
-- Hendrycks & Gimpel, "Gaussian Error Linear Units (GELUs)" (2016) -- introduced the activation function that became the default for transformers
-- Ramachandran et al., "Searching for Activation Functions" (2017) -- used automated search to discover Swish, showing that activation design can be automated
-- Glorot & Bengio, "Understanding the difficulty of training deep feedforward neural networks" (2010) -- the paper that diagnosed vanishing/exploding gradients and proposed Xavier initialization
-- Goodfellow, Bengio, Courville, "Deep Learning" Chapter 6.3 (https://www.deeplearningbook.org/) -- rigorous treatment of hidden units and activation functions
+- 纳尔和希顿, "修改线性单位改善限制的博尔茨曼机器" (2010) - 引入ReLU的论文,并使深度网络的训练成为可能
+- 亨德里克斯和吉普尔, "高斯错误线性单位 (GELU) " (2016) -- 引入了变压器默认的激活函数
+- 拉马坎德兰等人",搜索激活函数" (2017) -- 使用自动搜索发现Swish,表明激活设计可以自动化
+- 格洛罗特和Bengio, "理解训练深度传输神经网络的难度" (2010) - 诊断消失/爆炸梯度的论文,并提出Xavier初始化
+- 善良的同事,Bengio, Courville,深度学习6.3章 (https://www.deeplearningbook.org/) -- 密集单位和激活功能的严格处理

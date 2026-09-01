@@ -1,59 +1,34 @@
-<<<START>>>
-# JAX 简介
-<<<
+# 介绍JAX
 
-> PyTorch 会修改张量。TensorFlow 构建图。JAX 编译纯函数。最后这一点改变了你对深度学习的思考方式。
-<<<
+> 光器突变了光器. 光流构建了图表. JAX编译了纯函数.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 03 Lessons 01-10, basic NumPy
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 学习目标
 
-- Write pure-function neural network code using JAX's functional API (jax.numpy, jax.grad, jax.jit, jax.vmap)
-- Explain the key design difference between PyTorch's eager mutation and JAX's functional compilation model
-- Apply jit compilation and vmap vectorization to accelerate training loops compared to naive Python
-- Train a simple network in JAX and contrast the explicit state management with PyTorch's object-oriented approach
+- 使用JAX的功能 API (jax.numpy, jax.grad, jax.jit, jax.vmap) 编写纯函数神经网络代码
+- 解释PyTorch的热情突变和JAX的功能编译模型之间的关键设计区别
+- 应用 jit 编译和 vmap 矢量化来加速训练循环与天真的 Python 相比
+- 训练一个简单的网络在JAX和对比明确的状态管理PyTorch的对象导向方法
 
 ## 问题
-<<<
 
-你知道如何在 PyTorch 中构建神经网络。你定义一个 `nn.Module`，调用 `.backward()`，然后让优化器执行一步。它能用。数百万人都在使用它。
-<<<
+你知道如何在 PyTorch 构建神经网络.`nn.Module`打电话`.backward()`通过优化器,它可以工作,数百万人使用它.
 
-But PyTorch has a constraint baked into its DNA: it traces operations eagerly, one at a time, in Python. Every `tensor + tensor` is a separate kernel launch. Every training step re-interprets the same Python code. This works fine until you need to train a 540-billion-parameter model across 2,048 TPUs. Then the overhead kills you.
+但PyTorch在DNA中有着一个限制:它热切地追踪了Python中的操作,一次性.`tensor + tensor`每个训练步骤都重新解释了相同的Python代码. 这就会很好地运行,直到你需要训练一个540亿参数模型在2,048个TPU上. 然后,上层费用会杀死你.
 
-Google DeepMind trains Gemini on JAX. Anthropic trained Claude on JAX. These are not small operations -- they are the largest neural network training runs on Earth. They chose JAX because it treats your training loop as a compilable program, not a sequence of Python calls.
+谷歌深心训练双胞胎在JAX上.人类训练克劳德在JAX上. 这些不是小操作 - - 这是地球上最大的神经网络训练运行. 他们选择JAX,因为它把你的训练循环视为一个可编译的程序,而不是一个序列的Python呼叫.
 
-Let me translate the text while keeping technical terms like JAX, NumPy, JIT, XLA, autograd etc. intact.
-
-"JAX is NumPy with three superpowers: automatic differentiation, JIT compilation to XLA, and automatic vectorization."
-→ "JAX 是拥有三项超能力的 NumPy：自动微分、向 XLA 的 JIT 编译，以及自动向量化。"
-
-"You write a function that processes one example."
-→ "你编写一个处理单个样本的函数。"
-
-"JAX gives you a function that processes a batch, computes gradients, compiles to machine code, and runs across multiple devices."
-→ "JAX 给你处理整个批次、计算梯度、编译成机器码，并在多个设备上运行的函数。"
-
-"All without changing the original function."
-→ "而无需改变原始函数。"
-
-Let me keep the line breaks as they are - it's all one paragraph here.
-
-
-<<<START>>>
-JAX 是拥有三项超能力的 NumPy：自动微分、向 XLA 的 JIT 编译，以及自动向量化。你编写一个处理单个样本的函数。JAX 给你一个处理整个批次、计算梯度、编译成机器码并在多个设备上运行的函数。而无需改动原始函数。
-<<<
+JAX是NumPy,具有三个超级能力:自动分化,JIT编译到XLA,自动向量化.你写一个处理一个例子的函数.JAX给你一个处理批量,计算梯度,编译到机器代码,并运行在多个设备上.所有这些都没有改变原始函数.
 
 ## 概念
-<<<
 
-### The JAX Philosophy
+### 杰克斯哲学
 
-JAX is a functional framework. No classes, no mutable state, no `.backward()` method. Instead:
+没有类,没有变态,没有变态.`.backward()`方法,而是:
 
 | PyTorch | JAX |
 |---------|-----|
@@ -64,11 +39,11 @@ JAX is a functional framework. No classes, no mutable state, no `.backward()` me
 | `DataParallel` / `FSDP` | `jax.pmap(f)` auto-parallelism |
 | Mutable `model.parameters()` | Immutable pytree of arrays |
 
-This is not a style preference. It is a compiler constraint. JIT compilation requires pure functions -- same inputs always produce same outputs, no side effects. That restriction is what makes 100x speedups possible.
+这不是一种风格偏好.这是一个编译器的限制.JIT编译需要纯粹的函数 - - 同样的输入总是产生相同的输出,没有副作用.这种限制是使得100倍的速度可能.
 
-### jax.numpy: The Familiar Surface
+### 简介: 熟悉的表面
 
-JAX reimplements the NumPy API on accelerators:
+JAX重新实现NumPy API在加速器上:
 
 ```python
 import jax.numpy as jnp
@@ -78,27 +53,13 @@ b = jnp.array([4.0, 5.0, 6.0])
 c = jnp.dot(a, b)
 ```
 
-- No explanation or preamble
+它们的功能名称和规则相同,它们的语义也相同,但它们的数组在GPU/TPU上运行,
 
-Technical terms like GPU/TPU should not be translated. Let me translate:
+另一个关键区别是, JAX 阵列是不可变的.`a[0] = 5`换句话说:`a = a.at[0].set(5)`这一周觉得很尬,然后点击-- 变化是什么让变化像`grad`现在`jit`其他`vmap`的.
 
-"Same function names." → "相同的函数名。"
-"Same broadcasting rules." → "相同的广播规则。"
-"Same slicing semantics." → "相同的切片语义。"
-"But the arrays live on GPU/TPU, and every operation is traceable by the compiler." → "但这些数组运行在 GPU/TPU 上，每一个操作都能被编译器追踪。"
+### 功能自动调整
 
-Let me put it together.
-
-
-<<<START>>>
-相同的函数名。相同的广播规则。相同的切片语义。但这些数组运行在 GPU/TPU 上，每一个操作都能被编译器追踪。
-<<<
-
-One critical difference: JAX arrays are immutable. No `a[0] = 5`. Instead: `a = a.at[0].set(5)`. This feels awkward for a week, then it clicks -- immutability is what makes transformations like `grad`, `jit`, and `vmap` composable.
-
-### jax.grad: Functional Autodiff
-
-PyTorch attaches gradients to tensors (`.grad`). JAX attaches gradients to functions.
+光将梯度粘合到光 (`.grad`X将梯度连接到函数.
 
 ```python
 import jax
@@ -110,21 +71,20 @@ df = jax.grad(f)
 df(3.0)
 ```
 
-`jax.grad` 接收一个函数，并返回一个计算梯度的新函数。无需 `.backward()` 调用。张量上不存储计算图。梯度只是另一个你可以调用、组合或 JIT-编译的函数。
-<<<
+`jax.grad`取一个函数,返回一个新的函数,计算梯度.`.backward()`电梯是另一个函数,你可以调用,编译或编译JIT.
 
-This composes arbitrarily:
+这任意构成:
 
 ```python
 d2f = jax.grad(jax.grad(f))
 d2f(3.0)
 ```
 
-Second derivatives. Third derivatives. Jacobians. Hessians. All by composing `grad`. PyTorch can do this too (`torch.autograd.functional.hessian`), but it is bolted on. In JAX, it is the foundation.
+它们是二次衍生,第三次衍生,雅可比亚,赫西亚,所有这些都是由编译.`grad`皮托奇也可以做到这一点.`torch.autograd.functional.hessian`在JAX中,它是基础.
 
-The constraint: `grad` only works on pure functions. No print statements inside (they run during tracing, not execution). No mutation of external state. No random number generation without explicit key management.
+限制:`grad`没有打印语句 (它们在追踪过程中运行,而不是执行). 没有外部状态的突变.没有无明确的关键管理的随机数生成.
 
-### jit: Compile to XLA
+### jit: 编译到XLA
 
 ```python
 @jax.jit
@@ -135,100 +95,60 @@ def train_step(params, x, y):
 fast_step = jax.jit(train_step)
 ```
 
-On the first call, JAX traces the function -- it records which operations happen, without executing them. Then it hands that trace to XLA (Accelerated Linear Algebra), Google's compiler for TPUs and GPUs. XLA fuses operations, eliminates redundant memory copies, and generates optimized machine code.
+在第一次电话中,JAX追踪了函数,记录了哪些操作发生,而不执行它们.然后将这些痕迹交给了Google的TPU和GPU编译器XLA.XLA将操作合并,消除冗余的内存副本,并生成优化的机器代码.
 
->>>START<<<
-后续调用完全跳过 Python。编译后的代码在加速器上以 C++ 速度运行。
->>>
+随后的调用完全跳过Python.编译的代码在C++速度上运行.
 
-When JIT helps:
-- Training steps (same computation repeated thousands of times)
-- Inference (same model, different inputs)
-- Any function called more than once with similar-shaped inputs
+当JIT有助于:
+- 训练步骤 (同样的计算重复了数千次)
+- 推理 (相同的模型,不同的输入)
+- 任何一个函数,多次调用,具有类似形状的输入
 
-When JIT hurts:
-- Functions with Python control flow that depends on values (`if x > 0` where x is a traced array)
-- One-shot computations (compilation overhead exceeds runtime)
-- Debugging (tracing hides the actual execution)
+当JIT疼痛时:
+- 基于值的Python控制流程的函数 (`if x > 0`在 x 是一个追踪数组)
+- 单次计算 (编译总费超过运行时间)
+- 调试 (追踪隐藏实际执行)
 
-控制流限制是真实存在的。`jax.lax.cond` 替换 `if/else`。`jax.lax.scan` 替换 `for` 循环。这些不是可选的 —— 它们是编译的代价。
-<<<
+控制流量限制是真实的.`jax.lax.cond`替换`if/else`现在,我们要去.`jax.lax.scan`替换`for`这些不是可选的,它们是编译的价格.
 
-Let me translate this. "vmap" is a technical term (likely a function name like PyTorch's vmap), so I should keep it as is. "Automatic Vectorization" is a technical concept.
+### 简单的输出
 
-The heading: "### vmap: Automatic Vectorization"
-
-Translation: "### vmap：自动向量化"
-
-Wait, the rules say "Do NOT translate code, math, links, or technical terms." "Automatic Vectorization" is a technical term/concept. Hmm, but it's part of the heading text. Let me think.
-
-Actually "vmap" is a code/technical term to keep. "Automatic Vectorization" - vectorization is a technical term. But the heading is describing what vmap does. I think it's reasonable to translate "Automatic Vectorization" as "自动向量化" since it's describing the concept, but "向量化" and "自动" are fairly standard translations.
-
-Let me keep it as a translation of the heading. The instruction is to translate English into Simplified Chinese, preserving technical terms. The technical terms are "vmap". "Automatic Vectorization" describes the feature - I'll translate it.
-
-Let me produce: "### vmap：自动向量化"
-
-I'll wrap in the tags.
-
-
-### vmap：自动向量化
-
-你编写一个函数来处理单个示例：
-<<<
+你写一个函数,处理一个例子:
 
 ```python
 def predict(params, x):
     return jnp.dot(params['w'], x) + params['b']
 ```
 
-`vmap` lifts it to process a batch:
+`vmap`提升它处理一批:
 
 ```python
 batch_predict = jax.vmap(predict, in_axes=(None, 0))
 ```
 
-`in_axes=(None, 0)` 表示：不要对 `params`（共享）进行批处理，而对 `x` 的 axis 0 进行批处理。不要手动 `for` 循环。不要 reshaping。不要批维度 threading。JAX 会推断出批维度并对整个计算进行向量化。
-<<<
+`in_axes=(None, 0)`方式:不要批量过度`params`                                                          `x`没有手册`for`没有重塑,没有批量维度线程, JAX 计算了批量维度,并向量化了整个计算.
 
-这不是语法糖。`vmap` 生成融合的向量化代码，运行速度比 Python 循环快 10-100 倍。并且它可以与 `jit` 和 `grad` 组合：
-<<<
+这不是语法糖.`vmap`它生成的结合向量化代码比Python循环快10-100倍.`jit`其他`grad`其他:
 
 ```python
 per_example_grads = jax.vmap(jax.grad(loss_fn), in_axes=(None, 0, 0))
 ```
 
-Technical terms like "PyTorch" should be preserved. "Per-example gradients" is a technical term but I can translate it as "每个样本的梯度" or keep it. Let me think about what counts as a technical term that shouldn't be translated.
+没有黑客,这几乎是不可能的.
 
-"Per-example gradients" - this is a concept. I could translate it as "逐样本梯度" or "每样本梯度". I think translating the general phrase is fine since it's not a proper noun or code.
-
-"PyTorch" is a technical term (library name) - keep as is.
-
-"hacks" - could be translated as "技巧" or "hack手段".
-
-Let me translate:
-"逐样本梯度。一行。没有这些 hack 手段，在 PyTorch 里几乎不可能做到。"
-
-This preserves the structure with the periods and line breaks. Let me finalize.
-
-
-<<<START>>>
-逐样本梯度。一行。没有这些 hack 手段，在 PyTorch 里几乎不可能实现。
-<<<
-
-### pmap：跨设备的数据并行
-<<<
+### 设备间数据平行性
 
 ```python
 parallel_step = jax.pmap(train_step, axis_name='devices')
 ```
 
-`pmap` replicates the function across all available devices (GPUs/TPUs) and splits the batch. Inside the function, `jax.lax.pmean` and `jax.lax.psum` synchronize gradients across devices.
+`pmap`复制功能在所有可用的设备 (GPU/TPU) 上,并分组.`jax.lax.pmean`其他`jax.lax.psum`通过设备进行梯度同步.
 
-Google trains Gemini across thousands of TPU v5e chips using `pmap` (and its successor `shard_map`). The programming model: write the single-device version, wrap with `pmap`, done.
+谷歌将双子座训练通过数千个TPU v5e芯片使用`pmap`(以及其继任者)`shard_map`编程模型:写单设备版本,用 `pmap`完成了.
 
-### Pytrees: The Universal Data Structure
+### 皮特里斯:世界数据结构
 
-JAX operates on "pytrees" -- nested combinations of lists, tuples, dicts, and arrays. Your model parameters are a pytree:
+简单的说法是,我们可以在一个字符串中找到一个字符串,
 
 ```python
 params = {
@@ -238,18 +158,17 @@ params = {
 }
 ```
 
-Every JAX transformation -- `grad`, `jit`, `vmap` -- knows how to traverse pytrees. `jax.tree.map(f, tree)` applies `f` to every leaf. This is how optimizers update all parameters at once:
+每一个JAX变化--`grad`现在`jit`现在`vmap`知道如何穿越树.`jax.tree.map(f, tree)`适用`f`这就是优化器一次更新所有参数的方式:
 
 ```python
 params = jax.tree.map(lambda p, g: p - lr * g, params, grads)
 ```
 
-No `.parameters()` method. No parameter registration. The tree structure is the model.
+没有.`.parameters()`没有参数登记.树结构是模型.
 
-### Functional vs Object-Oriented
+### 功能与目标
 
-PyTorch 将状态存储在对象内部：
-<<<
+皮托奇的商店表示物体内:
 
 ```python
 class Model(nn.Module):
@@ -260,21 +179,18 @@ class Model(nn.Module):
         return self.linear(x)
 ```
 
-JAX 使用具有显式状态的纯函数：
-<<<
+JAX使用纯函数,具有明确状态:
 
 ```python
 def predict(params, x):
     return jnp.dot(x, params['w']) + params['b']
 ```
 
-参数是传入的。不会存储任何东西。也不会修改任何东西。这让每个函数都变得可测试、可组合、可编译。这也意味着你要自己管理这些参数——或者像 Flax 或 Equinox 那样使用现成的库。
+任何东西都存储不存在. 任何东西都没有变化. 这使得每个函数都能测试,编译和编译. 这也意味着你自己管理这些参数 - 或者使用像或平行一样的图书馆.
 
-<<<
+### 杰克斯生态系统
 
-### The JAX Ecosystem
-
-JAX gives you primitives. Libraries give you ergonomics:
+简单的图书馆,是机械的.
 
 | Library | Role | Style |
 |---------|------|-------|
@@ -284,7 +200,7 @@ JAX gives you primitives. Libraries give you ergonomics:
 | **Orbax** (Google) | Checkpointing | Save/restore pytrees |
 | **CLU** (Google) | Metrics + logging | Training loop utilities |
 
-Optax is the standard optimizer library. It separates the gradient transformation (Adam, SGD, clipping) from the parameter update, making it trivial to compose:
+优化图库是标准优化图库.它将梯度转换 (亚当,SGD,剪辑) 与参数更新分开,使得编写:
 
 ```python
 optimizer = optax.chain(
@@ -293,7 +209,7 @@ optimizer = optax.chain(
 )
 ```
 
-### When to Use JAX vs PyTorch
+### 什么时候使用 JAX vs PyTorch
 
 | Factor | JAX | PyTorch |
 |--------|-----|---------|
@@ -307,12 +223,11 @@ optimizer = optax.chain(
 | Production inference | TensorFlow Serving, Vertex AI | TorchServe, Triton, ONNX |
 | Who uses it | DeepMind (Gemini), Anthropic (Claude) | Meta (Llama), OpenAI (GPT), Stability AI |
 
-诚实的答案：除非你有特定原因需要使用 JAX，否则使用 PyTorch。那些理由是——TPU 访问、需要逐样本梯度、大规模多设备训练，或者在 Google/DeepMind/Anthropic 工作。
-<<<
+诚实答案:使用 PyTorch 除非你有特定的理由使用 JAX. 这些原因是: TPU 访问,需要每个例子的梯度,
 
-### Random Numbers in JAX
+### 在 JAX 中随机数字
 
-JAX does not have a global random state. Every random operation requires an explicit PRNG key:
+简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的简单的
 
 ```python
 key = jax.random.PRNGKey(42)
@@ -320,18 +235,17 @@ key1, key2 = jax.random.split(key)
 w = jax.random.normal(key1, shape=(784, 256))
 ```
 
-This is annoying at first. But it guarantees reproducibility across devices and compilations -- a property that PyTorch's `torch.manual_seed` cannot guarantee in multi-GPU settings.
+这一点最初很令人丧,但它保证了设备和编译中可再生性. PyTorch 开发的特性`torch.manual_seed`在多GPU设置中不能保证.
 
 ```figure
 batchnorm-effect
 ```
 
-## Build It
+## 建立它
 
-### 第 1 步：配置与数据
+### 步骤1:设置和数据
 
-我们将使用 JAX 和 Optax 在 MNIST 上训练一个 3 层 MLP。784 个输入，两个隐藏层分别有 256 和 128 个神经元，10 个输出类别。
-<<<
+我们将在MNIST上训练一个3层MLP使用JAX和Optax. 784输入,两个隐藏的 256和 128个神经元层, 10个输出类.
 
 ```python
 import jax
@@ -349,10 +263,9 @@ def get_mnist_data():
     return X_train, y_train, X_test, y_test
 ```
 
-### Step 2: Initialize Parameters
+### 步骤 2: 启动参数
 
-没有类。只是一个返回 pytree 的函数：
-<<<
+没有类,只是返回一个字符:
 
 ```python
 def init_params(key):
@@ -377,25 +290,9 @@ def init_params(key):
     return params
 ```
 
-Let me translate:
+按手动启动,三个PRNG键从一个种子中分开,每个重量都是一个无变的数组.
 
-"He-initialization, done manually. Three PRNG keys split from one seed. Every weight is an immutable array in a nested dict."
-
-Technical terms like "He-initialization", "PRNG", "immutable array", "nested dict", "seed", "weight" should NOT be translated.
-
-Let me translate:
-- "He-initialization, done manually." → "He初始化，手动完成。"
-- "Three PRNG keys split from one seed." → "从单个种子拆分成三个 PRNG 密钥。"
-- "Every weight is an immutable array in a nested dict." → "每个权重都是一个嵌套字典中的不可变数组。"
-
-Let me preserve the line breaks (these seem to be separate sentences/lines).
-
-I'll write:
-<<<START>>>
-He初始化，手动完成。从单个种子拆分成三个 PRNG 密钥。每个权重都是一个嵌套字典中的不可变数组。
-<<<
-
-### Step 3: Forward Pass
+### 步骤3: 往前传
 
 ```python
 def forward(params, x):
@@ -412,9 +309,9 @@ def loss_fn(params, x, y):
     return -jnp.mean(jnp.sum(jax.nn.log_softmax(logits) * one_hot, axis=-1))
 ```
 
-Pure functions. Params in, prediction out. No `self`, no stored state. `loss_fn` computes cross-entropy from scratch -- softmax, log, negative mean.
+纯功能的参数,预测.`self`没有存储状态.`loss_fn`计算了从零开始的交叉缩--软max,日志,负平均.
 
-### Step 4: JIT-Compiled Training Step
+### 第四步:JIT编制的培训步骤
 
 ```python
 @jax.jit
@@ -431,9 +328,9 @@ def accuracy(params, x, y):
     return jnp.mean(preds == y)
 ```
 
-`jax.value_and_grad` returns both the loss value and the gradients in one pass. The `@jax.jit` decorator compiles both functions to XLA. After the first call, each training step runs without touching Python.
+`jax.value_and_grad`输出值和梯度均返回一次.`@jax.jit`装饰器将这两个函数组合到XLA. 在第一次调用后,每个训练步骤都会运行,而不需要触摸Python.
 
-### 步骤 5：训练循环
+### 步骤5:训练循环
 
 ```python
 optimizer = optax.adam(learning_rate=1e-3)
@@ -470,19 +367,15 @@ for epoch in range(n_epochs):
           f"Train Acc: {train_acc:.4f} | Test Acc: {test_acc:.4f}")
 ```
 
-10 epochs. ~97% test accuracy. The first epoch is slow (JIT compilation). Epochs 2-10 are fast.
+测试精度为97%左右.第一阶段缓慢 (JIT编译).2-10阶段快速.
 
-注意缺失了什么：没有 `.zero_grad()`，没有 `.backward()`，没有 `.step()`。整个更新是一个组合函数调用。梯度被计算、由 Adam 转换、并应用于参数——全部在 `train_step` 内部完成。
-<<<
+注意什么缺失:没有`.zero_grad()`没有`.backward()`没有`.step()`整个更新是一个复合函数调用. 基准被计算,由亚当转化,`train_step`现在,我们要去.
 
-## 使用它
-<<<
+## 用它
 
-### Flax: The Google Standard
+### :谷歌标准
 
-<<<START>>>
-Flax 是最常见的 JAX 神经网络库。它重新加入了 `nn.Module`，但采用了显式的状态管理：
-<<<
+是最常见的JAX神经网络库.`nn.Module`只有一个国家管理:
 
 ```python
 import flax.linen as nn
@@ -502,13 +395,11 @@ params = model.init(jax.random.PRNGKey(0), jnp.ones((1, 784)))
 logits = model.apply(params, x_batch)
 ```
 
-结构与 PyTorch 相同，但 `params` 与模型分离。`model.init()` 创建参数。`model.apply(params, x)` 执行前向传递。模型对象没有状态。
-<<<
+结构与PyTorch相同,但`params`单独与模型.`model.init()`创造了"".`model.apply(params, x)`模型对象没有状态.
 
-### Equinox: The Pythonic Alternative
+### 方位:皮顿替代
 
-Equinox（由 Patrick Kidger 开发）将模型表示为 pytrees：
-<<<
+方程 (由帕特里克·基德格) 代表模型为 pytrees:
 
 ```python
 import equinox as eqx
@@ -520,11 +411,11 @@ model = eqx.nn.MLP(
 logits = model(x)
 ```
 
-The model itself is a pytree. No `.apply()` needed. Parameters are just the model's leaves. This is closer to how JAX thinks.
+模型本身就是一个字树.`.apply()`参数只是模型的叶子. 这就像JAX的想法.
 
-### Optax: 可组合优化器
+### 优质:可组合优化器
 
-Optax decouples the gradient transformation from the update:
+tax将梯度转换与更新分离:
 
 ```python
 schedule = optax.warmup_cosine_decay_schedule(
@@ -538,9 +429,9 @@ optimizer = optax.chain(
 )
 ```
 
-Gradient clipping, learning rate warmup, weight decay -- all composed as a chain of transforms. Each transform sees the gradients, modifies them, and passes them to the next. No monolithic optimizer class.
+渐变减小,学习速度升温,体重衰减,都构成了一系列转变. 每次转变都会看到梯度,修改它们,然后将它们传递给下一个.没有单一的优化器类.
 
-## Ship It
+## 运送它
 
 **Installation:**
 
@@ -548,14 +439,13 @@ Gradient clipping, learning rate warmup, weight decay -- all composed as a chain
 pip install jax jaxlib optax flax
 ```
 
-对于 GPU 支持：
-<<<
+对于GPU支持:
 
 ```bash
 pip install jax[cuda12]
 ```
 
->>>对于 TPU（Google Cloud）：<<<
+对于TPU (谷歌云):
 
 ```bash
 pip install jax[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
@@ -563,12 +453,11 @@ pip install jax[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_relea
 
 **Performance gotchas:**
 
-- First JIT call is slow (compilation). Warm up before benchmarking.
-- Avoid Python loops over JAX arrays inside JIT. Use `jax.lax.scan` or `jax.lax.fori_loop`.
-- `jax.debug.print()` works inside JIT. Regular `print()` does not.
-- Profile with `jax.profiler` or TensorBoard. XLA compilation can hide bottlenecks.
-JAX 默认预分配 75% 的 GPU 显存。设置 `XLA_PYTHON_CLIENT_PREALLOCATE=false` 可禁用。
-<<<
+- 首先,JIT调用速度缓慢 (编译).
+- 避免在JIT内部的JAX阵列上使用Python循环.`jax.lax.scan`或`jax.lax.fori_loop`现在,我们要去.
+- `jax.debug.print()`在JIT内部工作.`print()`没有.
+- 个人资料`jax.profiler`果版可以隐藏瓶.
+- 预定配置了75%的GPU内存.`XLA_PYTHON_CLIENT_PREALLOCATE=false`禁止使用.
 
 **Checkpointing:**
 
@@ -580,28 +469,22 @@ restored = checkpointer.restore('/tmp/model')
 ```
 
 **This lesson produces:**
-- `outputs/prompt-jax-optimizer.md` -- 用于选择正确的 JAX 优化器配置的提示
-- `outputs/skill-jax-patterns.md` -- 涵盖 JAX 中函数式模式的技能
-<<<
+- `outputs/prompt-jax-optimizer.md`-- 提示选择正确的JAX优化器配置
+- `outputs/skill-jax-patterns.md`-- 涵盖JAX的功能模式的技能
 
-## 练习
+## 运动
 
-<<<
+1. 在JAX中,中断需要一个PRNG键 - - 通过前进传输键将一个键分为每个中断层.
 
-Let me translate this text.
+2. 使用`jax.vmap`计算每一个例子的梯度为32个MNIST图像.计算每个例子的梯度标准.哪个例子有最大的梯度,为什么?
 
+3. 取代手动前进函数以通用函数`mlp_forward(params, x)`使用  片`jax.tree.leaves`为了自动确定深度.
 
-1. 给 MLP 添加 dropout。在 JAX 中，dropout 需要一个 PRNG key——在前向传播中传递一个 key，并为每个 dropout 层进行 split。比较有和无 dropout 时的测试准确率。
+4. 准训练步骤,包括和没有`@jax.jit`时间100步. 您的硬件的加快速度是多大?
 
-2. Use `jax.vmap` to compute per-example gradients for a batch of 32 MNIST images. Compute the gradient norm for each example. Which examples have the largest gradients, and why?
+5. 通过编译实现梯度剪切`optax.chain(optax.clip_by_global_norm(1.0), optax.adam(1e-3))`炼,不剪切,炼,炼,看效果.
 
-3. Replace the manual forward function with a generic `mlp_forward(params, x)` that works for any number of layers. Use `jax.tree.leaves` to determine the depth automatically.
-
-4. Benchmark the training step with and without `@jax.jit`. Time 100 steps of each. How large is the speedup on your hardware? What is the compilation overhead on the first call?
-
-5. Implement gradient clipping by composing `optax.chain(optax.clip_by_global_norm(1.0), optax.adam(1e-3))`. Train with and without clipping. Plot the gradient norm over training to see the effect.
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -616,11 +499,11 @@ Let me translate this text.
 | Optax | "JAX's optimizer library" | A composable library of gradient transformations -- Adam, SGD, clipping, scheduling -- that chain together |
 | Flax | "JAX's nn.Module" | Google's neural network library for JAX, adding layer abstractions while keeping state explicit |
 
-## Further Reading
+## 进一步阅读
 
-- JAX documentation: https://jax.readthedocs.io/ -- the official docs, with excellent tutorials on grad, jit, and vmap
-- "JAX: composable transformations of Python+NumPy programs" (Bradbury et al., 2018) -- the original paper explaining the design philosophy
-- Flax documentation: https://flax.readthedocs.io/ -- Google's neural network library for JAX
-- Patrick Kidger, "Equinox: neural networks in JAX via callable PyTrees and filtered transformations" (2021) -- the Pythonic alternative to Flax
-- DeepMind, "Optax: composable gradient transformation and optimisation" -- the standard optimizer library
-- "You Don't Know JAX" (Colin Raffel, 2020) -- a practical guide to JAX gotchas and patterns, from one of the T5 authors
+-  JAX 文件: https://jax.readthedocs.io/官方的博士, 提供了优秀的教程,
+- "JAX:Python+NumPy程序的可组合转换" (Bradbury等, 2018) -- 解释设计哲学的原始论文
+- 料文件: https://flax.readthedocs.io/谷歌的神经网络库用于JAX
+- 帕特里克·基德格"等式:通过可调用的PyTrees和过转换在JAX中的神经网络" (2021) - - 的Pythonic替代品
+- 果:可构成梯度转换和优化"--标准优化库
+- "你不知道JAX" (Colin Raffel,2020) - - 一本来自T5作者的一份关于JAX的方法和模式的实用指南

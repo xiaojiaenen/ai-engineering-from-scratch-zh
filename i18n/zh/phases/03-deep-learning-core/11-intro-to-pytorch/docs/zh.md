@@ -1,146 +1,46 @@
-"Introduction to PyTorch" - "Introduction" would be "简介" or "介绍", PyTorch should not be translated as it's a technical term/library name.
+# 介绍PyTorch
 
-So the translation would be "# PyTorch 简介"
-
-
-<<<START>>>
-# PyTorch 简介
-<<<
-
-Let me translate. "pistons and crankshafts" - pistons 活塞, crankshafts 曲轴. These are mechanical terms but they're not code/math/links. The instruction says don't translate technical terms, but this is natural language prose. Actually, the rule about technical terms probably refers to code, programming terms, etc. But pistons and crankshafts are mechanical components. Let me translate them to Chinese as they're part of natural language.
-
-Let me translate this naturally:
-
-"> You built the engine from pistons and crankshafts. Now learn the one everyone actually drives."
-
-Translation:
-"> 你用活塞和曲轴组装起了引擎。现在，来学习那个每个人真正驾驶的。"
-
-Hmm, "the one everyone actually drives" - this is a bit idiomatic. It could be referring to a simpler concept. Let me keep it natural.
-
-"> 你由活塞与曲轴装配出了引擎。现在来学习那个人人都真正开着的。"
-
-Let me refine:
-"> 你已经用活塞和曲轴搭出了引擎。现在来学那个每个人真正会用的。"
-
-Actually "drives" - 驾驶/开。The "one" is a thing everyone drives. Let me keep it as 那个每个人都真正驾驶的。
-
-Final:
-">> 你由活塞和曲轴打造出了引擎。现在来学习那个每个人真正驾驶的。"
-
-Wait, I should preserve the > single. Let me use single >.
-
-
->>>START>>>
-> 你由活塞与曲轴打造出了引擎。现在来学习那个每个人真正驾驶的。
-<<<
+> 你用和杆建造了引擎,现在学会每个人真正驾驶的引擎.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.10 (Build Your Own Mini Framework)
 **Time:** ~75 minutes
 
-## Learning Objectives
+## 学习目标
 
-Let me translate the bullet points while keeping technical terms like PyTorch, nn.Module, nn.Sequential, autograd, tensors, GPU, zero_grad, forward, loss, backward, step as they are (these are code/technical terms).
-
-Let me translate:
-- Build and train neural networks using PyTorch's nn.Module, nn.Sequential, and autograd
-- 使用 PyTorch 的 nn.Module、nn.Sequential 和 autograd 构建并训练神经网络
-- Use PyTorch tensors, GPU acceleration, and the standard training loop (zero_grad, forward, loss, backward, step)
-- 使用 PyTorch 张量、GPU 加速以及标准训练循环（zero_grad、forward、loss、backward、step）
-- Convert your from-scratch mini framework components to their PyTorch equivalents
-- 将你自己从零搭建的迷你框架组件转换为其 PyTorch 对应物
-- Profile and compare training speed between your pure-Python framework and PyTorch on the same task
-- 在同一任务上，对纯 Python 框架与 PyTorch 的训练速度进行剖析与比较
-
-The technical terms like nn.Module, nn.Sequential, autograd, tensors, GPU, zero_grad, forward, loss, backward, step should not be translated. "张量" is the Chinese for tensors - but the rule says don't translate technical terms. However, "tensors" could be considered a technical term. Let me keep "PyTorch tensors" - actually I'll translate it as "PyTorch 张量" since tensor is common, but to be safe with "do not translate technical terms", maybe keep "tensors". Hmm.
-
-Actually the rule is: Do NOT translate code, math, links, or technical terms. Terms like zero_grad, forward, loss, backward, step are code. nn.Module, nn.Sequential, autograd are code/technical. "GPU" is fine. "tensors" - I'll keep as technical term but... let me think. I'll write "PyTorch 张量" - actually to be safe I might keep it. But "tensors" translated as 张量 is very standard and commonly done. I'll use "PyTorch 张量".
-
-Let me keep the code elements (zero_grad, forward, loss, backward, step, nn.Module, nn.Sequential, autograd) untranslated.
-
-Final translation:
-- 使用 PyTorch 的 nn.Module、nn.Sequential 和 autograd 构建并训练神经网络
-- 使用 PyTorch 张量、GPU 加速以及标准训练循环（zero_grad、forward、loss、backward、step）
-- 将你自己从零搭建的迷你框架组件转换为对应的 PyTorch 实现
-- 在同一任务上，对纯 Python 框架与 PyTorch 的训练速度进行性能剖析与比较
-
-
-<<<START>>>
-- 使用 PyTorch 的 nn.Module、nn.Sequential 和 autograd 构建并训练神经网络
-- 使用 PyTorch 张量、GPU 加速以及标准训练循环（zero_grad、forward、loss、backward、step）
-- 将你自己从零搭建的迷你框架组件转换为对应的 PyTorch 实现
-- 在同一任务上，对纯 Python 框架与 PyTorch 的训练速度进行性能剖析与比较
-<<<
+- 使用 PyTorch 的 nn.Module, nn.Sequential 和 autograd 构建和训练神经网络
+- 使用PyTorch光器,GPU加速和标准训练循环 (零_级,前进,损失,后退,步骤)
+- 转换从零开始的迷你框架组件到它们的PyTorch等级
+- 简介和比较您的纯Python框架和PyTorch在同一任务中训练速度
 
 ## 问题
-<<<
 
-你有一个可用的 mini framework。Linear layers、ReLU、dropout、batch norm、Adam、DataLoader、training loop 都有。它能用纯 Python 训练一个 4 层网络，解决 circle classification 问题。
-<<<
+您有一个工作的迷你框架.线性层,ReLU,脱落,批量标准,亚当,数据加载器,训练循环.它训练一个四层网络在纯Python中循环分类问题.
 
-<<<START>>>在同一问题上，它比 PyTorch 慢 500 倍。<<<
+对于同样的问题,它也比PyTorch慢500倍.
 
-- Do not include any explanation or preamble
+您的迷你框架一次处理一个样本,使用嵌入式Python循环. PyTorch将相同的操作发送到优化的C++/CUDA内核,运行在GPU上.在单个NVIDIA A100上, PyTorch在 ImageNet上训练一个ResNet-50 (25.6M参数) 在约6小时内.
 
-Let me translate this text carefully.
+速度不是唯一的差距.你的框架没有GPU支持.没有自动区分 - - 你手写向后的每个模块.没有序列化.没有分布式训练.没有混合精度.没有方法去调整梯度流程没有打印声明.
 
-Technical terms to keep: Python, PyTorch, C++, CUDA, GPU, NVIDIA A100, ResNet-50, ImageNet, parameters
-
-Let me translate:
-
-"Your mini framework processes one sample at a time with nested Python loops. PyTorch dispatches the same operations to optimized C++/CUDA kernels that run on GPU. On a single NVIDIA A100, PyTorch trains a ResNet-50 (25.6M parameters) on ImageNet (1.28M images) in about 6 hours. Your framework would take roughly 3,000 hours on the same task -- if it didn't run out of memory first."
-
-Translation:
-
-"你的迷你框架通过嵌套的 Python 循环一次处理一个样本。PyTorch 将相同的操作分派到在 GPU 上运行的优化过的 C++/CUDA 内核上。在单块 NVIDIA A100 上，PyTorch 在约 6 小时内于 ImageNet（1.28M 张图片）上训练 ResNet-50（25.6M 参数）。你的框架处理相同任务大约需要 3,000 小时——如果它没有先耗尽内存的话。"
-
-That looks good. Let me make sure I keep the technical terms untranslated. Python, PyTorch, C++, CUDA, GPU, NVIDIA A100, ResNet-50, ImageNet are all kept. 25.6M, 1.28M, 3,000 are numbers, keep them.
-
-Let me finalize.
-
-
-你的迷你框架通过嵌套的 Python 循环一次处理一个样本。PyTorch 将相同的操作分派到在 GPU 上运行的优化过的 C++/CUDA 内核中。在单块 NVIDIA A100 上，PyTorch 在约 6 小时内于 ImageNet（1.28M 张图片）上训练 ResNet-50（25.6M 参数）。你的框架处理相同任务大约需要 3,000 小时——如果它没有先耗尽内存的话。
-
-5. No explanation or preamble
-
-Let me translate this fragment:
-
-"Speed is not the only gap. Your framework has no GPU support. No automatic differentiation -- you hand-wrote backward() for every module. No serialization. No distributed training. No mixed precision. No way to debug gradient flow without print statements."
-
-Technical terms to NOT translate: GPU, backward(), gradient (though this could be translated as 梯度).
-
-Let me translate:
-
-"速度不是唯一的短板。你的框架没有 GPU 支持。没有自动微分——你为每个模块手写 backward()。没有序列化。没有分布式训练。没有混合精度。没有无需 print 语句即可调试梯度流动的方法。"
-
-Let me refine this translation to sound natural in Simplified Chinese.
-
-
-<<<START>>>
-速度不是唯一的短板。你的框架没有 GPU 支持。没有自动微分——你为每个模块手写 backward()。没有序列化。没有分布式训练。没有混合精度。没有无需 print 语句即可调试梯度流动的方法。
-<<<
-
-PyTorch 填补了所有这些缺口。而且它正是这样做的，同时保持你已经建立的完全相同的心智模型：Module、forward()、parameters()、backward()、optimizer.step()。这些概念一一对应地转移过来。语法几乎完全相同。区别在于，PyTorch 在你从零开始设计的相同接口背后，封装了十年的系统工程。
-<<<
+PyTorch填补了这些空白.它保持了你已经构建的相同的心理模型:模块,前(),参数(),向后),优化.步骤().概念将一个接一个转移.语法几乎是一样的.区别是 PyTorch 包裹了你从零开始设计的相同界面后的十年系统工程.
 
 ## 概念
-<<<
 
-### 为什么 PyTorch 获胜
+### 为什么皮托奇赢得了
 
-In 2015, TensorFlow required you to define a static computation graph before running anything. You built the graph, compiled it, then fed data through it. Debugging meant staring at graph visualizations. Changing the architecture meant rebuilding the graph from scratch.
+在2015年, TensorFlow要求你在运行任何东西之前定义静态计算图.你构建图,编译它,然后通过它输送数据.调整意味着着图的可视化.改变架构意味着从零开始重建图.
 
-PyTorch launched in 2017 with a different philosophy: eager execution. You write Python. It runs immediately. `y = model(x)` actually computes y right now, not "add a node to a graph that will compute y later." This meant standard Python debugging tools worked. print() worked. pdb worked. if/else in your forward pass worked.
+鱼在2017年推出了不同的理念:渴望执行.你写Python.它立即运行.`y = model(x)`这意味着标准的Python调试工具工作.打印() 工作. pdb工作.如果/else 在你的前进通行工作.
 
-By 2020, the market had spoken. PyTorch's share in ML research papers went from 7% (2017) to over 75% (2022). Meta, Google DeepMind, OpenAI, Anthropic, and Hugging Face all use PyTorch as their primary framework. TensorFlow 2.x adopted eager execution in response -- tacit admission that PyTorch's design was correct.
+截至2020年,市场已经开始出现.PyTorch在ML研究论文中的份额从7% (2017) 增加到75% (2022).Meta,Google DeepMind,OpenAI,Anthropic和 Hugging Face都使用PyTorch作为其主要框架.TensorFlow 2.x以响应为例,采取了热情执行 - 默认承认PyTorch的设计是正确的.
 
-The lesson: developer experience compounds. A framework that is 10% slower but 50% faster to debug wins every time.
+开发人员经验组合.一个软件框架每次都会有10%的速度慢,但50%的速度更快.
 
-### Tensors
+### 电压器
 
-A tensor is a multi-dimensional array with three critical properties: shape, dtype, and device.
+子是一个多维数组,具有三个关键性质:形状,d类型和设备.
 
 ```python
 import torch
@@ -150,17 +50,9 @@ x = torch.randn(2, 3, 224, 224) # batch of 2 RGB images, 224x224
 x = torch.tensor([1, 2, 3])     # from a Python list
 ```
 
-**Shape** is the dimensionality. A scalar is shape (), a vector is (n,), a matrix is (m, n), a batch of images is (batch, channels, height, width).
+**Shape**尺度是形状 (),向量是 (n),矩阵是 (m,n),图像是一批 (批量,道,高度,宽度).
 
-Let me translate "PROTECT0 controls precision and memory."
-
-PROTECT0 controls precision and memory.
-→ PROTECT0 控制精度和内存。
-
-
-<<<START>>>
-**Dtype** 控制精度和内存。
-<<<
+**Dtype**控制精度和记忆力.
 
 | dtype | Bits | Range | Use case |
 |-------|------|-------|----------|
@@ -169,7 +61,7 @@ PROTECT0 controls precision and memory.
 | bfloat16 | 16 | Same range as float32, less precision | LLM training |
 | int8 | 8 | -128 to 127 | Quantized inference |
 
-**Device** determines where computation happens.
+**Device**计算的发生地.
 
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -178,9 +70,9 @@ x = x.to("cuda")
 x = x.cpu()
 ```
 
-Every operation requires all tensors on the same device. This is the #1 PyTorch error beginners hit: `RuntimeError: Expected all tensors to be on the same device`. Fix it by moving everything to the same device before computation.
+任何操作都需要所有电压器在同一设备上.这是第1个PyTorch错误初学者击中:`RuntimeError: Expected all tensors to be on the same device`在计算之前,把所有东西移到同一设备上来解决.
 
-**Reshaping** is constant-time -- it changes the metadata, not the data.
+**Reshaping**它改变了元数据,而不是数据.
 
 ```python
 x = torch.randn(2, 3, 4)
@@ -191,41 +83,9 @@ x.unsqueeze(0)     # add dimension: (1, 2, 3, 4)
 x.squeeze()        # remove size-1 dimensions
 ```
 
-### Autograd
+### 澳门威尼斯人
 
-- No explanation or preamble
-
-Let me look at the text. There are no PROTECT tokens in this text. There are some technical terms like "backward()", "PyTorch", "directed acyclic graph", "computational graph", "gradients".
-
-Technical terms I should NOT translate: backward() - this is code/method name, PyTorch - it's a proper name/framework name, tensor/graph related. Actually "directed acyclic graph (the computational graph)" and "gradients" - these are technical terms. Let me think about what counts as technical terms.
-
-The rule says "Do NOT translate code, math, links, or technical terms." So I should keep technical terms. "backward()" is a method - keep. "PyTorch" - keep. "tensor" - it's a technical term but it's also commonly used. Let me keep the technical terms in English or find appropriate handling.
-
-Actually, let me be careful. The instruction is to translate the fragment but not translate code, math, links, or technical terms. Let me do a reasonable translation.
-
-"Your mini framework required you to implement backward() for every module."
-→ 你的迷你框架要求你为每个模块实现 backward()。
-
-"PyTorch does not."
-→ PyTorch 不需要。
-
-"It records every operation on tensors into a directed acyclic graph (the computational graph) and then traverses that graph in reverse to compute gradients automatically."
-→ 它将张量上的每个 operation 记录到一个有向无环图 (计算图) 中，然后沿该图反向遍历以自动计算梯度。
-
-Hmm, "operation" - is that a technical term? "tensors" - tensor. Let me think about what to keep.
-
-Let me keep technical terms like tensor as 张量 (it's commonly translated but technically it's a term). Actually the rule says don't translate technical terms. But 张量 is the standard Chinese translation for tensor. This is ambiguous.
-
-Let me be practical. I'll translate readable parts and keep clearly technical/code terms. Let me keep "backward()", "PyTorch" untranslated. For "tensor" I could use 张量. For "directed acyclic graph" - 有向无环图 is the standard translation. "computational graph" - 计算图. "gradients" - 梯度.
-
-These are standard technical term translations. I think it's fine to translate them into their standard Chinese equivalents since they're well-established terms. But the rule says don't translate technical terms... 
-
-I'll compromise: keep method names and proper nouns, but use standard Chinese technical translations where they're well established, since forcing English would be odd. Actually, to be safe with "do NOT translate technical terms", I'll keep some terms but the standard translations like 张量, 梯度, 有向无环图, 计算图 are acceptable standard terms.
-
-Let me just produce a clean translation.
-
-
-你的迷你框架要求你为每个模块实现 backward()，而 PyTorch 不需要。它将张量上的每个操作记录进一个有向无环图（计算图）中，再沿该图反向遍历，从而自动计算梯度。
+您的迷你框架需要您对每个模块实现向后 (), pyTorch 不会.它将所有子的操作记录在一个指导的循环图 (计算图) 中,然后反向通过该图以自动计算梯度.
 
 ```mermaid
 graph LR
@@ -240,8 +100,7 @@ graph LR
     mul --> |"grad"| w
 ```
 
-与你框架的关键区别在于：PyTorch 使用基于 tape 的 autodiff。前向传播时，每个操作都会追加到一个 "tape" 中。调用 `.backward()` 会反向 replay 这个 tape。
-<<<
+根据PyTorch的数据,每一个操作都在前进传递过程中附加在"磁带"上.`.backward()`转换成反向的磁带.
 
 ```python
 x = torch.randn(3, requires_grad=True)
@@ -251,17 +110,15 @@ z.backward()
 print(x.grad)  # dz/dx = 2x + 3
 ```
 
-<<<
+排行榜的三个规则:
 
-1. Only leaf tensors with `requires_grad=True` accumulate gradients
-2. Gradients accumulate by default -- call `optimizer.zero_grad()` before each backward pass
-3. `torch.no_grad()` disables gradient tracking (use during evaluation)
+1. 只有叶子子`requires_grad=True`积累梯度
+2. 基准默认积累 - 调用`optimizer.zero_grad()`在每次倒退前
+3. `torch.no_grad()`禁用梯度跟踪 (评估期间使用)
 
-### nn.Module
-<<<
+### nn.模块
 
-`nn.Module` 是 PyTorch 中每个神经网络组件的基类。你已经在第 10 课中构建了这个抽象。PyTorch 的版本添加了自动参数注册、递归模块发现、设备管理和 state dict 序列化。
-<<<
+`nn.Module`在PyTorch中,每个神经网络组件的基类.你已经在10课程中构建了这个抽象.PyTorch的版本添加了自动参数注册,递归模块发现,设备管理和状态命令序列化.
 
 ```python
 import torch.nn as nn
@@ -280,10 +137,9 @@ class MLP(nn.Module):
         return x
 ```
 
-When you assign an `nn.Module` or `nn.Parameter` as an attribute in `__init__`, PyTorch automatically registers it. `model.parameters()` recursively collects every registered parameter. This is why you never have to manually gather weights like you did in the mini framework.
+当你分配一个`nn.Module`或`nn.Parameter`作为一个属性`__init__`火器自动记录它.`model.parameters()`这就是为什么你永远不必手动收集重量,就像你在迷你框架中做的那样.
 
-关键构建模块：
-<<<
+基本的建筑物:
 
 | Module | What it does | Parameters |
 |--------|-------------|------------|
@@ -296,16 +152,11 @@ When you assign an `nn.Module` or `nn.Parameter` as an attribute in `__init__`, 
 | nn.Embedding(vocab, dim) | Lookup table | vocab * dim |
 | nn.LayerNorm(dim) | Per-sample normalization | 2 * dim |
 
->>>START>>>
-### 损失函数与优化器
->>>
+### 损失功能和优化器
 
-PyTorch 提供您构建的所有内容的生产就绪版本。
-<<<
+皮托奇将你建造的产品全部交付到生产.
 
-<<<START>>>
-**Loss functions**（来自 `torch.nn`）：
- <<<
+**Loss functions**(从`torch.nn`):
 
 | Loss | Task | Input |
 |------|------|-------|
@@ -315,11 +166,9 @@ PyTorch 提供您构建的所有内容的生产就绪版本。
 | nn.L1Loss() | Regression (robust) | Any shape |
 | nn.CTCLoss() | Sequence alignment | Log probabilities |
 
-Note: `CrossEntropyLoss` combines `LogSoftmax` + `NLLLoss` internally. Pass raw logits, not softmax outputs. This is a common mistake that produces wrong gradients silently.
+备注:`CrossEntropyLoss`结合`LogSoftmax`其他`NLLLoss`通过原始的输出,而不是软max输出.这是一个常见的错误,
 
-<<<START>>>
-**Optimizers**（来自 `torch.optim`）：
- <<<
+**Optimizers**(从`torch.optim`):
 
 | Optimizer | When to use | Typical LR |
 |-----------|-------------|-----------|
@@ -328,11 +177,9 @@ Note: `CrossEntropyLoss` combines `LogSoftmax` + `NLLLoss` internally. Pass raw 
 | AdamW(params, lr, weight_decay) | Transformers, fine-tuning | 1e-4--1e-3 |
 | LBFGS(params) | Small-scale, second-order | 1.0 |
 
-<<<START>>>
 ### 训练循环
-<<<
 
-<<<
+每个PyTorch训练循环都遵循相同的5步模式.
 
 ```mermaid
 sequenceDiagram
@@ -351,9 +198,7 @@ sequenceDiagram
     end
 ```
 
-<<<START>>>
-标准模式：
-<<<
+圣经模式:
 
 ```python
 for epoch in range(num_epochs):
@@ -367,12 +212,11 @@ for epoch in range(num_epochs):
         optimizer.step()
 ```
 
-Five lines inside the batch loop. Five lines that trained GPT-4, Stable Diffusion, and LLaMA. The architecture changes. The data changes. These five lines do not.
+五条线在批量循环中,五条线训练了GPT-4,稳定扩散和LLaMA. 结构改变. 数据改变.
 
-### Dataset and DataLoader
+### 数据集和数据载体
 
-PyTorch 的 `Dataset` 是一个抽象类，包含两种方法：`__len__` 和 `__getitem__`。`DataLoader` 为其封装了批处理、乱序排列以及多进程数据加载功能。
-<<<
+皮托尔奇的`Dataset`是一个具有两个方法的抽象类: `__len__`其他`__getitem__`现在,我们要去.`DataLoader`通过批量,混动和多个进程数据加载.
 
 ```python
 from torch.utils.data import Dataset, DataLoader
@@ -391,29 +235,24 @@ class MNISTDataset(Dataset):
 loader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
 ```
 
-<<<START>>>
-`num_workers=4` 会启动 4 个进程来并行加载数据，同时 GPU 对当前批次进行训练。在受磁盘限制的工作负载（大图像、音频）上，仅此一点就能将训练速度提升一倍。
-<<<
+`num_workers=4`在磁盘上绑定工作负载 (大图像,音频),这单独可以翻倍训练速度.
 
-### GPU 训练
-<<<
+###  GPU 训练
 
-将模型移动到 GPU：
-<<<
+将模型移动到GPU:
 
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 ```
 
-This recursively moves every parameter and buffer to the GPU. Then move each batch during training:
+后者将每个参数和缓冲器转移到GPU.
 
 ```python
 inputs, targets = inputs.to(device), targets.to(device)
 ```
 
-**Mixed precision** 在现代 GPU（A100、H100、RTX 4090）上将内存占用减半、吞吐量翻倍，通过在 float16 中运行前向/后向传播，同时保持主权重为 float32：
-<<<
+**Mixed precision**通过在 float16 中运行向前/向后,同时保持在 float32 中的主权重,将内存使用量减半,并将现代GPU (A100,H100,RTX 4090) 的吞吐量翻倍:
 
 ```python
 from torch.amp import autocast, GradScaler
@@ -429,23 +268,7 @@ for inputs, targets in loader:
     optimizer.zero_grad()
 ```
 
-So this is just a markdown heading. Let me translate it while preserving the markdown.
-
-"### Comparison: Mini Framework vs PyTorch vs JAX"
-
-Technical terms like "Mini Framework", "PyTorch", "JAX" should not be translated. "Comparison" translates to "对比" or "比较".
-
-Let me translate:
-"### 对比：Mini Framework vs PyTorch vs JAX"
-
-The "vs" is technical notation, I'll keep it. Actually, "vs" means "versus". I could translate to "与" but the instruction says don't translate technical terms. "vs" is more of a notation. I'll keep "vs" since it's part of the title style.
-
-Let me write the final translation.
-
-
-<<<START>>>
-### 对比：Mini Framework vs PyTorch vs JAX
-<<<
+### 比较:迷你框架vs PyTorchvs JAX
 
 | Feature | Mini Framework (L10) | PyTorch | JAX |
 |---------|---------------------|---------|-----|
@@ -463,14 +286,13 @@ Let me write the final translation.
 dropout-mask
 ```
 
-## Build It
+## 建立它
 
-A 3-layer MLP trained on MNIST using only PyTorch primitives. No high-level wrappers. No `torchvision.datasets`. We download and parse the raw data ourselves.
+只有PyTorch原始的MLP,没有高层包装.`torchvision.datasets`我们自己下载和分析原始数据.
 
-### Step 1: Load MNIST From Raw Files
+### 步骤1:从原始文件中加载MNIST
 
-MNIST 以 4 个 gzip 压缩文件的形式提供：训练图像（60,000 x 28 x 28）、训练标签、测试图像（10,000 x 28 x 28）、测试标签。我们下载这些文件并解析其二进制格式。
-<<<
+MNIST 作为4个gzipped文件:训练图像 (60,000 x 28 x 28),训练标签,测试图像 (10,000 x 28 x 28),测试标签.我们下载它们并分析二进制格式.
 
 ```python
 import torch
@@ -510,10 +332,9 @@ def load_labels(filepath):
     return labels
 ```
 
-### Step 2: Define the Model
+### 第二步:定义模型
 
-一个 3 层 MLP：784 -> 256 -> 128 -> 10。ReLU 激活。使用 Dropout 进行正则化。不加入批归一化以保持简单。
-<<<
+排列三的 MLP: 784 -> 256 -> 128 -> 10. ReLU 激活. 放弃规则化. 没有批量规范,保持简单.
 
 ```python
 class MNISTModel(nn.Module):
@@ -533,16 +354,13 @@ class MNISTModel(nn.Module):
         return self.net(x)
 ```
 
-<<<START>>>
-输出层产生10个原始logit（每个数字一个）。无需softmax -- `CrossEntropyLoss` 在内部处理。
-<<<
+输出层产生10个原始logit (每位数一个).没有软max--`CrossEntropyLoss`内部处理.
 
-参数数量：784*256 + 256 + 256*128 + 128 + 128*10 + 10 = 235,146。按现代标准来看，这个规模很小。GPT-2 small 有 124M。几秒钟就能训练完成。
-<<<
+参数数:784*256+256+256+256*128+128+128+128*10+10=235,146. 根据现代标准,GPT-2小小有124M. 这在几秒钟内运行.
 
-### Step 3: Training Loop
+### 第三步:训练循环
 
-<<<START>>>标准的前向-损失-后向-步进模式。<<<
+们的前进-损失-后退步骤模式.
 
 ```python
 def train_one_epoch(model, loader, criterion, optimizer, device):
@@ -581,9 +399,9 @@ def evaluate(model, loader, criterion, device):
     return total_loss / total, correct / total
 ```
 
-Note `torch.no_grad()` during evaluation. This disables autograd, reducing memory usage and speeding up inference. Without it, PyTorch builds a computational graph you never use.
+备注`torch.no_grad()`没有它,PyTorch构建一个你从来没有使用的计算图表.
 
-### Step 4: Wire Everything Together
+### 第四步:把一切连接在一起
 
 ```python
 def main():
@@ -633,30 +451,11 @@ def main():
     print(f"Final test accuracy: {test_acc:.4f}")
 ```
 
-Let me translate:
+在10个时代后预期输出:测试精度97.8%.CPU训练时间:30秒.GPU:5秒.同样的架构的迷你框架:45分钟.
 
-"Expected output after 10 epochs: ~97.8% test accuracy. Training time on CPU: ~30 seconds. On GPU: ~5 seconds. On your mini framework with the same architecture: ~45 minutes."
+## 用它
 
-Technical terms like "epochs", "CPU", "GPU", "test accuracy", "mini framework" - these are technical terms. Should I translate them? The rule says "Do NOT translate code, math, links, or technical terms." So CPU, GPU, mini framework, epochs are technical terms.
-
-Let me translate keeping those:
-- epochs → 轮（技术术语，通常保留或音译，但"epoch"在机器学习中常译为"轮次"，可以保留原词）
-- CPU → CPU（保留）
-- GPU → GPU（保留）
-- mini framework → mini framework（保留）
-- test accuracy → 测试准确率
-
-Let me write:
-
-10轮后的预期输出：约97.8%的测试准确率。CPU上的训练时间：约30秒。GPU上：约5秒。在您的 mini framework（相同架构）上：约45分钟。
-
-
-10 轮后的预期输出：约 97.8% 的测试准确率。CPU 上的训练时间：约 30 秒。GPU 上：约 5 秒。在您的 mini framework（相同架构）上：约 45 分钟。
-
-## 使用它
-<<<
-
-### Quick Comparison: Mini Framework vs PyTorch
+### 快速比较:迷你框架与PyTorch
 
 | Mini Framework (Lesson 10) | PyTorch |
 |---------------------------|---------|
@@ -668,9 +467,9 @@ Let me write:
 | No GPU | `model.to("cuda")` |
 | Manual backward for every module | Autograd handles everything |
 
-The interface is nearly identical. The difference is everything under the hood.
+接口几乎是一样的,区别在于罩杯下面的东西.
 
-### Saving and Loading Models
+### 储存和装载模型
 
 ```python
 torch.save(model.state_dict(), "model.pt")
@@ -680,9 +479,9 @@ model.load_state_dict(torch.load("model.pt", weights_only=True))
 model.eval()
 ```
 
-Always save `state_dict()` (the parameter dictionary), not the model object. Saving the model object uses pickle, which breaks when you refactor code. State dicts are portable.
+总是保存`state_dict()`保存模型对象使用,它会破解当你重新编写代码.状态字符是可移植的.
 
-### Learning Rate Scheduling
+### 学习时间表
 
 ```python
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -693,32 +492,28 @@ for epoch in range(10):
     scheduler.step()
 ```
 
-PyTorch ships 15+ schedulers: StepLR, ExponentialLR, CosineAnnealingLR, OneCycleLR, ReduceLROnPlateau. All plug into the same optimizer interface.
+皮托奇发送15多个时间表:StepLR,ExponentialLR,CosineAnnealingLR,OneCycleLR,ReduceLROnPlateau.所有这些都插入了相同的优化界面.
 
-## Ship It
+## 运送它
 
-This lesson produces two artifacts:
+这一课产生的两件文物:
 
-- `outputs/prompt-pytorch-debugger.md` -- a prompt for diagnosing common PyTorch training failures
-- `outputs/skill-pytorch-patterns.md` -- a skill reference for PyTorch training patterns
+- `outputs/prompt-pytorch-debugger.md`-- 诊断常见的 PyTorch 训练失败的提示
+- `outputs/skill-pytorch-patterns.md`-- PyTorch培训模式的技能参考
 
-## 练习
+## 运动
 
-<<<
+1. **Add batch normalization.**插入`nn.BatchNorm1d`测试精度和训练速度与仅放弃版本的比较.
 
-1. **Add batch normalization.** Insert `nn.BatchNorm1d` after each linear layer (before the activation). Compare test accuracy and training speed vs the dropout-only version. Batch norm should reach 98%+ in fewer epochs.
+2. **Implement a learning rate finder.**训练一个时代,学习率呈指数上升 (从1e-7到1.0). 插图损失与 LR. 最佳的 LR是损失开始爬前.使用此来选择一个更好的 LR.
 
-2. **Implement a learning rate finder.** Train for one epoch with exponentially increasing learning rate (from 1e-7 to 1.0). Plot loss vs LR. The optimal LR is just before the loss starts climbing. Use this to pick a better LR for the MNIST model.
+3. **Port to GPU with mixed precision.**加入`torch.amp.autocast`其他`GradScaler`在A100上,预计速度增速2倍.
 
-3. **Port to GPU with mixed precision.** 将 `torch.amp.autocast` 和 `GradScaler` 添加到训练循环中。在 GPU 上使用与不使用混合精度分别测量吞吐量（样本/秒）。在 A100 上，预计性能提升约 2 倍。
-<<<
+4. **Build a custom Dataset.**下载Fashion-MNIST (与MNIST相同的格式,但有服装).`FashionMNISTDataset(Dataset)`课程`__getitem__`其他`__len__`时尚-MNIST更难,预计88%与98%
 
-4. **Build a custom Dataset.** 下载 Fashion-MNIST（格式与 MNIST 相同，但内容为服装物品）。实现一个 `FashionMNISTDataset(Dataset)` class，其中包含 `__getitem__` 和 `__len__`。训练相同的 MLP 并比较 accuracy。Fashion-MNIST 更难——预期约为 88% 对约 98%。
-<<<
+5. **Replace Adam with SGD + momentum.**列车`SGD(params, lr=0.01, momentum=0.9)`现在,我们可以将它们比较到一个`CosineAnnealingLR`时间表,看看 SGD是否能在10时代赶上亚当.
 
-5. **Replace Adam with SGD + momentum.** Train with `SGD(params, lr=0.01, momentum=0.9)`. Compare convergence curves. Then add a `CosineAnnealingLR` scheduler and see if SGD catches up to Adam by epoch 10.
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -733,9 +528,9 @@ This lesson produces two artifacts:
 | Eager execution | "Run it now" | Operations execute immediately when called, not deferred to a later compilation step -- the core design choice that differentiates PyTorch from TF 1.x |
 | zero_grad | "Reset gradients" | Set all parameter gradients to zero before the next backward pass, since PyTorch accumulates gradients by default |
 
-## Further Reading
+## 进一步阅读
 
-- Paszke et al., "PyTorch: An Imperative Style, High-Performance Deep Learning Library" (2019) -- the original paper explaining PyTorch's design tradeoffs
-- PyTorch Tutorials: "Learning PyTorch with Examples" (https://pytorch.org/tutorials/beginner/pytorch_with_examples.html) -- the official path from tensors to nn.Module
-- PyTorch Performance Tuning Guide (https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html) -- mixed precision, DataLoader workers, pinned memory, and other production optimizations
-- Horace He, "Making Deep Learning Go Brrrr" (https://horace.io/brrr_intro.html) -- why GPU training is fast, with PyTorch-specific optimization strategies
+- 帕斯克等人",PyTorch:一个强迫式风格,高性能深度学习图书馆" (2019) -- 解释PyTorch的设计交易的原始论文
+- 火器教程: "用例子学习火器" (https://pytorch.org/tutorials/beginner/pytorch_with_examples.html) --从子到 nn.Module 的官方路径
+- 火器性能调整指南 (https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html) -- 混合精度,数据载体工作者,固定内存和其他生产优化
+- 霍拉斯·赫,"让深度学习变得" (https://horace.io/brrr_intro.html) -- 为什么GPU训练是快速的,
