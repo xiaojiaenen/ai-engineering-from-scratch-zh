@@ -1,147 +1,147 @@
-# 范数与距离
+# 规范和距离
 
-> 你的距离函数定义了"相似"的含义。选错了，整个下游链路都会出问题。
+> 你的距离函数定义了"类似"的意思.
 
-**类型：** Build
-**语言：** Python
-**前置条件：** Phase 1，课程 01（线性代数直觉）、02（向量、矩阵与运算）
-**时间：** 约 90 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Phase 1, Lessons 01 (Linear Algebra Intuition), 02 (Vectors, Matrices & Operations)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 从零实现 L1、L2、余弦、马氏、Jaccard 和编辑距离函数
-- 为给定 ML 任务选择合适的距离度量，并解释为什么其他方案会失败
-- 理解 L1 和 L2 范数与 LASSO、Ridge 正则化及其几何约束区域之间的联系
-- 演示同一数据集在不同度量下如何产生完全不同的最近邻
+- 实现L1,L2,kosine,Mahalanobis,Jaccard,并从零编辑距离函数
+- 选择给定的 ML 任务的适当距离指标,并解释替代方案为什么失败
+- 连接L1和L2标准到LASSO和Ridge规范化及其几何限制区域
+- 展示相同数据集如何在不同的指标下产生不同的近邻
 
 ## 问题
 
-你有两个向量。它们可能是词嵌入。可能是用户画像。可能是像素数组。你需要知道：它们有多接近？
+你有两个向量. 也许它们是文字嵌入式. 也许它们是用户配置文件. 也许它们是像素阵列. 你需要知道:它们是多么接近?
 
-答案完全取决于你选择哪个距离函数。两个数据点可以在一个度量下互为最近邻，在另一个度量下却相距甚远。你的 KNN 分类器、推荐引擎、向量数据库、聚类算法、损失函数——全都依赖这个选择。选错了，你的模型就在优化错误的事情。
+答案完全取决于你选择的距离函数.两个数据点可以在一个指标下是最接近的邻居,在另一个指标下是遥远的隔离.你的KN分类器,推引擎,向量数据库,集群算法,损失函数 - - 所有这些都取决于这个选择.
 
-没有通用的最优距离。L2 适合空间数据。余弦相似性主导 NLP。Jaccard 处理集合。编辑距离处理字符串。马氏距离考虑相关性。Wasserstein 移动概率质量。每一个都在编码关于"相似"的不同假设。
+没有通用最佳距离.L2用于空间数据.宇宙相似性占据了NLP的主导地位.杰卡德处理集合.编辑距离处理字符串.马哈拉诺比斯计算了相关性.瓦斯斯坦移动了概率质量.每个编码了不同的假设关于"相似"的意思.
 
-本课从零构建所有主要距离函数，展示每种何时是合适的工具，并演示同一数据在不同度量下如何产生完全不同的最近邻。
+这一课将从零开始构建每个主要距离函数, 显示每个工具是什么时候正确的工具, 并展示相同的数据如何产生完全不同的近邻,
 
 ## 概念
 
-### 范数：测量向量大小
+### 标准:测量向量大小
 
-范数衡量向量的"大小"。两个向量之间的距离函数都可以写成它们差的范数：d(a, b) = ||a - b||。因此理解范数就是理解距离。
+标准测量向量的"大小".两个向量的每一个距离函数都可以作为它们的差异的标准写成: d(a, b) =a - b) 时时.
 
-### L1 范数（曼哈顿距离）
+### 标准 (曼哈顿距离)
 
-L1 范数对所有分量取绝对值后求和。
+标准L1总结了所有组件的绝对值.
 
 ```
 ||x||_1 = |x_1| + |x_2| + ... + |x_n|
 ```
 
-它被称为曼哈顿距离，因为它测量你在只能沿坐标轴移动的城市场块中走了多远。不能走对角线。
+它被称为曼哈顿距离,因为它测量你在城市网格上走多远,
 
 ```
-点 A = (1, 1)
-点 B = (4, 5)
+Point A = (1, 1)
+Point B = (4, 5)
 
-L1 距离 = |4-1| + |5-1| = 3 + 4 = 7
+L1 distance = |4-1| + |5-1| = 3 + 4 = 7
 
-在城市网格中，你向东走 3 个街区，再向北走 4 个街区。
+On a grid, you walk 3 blocks east and 4 blocks north.
 ```
 
-何时使用 L1：
-- 高维稀疏数据（文本特征、one-hot 编码）
-- 需要鲁棒性以应对异常值（一个极大的差异不会主导结果）
-- 特征选择问题（L1 正则化促进稀疏性）
+什么时候使用L1:
+- 高维度稀疏数据 (文本特征,单热编码)
+- 当你想要强度到异常值 (一个巨大的差异不主导)
+- 特性选择问题 (L1规律化促进稀疏性)
 
-与 L1 正则化（Lasso）的联系：将 ||w||_1 加入损失函数会惩罚绝对权重值之和。这会将小权重推向精确为零，实现自动特征选择。L1 惩罚在权重空间中形成菱形约束区域，菱形的角点落在坐标轴上，那里的某些权重为零。
+连接到L1调整:1加到你的损失函数 (Lasso) 处罚绝对重值的总和.这将小重量推到完全零,执行自动特征选择.L1处罚在重量空间中创造了钻石形状的限制区域,钻石的角落位于某些重量为零的轴上.
 
-与损失函数的联系：平均绝对误差（MAE）是预测值与目标值之间平均 L1 距离。它对所有的误差进行线性惩罚，相比 MSE 对异常值更鲁棒。
+连接到损失函数:平均绝对错误 (MAE) 是预测和目标之间的平均L1距离.它将所有错误线性地处罚,使其与MSE相比强到异常.
 
-### L2 范数（欧几里得距离）
+### L2标准 (尤克利德距离)
 
-L2 范数是直线距离。各分量平方和的平方根。
+标准是直线距离,正方根是正方体组件的总数.
 
 ```
 ||x||_2 = sqrt(x_1^2 + x_2^2 + ... + x_n^2)
 ```
 
-这就是你在几何课上学过的距离。n 维空间中的毕达哥拉斯定理。
+这就是你在几何课中学到的距离.
 
 ```
-点 A = (1, 1)
-点 B = (4, 5)
+Point A = (1, 1)
+Point B = (4, 5)
 
-L2 距离 = sqrt((4-1)^2 + (5-1)^2) = sqrt(9 + 16) = sqrt(25) = 5.0
+L2 distance = sqrt((4-1)^2 + (5-1)^2) = sqrt(9 + 16) = sqrt(25) = 5.0
 
-直线，斜穿网格对角线。
+The straight line, cutting diagonally through the grid.
 ```
 
-何时使用 L2：
-- 低到中等维度的连续数据
-- 特征尺度相当时
-- 物理距离（空间数据、传感器读数）
-- 像素级图像相似度
+什么时候使用L2:
+- 低至中等维度连续数据
+- 当特征尺度可比较时
+- 物理距离 (空间数据,传感器读数)
+- 像素级的图像相似性
 
-与 L2 正则化（Ridge）的联系：将 ||w||_2^2 加入损失函数会惩罚大权重。与 L1 不同，它不会将权重推向零。它按比例将所有权重向零收缩。L2 惩罚形成圆形约束区域，因此在轴上没有角点。权重变小但很少精确为零。
+连接到L2调整化 (Ridge):添加到不2^w 输出__2的函数将大重量处罚.就像L1,它不会把重量推到零.它将所有重量比例缩小到零.L2的惩罚创造了圆形的限制区域,因此轴上没有角落.重量变得小,但很少是完全零.
 
-与损失函数的联系：均方误差（MSE）是 L2 距离平方的平均值。平方对大误差施加更重的惩罚。
+连接到损失函数:平均平方错误 (MSE) 是 L2 距离的平均平方.
 
 ```
-MAE（L1 损失）：  |y - y_hat|         线性惩罚。对异常值鲁棒。
-MSE（L2 损失）：  (y - y_hat)^2       二次惩罚。对异常值敏感。
+MAE (L1 loss):  |y - y_hat|         Linear penalty. Robust to outliers.
+MSE (L2 loss):  (y - y_hat)^2       Quadratic penalty. Sensitive to outliers.
 ```
 
-### Lp 范数：一般族
+### 标准:一般家庭
 
-L1 和 L2 是 Lp 范数的特例：
+L1和L2是Lp标准的特殊案例:
 
 ```
 ||x||_p = (|x_1|^p + |x_2|^p + ... + |x_n|^p)^(1/p)
 ```
 
-不同的 p 值产生不同形状的"单位球"（到原点距离为 1 的所有点的集合）：
+不同值的p产生不同形状的"单体球" (所有点在距离原点1的集合):
 
 ```
-p=1:    菱形           （角点在坐标轴上）
-p=2:    圆/球面        （通常的圆球）
-p=3:    超椭圆         （圆角正方形）
-p=inf:  正方形/超立方体 （沿坐标轴的平边）
+p=1:    Diamond shape      (corners on axes)
+p=2:    Circle/sphere      (the usual round ball)
+p=3:    Superellipse       (rounded square)
+p=inf:  Square/hypercube   (flat sides along axes)
 ```
 
-### L-无穷范数（切比雪夫距离）
+### 无限度标准 (切比什夫距离)
 
-当 p 趋近于无穷时，Lp 范数收敛于最大绝对分量。
+随着p接近无限,Lp标准将趋于最大绝对组件.
 
 ```
 ||x||_inf = max(|x_1|, |x_2|, ..., |x_n|)
 ```
 
-两点之间的距离由它们差异最大的那个单一维度决定。其他所有维度都被忽略。
+两个点之间的距离由它们最不同的地方决定.
 
 ```
-点 A = (1, 1)
-点 B = (4, 5)
+Point A = (1, 1)
+Point B = (4, 5)
 
-L-inf 距离 = max(|4-1|, |5-1|) = max(3, 4) = 4
+L-inf distance = max(|4-1|, |5-1|) = max(3, 4) = 4
 ```
 
-何时使用 L-无穷：
-- 当单个维度中最坏情况的偏差很重要时
-- 棋盘游戏（国际象棋中的王走 L-无穷：任何方向一步代价都是 1）
-- 制造公差（每个维度都必须符合规格）
+什么时候使用L-无限:
+- 如果任何一个维度的最差偏差是重要的
+- 棋牌板 (棋牌中的国王在L无限的运动:一个朝任何方向的步骤成本1)
+- 制造容量 (每个尺寸都必须符合规范)
 
-### 余弦相似性与余弦距离
+### 科西因相似性和科西因距离
 
-余弦相似性测量两个向量之间的夹角，忽略它们的大小。
+两向量之间的角度,不考虑它们的大小.
 
 ```
-cos_sim(a, b) = (a · b) / (||a||_2 * ||b||_2)
+cos_sim(a, b) = (a . b) / (||a||_2 * ||b||_2)
 ```
 
-取值范围从 -1（方向相反）到 +1（方向相同）。正交向量的余弦相似性为 0。
+它从 -1 (相反方向) 到 +1 (相同方向).垂直向量具有 0 的共数相似性.
 
-余弦距离将其转换为距离：cosine_distance = 1 - cosine_similarity。取值范围从 0（方向完全相同）到 2（方向完全相反）。
+位距离将其转换为距离:位距离 = 1 -位相似性. 这从0 (相同的方向) 到2 (相反的方向).
 
 ```
 a = (1, 0)    b = (1, 1)
@@ -150,31 +150,31 @@ cos_sim = (1*1 + 0*1) / (1 * sqrt(2)) = 1/sqrt(2) = 0.707
 cos_dist = 1 - 0.707 = 0.293
 ```
 
-为什么余弦在 NLP 和嵌入中占主导地位：在文本中，文档长度不应影响相似度。一篇关于猫的文章如果长度是另一篇关于猫的文章的两倍，仍然应该是"相似的"。余弦相似性忽略大小（长度），只关心方向。具有相同词分布但不同长度的两篇文章指向相同方向，得到余弦相似性 1.0。
+为什么Cosine主导NLP和嵌入式:在文本中,文档长度不应该影响相似性. 关于猫的文件是比其他关于猫的文件长两倍的文件仍然应该是"相似的". 两个文件的词分布相同,但长度不同,指向相同方向,得到了1.0的相似性.
 
-何时使用余弦相似性：
-- 文本相似度（TF-IDF 向量、词嵌入、句子嵌入）
-- 任何幅度是噪声、方向是信号的领域
-- 推荐系统（用户偏好向量）
-- 嵌入搜索（向量数据库几乎总是使用余弦或点积）
+什么时候使用可西因相似性:
+- 文本相似性 (TF-IDF向量,词嵌入,句子嵌入)
+- 任何域,其中大小是噪音,方向是信号
+- 推系统 (用户偏好向量)
+- 嵌入搜索 (向量数据库几乎总是使用共数或点数值)
 
-### 点积相似性 vs 余弦相似性
+### 点产品相似性与可西因相似性
 
-两个向量的点积为：
-
-```
-a · b = a_1*b_1 + a_2*b_2 + ... + a_n*b_n
-      = ||a|| * ||b|| * cos(夹角)
-```
-
-余弦相似性是点积除以两个向量的幅度。当两个向量都已经 L2 归一化（幅度 = 1）时，点积和余弦相似性是相同的。
+两个向量的点乘法是:
 
 ```
-如果 ||a|| = 1 且 ||b|| = 1：
-    a · b = cos(a 和 b 之间的夹角)
+a . b = a_1*b_1 + a_2*b_2 + ... + a_n*b_n
+      = ||a|| * ||b|| * cos(angle)
 ```
 
-当它们不同时：点积包含幅度信息。幅度较大的向量获得更高的点积分数。这在某些检索系统中很重要，因为你希望"热门"项目排名更高。幅度充当隐式质量或重要性信号。
+两种大小均可正常化时,当两个向量都已经单元均可正常化时 (大小=1),点数和点数相似性是相同的.
+
+```
+If ||a|| = 1 and ||b|| = 1:
+    a . b = cos(angle between a and b)
+```
+
+当它们不同时:点产品包含大小信息.一个大小的向量获得更高的点产品分数.在某些检索系统中,这很重要,你希望"受欢迎"项目排名更高.大小作为隐含的质量或重要性信号.
 
 ```
 a = (3, 0)    b = (1, 0)    c = (0, 1)
@@ -182,88 +182,88 @@ a = (3, 0)    b = (1, 0)    c = (0, 1)
 dot(a, b) = 3     dot(a, c) = 0
 cos(a, b) = 1.0   cos(a, c) = 0.0
 
-两者在方向上达成一致，但点积也反映了幅度。
+Both agree on direction, but dot product also reflects magnitude.
 ```
 
-在实践中：
-- 当你想要纯粹的 directional 相似性时使用余弦相似性
-- 当幅度承载有意义信息时使用点积
-- 许多向量数据库（Pinecone、Weaviate、Qdrant）允许你在两者之间选择
-- 如果你的嵌入是 L2 归一化的，选择无关紧要
+在实践中:
+- 需要纯方向相似时使用可西因相似
+- 使用点数量,当大小带有意义的信息时
+- 许多向量数据库 (Pinecone,Weaviate,Qdrant) 让你在它们之间选择
+- 如果你的嵌入式是L2正常化的,选择不重要
 
-### 马氏距离
+### 马哈拉诺比斯距离
 
-欧几里得距离对所有维度一视同仁。但如果你的特征相关或尺度不同，L2 会产生误导性的结果。
+圆距离对待所有维度均等,但如果你的特征相对或有不同的尺度,L2会产生误导性结果.
 
-马氏距离考虑数据的协方差结构。
+马哈拉诺比距离对数据的共变结构负责.
 
 ```
 d_M(x, y) = sqrt((x - y)^T * S^(-1) * (x - y))
 ```
 
-其中 S 是数据的协方差矩阵。
+在此,S是数据的共变矩阵.
 
-直观上：马氏距离先对数据进行去相关和归一化（白化），然后在那个变换空间中计算 L2 距离。如果 S 是单位矩阵（不相关、单位方差特征），马氏距离退化为欧几里得距离。
-
-```
-示例：身高和体重是相关的。
-身高 6'2" 体重 180 磅的人并不罕见。
-身高 5'0" 体重 180 磅的人很罕见。
-
-欧几里得距离可能说它们离均值一样远。
-马氏距离正确识别第二个为异常值
-因为它考虑了身高-体重相关性。
-```
-
-何时使用马氏距离：
-- 异常检测（马氏距离远离均值的数据点是异常值）
-- 特征具有不同尺度和相关性时的分类
-- 有足够数据来估计可靠的协方差矩阵时
-- 制造业质量控制（多元过程监控）
-
-### Jaccard 相似性（用于集合）
-
-Jaccard 相似性测量两个集合之间的重叠。
+直观:马哈拉诺比斯距离首先调解和正常化数据 (白化),然后计算了转换空间中的L2距离.如果S是身份矩阵 (不调整,单元变异特征),马哈拉诺比斯距离将降低到尤克利德距离.
 
 ```
-J(A, B) = |A ∩ B| / |A ∪ B|
+Example: height and weight are correlated.
+Someone 6'2" and 180 lbs is not unusual.
+Someone 5'0" and 180 lbs is unusual.
+
+Euclidean distance might say they are equally far from the mean.
+Mahalanobis distance correctly identifies the second as an outlier
+because it accounts for the height-weight correlation.
 ```
 
-取值范围从 0（无重叠）到 1（集合完全相同）。Jaccard 距离 = 1 - Jaccard 相似性。
+什么时候使用Mahalanobis距离:
+- 异常检测 (与平均值的马哈拉诺比斯距离较大的点是异常的)
+- 特性有不同的尺度和相关性时的分类
+- 当你有足够的数据来估计可靠的covariance矩阵
+- 制造业质量控制 (多变过程监测)
+
+### 卡德 (对集) 的相似性
+
+杰卡德的相似度测量重叠了两个组.
+
+```
+J(A, B) = |A intersect B| / |A union B|
+```
+
+距离从0 (没有重叠) 到1 (相同的集合).
 
 ```
 A = {cat, dog, fish}
 B = {cat, bird, fish, snake}
 
-交集 = {cat, fish}               大小 = 2
-并集 = {cat, dog, fish, bird, snake}  大小 = 5
+Intersection = {cat, fish}         size = 2
+Union = {cat, dog, fish, bird, snake}  size = 5
 
-Jaccard 相似性 = 2/5 = 0.4
-Jaccard 距离 = 0.6
+Jaccard similarity = 2/5 = 0.4
+Jaccard distance = 0.6
 ```
 
-何时使用 Jaccard：
-- 比较标签、类别或特征的集合
-- 基于词出现（非频率）的文档相似度
-- 近重复检测（MinHash 近似 Jaccard）
-- 比较二进制特征向量（存在/缺失数据）
-- 评估分割模型（交并比 IoU = Jaccard）
+什么时候使用 Jaccard:
+- 标签,类别或特征的组进行比较
+- 基于词语存在 (而不是频率) 的文件相似性
+- 接近重复检测 (Jaccard的MinHash近似)
+- 进行二进制特征向量比较 (存在/缺席数据)
+- 评估细分模型 (欧盟交叉 = 雅卡德)
 
-### 编辑距离（Levenshtein 距离）
+### 修改距离 (莱文施泰恩距离)
 
-编辑距离计算将一个字符串变换为另一个字符串所需的最少单字符操作次数。操作包括：插入、删除或替换。
+编辑距离计算一个字符串转换到另一个字符串所需的单字符操作的最小数量.
 
 ```
 "kitten" -> "sitting"
 
-kitten -> sitten  （替换 k -> s）
-sitten -> sittin  （替换 e -> i）
-sittin -> sitting （插入 g）
+kitten -> sitten  (substitute k -> s)
+sitten -> sittin  (substitute e -> i)
+sittin -> sitting (insert g)
 
-编辑距离 = 3
+Edit distance = 3
 ```
 
-通过动态规划计算。填充一个矩阵，其中条目 (i, j) 是字符串 A 的前 i 个字符与字符串 B 的前 j 个字符之间的编辑距离。
+通过动态编程计算.填写一个矩阵,输入 (i, j) 是字符串 A 的第一个 i 字符和字符串 B 的第一个 j 字符之间的编辑距离.
 
 ```
         ""  s  i  t  t  i  n  g
@@ -276,172 +276,174 @@ sittin -> sitting （插入 g）
     n    6  6  5  4  3  3  2  3
 ```
 
-何时使用编辑距离：
-- 拼写检查和纠正
-- DNA 序列比对（带加权操作）
-- 模糊字符串匹配
-- 混乱文本数据的去重
+编辑距离的使用时间:
+- 检查和纠正拼音
+- 基因序列配列 (有权重操作)
+- 模糊的连串匹配
+- 混杂的文本数据的排版
 
-### KL 散度（不是距离，但被当作距离使用）
+### KL差距 (不是距离,但用作一个)
 
-KL 散度衡量一个概率分布与另一个概率分布的差异。在课程 09 中介绍，但它属于本讨论，因为人们用它作为"距离"尽管它并非如此。
+ KL 分差是如何不同于另一个概率分布的测量. 这在第09课中涵盖,但它属于这个讨论,因为人们使用它作为一个"距离",尽管它不是一个.
 
 ```
 D_KL(P || Q) = sum(p(x) * log(p(x) / q(x)))
 ```
 
-关键性质：KL 散度不是对称的。
+关键属性:KL差距不是对称.
 
 ```
 D_KL(P || Q) != D_KL(Q || P)
 ```
 
-这意味着它不满足距离度量的基本要求。它也不满足三角不等式。它是散度，不是距离。
+这意味着它不符合距离指标的基本要求. 它也不满足三角形不平等. 它是差距,而不是距离.
 
-前向 KL（D_KL(P || Q)）是"均值寻求"：Q 试图覆盖 P 的所有模式。
-反向 KL（D_KL(Q || P)）是"模式寻求"：Q 专注于 P 的单个模式。
+前进 KL (D_KL(P  Q)) 是"寻找意义":Q试图涵盖P的所有模式.
+逆 KL (D_KL(Q 时 P)) 是"模式寻找":Q 专注于P的单个模式.
 
-当你看到 KL 散度时：
-- VAE（ELBO 中的 KL 项推动潜分布趋向先验）
-- 知识蒸馏（学生试图匹配老师的分布）
-- RLHF（KL 惩罚使微调后的模型保持在基础模型附近）
-- 策略梯度方法（约束策略更新）
+当你看到KL分离时:
+- 向前的向前的向前的向
+- 知识蒸 (学生试图匹配教师的分布)
+- 根据该规定,在"C"中,C"的标题是"C"的标题.
+- 政策梯度方法 (限制政策更新)
 
-### Wasserstein 距离（地球移动距离）
+### 瓦斯斯坦距离 (地球移动距离)
 
-Wasserstein 距离测量将一个概率分布变换为另一个概率分布所需的最小"功"。可以这样理解：如果一个分布是一堆泥土，另一个是一个坑，你需要移动多少泥土，移动多远？
+瓦斯斯特恩的距离测量了转换一个概率分布到另一个所需的最小"工作".想象它是:如果一个分布是泥土堆,另一个是洞,你需要移动多少泥土,到底要走多远?
 
 ```
-W(P, Q) = inf over 所有传输方案 gamma 的 E[d(x, y)]
+W(P, Q) = inf over all transport plans gamma of E[d(x, y)]
 ```
 
-对于一维分布，它简化为累积分布函数绝对差值的积分：
+对于1D分布,它简化为累积分布函数的绝对差异的整体:
 
 ```
 W_1(P, Q) = integral |CDF_P(x) - CDF_Q(x)| dx
 ```
 
-为什么 Wasserstein 很重要：
-- 它是一个真正的度量（对称，满足三角不等式）
-- 即使在分布不重叠时也能提供梯度（KL 散度趋于无穷）
-- 这个特性使它在 Wasserstein GAN（WGAN）中成为核心，解决了原始 GAN 的训练不稳定性
+瓦斯斯特林为什么重要:
+- 它是一个真实的指标 (对称,满足三角形不平等)
+- 它提供梯度,即使分布不重叠 (KL分离到无限)
+- 这种特性使得它成为瓦斯斯坦GAN (WGAN) 的核心,解决了原始GAN的训练不稳定性
 
 ```
-不重叠的分布：
+Distributions with no overlap:
 
 P: [1, 0, 0, 0, 0]    Q: [0, 0, 0, 0, 1]
 
-KL 散度：无穷大（零的对数）
-Wasserstein：4（将所有质量移动 4 个桶）
+KL divergence: infinity (log of zero)
+Wasserstein: 4 (move all mass 4 bins)
 
-Wasserstein 给出有意义的梯度。KL 不给出。
+Wasserstein gives a meaningful gradient. KL does not.
 ```
 
-何时使用 Wasserstein：
-- GAN 训练（WGAN、WGAN-GP）
-- 比较可能不重叠的分布
-- 最优传输问题
-- 图像检索（比较颜色直方图）
+什么时候使用Wasserstein:
+- 培训 (WGAN,WGAN-GP)
+- 无法重叠的分布进行比较
+- 优质交通问题
+- 图像检索 (比较颜色的图形图)
 
 ### 为什么不同任务需要不同的距离
 
-| 任务 | 最佳距离 | 原因 |
+| Task | Best distance | Why |
 |------|--------------|-----|
-| 文本相似度 | 余弦 | 幅度是噪声，方向是含义 |
-| 图像像素比较 | L2 | 空间关系重要，特征尺度相当 |
-| 高维稀疏特征 | L1 | 鲁棒，不会放大罕见的巨大差异 |
-| 集合重叠（标签、类别） | Jaccard | 数据自然为集合值，而非向量值 |
-| 字符串匹配 | 编辑距离 | 操作映射到人类编辑直觉 |
-| 异常检测 | 马氏距离 | 考虑特征相关性和尺度 |
-| 比较分布 | KL 散度 | 测量用 Q 替代 P 时丢失的信息 |
-| GAN 训练 | Wasserstein | 即使分布不重叠也提供梯度 |
-| 嵌入（向量数据库） | 余弦或点积 | 嵌入训练时将含义编码在方向中 |
-| 推荐 | 点积 | 幅度可以编码热度或置信度 |
-| DNA 序列 | 加权编辑距离 | 替换成本因核苷酸对而异 |
-| 制造质检 | L-无穷 | 任何维度中最坏情况的偏差都很重要 |
+| Text similarity | Cosine | Magnitude is noise, direction is meaning |
+| Image pixel comparison | L2 | Spatial relationships matter, features are comparable scale |
+| Sparse high-dim features | L1 | Robust, does not amplify rare large differences |
+| Set overlap (tags, categories) | Jaccard | Data is naturally set-valued, not vectorial |
+| String matching | Edit distance | Operations map to human editing intuition |
+| Outlier detection | Mahalanobis | Accounts for feature correlations and scales |
+| Comparing distributions | KL divergence | Measures information lost by using Q instead of P |
+| GAN training | Wasserstein | Provides gradients even when distributions do not overlap |
+| Embeddings (vector DB) | Cosine or dot product | Embeddings are trained to encode meaning in direction |
+| Recommendation | Dot product | Magnitude can encode popularity or confidence |
+| DNA sequences | Weighted edit distance | Substitution costs vary by nucleotide pair |
+| Manufacturing QC | L-infinity | Worst-case deviation in any dimension matters |
 
-### 与损失函数的联系
+### 连接到损失功能
 
-损失函数是将距离函数应用于预测值与目标值的结果。
-
-```
-损失函数           使用的距离           行为
-MSE                L2 的平方            对大误差施加沉重惩罚
-MAE                L1                   平等惩罚所有误差
-Huber 损失         大误差用 L1，         两全其美：对异常值鲁棒，
-                   小误差用 L2          在零附近梯度平滑
-交叉熵             KL 散度              测量分布不匹配
-Hinge 损失         max(0, margin - d)   只惩罚低于 margin 的情况
-三元损失           L2（通常）           拉近正值，推远
-                                           负值
-对比损失           L2                   相似对靠近，不相似
-                                           对超出 margin
-```
-
-### 与正则化的联系
-
-正则化将范数惩罚加入损失函数以惩罚权重。
+损失函数是对预测与目标的距离函数.
 
 ```
-L1 正则化（Lasso）：  loss + lambda * ||w||_1
-  -> 稀疏权重。一些权重精确为零。
-  -> 自动特征选择。
-  -> 解具有角点（在零处不可微）。
-
-L2 正则化（Ridge）：  loss + lambda * ||w||_2^2
-  -> 小权重。所有权重向零收缩。
-  -> 无特征选择（没有东西精确为零）。
-  -> 处处平滑的解。
-
-弹性网（Elastic Net）： loss + lambda_1 * ||w||_1 + lambda_2 * ||w||_2^2
-  -> 结合 L1 的稀疏性和 L2 的稳定性。
-  -> 相关特征组一起保留或删除。
+Loss function       Distance it uses       Behavior
+MSE                 L2 squared             Penalizes large errors heavily
+MAE                 L1                     Penalizes all errors equally
+Huber loss          L1 for large errors,   Best of both: robust to outliers,
+                    L2 for small errors    smooth gradient near zero
+Cross-entropy       KL divergence          Measures distribution mismatch
+Hinge loss          max(0, margin - d)     Only penalizes below margin
+Triplet loss        L2 (typically)         Pulls positives close, pushes
+                                           negatives away
+Contrastive loss    L2                     Similar pairs close, dissimilar
+                                           pairs beyond margin
 ```
 
-为什么 L1 产生稀疏性而 L2 不产生：想象二维权重空间中的约束区域。L1 是菱形，L2 是圆形。损失函数的等高线（椭圆）最有可能在菱形的角点处接触，那里一个权重为零。它们在圆形的平滑点处接触，那里两个权重都非零。
+### 与规范化的联系
 
-### 最近邻搜索
-
-每个距离函数都意味着一个最近邻搜索问题：给定一个查询点，在数据集中找到最近的点。
-
-精确最近邻搜索在每个查询点上需要 O(n * d) 复杂度，其中 n 是数据点数量，d 是维度数。对于大数据集，这太慢了。
-
-近似最近邻（ANN）算法用少量精度换取巨大速度提升：
+规律化增加了对重量的标准处罚.
 
 ```
-算法               方法                          使用者
-KD 树              轴对齐的空间划分                scikit-learn（低维）
-球树               嵌套超球体                    scikit-learn（中维）
-LSH                随机哈希投影                    近重复检测
-HNSW               分层可导航                   FAISS、Qdrant、Weaviate
-                   小世界图
-IVF                基于聚类的倒排索引            FAISS（十亿级）
-乘积量化           压缩向量，在压缩空间中搜索      FAISS（内存受限）
+L1 regularization (Lasso):   loss + lambda * ||w||_1
+  -> Sparse weights. Some weights become exactly zero.
+  -> Automatic feature selection.
+  -> Solution has corners (non-differentiable at zero).
+
+L2 regularization (Ridge):   loss + lambda * ||w||_2^2
+  -> Small weights. All weights shrink toward zero.
+  -> No feature selection (nothing goes to exactly zero).
+  -> Smooth solution everywhere.
+
+Elastic Net:                  loss + lambda_1 * ||w||_1 + lambda_2 * ||w||_2^2
+  -> Combines sparsity of L1 with stability of L2.
+  -> Groups of correlated features are kept or dropped together.
 ```
 
-HNSW（分层可导航小世界）是现代向量数据库中的主导算法。它构建一个多层图，每个节点连接到其近似最近邻。搜索从顶层开始（稀疏，长跳跃）并下降到最底层（密集，短跳跃）。
+为什么L1产生稀疏性,但L2没有:在2D权重空间中描绘制约束区域.L1是一个钻石,L2是一个圆.损失函数的轮 (圆) 在角落上最有可能触摸钻石,其中一个权重是零.它们在平滑点触摸圆,其中两个权重都是非零的.
+
+### 寻找最接近的邻居
+
+每个距离函数都意味着一个最近邻居搜索问题:给出查询点,在数据集中找到最接近的点.
+
+对于大数据集,这太慢. 对于大数据集,这太慢.
+
+接近近邻 (ANN) 算法以小的精度进行交易,
+
+```
+Algorithm         Approach                      Used by
+KD-trees          Axis-aligned space partition   scikit-learn (low-dim)
+Ball trees        Nested hyperspheres            scikit-learn (medium-dim)
+LSH               Random hash projections        Near-duplicate detection
+HNSW              Hierarchical navigable         FAISS, Qdrant, Weaviate
+                  small-world graph
+IVF               Inverted file index with       FAISS (billion-scale)
+                  cluster-based search
+Product quant.    Compress vectors, search       FAISS (memory-constrained)
+                  in compressed space
+```
+
+它们是现代向量数据库中的主导算法.它构建了一个多层图表,每个节点与其近邻近的近距离连接.搜索从顶层开始 (sparse,长跳) 降至下层 (密集,短跳).
 
 ```figure
 norm-unit-balls
 ```
 
-## 构建
+## 建立它
 
-### 步骤 1：所有范数和距离函数
+### 步骤1:所有标准和距离函数
 
-参见 `code/distances.py` 获取完整实现。每个函数都只用基本 Python math 从零构建。
+看到`code/distances.py`每个函数都是从零开始构建的,只使用基本的Python数学.
 
-### 步骤 2：同一数据，不同距离，不同邻居
+### 步骤2:相同的数据,不同的距离,不同的邻居
 
-`distances.py` 中的演示创建数据集，选择查询点，并展示最近邻如何随距离度量而变化。在 L1 下"最近"的点在 L2 或余弦下可能不是最近的。
+演示在`distances.py`创建数据集,选择查询点,并显示最近邻居如何根据距离度量变化.在L1下"最近"的点可能不是L2或Cosine下最接近.
 
-### 步骤 3：嵌入相似度搜索
+### 步骤3: 嵌入类似性搜索
 
-代码包含一个模拟嵌入相似度搜索，使用余弦相似性与 L2 距离找到与查询最相似的"文档"，展示排序可以不同。
+该代码包括一个模拟嵌入式类似性搜索,该代码使用kosine相似性与L2距离的查询找到最相似的"文件",表明排名可能有所不同.
 
-## 使用
+## 用它
 
-最常见的实际用途：在向量数据库中查找相似项目。
+最常见的实用用途:在向量数据库中找到类似的项目.
 
 ```python
 import numpy as np
@@ -459,51 +461,51 @@ sim_matrix = cosine_similarity_matrix(embeddings)
 query_idx = 0
 similarities = sim_matrix[query_idx]
 top_k = np.argsort(similarities)[::-1][1:6]
-print(f"与项目 0 最相似的 Top 5: {top_k}")
-print(f"相似度: {similarities[top_k]}")
+print(f"Top 5 most similar to item 0: {top_k}")
+print(f"Similarities: {similarities[top_k]}")
 ```
 
-当你调用 `model.encode(text)` 然后搜索向量数据库时，这就是底层发生的事情。嵌入模型将文本映射为向量。向量数据库计算查询向量与每个存储向量之间的余弦相似性（或点积），使用 ANN 算法避免检查所有向量。
+当你打电话时`model.encode(text)`然后搜索一个向量数据库,这是在罩杯下发生的事情.嵌入模型将文本映射到向量中.向量数据库计算了查询向量和每个存储的向量之间的共数相似性 (或点产量),使用ANN算法避免检查它们所有.
 
-## 练习
+## 运动
 
-1. 计算 (1, 2, 3) 和 (4, 0, 6) 之间的 L1、L2 和 L-无穷距离。验证 L-inf <= L2 <= L1 始终对任意点对成立。证明为什么这个顺序是有保证的。
+1. 计算 (1, 2, 3) 和 (4, 0, 6) 之间的 L1, L2 和 L-无限距离. 检查 L-inf <= L2 <= L1 对于任何一对点都适用. 证明为什么这个顺序是保证的.
 
-2. 创建两个向量，其中余弦相似性很高（> 0.9）但 L2 距离很大（> 10）。从几何上解释发生了什么。然后创建两个向量，其中余弦相似性很低（< 0.3）但 L2 距离很小（< 0.5）。
+2. 创建两个向量,其中的相似性是很高 (> 0.9) 但L2距离是很大 (> 10). 几何解释发生了什么. 然后创建两个向量,其中的相似性是很小 (< 0.3) 但L2距离是很小 (< 0.5).
 
-3. 实现一个函数，接收数据集和查询点，返回在 L1、L2、余弦和马氏距离下的最近邻。找到一个数据集，其中四个度量在所有点上都不一致。
+3. 执行一个函数,将数据集和查询点取回L1,L2,Cosine和Mahalanobis距离下最接近的邻居.找到四个不同意哪个点.
 
-4. 用手用 CDF 方法计算 [0.5, 0.5, 0, 0] 和 [0, 0, 0.5, 0.5] 之间的 Wasserstein 距离。然后计算 [0.25, 0.25, 0.25, 0.25] 和 [0, 0, 0.5, 0.5] 之间的 Wasserstein 距离。哪个更大，为什么？
+4. 通过使用CDF方法手动计算[0.5,0.5,0.0,0,0]和[0,0,0,0,5,0.5]之间的瓦斯斯坦距离.然后计算[0.25,0.25,0.25,0.25]和[0,0,0,0.5,0.5].哪个更大,为什么?
 
-5. 实现 MinHash 以近似 Jaccard 相似性。生成 100 个随机集合，计算所有对的精确 Jaccard，并使用 50、100 和 200 个哈希函数比较 MinHash 近似。绘制近似误差图。
+5. 实现 MinHash 实现近似Jaccard相似性.生成100个随机集合,计算所有对的精确Jaccard,并使用 50,100和200个哈希函数与 MinHash近似相比较.绘制近似错误.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|----------------------|
-| 范数 | "向量的大小" | 将向量映射到非负标量的函数，满足三角不等式、绝对齐次性，且仅对零向量为零 |
-| L1 范数 | "曼哈顿距离" | 分量绝对值之和。在优化中产生稀疏性。对异常值鲁棒 |
-| L2 范数 | "欧几里得距离" | 分量平方和的平方根。欧几里得空间中的直线距离 |
-| Lp 范数 | "广义范数" | 分量绝对值 p 次方和的 p 次根。L1 和 L2 是特例 |
-| L-无穷范数 | "最大范数"或"切比雪夫距离" | 最大绝对分量值。Lp 当 p 趋近无穷时的极限 |
-| 余弦相似性 | "向量之间的夹角" | 点积除以两个幅度。范围从 -1 到 +1。忽略向量长度 |
-| 余弦距离 | "1 减去余弦相似性" | 将余弦相似性转换为距离。范围从 0 到 2 |
-| 点积 | "未归一化的余弦" | 分量逐元素乘积之和。等于余弦相似性乘以两个幅度 |
-| 马氏距离 | "感知相关性的距离" | 在白化（去相关和归一化）空间中用数据协方差矩阵计算的 L2 距离 |
-| Jaccard 相似性 | "集合重叠" | 交集大小除以并集大小。用于集合，非向量 |
-| 编辑距离 | "Levenshtein 距离" | 将一字符串变换为另一字符串所需的最少插入、删除和替换次数 |
-| KL 散度 | "分布之间的距离" | 不是真正的距离（不对称）。测量用 Q 编码 P 时额外的比特数 |
-| Wasserstein 距离 | "地球移动距离" | 将质量从一个分布传输到另一个分布所需的最小功。真正的度量 |
-| 近似最近邻 | "ANN 搜索" | （HNSW、LSH、IVF）等算法，比精确搜索快得多地找到近似最近点 |
-| HNSW | "向量数据库算法" | 分层可导航小世界图。用于快速近似最近邻搜索的多层图 |
-| L1 正则化 | "Lasso" | 将权重的 L1 范数加入损失。将权重推向零（稀疏性） |
-| L2 正则化 | "Ridge"或"权重衰减" | 将权重的 L2 范数平方加入损失。将权重向零收缩但不产生稀疏性 |
-| 弹性网 | "L1 + L2" | 结合 L1 和 L2 正则化。比单独使用任一更好地处理相关特征组 |
+| Norm | "Size of a vector" | A function that maps a vector to a non-negative scalar, satisfying triangle inequality, absolute homogeneity, and zero only for the zero vector |
+| L1 norm | "Manhattan distance" | Sum of absolute component values. Produces sparsity in optimization. Robust to outliers |
+| L2 norm | "Euclidean distance" | Square root of sum of squared components. The straight-line distance in Euclidean space |
+| Lp norm | "Generalized norm" | The p-th root of the sum of p-th powers of absolute components. L1 and L2 are special cases |
+| L-infinity norm | "Max norm" or "Chebyshev distance" | The maximum absolute component value. The limit of Lp as p approaches infinity |
+| Cosine similarity | "Angle between vectors" | Dot product normalized by both magnitudes. Ranges from -1 to +1. Ignores vector length |
+| Cosine distance | "1 minus cosine similarity" | Converts cosine similarity to a distance. Ranges from 0 to 2 |
+| Dot product | "Unnormalized cosine" | Sum of component-wise products. Equals cosine similarity times both magnitudes |
+| Mahalanobis distance | "Correlation-aware distance" | L2 distance in a space that has been whitened (decorrelated and normalized) using the data covariance matrix |
+| Jaccard similarity | "Set overlap" | Size of intersection divided by size of union. For sets, not vectors |
+| Edit distance | "Levenshtein distance" | Minimum insertions, deletions, and substitutions to transform one string into another |
+| KL divergence | "Distance between distributions" | Not a true distance (not symmetric). Measures extra bits from using Q to encode P |
+| Wasserstein distance | "Earth mover's distance" | Minimum work to transport mass from one distribution to another. A true metric |
+| Approximate nearest neighbor | "ANN search" | Algorithms (HNSW, LSH, IVF) that find approximately closest points much faster than exact search |
+| HNSW | "The vector DB algorithm" | Hierarchical Navigable Small World graph. Multi-layer graph for fast approximate nearest neighbor search |
+| L1 regularization | "Lasso" | Adding the L1 norm of weights to the loss. Drives weights to zero (sparsity) |
+| L2 regularization | "Ridge" or "weight decay" | Adding the squared L2 norm of weights to the loss. Shrinks weights toward zero without sparsity |
+| Elastic Net | "L1 + L2" | Combines L1 and L2 regularization. Handles correlated feature groups better than either alone |
 
 ## 进一步阅读
 
-- [FAISS: 高效相似度搜索库](https://github.com/facebookresearch/faiss) - Meta 的十亿级 ANN 搜索库
-- [Wasserstein GAN（Arjovsky 等，2017）](https://arxiv.org/abs/1701.07875) - 将地球移动距离引入 GAN 的论文
-- [局部敏感哈希（Indyk & Motwani，1998）](https://dl.acm.org/doi/10.1145/276698.276876) - ANN 基础算法
-- [词表示高效估计（Mikolov 等，2013）](https://arxiv.org/abs/1301.3781) - Word2Vec，余弦相似性在此成为嵌入的默认选择
-- [sklearn.neighbors 文档](https://scikit-learn.org/stable/modules/neighbors.html) - scikit-learn 中距离度量和邻居算法的实用指南
+- [FAISS: A Library for Efficient Similarity Search](https://github.com/facebookresearch/faiss)- 测量数据库用于数亿次的ANN搜索
+- [Wasserstein GAN (Arjovsky et al., 2017)](https://arxiv.org/abs/1701.07875)- 报纸介绍了地球移动器的距离与GAN
+- [Locality-Sensitive Hashing (Indyk & Motwani, 1998)](https://dl.acm.org/doi/10.1145/276698.276876)- 基础的ANN算法
+- [Efficient Estimation of Word Representations (Mikolov et al., 2013)](https://arxiv.org/abs/1301.3781)- Word2Vec,其中的嵌入式的默认变得是 cosine 类似性
+- [sklearn.neighbors documentation](https://scikit-learn.org/stable/modules/neighbors.html)- 距离指标和邻居算法的实用指南

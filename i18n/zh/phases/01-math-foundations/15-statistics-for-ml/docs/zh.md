@@ -1,515 +1,520 @@
-# 机器学习的统计学基础
+# 机器学习的统计数据
 
-> 统计学是判断你的模型是真正有效还是仅仅运气好的依据。
+> 统计是如何知道你的模型是否真的有效,或者只是幸运.
 
-**类型：** Build
-**语言：** Python
-**先修内容：** Phase 1，第 06 课（概率与分布）、第 07 课（贝叶斯定理）
-**预计时间：** ~120 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Phase 1, Lessons 06 (Probability and Distributions), 07 (Bayes' Theorem)
+**Time:** ~120 minutes
 
 ## 学习目标
 
-- 从零推导并计算描述性统计量、皮尔逊/斯皮尔曼相关系数及协方差矩阵
-- 执行假设检验（t 检验、卡方检验），正确解读 p 值与置信区间
-- 使用自助法（bootstrap）重采样构造任意指标的置信区间，无需分布假设
-- 利用效应量（effect size）指标区分统计显著性与实际显著性
+- 计算描述性统计,皮尔森/斯皮尔曼相关性和零的共变矩阵
+- 执行假设测试 (t测试,chi-平方) 并正确解释p值和信任间隔
+- 使用bootstrap重样构建任何测量值的信任间隔,而没有分布假设
+- 使用效果尺寸测量来区分统计意义与实用意义
 
-## 问题所在
+## 问题
 
-你训练了两个模型：模型 A 在测试集上得分 0.87，模型 B 得分 0.89。你上线了模型 B。三周后，生产指标反而比以前更差了。发生了什么？
+你训练了两个模型.A型号在测试组上得分0.87,B型号在得分0.89,你部署B型号.三周后,生产指标比以前更糟.
 
-模型 B 并没有真正优于模型 A。0.02 的差异只是噪声。你的测试集太小，或方差太高，或两者兼有。你把随机波动包装成了提升就仓促上线。
+模型B实际上没有超过模型A.0.02的差异是噪音.你的测试组太小,或变异太高,或者两者都.你装扮成改进的随机性.
 
-这种事屡见不鲜：Kaggle 排行榜的剧烈变动、无法复现的论文、仅凭几百个样本就宣布胜者的 A/B 测试。根本原因始终相同：有人跳过了统计学检验。
+随时发生这种情况. 曲排名表的调整. 文件无法复制. A/B 测试,根据几百个样本宣布获胜者. 根本原因总是相同的:有人跳过了统计数据.
 
-统计学提供了区分信号与噪声的工具。它告诉你何时差异是真实的、你应该有多大的信心、以及在信任一个结果之前需要多少数据。每一个 ML 流水线、每一次模型对比、每一项实验都离不开统计学。没有它，你只是在猜。
+统计数据给你提供了区分信号和噪音的工具. 它告诉你什么时候差异是真实的,你应该有多自信,以及你需要多少数据才能相信结果. 每个ML管道,每一个模型比较,每一个实验都需要统计.没有它,你猜测.
 
-## 核心概念
+## 概念
 
-### 描述性统计：数据总结
+### 描述统计:概括数据
 
-在建模之前，你需要了解数据长什么样。描述性统计将数据集压缩为几个能捕捉其分布形态的数字。
+在你做任何模型之前,你需要知道你的数据是什么样子.描述性统计数据集将数据集压缩成几个数字,
 
-**集中趋势度量**回答的是"中心在哪里？"
-
-```
-均值 (Mean)：所有值之和 / 数量
-            mu = (1/n) * sum(x_i)
-
-中位数 (Median)：排序后的中间值
-                对异常值稳健。若有数据 [1, 2, 3, 4, 1000]，
-                均值为 202，但中位数为 3。
-
-众数 (Mode)：出现频率最高的值
-             适用于分类数据。对于连续数据，信息量通常有限。
-```
-
-均值是数据的平衡点，中位数是中间位置。当二者偏离时，说明分布存在偏斜。收入分布通常是均值 >> 中位数（亿万富翁导致右偏）。训练过程中的损失分布往往均值 << 中位数（简单样本导致左偏）。
-
-**离散程度度量**回答的是"数据有多分散？"
+**Measures of central tendency**答案是"中间在哪里?"
 
 ```
-方差 (Variance)：偏离均值的平均平方偏差
-                sigma^2 = (1/n) * sum((x_i - mu)^2)
+Mean:   sum of all values / count
+        mu = (1/n) * sum(x_i)
 
-标准差 (Standard deviation)：方差的平方根
-                             sigma = sqrt(sigma^2)
-                             与数据同单位，更易于解释。
+Median: middle value when sorted
+        Robust to outliers. If you have [1, 2, 3, 4, 1000], the mean is 202
+        but the median is 3.
 
-极差 (Range)：最大值 - 最小值
-              对异常值敏感，单独使用几乎无用。
-
-IQR（四分位距）：Q3 - Q1
-                 中间 50% 数据的取值范围。
-                 对异常值稳健，常用于箱线图和异常值检测。
+Mode:   most frequent value
+        Useful for categorical data. For continuous data, rarely informative.
 ```
 
-**百分位数**将排序后的数据分为 100 等份。第 25 百分位数（Q1）表示 25% 的值落在该值以下。第 50 百分位数即中位数。第 75 百分位数为 Q3。
+平均值是平衡点.中位数是半途线.当它们分离时,你的分布是偏差的.收入分布有平均值 >>中位数 (从亿万富翁中右偏差).训练期间的损失分布通常有平均值 <<中位数 (从轻松样本中左偏差).
+
+**Measures of spread**答案是"数据分布多大?"
 
 ```
-在延迟监控中：
-  P50 = 中位数延迟          （典型用户体验）
-  P95 = 第 95 百分位数       （较差但非最差情况）
-  P99 = 第 99 百分位数       （长尾延迟，通常是中位数的 10 倍）
+Variance:   average squared deviation from the mean
+            sigma^2 = (1/n) * sum((x_i - mu)^2)
+
+Standard deviation:  square root of variance
+                     sigma = sqrt(sigma^2)
+                     Same units as the data, so more interpretable.
+
+Range:      max - min
+            Sensitive to outliers. Almost never useful alone.
+
+IQR:        Q3 - Q1 (interquartile range)
+            The range of the middle 50% of the data.
+            Robust to outliers. Used for box plots and outlier detection.
 ```
 
-在 ML 中，你对推理延迟、预测置信度分布和误差分布的百分位数最为关注。一个平均误差低但 P99 误差极差的模型，对于安全关键型应用可能是无用的。
-
-**样本统计量 vs 总体统计量。** 从样本计算方差时，分母应使用 (n-1) 而非 n。这就是 Bessel 校正。它补偿了样本均值并非真实总体均值这一事实。若分母用 n，你会系统性低估真实方差；用 (n-1) 则估计是无偏的。
+**Percentiles**分类数据成100个等部分.25个百分点 (Q1) 表示25%的值落在这个点以下.50个百分点是中位数.75个百分点是Q3.
 
 ```
-总体方差：sigma^2 = (1/N) * sum((x_i - mu)^2)
-样本方差：s^2     = (1/(n-1)) * sum((x_i - x_bar)^2)
+For latency monitoring:
+  P50 = median latency        (typical user experience)
+  P95 = 95th percentile       (bad but not worst case)
+  P99 = 99th percentile       (tail latency, often 10x the median)
 ```
 
-实践中：当 n 很大（数千样本）时，差异可忽略；当 n 很小（几十样本）时，影响显著。
+在ML中,你关心推断延迟,预测信心分布和理解错误分布的百分比.一个平均错误低但可怕的P99错误的模型可能对安全关键应用来说是无用的.
 
-### 相关系数：变量如何共同变化
+**Sample vs population statistics.**计算一个样本的差异时,除以 (n-1) 而不是 (n-1).这是贝塞尔的纠正.它弥补了样本的平均值不是真正的人口平均值的事实.在命名器中,你系统地低估了真正的差异.在 (n-1) 时,估计是无偏见的.
 
-相关系数衡量两个变量之间线性关系的强度和方向。
+```
+Population variance: sigma^2 = (1/N) * sum((x_i - mu)^2)
+Sample variance:     s^2     = (1/(n-1)) * sum((x_i - x_bar)^2)
+```
 
-**皮尔逊相关系数**衡量线性关联：
+实际上:如果n是大 (成千上万个样本),差异是微不足道的.如果n是小 (成千上万个样本),它很重要.
+
+### 相关性:变量如何一起移动
+
+相关性衡量两个变量之间的线性关系的强度和方向.
+
+**Pearson correlation coefficient**措施是线性协同:
 
 ```
 r = sum((x_i - x_bar)(y_i - y_bar)) / (n * s_x * s_y)
 
-r = +1： 完全正线性相关
-r = -1： 完全负线性相关
-r =  0： 无线性相关（但可能存在非线性关系！）
+r = +1:  perfect positive linear relationship
+r = -1:  perfect negative linear relationship
+r =  0:  no linear relationship (but there might be a nonlinear one!)
 
-取值范围：[-1, 1]
+Range: [-1, 1]
 ```
 
-皮尔逊相关假设关系是线性的，且两个变量大致服从正态分布。它对异常值敏感。一个极端异常值就能把 r 从 0.1 拉到 0.9。
+皮尔森假设这种关系是线性,两个变量都大致正常分布.它对异常值敏感.一个极端点可以从0.1拖到0.9拉 r.
 
-**斯皮尔曼秩相关系数**衡量单调关联：
-
-```
-1. 将每个值替换为其秩次（1, 2, 3, ...）
-2. 对秩次计算皮尔逊相关系数
-
-斯皮尔曼能捕捉任何单调关系，不限于线性。
-若 y = x^3，皮尔逊给出 r < 1，但斯皮尔曼给出 rho = 1。
-```
-
-**何时使用哪种：**
+**Spearman rank correlation**措施单调的联系:
 
 ```
-皮尔逊：两个变量均为连续型且大致服从正态分布。
-        你只关心线性关系。
-        不存在极端异常值。
+1. Replace each value with its rank (1, 2, 3, ...)
+2. Compute Pearson correlation on the ranks
 
-斯皮尔曼：序数数据（排名、评分）。
-           数据不服从正态分布。
-           你怀疑存在单调但非线性的关系。
-           存在异常值。
+Spearman catches any monotonic relationship, not just linear.
+If y = x^3, Pearson gives r < 1 but Spearman gives rho = 1.
 ```
 
-**黄金法则：** 相关不等于因果。冰淇淋销量与溺水死亡数相关，因为二者在夏季都增加。模型的准确率与参数量相关，但增加参数并不会自动提升准确率（参见：过拟合）。
+**When to use each:**
 
-### 协方差矩阵
+```
+Pearson:    Both variables are continuous and roughly normal.
+            You care about the linear relationship specifically.
+            No extreme outliers.
 
-两个变量的协方差衡量它们如何共同变化：
+Spearman:   Ordinal data (rankings, ratings).
+            Data is not normally distributed.
+            You suspect a monotonic but not linear relationship.
+            Outliers are present.
+```
+
+**The golden rule:**相关性并不意味着因果关系.冰淋销售和溺水死亡都相关,因为夏季都会增加. 模型的准确性和参数数数量都相关,但添加参数不会自动提高准确性 (见:过度配件).
+
+### 变量矩阵
+
+两个变量之间的共变量衡量它们如何与 nhau变化:
 
 ```
 Cov(X, Y) = (1/n) * sum((x_i - x_bar)(y_i - y_bar))
 
-Cov(X, Y) > 0：X 和 Y 倾向于同向变化
-Cov(X, Y) < 0：X 增大时，Y 倾向于减小
-Cov(X, Y) = 0：无线性共变关系
+Cov(X, Y) > 0:  X and Y tend to increase together
+Cov(X, Y) < 0:  when X increases, Y tends to decrease
+Cov(X, Y) = 0:  no linear co-movement
 ```
 
-对于 d 个特征，协方差矩阵 C 是一个 d×d 矩阵，其中 C[i][j] = Cov(feature_i, feature_j)。对角线元素 C[i][i] 是每个特征的方差。
+对于d特征,共变矩阵C是一个d x d矩阵,其中C[i][j] =Cov(feature_i, feature_j).对角值输入C[i][i]是每个特征的变化.
 
 ```
 C = | Var(x1)      Cov(x1,x2)  Cov(x1,x3) |
     | Cov(x2,x1)  Var(x2)      Cov(x2,x3) |
     | Cov(x3,x1)  Cov(x3,x2)  Var(x3)     |
 
-性质：
-  - 对称：C[i][j] = C[j][i]
-  - 半正定：所有特征值 >= 0
-  - 对角线 = 各特征方差
-  - 非对角线 = 各特征间协方差
+Properties:
+  - Symmetric: C[i][j] = C[j][i]
+  - Positive semi-definite: all eigenvalues >= 0
+  - Diagonal = variances
+  - Off-diagonal = covariances
 ```
 
-**与 PCA 的联系。** PCA 对协方差矩阵进行特征分解。特征向量是主成分（方差最大方向），特征值告诉你每个分量捕获了多少方差。这正是第 10 课的内容，而现在你明白了为什么协方差矩阵是正确的分解对象：它编码了数据中所有成对线性关系。
+**Connection to PCA.**实际上,在一个对比数组中,一个对比数组的位置是个对比数组. PCA 自身构成了共变矩阵.自向量是主要的组件 (最大变异的方向).自值值告诉你每个组件捕获多少变异.这正是10课程所涵盖的,但现在你看到了为什么共变矩阵是分解的正确东西:它编码了你数据中的所有对对线关系.
 
-**与相关系数矩阵的联系。** 相关系数矩阵是对标准化变量（每个变量除以其标准差）计算的协方差矩阵。相关系数将协方差归一化，使所有值落在 [-1, 1] 范围内。
+**Connection to correlation.**相关性矩阵是标准化变量 (每个变量以其标准偏差分为) 的共变矩阵.相对性正常化共变,因此所有值都在 [-1, 1] 中下降.
 
-### 假设检验
+### 假设测试
 
-假设检验是一种在不确定性下做决策的框架。你从一个主张出发，收集数据，然后判断数据是否与该主张一致。
+假设测试是在不确定性下做出决定的框架.
 
-**基本设置：**
-
-```
-零假设 (H0)：默认假设，通常为"无效应"
-备择假设 (H1)：你想要证明的内容
-
-示例：
-  H0：模型 A 和模型 B 的准确率相同
-  H1：模型 B 的准确率高于模型 A
-```
-
-**p 值**是在假设 H0 为真时，观察到与当前数据一样极端（或更极端）的数据的概率。它**不是** H0 为真的概率。这是统计学中最常见的误解。
+**The setup:**
 
 ```
-p 值 = P(数据如此极端 | H0 为真)
+Null hypothesis (H0):        the default assumption, usually "no effect"
+Alternative hypothesis (H1): what you are trying to show
 
-若 p 值 < alpha（通常取 0.05）：
-    拒绝 H0。结果具有"统计显著性"。
-若 p 值 >= alpha：
-    无法拒绝 H0。你没有足够证据。
-    这不意味着 H0 为真。
+Example:
+  H0: Model A and Model B have the same accuracy
+  H1: Model B has higher accuracy than Model A
 ```
 
-**置信区间**给出参数 plausible 取值范围：
+**The p-value**假设H0是真的,这是一个最常见的误解.
 
 ```
-均值的 95% 置信区间：
+p-value = P(data this extreme | H0 is true)
+
+If p-value < alpha (typically 0.05):
+    Reject H0. The result is "statistically significant."
+If p-value >= alpha:
+    Fail to reject H0. You do not have enough evidence.
+    This does NOT mean H0 is true.
+```
+
+**Confidence intervals**给一个参数一个可行的值范围:
+
+```
+95% confidence interval for the mean:
     x_bar +/- z * (s / sqrt(n))
 
-其中 z = 1.96 对应 95% 置信水平
+where z = 1.96 for 95% confidence
 
-解读：若重复此实验多次，95% 的计算出的区间会包含真实均值。
-      这并不意味着真实均值有 95% 的概率落在此特定区间内。
+Interpretation: if you repeated this experiment many times, 95% of the
+computed intervals would contain the true mean. It does NOT mean there
+is a 95% probability the true mean is in this specific interval.
 ```
 
-置信区间的宽度反映了估计的精度。宽区间意味着高不确定性；窄区间意味着估计精确（但若数据有偏，精确不等于准确）。
+宽度的保证间隔告诉你准确性.宽度的间隔意味着高的不确定性.狭的间隔意味着你的估计是准确的 (但不一定是准确的,如果你的数据偏见).
 
-### t 检验
+### 测试
 
-t 检验用于比较均值，有多种变体。
+测试比较了各种味道.
 
-**单样本 t 检验：** 总体均值是否与假设值不同？
+**One-sample t-test:**人口平均值与假设值不同吗?
 
 ```
 t = (x_bar - mu_0) / (s / sqrt(n))
 
-自由度 = n - 1
+degrees of freedom = n - 1
 ```
 
-**两独立样本 t 检验：** 两组均值是否不同？
+**Two-sample t-test (independent):**两个群体的意思是不同的吗?
 
 ```
 t = (x_bar_1 - x_bar_2) / sqrt(s1^2/n1 + s2^2/n2)
 
-这是 Welch's t 检验，不假设方差相等。
-除非有充分理由假设方差相等，否则始终使用 Welch's。
+This is Welch's t-test, which does not assume equal variances.
+Always use Welch's unless you have a specific reason for equal variances.
 ```
 
-**配对 t 检验：** 当测量成对出现时（同一模型在相同数据划分上评估）：
+**Paired t-test:**测量对 (相同模型在相同的数据分区上进行评估):
 
 ```
-对每对计算 d_i = x_i - y_i
-然后对 d_i 值关于 mu_0 = 0 执行单样本 t 检验
+Compute d_i = x_i - y_i for each pair
+Then run a one-sample t-test on the d_i values against mu_0 = 0
 ```
 
-在 ML 中，配对 t 检验很常见：你在相同的 10 折交叉验证折叠上运行两个模型，然后成对比较它们的得分。
+在ML中,对 t 测试是常见的:你运行两个模型在相同的10个验证折叠上,并对比它们的分数.
 
-### 卡方检验
+### 奇方体测试
 
-卡方检验用于判断观测频数是否与期望频数相符，适用于分类数据。
+检查观察频率是否与预期频率相匹配.
 
 ```
-chi^2 = sum((观测值 - 期望值)^2 / 期望值)
+chi^2 = sum((observed - expected)^2 / expected)
 
-示例：语言模型的输出分布在各类别中是否与训练分布一致？
+Example: does a language model's output distribution match the
+training distribution across categories?
 
-类别      观测值    期望值
-正向        120        100
-负向         80        100
+Category    Observed   Expected
+Positive       120        100
+Negative        80        100
 chi^2 = (120-100)^2/100 + (80-100)^2/100 = 4 + 4 = 8
 
-自由度为 1 时，chi^2 = 8 对应 p < 0.005。
-差异显著。
+With 1 degree of freedom, chi^2 = 8 gives p < 0.005.
+The difference is significant.
 ```
 
-### ML 模型的 A/B 测试
+### 对于ML模型进行A/B测试
 
-ML 中的 A/B 测试与网页 A/B 测试不同。模型对比面临特殊挑战：
-
-```
-1. 相同测试集：两个模型必须在完全相同的数据上评估。
-                不同的测试集使对比毫无意义。
-
-2. 多重指标：仅凭准确率不够。你需要精确率、召回率、F1、
-              延迟和公平性指标。
-
-3. 方差估计：使用交叉验证或自助法估计每个指标的方差，
-              而非仅依赖点估计。
-
-4. 数据泄露：若测试集在模型选择过程中已被使用，
-              你的对比就会产生偏差。保留一个最终测试集。
-```
-
-**操作流程：**
+在ML中A/B测试与网络A/B测试不同.模型比较具有具体的挑战:
 
 ```
-1. 定义你的指标和显著性水平（alpha = 0.05）
-2. 在相同的 k 折交叉验证分割上运行两个模型
-3. 收集配对得分：[(a1, b1), (a2, b2), ..., (ak, bk)]
-4. 计算差值：d_i = b_i - a_i
-5. 对差值执行配对 t 检验
-6. 检查：均值差是否显著不为 0？
-7. 计算均值差的置信区间
-8. 计算效应量（Cohen's d）以判断实际显著性
+1. Same test set:    Both models must be evaluated on identical data.
+                     Different test sets make comparison meaningless.
+
+2. Multiple metrics: Accuracy alone is not enough. You need precision,
+                     recall, F1, latency, and fairness metrics.
+
+3. Variance:         Use cross-validation or bootstrap to estimate
+                     the variance of each metric, not just point estimates.
+
+4. Data leakage:     If the test set was used during model selection,
+                     your comparison is biased. Hold out a final test set.
 ```
 
-### 统计显著性 vs 实际显著性
-
-一个结果可以统计显著但实际上毫无意义。数据量足够大时，即使是微不足道的差异也会变得统计显著。
+**The procedure:**
 
 ```
-示例：
-  模型 A 准确率：0.9234
-  模型 B 准确率：0.9237
-  n = 1,000,000 个测试样本
-  p 值 = 0.001
-
-统计显著吗？是。
-实际显著吗？0.03% 的提升不值得部署新模型
-的工程成本。
+1. Define your metric and significance level (alpha = 0.05)
+2. Run both models on the same k-fold cross-validation splits
+3. Collect paired scores: [(a1, b1), (a2, b2), ..., (ak, bk)]
+4. Compute differences: d_i = b_i - a_i
+5. Run a paired t-test on the differences
+6. Check: is the mean difference significantly different from 0?
+7. Compute a confidence interval for the mean difference
+8. Compute effect size (Cohen's d) to judge practical significance
 ```
 
-**效应量**量化了差异的大小，与样本量无关：
+### 统计意义与实用意义
+
+结果可能是统计上显著的,但实际上是无意义的.
 
 ```
-Cohen's d = (mean_1 - mean_2) / 合并标准差
+Example:
+  Model A accuracy: 0.9234
+  Model B accuracy: 0.9237
+  n = 1,000,000 test samples
+  p-value = 0.001
 
-d = 0.2： 小效应
-d = 0.5： 中效应
-d = 0.8： 大效应
+Statistically significant? Yes.
+Practically significant? A 0.03% improvement is not worth the
+engineering cost of deploying a new model.
 ```
 
-始终同时报告 p 值和效应量。p 值告诉你差异是否真实存在，效应量告诉你它是否重要。
-
-### 多重比较问题
-
-当你检验多个假设时，其中一些会因偶然而显得"显著"。若以 alpha = 0.05 检验 20 件事，即使一切都没有真实效应，你也期望出现 1 次假阳性。
+**Effect size**量化了不同程度,不论样本大小如何:
 
 ```
-P(至少一次假阳性) = 1 - (1 - alpha)^m
+Cohen's d = (mean_1 - mean_2) / pooled_std
 
-m = 20 次检验，alpha = 0.05：
-P(假阳性) = 1 - 0.95^20 = 0.64
-
-你至少有 64% 的概率出现一次假阳性。
+d = 0.2:  small effect
+d = 0.5:  medium effect
+d = 0.8:  large effect
 ```
 
-**Bonferroni 校正：** 将 alpha 除以检验次数。
+总是报告p值和效果大小.p值告诉你是否有真正的差异.效果大小告诉你是否重要.
+
+### 多种比较问题
+
+如果在alpha=0.05时测试20个东西,你会预期1个假阳性,即使没有什么是真实的.
 
 ```
-校正后 alpha = alpha / m = 0.05 / 20 = 0.0025
+P(at least one false positive) = 1 - (1 - alpha)^m
 
-仅当 p 值 < 0.0025 时才拒绝 H0。
-保守但简单。在检验相互独立时有效。
+m = 20 tests, alpha = 0.05:
+P(false positive) = 1 - 0.95^20 = 0.64
+
+You have a 64% chance of at least one false positive.
 ```
 
-在 ML 中，这在你跨多个指标比较模型、测试多种超参数配置、或在多个数据集上评估时尤为重要。
-
-### 自助法（Bootstrap）
-
-自助法通过对数据有放回重采样来估计统计量的抽样分布，无需对底层分布做任何假设。
-
-**算法：**
+**Bonferroni correction:**分别对试验数量的阿尔法.
 
 ```
-1. 你有 n 个数据点
-2. 有放回地抽取 n 个样本（某些点出现多次，某些点完全不出现）
-3. 在此 bootstrap 样本上计算你的统计量
-4. 重复 B 次（通常 B = 1000 到 10000）
-5. bootstrap 统计量的分布近似了抽样分布
+Adjusted alpha = alpha / m = 0.05 / 20 = 0.0025
+
+Only reject H0 if p-value < 0.0025.
+Conservative but simple. Works when tests are independent.
 ```
 
-**bootstrap 置信区间（百分位数法）：**
+在ML中,当你比较一个模型在多个指标中,测试许多超参数配置,或在多个数据集上评估时,这很重要.
+
+### 启动方法
+
+引导测试通过替换数据来估计统计数据的样本分布.
+
+**The algorithm:**
 
 ```
-将 B 个 bootstrap 统计量排序
-95% CI = [第 2.5 百分位数, 第 97.5 百分位数]
+1. You have n data points
+2. Draw n samples WITH replacement (some points appear multiple times,
+   some not at all)
+3. Compute your statistic on this bootstrap sample
+4. Repeat B times (typically B = 1000 to 10000)
+5. The distribution of bootstrap statistics approximates the
+   sampling distribution
 ```
 
-**为什么自助法对 ML 很重要：**
+**Bootstrap confidence interval (percentile method):**
 
 ```
-- 测试集准确率是一个点估计。自助法给出置信区间。
-- 你不能假设指标分布是正态的（尤其是
-  AUC、F1、k 阶精确率）。
-- 自助法适用于任何统计量：中位数、两个均值之比、
-  两个模型的 AUC 差值。
-- 无需闭式公式。
+Sort the B bootstrap statistics
+95% CI = [2.5th percentile, 97.5th percentile]
 ```
 
-**用于模型对比的 bootstrap：**
+**Why bootstrap matters for ML:**
 
 ```
-1. 你有模型 A 和模型 B 在相同测试集上的预测
-2. 对每次 bootstrap 迭代：
-   a. 有放回重采样测试集索引
-   b. 在重采样集合上计算 metric_A 和 metric_B
-   c. 记录 diff = metric_B - metric_A
-3. 差值的 95% CI：
-   [diffs 的第 2.5 百分位数, diffs 的第 97.5 百分位数]
-4. 若 CI 不包含 0，则差异显著
+- Test set accuracy is a point estimate. Bootstrap gives you
+  confidence intervals.
+- You cannot assume metric distributions are normal (especially
+  for AUC, F1, precision at k).
+- Bootstrap works for ANY statistic: median, ratio of two means,
+  difference in AUC between two models.
+- No closed-form formula needed.
 ```
 
-这比配对 t 检验更稳健，因为它不做分布假设。
-
-### 参数检验 vs 非参数检验
-
-**参数检验**假设数据服从特定分布（通常为正态）：
+**Bootstrap for model comparison:**
 
 ```
-t 检验：    假设数据服从正态分布（或 n 较大时由 CLT 近似）
-ANOVA：     假设正态性和方差齐性
-Pearson r：假设双变量正态分布
+1. You have predictions from Model A and Model B on the same test set
+2. For each bootstrap iteration:
+   a. Resample test indices with replacement
+   b. Compute metric_A and metric_B on the resampled set
+   c. Store diff = metric_B - metric_A
+3. 95% CI for the difference:
+   [2.5th percentile of diffs, 97.5th percentile of diffs]
+4. If the CI does not contain 0, the difference is significant
 ```
 
-**非参数检验**不做分布假设：
+这比对 t 测试更强大,因为它没有分布假设.
+
+### 参数对非参数测试
+
+**Parametric tests**假设一个特定的分布 (通常是正常的):
 
 ```
-Mann-Whitney U：   比较两组（替代独立 t 检验）
-Wilcoxon 符号秩检验：比较配对数据（替代配对 t 检验）
-Spearman rho：     基于秩次的相关系数（替代 Pearson）
-Kruskal-Wallis：   比较多组（替代 ANOVA）
+t-test:         assumes normally distributed data (or large n by CLT)
+ANOVA:          assumes normality and equal variances
+Pearson r:      assumes bivariate normality
 ```
 
-**何时使用非参数检验：**
+**Non-parametric tests**没有进行分布假设:
 
 ```
-- 小样本量（n < 30）且数据明显非正态
-- 序数数据（评分、排名）
-- 无法剔除的重尾异常值
-- 偏斜分布
+Mann-Whitney U:     compares two groups (replaces independent t-test)
+Wilcoxon signed-rank: compares paired data (replaces paired t-test)
+Spearman rho:       correlation on ranks (replaces Pearson)
+Kruskal-Wallis:     compares multiple groups (replaces ANOVA)
 ```
 
-**何时使用参数检验：**
+**When to use non-parametric:**
 
 ```
-- 大样本量（CLT 使检验统计量近似正态）
-- 数据大致对称且无极端异常值
-- 更高的统计功效（更能检测到真实差异）
+- Small sample size (n < 30) and data is clearly non-normal
+- Ordinal data (ratings, rankings)
+- Heavy outliers you cannot remove
+- Skewed distributions
 ```
 
-在 ML 实验中，你通常样本量较小（5 或 10 折交叉验证），因此 Wilcoxon 符号秩检验等非参数检验往往比 t 检验更合适。
-
-### 中心极限定理：实际意义
-
-CLT 指出，随着 n 增大，样本均值的分布趋近于正态分布，无论底层总体分布如何。
+**When to use parametric:**
 
 ```
-若 X_1, X_2, ..., X_n 是独立同分布，均值为 mu，方差为 sigma^2：
-
-    X_bar ~ Normal(mu, sigma^2 / n)    当 n -> 无穷大时
-
-大多数情况下 n >= 30 即可。
-对于高度偏斜的分布，可能需要 n >= 100。
+- Large sample size (CLT makes the test statistic approximately normal)
+- Data is roughly symmetric without extreme outliers
+- More statistical power (better at detecting real differences)
 ```
 
-**为什么这对 ML 重要：**
+在ML实验中,通常有小的 n (5或10个跨验证折叠),因此像威尔科森签名等级的非参数测试通常比t测试更合适.
+
+### 中央限度定理:实际含义
+
+根据CLT的说法,样品的分布平均接近正常分布,随着n的增长,
 
 ```
-1. 为聚合指标的置信区间和 t 检验提供了理论依据
-2. 解释了为何在交叉验证折叠上取平均能得到稳定估计，
-   即使各折叠差异很大
-3. mini-batch 梯度下降之所以有效，是因为批次内
-   的平均梯度近似真实梯度（CLT 的体现）
-4. 集成方法：对多个模型的预测取平均比单一模型
-   的输出更稳定
+If X_1, X_2, ..., X_n are iid with mean mu and variance sigma^2:
+
+    X_bar ~ Normal(mu, sigma^2 / n)    as n -> infinity
+
+Works for n >= 30 in most cases.
+For highly skewed distributions, you might need n >= 100.
 ```
 
-**CLT 不能做什么：**
+**Why this matters for ML:**
 
 ```
-- 不会使你的数据变成正态分布。它使样本均值服从正态分布。
-- 不适用于具有无限方差的厚尾分布
-  （如柯西分布）。
-- 不适用于非独立数据（未经修正的时间序列）。
+1. Justifies confidence intervals and t-tests on aggregated metrics
+2. Explains why averaging over cross-validation folds gives stable
+   estimates even when individual folds vary wildly
+3. Mini-batch gradient descent works because the average gradient
+   over a batch approximates the true gradient (CLT in action)
+4. Ensemble methods: averaging predictions from many models gives
+   more stable output than any single model
 ```
 
-### ML 论文中常见的统计学错误
+**What CLT does NOT do:**
 
-1. **在训练集上测试。** 必然过拟合。始终保留模型在训练过程中从未见过的数据。
+```
+- Does NOT make your data normal. It makes the MEAN of samples normal.
+- Does NOT work for heavy-tailed distributions with infinite variance
+  (Cauchy distribution).
+- Does NOT apply to dependent data (time series without correction).
+```
 
-2. **没有置信区间。** 只报告一个准确率数值而无不确定性度量，使结果不可复现、不可验证。
+### 常见的ML论文的统计错误
 
-3. **忽视多重比较。** 测试 50 种配置后报告最好的一个而不做校正，会膨胀假阳性率。
+1. **Testing on the training set.**确保过度适应. 保持模型在训练中不会看到的数据.
 
-4. **混淆统计显著性与实际显著性。** 在 0.01% 的准确率提升上得到 p = 0.001 并无实际意义。
+2. **No confidence intervals.**报告单个准确数号,而无可确定性,使得结果无法复制和无法验证.
 
-5. **在不平衡数据上使用准确率。** 在负类占 99% 的数据集上达到 99% 准确率意味着模型什么都没学到。应使用精确率、召回率、F1 或 AUC。
+3. **Ignoring multiple comparisons.**测试50个配置,报告最好的配置,
 
-6. **选择性报告指标。** 只报告你的模型胜出的那个指标。诚实的评估应报告所有相关指标。
+4. **Confusing statistical and practical significance.**对于0.01%的精度提高,一个0.001的p值是没有意义的.
 
-7. **训练/测试分割间信息泄露。** 先归一化再分割，或用未来数据预测过去。
+5. **Using accuracy on imbalanced data.**模型没有学到任何东西.使用精度,回忆,F1,或AUC.
 
-8. **小测试集且无方差估计。** 仅在 100 个样本上评估就宣称 2% 的提升，那只是噪声，不是信号。
+6. **Cherry-picking metrics.**诚实评估报告所有相关的指标.
 
-9. **在数据非独立时假设独立性。** 同一患者的医学影像、同一文档的多个句子。组内观测值是相关的。
+7. **Leaking information across train/test splits.**在分开之前,将其正常化,或者使用未来数据来预测过去.
 
-10. **P 值操纵（P-hacking）。** 尝试不同的检验、子集或排除标准，直到得到 p < 0.05。结果是搜索过程的产物，而非真实发现。
+8. **Small test sets with no variance estimates.**通过100个样本进行评估,并声称2%的改善是噪音,而不是信号.
 
-## 动手实现
+9. **Assuming independence when data is not independent.**医疗图像来自同一患者,同一文件的多句话.
 
-你将实现：
+10. **P-hacking.**在试验中,我们可以尝试不同的测试,子集或排除标准,直到我们得到p <0.05.
 
-1. **从零实现描述性统计**（均值、中位数、众数、标准差、百分位数、IQR）
-2. **相关系数函数**（皮尔逊和斯皮尔曼，含协方差矩阵）
-3. **假设检验**（单样本 t 检验、两样本 t 检验、卡方检验）
-4. **bootstrap 置信区间**（适用于任意统计量，无需假设）
-5. **A/B 测试模拟器**（生成数据、检验、检查 I 型和 II 型错误）
-6. **统计显著性与实际显著性对比演示**（展示大 n 如何让一切看起来"显著"）
+## 建立它
 
-全部从零实现，仅使用 `math` 和 `random`，不使用 numpy 和 scipy。
+你将实施:
+
+1. **Descriptive statistics from scratch**(平均,中位数,模式,标准偏差,百分点,IQR)
+2. **Correlation functions**(皮尔森和斯皮尔曼,与共变矩阵)
+3. **Hypothesis tests**(一个样本的t测试,两个样本的t测试,四方的chi测试)
+4. **Bootstrap confidence intervals**(对于任何统计数据,不需要假设)
+5. **A/B test simulator**(生成数据,测试,检查I类和II类错误)
+6. **Statistical vs practical significance demo**(显示大 n 让一切变得"重要")
+
+只有使用`math`其他`random`没有,没有.
 
 ```figure
 f3-bootstrap-resample
 ```
 
-## 关键术语
+## 关键词
 
-| 术语 | 定义 |
+| Term | Definition |
 |---|---|
-| 均值 (Mean) | 所有值之和除以数量。对异常值敏感。 |
-| 中位数 (Median) | 排序后数据的中间值。对异常值稳健。 |
-| 标准差 (Standard deviation) | 方差的平方根。以原始单位衡量离散程度。 |
-| 百分位数 (Percentile) | 低于该值的数据所占给定百分比的分界值。 |
-| IQR（四分位距） | Q3 减 Q1。中间 50% 数据的离散程度。 |
-| 皮尔逊相关系数 (Pearson correlation) | 衡量两个变量间的线性关联。取值范围 [-1, 1]。 |
-| 斯皮尔曼相关系数 (Spearman correlation) | 基于秩次衡量单调关联。 |
-| 协方差矩阵 (Covariance matrix) | 所有特征对之间协方差的矩阵。 |
-| 零假设 (Null hypothesis) | 默认假设，表示无效应或无差异。 |
-| p 值 (p-value) | 在零假设为真的条件下，观察到如此极端（或更极端）数据的概率。 |
-| 置信区间 (Confidence interval) | 在给定置信水平下参数的 plausible 取值范围。 |
-| t 检验 (t-test) | 检验均值是否存在显著差异。基于 t 分布。 |
-| 卡方检验 (Chi-squared test) | 检验观测频数是否与期望频数存在显著差异。 |
-| 效应量 (Effect size) | 差异的幅度大小，与样本量无关。 |
-| Bonferroni 校正 | 将显著性阈值除以检验次数以控制假阳性。 |
-| 自助法 (Bootstrap) | 有放回重采样以估计抽样分布。 |
-| I 型错误 (Type I error) | 假阳性。H0 为真时拒绝 H0。 |
-| II 型错误 (Type II error) | 假阴性。H0 为假时未能拒绝 H0。 |
-| 统计功效 (Statistical power) | 正确拒绝假 H0 的概率。功效 = 1 - II 型错误率。 |
-| 中心极限定理 (Central limit theorem) | 样本均值随样本量增大收敛于正态分布。 |
-| 参数检验 (Parametric test) | 假设数据服从特定分布（通常为正态）。 |
-| 非参数检验 (Non-parametric test) | 不做分布假设。基于秩次或符号进行分析。 |
+| Mean | Sum of values divided by count. Sensitive to outliers. |
+| Median | Middle value of sorted data. Robust to outliers. |
+| Standard deviation | Square root of variance. Measures spread in original units. |
+| Percentile | Value below which a given percentage of data falls. |
+| IQR | Interquartile range. Q3 minus Q1. The spread of the middle 50%. |
+| Pearson correlation | Measures linear association between two variables. Range [-1, 1]. |
+| Spearman correlation | Measures monotonic association using ranks. |
+| Covariance matrix | Matrix of pairwise covariances between all features. |
+| Null hypothesis | Default assumption of no effect or no difference. |
+| p-value | Probability of data this extreme given the null hypothesis is true. |
+| Confidence interval | Range of plausible values for a parameter at a given confidence level. |
+| t-test | Tests whether means differ significantly. Uses the t-distribution. |
+| Chi-squared test | Tests whether observed frequencies differ from expected frequencies. |
+| Effect size | Magnitude of a difference, independent of sample size. Cohen's d is common. |
+| Bonferroni correction | Divides significance threshold by number of tests to control false positives. |
+| Bootstrap | Resampling with replacement to estimate sampling distributions. |
+| Type I error | False positive. Rejecting H0 when it is true. |
+| Type II error | False negative. Failing to reject H0 when it is false. |
+| Statistical power | Probability of correctly rejecting a false H0. Power = 1 minus Type II error rate. |
+| Central limit theorem | Sample means converge to a normal distribution as sample size grows. |
+| Parametric test | Assumes a specific distribution for the data (usually normal). |
+| Non-parametric test | Makes no distributional assumptions. Works on ranks or signs. |
