@@ -1,116 +1,116 @@
-# 对齐研究生态 — MATS、Redwood、Apollo、METR
+# 调整研究生态系统  MATS, Redwood, Apollo, METR
 
-> 五家机构定义了2026年的非实验室对齐研究层。MATS（ML Alignment & Theory Scholars）：自2021年底以来已有527+研究员，发表180+论文，引用超1万次，h指数47；2024年暑期批次作为501(c)(3)注册，拥有约90名学者和40名导师；2025年前的毕业生中80%从事安全/安保工作，其中200+人在Anthropic、DeepMind、OpenAI、英国AISI、RAND、Redwood、METR、Apollo任职。Redwood Research：应用对齐实验室，由Buck Shlegeris创立；引入AI Control（第10课）；与英国AISI合作开展控制安全案例研究。Apollo Research：面向前沿实验室的前部署欺骗评估；撰写了《In-Context Scheming》（第8课）和《Towards Safety Cases for AI Scheming》。METR（Model Evaluation and Threat Research）：基于任务的 Capabilities 评估、自主任务时间跨度研究；《Common Elements of Frontier AI Safety Policies》对比各实验室框架。Eleos AI Research：模型福利前部署评估（第19课）；开展了Claude Opus 4福利评估。
+> 五个组织定义了2026年非实验室调整研究层. 马特斯 (ML 准确与理论学者):自2021年底以来,527多名研究人员,180多篇论文,10K+引用,h指数47;2024年夏季的团队以501 ((c) ((3) 形式加入,有90名学者和40名导师;2025年之前的校友中有80%在安卓,深思,OpenAI,英国AISI,RAND,红木,METR,阿波罗等200多个机构工作安全/安全. 红木研究:由巴克·施莱格里斯创立的应用对齐实验室;引入AI控制 (课程10);与英国AISI合作在控制安全案例上. 博研究:对边境实验室进行部署前策划评估; 作者:内文策划 (第8课) 和对人工智能策划的安全案例. 测量模型 (模型评估和威胁研究):基于任务的能力评估,自主任务时间平线研究; "边界人工智能安全政策的共同元素"比较了实验室框架. 埃利奥斯人工智能研究:模型福利前部署评估 (课程19);进行了克劳德·奥普斯4福利评估.
 
-**类型：** 学习
-**语言：** 无
-**前置条件：** 第18阶段 · 01-27（之前第18阶段课程）
-**时间：** 约45分钟
+**Type:** Learn
+**Languages:** none
+**Prerequisites:** Phase 18 · 01-27 (prior Phase 18 lessons)
+**Time:** ~45 minutes
 
 ## 学习目标
 
-- 识别非实验室对齐研究生态系统的五家机构及其核心产出。
-- 描述MATS的规模（学者人数、论文数、h指数）及其作为人才管道的作用。
-- 描述Redwood的AI Control议程及其与英国AISI的合作。
-- 描述METR的基于任务的评估方法。
+- 确定非实验室调整研究生态系统的五个组织及其核心产量.
+- 描述MATS的规模 (学者,论文,h指数) 以及作为人才管道的作用.
+- 描述Redwood的AI控制议程及其与英国AISI的合作.
+- 描述METR基于任务的评估方法.
 
 ## 问题
 
-前沿实验室（第18课）内部进行安全评估并发布精选结果。实验室外部的生态系统才是验证评估、首次发现新型失效模式以及培养人才的场所。理解生态系统有助于解读哪些研究成果被谁所信任。
+边界实验室 (课 18) 内部进行安全评估,并发布选择结果.实验室以外的生态系统是评估验证,首次发现新型失败模式,培训人才的地方.了解生态系统有助于解释哪些研究发现被谁信任.
 
 ## 概念
 
-### MATS（ML Alignment & Theory Scholars）
+### 马特斯 (ML 调整与理论学者)
 
-始于2021年底。研究导师项目；学者与高级研究员合作10-12周，解决具体的对齐问题。
+开始于2021年底. 研究指导计划;学者与高级研究人员一起花费10-12周研究特定的调整问题.
 
-规模（2026年）：
-- 自成立以来的研究员超过527人。
-- 发表论文超过180篇。
-- 引用超过1万次。
-- h指数47。
-- 2024年暑期：90名学者 + 40名导师；注册为501(c)(3)。
+规模 (2026):
+- 创立以来,已有527多名研究人员.
+- 发表了180多篇论文.
+- 超过10万次引用.
+- 指数47
+- 2024年夏季:90名学者+40名导师;成立为501 (c) ((3).
 
-职业成果：约80%的2025年前毕业生从事安全/安保工作。200+人在Anthropic、DeepMind、OpenAI、英国AISI、RAND、Redwood、METR、Apollo任职。
+职业成果:到2025年之前的80%的校友正在安全/安全领域工作. 200+在人类学,深思维,OpenAI,英国AISI,兰德,红木,METR,阿波罗.
 
-### Redwood Research
+### 红树研究
 
-应用对齐实验室。由Buck Shlegeris创立。提出了AI Control议程（第10课）。与英国AISI合作开展控制安全案例。就评估设计为DeepMind和Anthropic提供咨询。
+应用调整实验室.由巴克·施莱格里斯创立. 介绍了人工智能控制议程 (课程10). 与英国AISI合作在控制安全案件上. 咨询了DeepMind和Anthropic在评估设计上.
 
-经典论文：Greenblatt、Shlegeris等人，《AI Control》（arXiv:2312.06942，ICML 2024）；Alignment Faking（Greenblatt、Denison、Wright等人，arXiv:2412.14093，与Anthropic联合）。
+经典论文:Greenblatt,Shlegeris等",AI控制" (arXiv:2312.06942,ICML 2024); 配合假设 (Greenblatt,Denison,Wright等,arXiv:2412.14093,与人类共同).
 
-风格：具体的威胁模型、最坏情况下的对手、可压测的具体协议。
+风格:特定的威胁模型,最坏的对手,可以通过压力测试的具体协议.
 
-### Apollo Research
+### 波罗研究
 
-为前沿实验室提供前部署欺骗评估。撰写了《In-Context Scheming》（第8课，arXiv:2412.04984）。是2025年OpenAI反欺骗训练合作的合作伙伴。制作了《Towards Safety Cases for AI Scheming》（2024年）。
+边境实验室的部署前计划评估. 作者:内文计划 (课 8, arXiv:2412.04984). 合作伙伴:2025年开放AI反计划培训合作. 制作:人工智能计划的安全案例 (2024年).
 
-风格：代理设定下的评估，其中欺骗可能涌现；三支柱分解（未对齐、目标导向性、情境意识）。
+风格:可以出现欺骗的机构设定评估;三支柱的分解 (错误排列,目标定向,情况意识).
 
-### METR（Model Evaluation and Threat Research）
+### 测量 (模型评估和威胁研究)
 
-基于任务的 Capabilities 评估。自主任务完成时间跨度研究。《Common Elements of Frontier AI Safety Policies》（metr.org/common-elements，2025）对比各实验室框架。
+基于任务的能力评估.自主任务完成时间水平研究. "边界人工智能安全政策的共同元素" (metr.org/common-elements, 2025) 比较实验室框架.
 
-与Apollo合作撰写了AI Scheming安全案例概要。
+共同撰写"人工智能策划"与阿波罗的安全案例草图.
 
-风格：长跨度任务评估、实证能力测量、框架综合。
+风格:长远任务评估,经验能力测量,框架合成.
 
-### Eleos AI Research
+### 埃利奥斯人工智能研究
 
-模型福利前部署评估。开展了记录在系统卡第5.3节的Claude Opus 4福利评估。为第19课的福利相关主张提供外部方法学核查。
+系统卡5.3节所记录的劳德 Opus 4福利评估.提供了对19课的福利相关索赔的外部方法检查.
 
-### 流程
+### 流量
 
-MATS培养研究员。毕业生流向Anthropic、DeepMind、OpenAI（实验室安全团队）或Redwood、Apollo、METR、Eleos（外部评估）。外部评估者与实验室及英国AISI / CAISI合作。出版物回馈生态系统至下一届MATS。
+马特斯培训研究人员.毕业生进入人类学,深思维,OpenAI (实验室安全团队) 或Redwood,Apollo,METR,Eleos (外部评估).外部评估人员与实验室和英国AISI/CAISI合作.出版物将生态系统送回马特斯,以便进行下一个队伍.
 
-### 为何这一层很重要
+### 为什么这个层很重要
 
-单一来源的评估不可靠：实验室自我评估存在结构性利益冲突。外部评估者可以提出并验证实验室可能低报的失效模式。2024年《Sleeper Agents》论文（第7课）是Anthropic + Redwood的成果；《Alignment Faking》是Anthropic + Redwood；《In-Context Scheming》出自Apollo；《Anti-Scheming》是Apollo + OpenAI。多机构结构即是质量控制。
+单源评估是不可靠的:评估自己的模型的实验室存在结构性利益冲突. 实验室可能不报告故障模式的外部评估人员可以提升和验证. 2024年Sleeper Agents论文 (课7) 是人类+红木;排列假作是人类+红木;内文策划是阿波罗;反策划是阿波罗+OpenAI. 多器官结构是质量控制.
 
-### 在Phase 18中的位置
+### 在这个阶段的第18阶段
 
-第7-11课引用了Redwood和Apollo的工作；第18课引用了METR的框架对比；第19课引用了Eleos。第28课是这一生态系统的明确组织映射，整个Phase的其他课程都依赖于此。
+第7-11课指的是红木和阿波罗工作;第18课指的是METR的框架比较;第19课指的是Elios. 第28课是该阶段其余的生态系统的明确组织地图.
 
 ```figure
 sae-features
 ```
 
-## 使用它
+## 用它
 
-无代码。阅读METR的《Common Elements of Frontier AI Safety Policies》，作为外部综合如何为实验室内部政策工作增添价值的示例。
+阅读METR的"边界人工智能安全政策的共同元素"作为外汇合成如何为实验室内部政策工作增加价值的例子.
 
-## 完成它
+## 运送它
 
-本课程产出 `outputs/skill-ecosystem-map.md`。给定一个对齐主张或评估，它识别涉及的机构、发表渠道和方法论风格，并与已知对应机构进行交叉核查。
+这一课产生了`outputs/skill-ecosystem-map.md`根据调整要求或评估,该报告确定了组织,发布地点,方法风格以及与已知对方组织进行的交叉检查.
 
-## 练习
+## 运动
 
-1. 从第7-15课中挑选一篇论文，识别涉及的机构。交叉核查作者与MATS毕业生及当前生态系统隶属关系。
+1. 选择从7-15课程中一篇论文,确定所涉及的组织.
 
-2. 阅读METR的《Common Elements of Frontier AI Safety Policies》。识别它们强调的三个跨实验室共识点和两个最大分歧点。
+2. 阅读METR的"边界人工智能安全政策的共同要素". 确定它们强调的三个跨实验室融合和两个最大的差异.
 
-3. MATS的职业成果约80%从事安全/安保工作。论证这种选择压力是适应性的（培养领域）还是存在偏差的（过滤掉异端立场）。
+3. 答案:在数学上,数学 (理学) 课程的职业成果是80%的安全性/安全性.
 
-4. Redwood和Apollo都从事控制/欺骗相关工作，但风格不同。选择一个失效模式，描述它们各自会如何调查。
+4. 雷德伍德和阿波罗都在控制/策划工作,但以不同的风格.
 
-5. Eleos AI是唯一纯粹的模型福利机构。设计一个假设的第二机构，专注于不同的福利相关问题（认知自由、机器人具身化等），并阐明其方法学。
+5. 设计一个假设第二个组织,专注于一个不同的福利问题 (认知自由,机器人体现等) 并阐明其方法.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说什么 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|------------------------|
-| MATS | "导师项目" | ML Alignment & Theory Scholars；自2021年以来527+研究员 |
-| Redwood Research | "控制实验室" | 应用对齐；AI Control作者；英国AISI合作伙伴 |
-| Apollo Research | "欺骗评估" | 面向前沿实验室的前部署欺骗评估 |
-| METR | "任务跨度评估" | 基于任务的 Capabilities 评估；框架综合 |
-| Eleos AI | "福利实验室" | 模型福利前部署评估 |
-| 人才管道 | "MATS -> 实验室" | MATS毕业生流向Anthropic、DM、OpenAI、Redwood、Apollo、METR |
-| 外部评估 | "非实验室核查" | 不由模型生产者进行的评估；增加可信度 |
+| MATS | "the mentorship program" | ML Alignment & Theory Scholars; 527+ researchers since 2021 |
+| Redwood Research | "the control lab" | Applied alignment; AI Control authors; UK AISI partner |
+| Apollo Research | "the scheming evals" | Pre-deployment scheming evaluations for frontier labs |
+| METR | "the task-horizon evals" | Task-based capability evaluations; framework synthesis |
+| Eleos AI | "the welfare lab" | Model-welfare pre-deployment evaluations |
+| Talent pipeline | "MATS -> labs" | MATS graduates flow to Anthropic, DM, OpenAI, Redwood, Apollo, METR |
+| External evaluation | "non-lab check" | Evaluation not done by the model's producer; adds credibility |
 
-## 延伸阅读
+## 进一步阅读
 
-- [MATS（ML Alignment & Theory Scholars）](https://www.matsprogram.org/) — 导师项目
-- [Redwood Research](https://www.redwoodresearch.org/) — AI Control论文
-- [Apollo Research](https://www.apolloresearch.ai/) — 欺骗评估
-- [METR — Common Elements of Frontier AI Safety Policies](https://metr.org/blog/2025-03-26-common-elements-of-frontier-ai-safety-policies/) — 框架对比
-- [Eleos AI Research](https://www.eleosai.org/research) — 模型福利方法学
+- [MATS (ML Alignment & Theory Scholars)](https://www.matsprogram.org/) 导师计划
+- [Redwood Research](https://www.redwoodresearch.org/)人工智能控制文件
+- [Apollo Research](https://www.apolloresearch.ai/)计划评估
+- [METR — Common Elements of Frontier AI Safety Policies](https://metr.org/blog/2025-03-26-common-elements-of-frontier-ai-safety-policies/)框架比较
+- [Eleos AI Research](https://www.eleosai.org/research)福利模式方法

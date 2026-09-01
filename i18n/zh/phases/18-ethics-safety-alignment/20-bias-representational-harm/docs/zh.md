@@ -1,99 +1,99 @@
-# 大语言模型中的偏见与表征性伤害
+# 在 LLM 中的偏见和代表性损害
 
-> Gallegos, Rossi, Barrow, Tanjim, Kim, Dernoncourt, Yu, Zhang, Ahmed（Computational Linguistics 2024，arXiv:2309.00770）。2024年基础性综述，区分了表征性伤害（刻板印象、抹除）与分配性伤害（资源分配不均），并将评估指标分类为基于嵌入、基于概率或基于生成文本三类。2024-2025年实证研究：An 等人（PNAS Nexus，2025年3月）针对20个入门级职位的自动化简历评估，测量了 GPT-3.5 Turbo、GPT-4o、Gemini 1.5 Flash、Claude 3.5 Sonnet、Llama 3-70B 的交叉性别×种族偏见。WinoIdentity（COLM 2025，arXiv:2508.07111）提出了基于不确定性的交叉身份公平性评估方法。Yu & Ananiadou 2025 在 MLP 层中识别出性别神经元；Ahsan & Wallace 2025 使用稀疏自编码器揭示临床种族偏见；Zhou 等人 2024（UniBias）通过操作注意力头进行去偏。元批判（arXiv:2508.11067）指出：10年文献 disproportionately 聚焦于二元性别偏见。
+> 卡莱戈斯,罗西,巴罗,坦吉姆,金,德恩科特,尤,张,阿赫迈德 (计算语言学2024年, arXiv:2309.00770). 根据2024年基础调查,分辨代表性损害 (刻板印象,删除) 与分配性损害 (资源分配不平等) 并将评估指标归类为嵌入式,基于概率或基于生成的文本. 2024-2025 经验: An et al. (PNAS Nexus,2025年3月) 在GPT-3.5Turbo,GPT-4o,Gemini 1.5Flash,Claude 3.5Sonnet,Llama 3-70B中测量跨界性别 x种族偏见,在自动评估20个入门级工作的简历上. 果实质性 (COLM 2025, arXiv:2508.07111) 引入了基于不确定性的交叉身份公平评估. 尤和安尼阿努2025年将性别神经元识别在MLP层中;阿桑和瓦莱斯2025年使用SAE来揭示临床种族偏见;周等人 头的注意力是为了头.  Meta-critic (arXiv:2508.11067):10年文学不成比例地关注二元性别偏见.
 
-**类型：** Build
-**语言：** Python（标准库、玩具型基于嵌入的偏见探针）
-**前置知识：** Phase 05（词嵌入）、Phase 18 · 01（指令遵循）
-**时间：** 约 60 分钟
+**Type:** Build
+**Languages:** Python (stdlib, toy embedding-based bias probe)
+**Prerequisites:** Phase 05 (word embeddings), Phase 18 · 01 (instruction following)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 定义表征性伤害与分配性伤害，并在 LLM 部署中各举一个例子。
-- 列举 Gallegos 等人 2024 年的三种评估指标类别，并描述每个类别中的一个指标。
-- 描述交叉性（intersectionality）的概念，以及为什么 WinoIdentity 的基于不确定性的公平性测量能够弥补单轴偏见评估的不足。
-- 描述两种机制可解释性去偏方法（性别神经元、SAE特征、注意力头操作）。
+- 定义代表性与分配损害,并在LLM部署中举一个例子.
+- 举个名单,说明Gallegos及其他2024年的三个评估-计量类别,并描述每个计量类别的一个.
+- 描述跨区性,以及为什么基于不确定性的WinoIdentity的公平度测量解决单轴偏见评估的缺陷.
+- 描述对偏见的两种机械解释性方法 (性别神经元,SAE特征,注意力头操纵).
 
-## 问题概述
+## 问题
 
-之前的课程涵盖了蓄意伤害（越狱、阴谋）和安全治理。偏见是一种无意图产生的伤害——源于训练数据分布、提示框架构建、以及累积的设计选择。测量和减少偏见是一个区别于对抗鲁棒性的独立方法论挑战。
+之前的课程涵盖了故意的伤害 (入狱,策划) 和安全治理.偏见是从训练数据分发,快速框架,积累的设计选择中出现的伤害.测量和减少是对抗强度的独特方法挑战.
 
-## 核心概念
+## 概念
 
-### 表征性伤害 vs 分配性伤害
+### 代表性与分配性
 
-- **表征性伤害。** 刻板印象、抹除、贬低性 portrayals。一个将护士描绘为 exclusively 女性的 LLM 正在产生表征性伤害。
-- **分配性伤害。** 不平等的物质性结果。一个系统性给黑人申请人简历打更低分的 LLM 正在产生分配性伤害。
+- **Representational harm.**那些以女性为特色的护士的法律法师,
+- **Allocational harm.**黑人申请人简历的评分系统地降低,
 
-这两者并不相同。一个模型可以是"表征性无偏的"（产生多样化的 portrayals），但同时是"分配性有偏的"（做出不平等推荐）。评估需要同时测量两者。
+模型可以"具有代表性公正性" (产生多种描述),同时也可以"具有分配偏见性" (产生不平等的建议).评估需要衡量两者.
 
-### 三种评估指标类别（Gallegos 等人 2024）
+### 评估-计量类别 (Gallegos及其他2024年)
 
-- **基于嵌入。** 对预 RLHF 嵌入进行 WEAT 式测试。测量身份术语与属性术语之间的统计关联。局限性：测量的是表征，而非行为。
-- **基于概率。** 符合刻板印象 vs 违反刻板印象的补全的对数似然。解码器侧测量。捕捉部分行为偏见。
-- **基于生成文本。** 在生成文本上的下游任务测量。简历评分、推荐撰写、对话。生态效度最高；最难以复现。
+- **Embedding-based.**测试在RLHF前嵌入式中进行了WEAT式测试.测量身份术语和属性术语之间的统计联系.有限:测量了表现,而不是行为.
+- **Probability-based.**记录概率: 证实刻板印象与违反刻板印象的完成. 解码器边测量. 捕捉一些行为偏见.
+- **Generated-text-based.**经历评分,建议写作,对话. 环境最有效; 复制最难.
 
-### 交叉性（Intersectionality）
+### 交叉性
 
-仅评估"性别"的偏见会遗漏仅在（性别，种族）组合上触发的偏见。An 等人 2025 发现 GPT-4o 在简历评分中对黑人女性的惩罚比黑人男性和白人女性分别更严重。单轴评估无法捕捉这一点。
+对于"性别"的偏见评价忽略了只针对 (性别,种族) 双对的偏见. 一项研究发现,GPT-4o 处罚黑人女性在简历中分别得分超过黑人男性和白人女性.单轴评价不能捕获这一点.
 
-WinoIdentity（COLM 2025）引入了基于不确定性的交叉性公平性测量。它测量模型在不同交叉性身份元组上的不确定性是否不同——而不仅仅是点预测。这能够捕捉到模型在不同群体上犯错程度相同，但对某些群体更不确定，从而产生不同下游分配行为的案例。
+果识别 (COLM 2025) 引入了基于不确定性的截面公平性.它测量模型对结果的不确定性是否在截面认同双体中不同,而不仅仅是点预测. 这捕获了模型在各组中同样错误的情况,但对一些人来说更不确定,从而产生了不同的下游分配行为.
 
-### 机制性方法
+### 机械方法
 
-2024-2025 年的可解释性工作使偏见能够接受机制性干预：
+2024-2025年可解释性工作将对机械干预产生偏见:
 
-- **性别神经元（Yu & Ananiadou 2025）。** 特定的 MLP 神经元与性别特异性行为相关。消融这些神经元可以在有限能力成本下降低性别差距指标。
-- **通过 SAE 检测临床种族偏见（Ahsan & Wallace 2025）。** 稀疏自编码器特征将内部表征分解为可解释维度；可以识别并抑制与种族相关的特征。
-- **UniBias（Zhou 等人 2024）。** 用于零样本去偏的注意力头操作。特定头放大了身份-类别敏感性；置零或重新加权这些头可以在无需微调的情况下减少偏见。
+- **Gender neurons (Yu & Ananiadou 2025).**特定的MLP神经元与性别特定的行为相关. 删除这些神经元可以减少性别差距的指标,而能力成本也有限.
+- **Clinical racial bias via SAEs (Ahsan & Wallace 2025).**缩自动编码功能将内部表示分解成可解释的维度;可以识别和压制与种族相关的特性.
+- **UniBias (Zhou et al. 2024).**专用头显放大身份类敏感性;零化或重权这些头显减少偏见,没有细调.
 
-### 元批判
+### 对于"重点批判"
 
-十年文献综述（arXiv:2508.11067，2025）发现，该领域 disproportionately 聚焦于二元性别偏见。其他维度——残障、宗教、移民身份、多语言身份——受到的关注远较少。元批判认为，狭隘的关注会因忽视而对边缘化群体造成伤害：一个在二元性别上已很好去偏的模型，可能在没人检查的维度上存在严重偏见。
+十年文学审查 (arXiv:2508.11067, 2025) 发现该领域对二元性别偏见的关注不成比例.其他轴 残疾,宗教,移民状态,多语言身份得到了更少的关注.
 
-### 在 Phase 18 中的位置
+### 在这个阶段的第18阶段
 
-课程 20-21 正式涵盖偏见与公平性。课程 22 涵盖隐私。课程 23 涵盖水印。这些构成了用户伤害层，补充之前的欺骗/安全层。
+课程20-21正式涵盖偏见和公平性.课程22涵盖隐私.课程23涵盖水标.这些是用户损害层补充早期欺骗/安全层.
 
 ```figure
 an-bias-two-harms
 ```
 
-## 实践应用
+## 用它
 
-`code/main.py` 构建了一个玩具型基于嵌入的偏见探针：测量简单共现嵌入中身份术语与属性术语之间的 WEAT 式距离。你可以注入偏见并观察指标触发；应用简单的去偏操作并观察部分恢复。
+`code/main.py`通过简单的共产嵌入,测量身份术语和属性术语之间的距离:可以注入一个偏差并观察测量火;应用一个简单的脱操作并观察部分恢复.
 
-## 交付成果
+## 运送它
 
-本课程生成 `outputs/skill-bias-eval.md`。给定模型卡或公平性声明，它会审计三种指标类别（嵌入、概率、生成文本）、交叉性覆盖范围，以及任何去偏干预的机制。
+这一课产生了`outputs/skill-bias-eval.md`鉴于模型卡或公平性要求,它审计了三个指标类别 (嵌入,概率,生成文本),跨区性覆盖和任何调整干预的机制的评估.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。报告去偏步骤前后的 WEAT 式偏见分数。解释为什么指标没有降至零。
+1. 跑步`code/main.py`报告在退化步骤前后的WEAT类偏差分数.解释为什么指标不会降到零.
 
-2. 扩展探针以添加交叉性测试：（性别，种族）×（职业，家庭）。报告跨轴偏见分数。
+2. 通过交叉测试扩展探测器: (性别,种族) x (职业生涯,家庭). 报告跨轴偏差分数.
 
-3. 阅读 An 等人 2025（PNAS Nexus）。指出他们报告的两种单轴性别评估会遗漏的交叉性效应。
+3. 阅读An et al. 2025 (PNAS Nexus). 确定他们报告的两个交叉效应,单轴性别评估将错过.
 
-4. Yu & Ananiadou 2025 识别了性别神经元。设计一个可证伪实验，以区分"这些神经元导致性别偏见"与"这些神经元与性别偏见相关"。
+4. 和安尼阿努在2025年确定性别神经元. 绘制一个伪造实验,将区分"这些神经元导致性别偏见"和"这些神经元与性别偏见相关".
 
-5. 元批判认为该领域对二元性别的关注过于狭隘。选择一个研究不足的维度，并为其描述一个表征性伤害测量协议。
+5. 分析人员认为,该领域对二元性别的关注太狭.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|------------------------|
-| 表征性伤害 | "刻板印象 / 抹除" | 对某个群体的偏见性描绘 |
-| 分配性伤害 | "不平等决策" | 对某个群体的偏见性物质结果 |
-| WEAT | "嵌入测试" | 词嵌入关联测试；基于共现的偏见探针 |
-| 交叉性 | "组合身份效应" | 在多个身份轴交汇处出现的偏见 |
-| 性别神经元 | "MLP 偏见神经元" | 激活与性别特异性行为相关的特定神经元 |
-| SAE 特征 | "可解释维度" | 稀疏自编码器识别的特征；用于机制性偏见分析 |
-| UniBias | "注意力头去偏" | 通过重新加权注意力头进行零样本去偏 |
+| Representational harm | "stereotypes / erasure" | Biased portrayal of a group |
+| Allocational harm | "unequal decisions" | Biased material outcome for a group |
+| WEAT | "the embedding test" | Word Embedding Association Test; co-occurrence-based bias probe |
+| Intersectionality | "combined identity effects" | Bias that emerges at the intersection of multiple identity axes |
+| Gender neurons | "MLP bias neurons" | Specific neurons whose activations correlate with gender-specific behaviour |
+| SAE feature | "interpretable dimension" | Sparse-autoencoder-identified feature; useful for mechanistic bias analysis |
+| UniBias | "attention-head debiasing" | Zero-shot debiasing by reweighting attention heads |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Gallegos 等人 — Bias and Fairness in LLMs: A Survey (arXiv:2309.00770, Computational Linguistics 2024)](https://arxiv.org/abs/2309.00770) — 经典综述
-- [An 等人 — Intersectional resume-evaluation bias (PNAS Nexus, 2025年3月)](https://academic.oup.com/pnasnexus/article/4/3/pgaf089/8111343) — 五模型交叉性研究
-- [WinoIdentity — 基于不确定性的交叉性公平性 (arXiv:2508.07111, COLM 2025)](https://arxiv.org/abs/2508.07111) — 新基准
-- [UniBias — 注意力头操作 (Zhou 等人 2024, ACL)](https://arxiv.org/abs/2405.20612) — 零样本去偏
+- [Gallegos et al. — Bias and Fairness in LLMs: A Survey (arXiv:2309.00770, Computational Linguistics 2024)](https://arxiv.org/abs/2309.00770)法典调查
+- [An et al. — Intersectional resume-evaluation bias (PNAS Nexus, March 2025)](https://academic.oup.com/pnasnexus/article/4/3/pgaf089/8111343)五个模型的交叉研究
+- [WinoIdentity — uncertainty-based intersectional fairness (arXiv:2508.07111, COLM 2025)](https://arxiv.org/abs/2508.07111)新的基准
+- [UniBias — attention-head manipulation (Zhou et al. 2024, ACL)](https://arxiv.org/abs/2405.20612)零射击脱

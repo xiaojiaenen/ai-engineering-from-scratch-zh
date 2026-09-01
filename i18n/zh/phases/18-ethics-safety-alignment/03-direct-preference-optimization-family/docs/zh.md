@@ -1,171 +1,169 @@
-```python
-# 直接偏好优化家族
+# 直接偏好优化家庭
 
-> Rafailov 等人（2023）证明 RLHF 的最优解关于偏好数据具有闭合形式，因此你可以跳过显式奖励模型，直接优化策略。这一洞见催生了一个算法家族——IPO、KTO、SimPO、ORPO、BPO——每个算法都修复了 DPO 的某一种失效模式。在 2026 年，直接对齐算法 shipped 到生产环境的后训练任务数超过 PPO。但 Lesson 2 中的过优化曲线仍然适用：直接对齐算法并未逃离古德哈特定律，只是改变了它刺痛的地点。
+> 拉斐洛夫等人 根据RLHF的优势在偏好数据方面具有封闭形式,因此您可以跳过明确的奖励模式并直接优化政策. 这种洞察力产生了一家IPO,KTO,SimPO,ORPO,BPO,每个都解决了DPO失败模式. 2026年,直线配列算法将比PPO更多的边境训练后运行. 但第二课的过度优化曲线仍然适用:DAA不逃离Goodhart,
 
-**类型：** 学习
-**语言：** Python（标准库，含 six-variant 偏好损失比较器）
-**前置条件：** 阶段 18 · 01（InstructGPT）、阶段 18 · 02（奖励黑客攻击）、阶段 10 · 08（DPO 基础）
-**时间：** 约 75 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, six-variant preference-loss comparator)
+**Prerequisites:** Phase 18 · 01 (InstructGPT), Phase 18 · 02 (Reward hacking), Phase 10 · 08 (DPO basics)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 从 RLHF-with-KL 最优解推导 DPO 的闭合形式。
-- 阐述 IPO、KTO、SimPO、ORPO、BPO 各自修复了 DPO 的哪种失效模式。
-- 区分"隐式奖励间隔"与"偏好强度"，并解释 IPO 的身份映射为何重要。
-- 说明为何 Rafailov 等人（NeurIPS 2024）证明即使没有显式奖励模型，直接对齐算法仍会过优化。
+- 取出DPO封闭形式从RLHF-with-KL最佳.
+- 说明IPO,KTO,SimPO,ORPO,BPO的每个故障模式.
+- 区分"隐含的奖励差距"与"偏好强度",并解释为什么IPO的身份映射是重要的.
+- 解释为什么Rafailov等人 (NeurIPS 2024) 证明尽管没有明确的RM,但DAA过度优化.
 
-## 问题所在
+## 问题
 
-RLHF 目标函数（Lesson 1）：
-
-```
-max_π E_{x,y~π}[r(x, y)] - β * KL(π || π_ref)
-```
-
-存在已知最优解：
+关于RLHF的目标 (课 1)
 
 ```
-π*(y|x) = (1/Z(x)) * π_ref(y|x) * exp(r(x, y) / β)
+max_pi E_{x,y~pi} [ r(x, y) ] - beta * KL(pi || pi_ref)
 ```
 
-因此奖励被隐式定义为最优策略与参考策略之比：
+已知最佳值:
 
 ```
-r(x, y) = β * log(π*(y|x) / π_ref(y|x)) + β * log Z(x)
+pi*(y|x) = (1/Z(x)) * pi_ref(y|x) * exp(r(x, y) / beta)
 ```
 
-将其代入 Bradley-Terry 偏好似然函数，且由于分区函数 `Z(x)` 仅依赖于 `x`，它在计算中被消去。剩余部分仅是策略参数的损失——无需奖励模型。这就是 DPO。
+因此,奖励被隐含地定义为最佳政策与参考的比例:
 
-关键在于：该推导假设最优解可达、偏好数据处于分布内、且参考策略是真值模态锚点。这些假设均不完全成立。该家族的每个成员各自修复一个不同的被违背假设。
+```
+r(x, y) = beta * log(pi*(y|x) / pi_ref(y|x)) + beta * log Z(x)
+```
 
-## 概念详解
+取代这个为布拉德利-特里偏好概率和分区函数`Z(x)`取消,因为它只取决于`x`只有政策参数的损失 没有奖励模型需要.
 
-### DPO（Rafailov 等，2023）
+纹:衍生假设最佳可达,偏好数据是分布式的,参考政策是真实模式.这些都不完全适用.每个家庭成员都会修复不同的违反假设.
+
+## 概念
+
+### 果 (Rafailov等, 2023)
 
 ```
 L_DPO = -log sigmoid(
-  β * log(π(y_w | x) / π_ref(y_w | x))
-  - β * log(π(y_l | x) / π_ref(y_l | x))
+  beta * log(pi(y_w | x) / pi_ref(y_w | x))
+  - beta * log(pi(y_l | x) / pi_ref(y_l | x))
 )
 ```
 
-可能出现的问题：
+什么可能会发生错误:
 
-- 隐式奖励间隔 `β * (log(π/π_ref)_w - log(π/π_ref)_l)` 是无界的。微小的偏好可能产生任意大的间隔。
-- 损失函数推动 chosen 和 rejected 的 log-prob 向相反方向变化。只要 rejected 下降更快，它可以推动 chosen 的绝对 log-prob 下降。这就是"退化选择响应"现象。
-- 分布外偏好（稀有对 vs 稀有对）产生任意隐式奖励。
+- 隐含的奖励差距`beta * (log(pi/pi_ref)_w - log(pi/pi_ref)_l)`只有一个小的偏好,就会产生一个任意大的差距.
+- 输出驱动选择和拒绝的日志探测器在相反的方向.只要拒绝的日志探测器更快地下降,它可以推倒所选的绝对日志探测器.这是降级的选择反应现象.
+- 分布外偏好 (罕见罕见对与罕见罕见对) 产生了任意的隐含奖励.
 
-### IPO（Azar 等，2024）
+### 投资者:
 
-身份偏好优化（Identity Preference Optimization）用恒等映射替换 log-sigmoid，对偏好概率进行平方误差损失：
-
-```
-L_IPO = (log(π(y_w | x) / π_ref(y_w | x)) - log(π(y_l | x) / π_ref(y_l | x)) - 1/(2β))^2
-```
-
-间隔被限定在 `1/(2β)`。偏好强度与隐式奖励间隔成正比。不会爆炸。
-
-### KTO（Ethayarajh 等，2024）
-
- Kahneman-Tversky 优化完全放弃了成对结构。给定单个标注输出和二元"可取"或"不可取"信号，映射为前景理论效用：
+身份偏好优化取代了日志-sigmoid 通过身份映射在偏好概率.损失成为一个有限的目标的二方误差:
 
 ```
-v(x, y) = σ(β * log(π(y|x) / π_ref(y|x)) - z_ref)
+L_IPO = (log(pi(y_w | x) / pi_ref(y_w | x)) - log(pi(y_l | x) / pi_ref(y_l | x)) - 1/(2 beta))^2
 ```
 
-对收益和损失使用不同权重（损失厌恶）。好处是你可以使用非配对数据，这类数据丰富得多。
+边缘由`1/(2 beta)`偏好强度和隐含奖励差距均为比例.
 
-### SimPO（Meng 等，2024）
+### 技术技术技术 (Ethayarajh等,2024年)
 
-简单偏好优化让训练信号与生成过程对齐。完全移除参考策略，并按长度归一化 log-likelihood：
+由于单个标记输出和二进制"可"或"不可"信号,它将映射到一个前景理论实用性:
+
+```
+v(x, y) = sigma(beta * log(pi(y|x) / pi_ref(y|x)) - z_ref)
+```
+
+优势:可以使用未配对数据,这更丰富.
+
+### 博 (Meng等, 2024)
+
+简单的偏好优化将训练信号与生成进行一致化. 完全删除参考政策,并根据长度正常化日志概率:
 
 ```
 L_SimPO = -log sigmoid(
-  (β / |y_w|) * log π(y_w | x)
-  - (β / |y_l|) * log π(y_l | x)
-  - γ
+  (beta / |y_w|) * log pi(y_w | x)
+  - (beta / |y_l|) * log pi(y_l | x)
+  - gamma
 )
 ```
 
-带有间隔 `γ` 以稳定训练。长度归一化消除了利用 DPO 的长度偏差失效模式（更长的 `y_w` 天然产生更大的 log-prob 间隔）的动机。
+具有一个边缘`gamma`长度正常化消除了利用DPO的长度偏差失败模式的激励 (更长时间`y_w`根据建筑物,它提供了更大的日志检测差距.
 
-### ORPO（Hong 等，2024）
+### 欧罗波 (Hong等, 2024)
 
- odds-ratio 偏好优化在标准 SFT 负对数似然基础上添加偏好项：
+优化偏好率增加一个偏好术语,
 
 ```
-L_ORPO = L_NLL(y_w) + λ * L_OR
+L_ORPO = L_NLL(y_w) + lambda * L_OR
 L_OR = -log sigmoid(log(odds(y_w) / odds(y_l)))
 ```
 
-无需参考策略——SFT 项作为正则化项。从基础模型到对齐模型单阶段训练。无需单独的 SFT checkpoint。
+没有参考政策 SFT术语是调节剂.从基模型到对齐模型的单一阶段训练.没有单独的SFT检查点.
 
-### BPO（ICLR 2026 投稿，OpenReview id=b97EwMUWu7）
+### 报告的内容:
 
-识别出退化选择响应问题：DPO 保留了排序 `y_w > y_l`，但 `y_w` 的绝对 log-prob 可能下降。BPO 添加了一行修正项，惩罚 chosen 响应的向下移动。在 Llama-3.1-8B-Instruct 的数学推理任务上，相比 DPO 报告了 +10.1% 的准确率提升。
+确定级选择答案问题:DPO保留排名`y_w > y_l`但绝对的记录测试`y_w`报告在Llama-3.1-8B-Instruct上对数学推理而言.
 
-### 普适性结论：直接对齐算法仍会过优化
+### 普遍结果:DAA仍然过度优化
 
-Rafailov 等人《直接对齐算法的奖励模型过优化缩放律》（NeurIPS 2024）在多种数据集上、跨 KL 预算，训练了使用 DPO、IPO、SLiC 的策略。金标准奖励与 KL 的曲线呈现出同样的 Gao 等人峰值-坍塌形状。训练过程中隐式奖励在分布外样本上查询；KL 正则化无法稳定这一现象。
+拉斐洛夫等人"直接调整算法中奖励模型过度优化的扩展法则" (NeurIPS 2024) 与DPO,IPO,SLiC在KL预算中多个数据集上培训政策.金-奖励-KL曲线具有相同的Gao等.峰值和崩形状.暗示奖励在培训期间询问出分布样本;KL规范化并没有稳定这一点.
 
-直接对齐算法并未逃离古德哈特定律。它们将痛苦的表面从"奖励模型过优化"转移到"参考策略比值过优化"。普适性解决方案——更好的数据、集成、早停——两者均适用。
+报价分析系统 (DAA) 没有逃离Goodhart.它们从"奖励模型过度优化"到"参考政策比率过度优化"的表面变化.
 
-### 2026 年如何选择
+### 选择他们中的 (2026)
 
-- 若你有大量成对偏好数据：保守 β 的 DPO；若存在长度偏差则用 SimPO。
-- 若你有非配对二值反馈：KTO。
-- 若你想要从基础模型开始的单阶段管道：ORPO。
-- 若在 DPO 日志中看到退化的 chosen log-prob：BPO。
-- 若偏好强度差异大且 DPO 饱和：IPO。
+- 如果您有大量的对取决数据:DPO与保守的beta,SimPO如果长度偏差明显.
+- 如果您有双重反:KTO.
+- 如果您想要从基模型中获得单阶段管道:ORPO.
+- 如果您看到DPO日志中被选择的记录检查器,
+- 如果偏好强度很大,且DPO和:IPO.
 
-每个实验室都会在任务套件上跑全部五种算法，然后按任务选择获胜者。数学推理和安全对齐的最优解未必相同。
+每个实验室都用电池运行五个任务,每项任务都会选择胜利者.
 
 ```figure
 dpo-margin
 ```
 
-## 实践
+## 用它
 
-`code/main.py` 在玩具偏好数据集上比较六种损失（DPO、IPO、KTO、SimPO、ORPO、BPO），其中真实偏好强度随样本对变化。每种损失在相同 500 对样本上使用小型 softmax 策略进行优化。绘制最终的胜率、chosen-log-prob 漂移、以及每种方法的隐式奖励散布。
+`code/main.py`根据玩具偏好数据集,对比六次损失 (DPO,IPO,KTO,SimPO,ORPO,BPO) 进行了比较.每次损失都以小的软最大政策优化于相同的500对样本.每种方法的最终胜率,选项日志-试验漂移和隐含奖励差距.
 
-## 交付物
+## 运送它
 
-本课产出 `outputs/skill-preference-loss-selector.md`。给定数据集统计信息（成对 vs 非配对、偏好强度变化 vs 均匀、长度分布）和目标（单阶段还是 SFT-后偏好），推荐一种偏好损失并报告它保护的失效模式。
+这一课产生了`outputs/skill-preference-loss-selector.md`鉴于数据集统计数据 (对对对对对对对对对对对对对变量对均偏好强度,长度分布) 和目标 (单阶段或SFT-then-preference),建议对偏好损失进行报告,并报告它保护的故障模式.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。报告 DPO 和 BPO 的最终 chosen-log-prob 下降量。BPO 应保留更高的 chosen 绝对概率——验证这一点。
+1. 跑步`code/main.py`报告DPO和BPO的最后选择日志检查下降.BPO应该保持更高的选择绝对概率验证这一点.
 
-2. 修改偏好数据使所有对的强度相等。哪种方法最稳健？哪种退化？解释 IPO 在此处的优势。
+2. 修改偏好数据,使所有对具有相同的强度. 在六种方法中,哪种方法最强大?哪种降低?
 
-3. 使 rejected 响应平均比 chosen 长 2 倍。不改变其他任何东西，数值展示 DPO 的长度剥削和 SimPO 的修复。
+3. 没有改变任何其他东西,数字显示DPO的长度利用和SIMPO的修正.
 
-4. Rafailov 等人（NeurIPS 2024）声称直接对齐算法会过优化。复现单点版本：绘制 chosen 减 rejected 的 KL 散度，观察 DPO 在较大 β 时的过优化现象。
+4. 拉斐洛夫等人 (NeurIPS 2024) 声称DAA过度优化. 复制一个点版本:图 chosen-minus-rejected KL divergence,并观察大型beta中的DPO过度优化.
 
-5. 阅读 BPO 论文摘要（OpenReview b97EwMUWu7）。写出 BPO 向 DPO 添加的那一行修正。与 `code/main.py` 的实现对照确认。
+5. 阅读BPO论文摘要 (OpenReview b97EwMUWu7). 写下BPO在DPO添加的一行纠正. 确认在`code/main.py`现在,我们要去.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| DPO | "无奖励模型的 RLHF" | 从 RLHF 最优解闭合形式推导的损失；仅含策略参数 |
-| 隐式奖励 | "log 比值" | `β * log(π(y\|x) / π_ref(y\|x))`——DPO 隐含的奖励 |
-| IPO | "有界的 DPO" | 用恒等映射替换 log-sigmoid；隐式奖励间隔上限为 `1/(2β)` |
-| KTO | "非配对的 DPO" | 前景理论效用作用于单标签，含损失厌恶 |
-| SimPO | "无参考的 DPO" | 长度归一化 log-likelihood + 间隔；无参考策略 |
-| ORPO | "单阶段的 DPO" | NLL + odds-ratio 偏好项；从基础模型单遍训练 |
-| BPO | "保留选择的 DPO" | DPO 加上对 chosen 响应绝对 log-prob 下降的惩罚 |
-| 退化选择 | "chosen 下降" | DPO 推动 chosen 的 log-prob 下降，只要 rejected 下降更快 |
-| DAA | "直接对齐算法" | 跳过显式奖励模型的偏好损失方法统称 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| DPO | "RLHF without a reward model" | Loss derived from the closed-form RLHF optimum; policy parameters only |
+| Implicit reward | "the log-ratio" | `beta * log(pi(y\|x) / pi_ref(y\|x))` — the DPO-implied reward |
+| IPO | "bounded DPO" | Replaces log-sigmoid with identity; implicit reward gap capped by `1/(2 beta)` |
+| KTO | "unpaired DPO" | Prospect-theory utility over single labels with loss aversion |
+| SimPO | "reference-free DPO" | Length-normalized log-likelihood + margin; no reference policy |
+| ORPO | "one-stage DPO" | NLL + odds-ratio preference term; trains from base model in one pass |
+| BPO | "chosen-preserving DPO" | DPO plus a penalty for decreasing the chosen response's absolute log-prob |
+| Degraded Chosen | "chosen goes down" | DPO decreases chosen log-prob so long as rejected falls faster |
+| DAA | "direct alignment algorithm" | Any preference-loss method that skips an explicit RM |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Rafailov 等 —— 直接偏好优化（NeurIPS 2023，arXiv:2305.18290）](https://arxiv.org/abs/2305.18290)
-- [Azar 等 —— 理解人类偏好学习的一般理论范式（AISTATS 2024，arXiv:2310.12036）](https://arxiv.org/abs/2310.12036) —— IPO
-- [Ethayarajh 等 —— KTO：模型对齐作为前景理论优化（arXiv:2402.01306）](https://arxiv.org/abs/2402.01306)
-- [Meng, Xia, Chen —— SimPO（NeurIPS 2024，arXiv:2405.14734）](https://arxiv.org/abs/2405.14734)
-- [Hong, Lee, Thorne —— ORPO（EMNLP 2024，arXiv:2403.07691）](https://arxiv.org/abs/2403.07691)
-- [BPO —— 行为保留优化（ICLR 2026，OpenReview b97EwMUWu7）](https://openreview.net/forum?id=b97EwMUWu7)
-- [Rafailov 等 —— 直接对齐算法的奖励模型过优化缩放律（NeurIPS 2024，arXiv:2406.02900）](https://arxiv.org/abs/2406.02900)
-```
+- [Rafailov et al. — Direct Preference Optimization (NeurIPS 2023, arXiv:2305.18290)](https://arxiv.org/abs/2305.18290)
+- [Azar et al. — A General Theoretical Paradigm to Understand Learning from Human Preferences (AISTATS 2024, arXiv:2310.12036)](https://arxiv.org/abs/2310.12036)IPO
+- [Ethayarajh et al. — KTO: Model Alignment as Prospect Theoretic Optimization (arXiv:2402.01306)](https://arxiv.org/abs/2402.01306)
+- [Meng, Xia, Chen — SimPO (NeurIPS 2024, arXiv:2405.14734)](https://arxiv.org/abs/2405.14734)
+- [Hong, Lee, Thorne — ORPO (EMNLP 2024, arXiv:2403.07691)](https://arxiv.org/abs/2403.07691)
+- [BPO — Behavior Preservation Optimization (ICLR 2026 OpenReview b97EwMUWu7)](https://openreview.net/forum?id=b97EwMUWu7)
+- [Rafailov et al. — Scaling Laws for RM Overoptimization in DAAs (NeurIPS 2024, arXiv:2406.02900)](https://arxiv.org/abs/2406.02900)
