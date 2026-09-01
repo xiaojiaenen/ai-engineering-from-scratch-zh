@@ -1,52 +1,52 @@
-# Autoencoders & Variational Autoencoders (VAE)
+# 机器和机器的变量
 
-> A plain Autoencoder compresses then reconstructs. It memorizes. It does not generate. Add one trick — force the code to look Gaussian — and you get a sampler. That single trick, the reparameterization of `z = μ + σ·ε`, is why every latent-diffusion and flow-matching image model you use in 2026 has a VAE at the input.
+> 简单的自动编码器压缩,然后重建.它记住.它不会生成. 添加一个技巧强加代码看起来高斯式,你得到一个样本器.`z = μ + σ·ε`于是,每一个2026年使用的隐形传播和流量相匹配图像模型都会在输入时有VAE.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 3 · 02 (Backprop), Phase 3 · 07 (CNNs), Phase 8 · 01 (Taxonomy)
 **Time:** ~75 minutes
 
-## The Problem
+## 问题
 
-Compress a 784-pixel MNIST digit to a 16-number code, then reconstruct. A plain Autoencoder will ace reconstruction MSE but the code space is a lumpy mess. Pick a random point in the code space, decode it, and you get noise. It has no sampler. It is a compression model dressed up.
+压缩一个784像素的MNIST数字到16个数字代码,然后重建.一个简单的自动编码器将重建MSE,但代码空间是一个乱的混乱.在代码空间中选择一个随机点,解码它,你会得到噪音.它没有样本器.它是一个装饰的压缩模型.
 
-What you actually want is: (a) the code space is a clean, smooth distribution you can sample from — say an isotropic Gaussian `N(0, I)`, (b) decoding any sample produces a plausible digit, and (c) the encoder and decoder still compress well. Three goals, one architecture, one loss.
+实际上你想要的是: (a) 代码空间是一个清洁的,平稳的分布,你可以从一个同位性高斯人样本`N(0, I)`编码器和解码器仍然压缩得很好. 三个目标,一个架构,一个损失.
 
-Kingma's 2013 VAE solves this by training the encoder to output a *distribution* `q(z|x) = N(μ(x), σ(x)²)`, pulling that distribution toward the prior `N(0, I)` via a KL penalty, and then sampling `z` from `q(z|x)` before decoding. At inference time, drop the encoder, sample `z ~ N(0, I)`, decode. The KL penalty is what forces the code space to be structured.
+通过训练编码器输出 * 分布 *`q(z|x) = N(μ(x), σ(x)²)`拉出了分布到前方`N(0, I)`通过 KL 罚款,然后采样`z`其他`q(z|x)`在解码之前.在推断时,放下编码器,样本`z ~ N(0, I)`卡洛特的惩罚是迫使代码空间结构化.
 
-In 2026 VAEs rarely ship standalone — they have been outclassed by diffusion for raw image quality — but they are the encoder of choice for every latent-diffusion model (SD 1/2/XL/3, Flux, AudioCraft). Learn the VAE and you learn the invisible first layer of every image pipeline you use.
+2026年,VAE很少独立运输,它们因质量而被排名出了,但它们是每个隐藏式扩散模型 (SD 1/2/XL/3,Flux,AudioCraft) 的最佳编码器.学习VAE,你将学习你使用的每个图像管道的无形第一层.
 
-## The Concept
+## 概念
 
 ![Autoencoder vs VAE: the reparameterization trick](../assets/vae.svg)
 
-**Autoencoder.** `z = encoder(x)`, `x̂ = decoder(z)`, loss = `||x - x̂||²`. Code space unstructured.
+**Autoencoder.** `z = encoder(x)`现在`x̂ = decoder(z)`损失 = `||x - x̂||²`代码空间是不结构化的.
 
-**VAE encoder.** Outputs two vectors: `μ(x)` and `log σ²(x)`. These define `q(z|x) = N(μ, diag(σ²))`.
+**VAE encoder.**输出两个向量:`μ(x)`其他`log σ²(x)`这些定义了`q(z|x) = N(μ, diag(σ²))`现在,我们要去.
 
-**Reparameterization trick.** Sampling from `q(z|x)` is not differentiable. Rewrite the sample as `z = μ + σ·ε` where `ε ~ N(0, I)`. Now `z` is a deterministic function of `(μ, σ)` plus a non-parameter noise — gradients flow through `μ` and `σ`.
+**Reparameterization trick.**采样`q(z|x)`检测量: 检测量:`z = μ + σ·ε`在哪里`ε ~ N(0, I)`现在`z`是一个定性函数`(μ, σ)`梯度流通通过 `μ`其他`σ`现在,我们要去.
 
-**Loss.** Evidence Lower BOund (ELBO), two terms:
+**Loss.**证据下层结合 (ELBO),两个术语:
 
 ```
 loss = reconstruction + β · KL[q(z|x) || N(0, I)]
      = ||x - x̂||²  + β · Σ_i ( σ_i² + μ_i² - log σ_i² - 1 ) / 2
 ```
 
-Reconstruction pushes `x̂` toward `x`. KL pushes `q(z|x)` toward the prior. They trade off. Small β (<1) = sharper samples, code space less Gaussian. Large β (>1) = cleaner code space, blurrier samples. β-VAE (Higgins 2017) made this knob famous and kicked off disentanglement research.
+重建推动了`x̂`走向`x`克莱拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉拉`q(z|x)`它们交换. 小 β (<1) = 较敏的样本,代码空间少于高斯. 大 β (>1) = 更清洁的代码空间,模糊的样本. β-VAE (Higgins 2017) 使这个按成为著名的,并启动了解脱研究.
 
-**Sampling.** At inference: draw `z ~ N(0, I)`, forward through decoder. One forward pass — no iterative sampling like diffusion.
+**Sampling.**在推断时:抽出`z ~ N(0, I)`通过解码器进行前进. 一个前进传输,没有反复采样,比如扩散.
 
 ```figure
 vae-latent-grid
 ```
 
-## Build It
+## 建立它
 
-`code/main.py` implements a tiny VAE without numpy or torch. Input is 8-dimensional synthetic data drawn from a 2-component Gaussian mixture in 8-D. Encoder and decoder are single hidden-layer MLPs. We implement tanh activation, forward pass, loss, and a hand-written backward pass. Not production — pedagogy.
+`code/main.py`输入是从8维的2组件高斯混合物中获取的8维合成数据.编码器和解码器是单个隐藏层MLP.我们实现了tanh激活,前传,损失和手写后传.不是生产教学.
 
-### Step 1: encoder forward
+### 步骤1:向前编码器
 
 ```python
 def encode(x, enc):
@@ -56,9 +56,9 @@ def encode(x, enc):
     return mu, log_sigma2
 ```
 
-`log σ²` instead of `σ` so the network output is unconstrained (softplus of σ is a trap — gradients die at σ ≈ 0).
+`log σ²`没有`σ`因此网络输出不受限制 (s 的软加值是陷  梯度在 σ ≈ 0 时死亡).
 
-### Step 2: reparameterize and decode
+### 步骤2:重组和解码
 
 ```python
 def reparameterize(mu, log_sigma2, rng):
@@ -71,7 +71,7 @@ def decode(z, dec):
     return add(matmul(dec["W_out"], h), dec["b_out"])
 ```
 
-### Step 3: the ELBO
+### 步骤3:ELBO
 
 ```python
 def elbo(x, x_hat, mu, log_sigma2, beta=1.0):
@@ -80,9 +80,9 @@ def elbo(x, x_hat, mu, log_sigma2, beta=1.0):
     return recon + beta * kl, recon, kl
 ```
 
-Exact closed-form KL because both distributions are Gaussian. Do not integrate numerically. People still ship code with monte-carlo KL estimates in 2026 — it is 3x slower for no reason.
+由于两个分布都是高斯式的,所以它不能数字化整合.人们仍然在2026年运输代码,蒙特卡洛估计KL速度将会慢得3倍.
 
-### Step 4: generate
+### 步骤4:生成
 
 ```python
 def sample(dec, z_dim, rng):
@@ -90,18 +90,18 @@ def sample(dec, z_dim, rng):
     return decode(z, dec)
 ```
 
-That is the generative model. Five lines.
+这就是生成模型,五行.
 
-## Pitfalls
+## 陷
 
-- **Posterior collapse.** KL term drives `q(z|x) → N(0, I)` so aggressively that `z` carries no info about `x`. Fix: β-annealing (start β=0, ramp to 1), free bits, or skip the KL on inactive dimensions.
-- **Blurry samples.** The Gaussian decoder likelihood implies MSE reconstruction, which is Bayes-optimal for L2 (the mean) — the mean of a set of plausible digits is a fuzzy digit. Fix: discrete decoder (VQ-VAE, NVAE), or use the VAE only as an encoder and stack diffusion on the latents (this is what Stable Diffusion does).
-- **β too large, too early.** See posterior collapse. Start at β≈0.01 and ramp.
-- **Latent dim too small.** 16-D works for MNIST, 256-D for ImageNet 256², 2048-D for ImageNet 1024². Stable Diffusion's VAE compresses 512×512×3 → 64×64×4 (32x downsample factor in spatial area, 32x in channels).
+- **Posterior collapse.**卡通通通用驱动器`q(z|x) → N(0, I)`如此积极的`z`没有关于`x`修复: β-取消 (开始 β=0, 向 1), 释放位,或在不活跃的尺寸上跳过 KL.
+- **Blurry samples.**盖斯解码器概率意味着MSE重建,这是Bays最佳的L2 (平均值) 一个可信数字的平均值是模糊的数字. 修正:分离解码器 (VQ-VAE,NVAE),或仅用VAE作为编码器和堆扩散在隐藏 (这是稳定扩散所做的).
+- **β too large, too early.**看到后部崩. 开始在 β≈0.01 和道.
+- **Latent dim too small.**16D为MNIST工作,256-D为ImageNet 2562,2048-D为ImageNet 10242.稳定扩散的VAE压缩为512×512×3 →64×64×4 (32x空间面积下样数,32x频道).
 
-## Use It
+## 用它
 
-The 2026 VAE stack:
+2026 年的VAE堆:
 
 | Situation | Pick |
 |-----------|------|
@@ -112,21 +112,21 @@ The 2026 VAE stack:
 | Discrete latents (for transformer modelling) | VQ-VAE, RVQ (ResidualVQ) |
 | Continuous latents for generation | Plain VAE, then condition a flow/diffusion model in that latent space |
 
-A latent-diffusion model is a VAE with a diffusion model living between encoder and decoder. The VAE does coarse compression, the diffusion model does the heavy lifting. Same pattern for video (VAE + video-diffusion DiT) and audio (Encodec + MusicGen transformer).
+隐形传播模型是一个VAE,其中一个分布模型在编码器和解码器之间存在.VAE执行粗压,扩散模型执行重量起重.视频 (VAE +视频扩散diT) 和音频 (Encodec + MusicGen变压器) 的模式相同.
 
-## Ship It
+## 运送它
 
-Save `outputs/skill-vae-trainer.md`.
+保存`outputs/skill-vae-trainer.md`现在,我们要去.
 
-Skill takes: dataset profile + latent-dim target + downstream use (reconstruction, sampling, or latent-diffusion input) and outputs: architecture choice (plain/β/VQ/RVQ), β schedule, latent dim, decoder likelihood (Gaussian vs categorical), and evaluation plan (recon MSE, KL per dim, Fréchet distance between `q(z|x)` and `N(0, I)`).
+技能:数据集的配置文件 + 隐形dim目标 + 下游使用 (重建,采样或隐形diffusion输入) 和输出:建筑选择 (平面/β/VQ/RVQ), β时间表,隐形dim,解码概率 (Gaussian vs 类型),评估计划 (Recon MSE, KL per dim, Fréchet 距离之间的距离`q(z|x)`其他`N(0, I)`)
 
-## Exercises
+## 运动
 
-1. **Easy.** Change `β` in `code/main.py` to `0.01`, `0.1`, `1.0`, `5.0`. Record the final reconstruction MSE and KL. Which β is Pareto-best for your synthetic data?
-2. **Medium.** Replace the Gaussian decoder likelihood with a Bernoulli likelihood (cross-entropy loss). Compare sample quality on a binarized version of the same synthetic data.
-3. **Hard.** Extend `code/main.py` into a mini VQ-VAE: replace the continuous `z` with a nearest-neighbour lookup in a codebook of K=32 entries. Compare reconstruction MSE and report how many codebook entries get used (codebook collapse is real).
+1. **Easy.**改变`β`在`code/main.py`为了`0.01`现在`0.1`现在`1.0`现在`5.0`记录最后的重建MSE和KL. 哪个 β是最适合你的合成数据?
+2. **Medium.**替换高斯解码器概率为伯诺利概率 (跨进力损失).对同样的合成数据的二进制版本进行样本质量比较.
+3. **Hard.**延长时间`code/main.py`换成小型VQ-VAE:将连续的`z`通过在 K=32 条目编程册中查找最近邻居. 进行重建MSE的比较,并报告使用的代码册条目数量 (代码册崩是真实的).
 
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
@@ -139,18 +139,18 @@ Skill takes: dataset profile + latent-dim target + downstream use (reconstructio
 | β-VAE | Tunable KL weight | `loss = recon + β·KL`. Higher β = more disentangled but blurrier. |
 | VQ-VAE | Discrete latent | Replace continuous `z` with nearest codebook vector; enables transformer modelling. |
 
-## Production note: the VAE is the hottest path in a diffusion server
+## 产品注:VAE是扩散服务器中最热路径
 
-In a Stable Diffusion / Flux / SD3 pipeline the VAE is called twice per request — once to encode (if doing img2img / inpainting) and once to decode. At 1024² the decoder pass is often the single largest activation-memory peak in the whole pipeline because it upsamples `128×128×16` latents back to `1024×1024×3`. Two practical consequences:
+在稳定扩散/流动/SD3管道中,VAE 需要每次调用两次,一次编码 (如果做 img2img / inpainting) 和一次解码.在10242时,解码器传递通常是整个管道中最大的激活记忆峰值,因为它提升了`128×128×16`隐藏的回归`1024×1024×3`两种实际后果:
 
-- **Slice or tile the decode.** `diffusers` exposes `pipe.vae.enable_slicing()` and `pipe.vae.enable_tiling()`. Tiling trades a small seam artifact for `O(tile²)` memory instead of `O(H·W)`. Essential for 1024²+ on consumer GPUs.
-- **bf16 decoder, fp32 numerics for the final resize.** The SD 1.x VAE was released in fp32 and *silently produces NaNs* when cast to fp16 at 1024²+. SDXL ships `madebyollin/sdxl-vae-fp16-fix` — always prefer the fp16-fix variant or use bf16.
+- **Slice or tile the decode.** `diffusers`暴露`pipe.vae.enable_slicing()`其他`pipe.vae.enable_tiling()`件交易小件`O(tile²)`记忆而不是`O(H·W)`对于10242+的消费者GPU.
+- **bf16 decoder, fp32 numerics for the final resize.**在10242+SDXL船上,SD 1.x VAE在fp32中发布,在投到fp16时,它地产生了NaNs.`madebyollin/sdxl-vae-fp16-fix`总是偏爱fp16-fix变体或使用bf16.
 
-## Further Reading
+## 进一步阅读
 
-- [Kingma & Welling (2013). Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114) — the VAE paper.
-- [Higgins et al. (2017). β-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework](https://openreview.net/forum?id=Sy2fzU9gl) — disentangled β-VAE.
-- [van den Oord et al. (2017). Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937) — VQ-VAE.
-- [Vahdat & Kautz (2021). NVAE: A Deep Hierarchical Variational Autoencoder](https://arxiv.org/abs/2007.03898) — state-of-the-art image VAE.
-- [Rombach et al. (2022). High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) — Stable Diffusion; VAE as encoder.
-- [Défossez et al. (2022). High Fidelity Neural Audio Compression](https://arxiv.org/abs/2210.13438) — Encodec, the audio VAE standard.
+- [Kingma & Welling (2013). Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114)VAE论文.
+- [Higgins et al. (2017). β-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework](https://openreview.net/forum?id=Sy2fzU9gl)分离 β-VAE.
+- [van den Oord et al. (2017). Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937) VQ-VAE
+- [Vahdat & Kautz (2021). NVAE: A Deep Hierarchical Variational Autoencoder](https://arxiv.org/abs/2007.03898)最新的图像.
+- [Rombach et al. (2022). High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752)稳定扩散;VAE作为编码器.
+- [Défossez et al. (2022). High Fidelity Neural Audio Compression](https://arxiv.org/abs/2210.13438) Encodec,音频VAE标准.
