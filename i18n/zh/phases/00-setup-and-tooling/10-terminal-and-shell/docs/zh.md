@@ -1,24 +1,24 @@
-# 终端与 Shell
+# 终端和
 
-> 终端是 AI 工程师的主要阵地。在这里要游刃有余。
+> 终端是人工智能工程师居住的地方.
 
-**类型：** 学习
-**语言：** --
-**前置条件：** Phase 0, Lesson 01
-**时间：** ~35 分钟
+**Type:** Learn
+**Languages:** --
+**Prerequisites:** Phase 0, Lesson 01
+**Time:** ~35 minutes
 
 ## 学习目标
 
-- 使用管道、重定向和 `grep` 从命令行过滤和处理训练日志
-- 创建包含多个窗格的持久化 tmux 会话，用于并行训练和 GPU 监控
-- 使用 `htop`、`nvtop` 和 `nvidia-smi` 监控系统与 GPU 资源
-- 使用 SSH、`scp` 和 `rsync` 在本地与远程机器之间传输文件
+- 使用管道,转向,`grep`从命令行过和处理训练日志
+- 创建多个面板的持续tmux会议,同时进行训练和GPU监控
+- 监控系统和GPU资源`htop`现在`nvtop`其他`nvidia-smi`
+- 通过SSH将本地和远程机器之间的文件转移,`scp`其他`rsync`
 
-## 问题所在
+## 问题
 
-你花在终端上的时间会比在任何编辑器上都多。训练运行、GPU 监控、日志跟踪、远程 SSH 会话、环境管理——每个 AI 工作流都会触及 Shell。如果你在这里效率低下，你到处都会慢。
+你将在终端里花更多的时间,比任何编辑器. 训练运行,GPU监控,日志追踪,远程SSH会议,环境管理. 每个人工智能工作流都触及了贝. 如果你在这里慢,你在任何地方都会慢.
 
-本课涵盖 AI 工作真正需要的终端技能。不讲 Unix 历史，不深入 Bash 脚本。只教你需要用的。
+这堂课涵盖人工智能工作所需的终端技能. 没有Unix的历史. 没有深入的Bash脚本.
 
 ## 概念
 
@@ -33,316 +33,316 @@ graph TD
     end
 ```
 
-三件事同时运行。一个终端。你可以断开连接，回家，重新 SSH 进来，然后重新附加。训练仍在继续。
+连接三件事,一个终端,你可以脱离,回家,再回 SSH,再连接.
 
 ```figure
 s0-shell-pipeline
 ```
 
-## 动手做
+## 建立它
 
-### 步骤 1：了解你的 Shell
+### 步骤1:了解你的
 
-查看你正在运行哪个 Shell：
+检查你运行的炮弹:
 
 ```bash
 echo $SHELL
 ```
 
-大多数系统使用 `bash` 或 `zsh`。两者都没问题。本课程中的命令在两者中都能正常工作。
+大多数系统使用`bash`或`zsh`两者都很好,这门课程中的命令都很好.
 
-需要知道的关键点：
+重要的事情:
 
 ```bash
-# 导航
+# Move around
 cd ~/projects/ai-engineering-from-scratch
 pwd
 ls -la
 
-# 历史搜索（你将学到的最有用的快捷键）
-# Ctrl+R 然后输入之前命令的部分内容
-# 再次按 Ctrl+R 可在匹配项中循环
+# History search (most useful shortcut you'll learn)
+# Ctrl+R then type part of a previous command
+# Press Ctrl+R again to cycle through matches
 
-# 清屏
-clear   # 或 Ctrl+L
+# Clear terminal
+clear   # or Ctrl+L
 
-# 取消正在运行的命令
+# Cancel a running command
 # Ctrl+C
 
-# 挂起正在运行的命令（用 fg 恢复）
+# Suspend a running command (resume with fg)
 # Ctrl+Z
 ```
 
-### 步骤 2：管道与重定向
+### 步骤2:管道和转向
 
-管道将命令连接在一起。这是处理日志、过滤输出和组合工具的方式。你会频繁使用它。
+管道将命令连接在一起. 这就是你处理日志,过输出和链工具的方式.
 
 ```bash
-# 统计日志中 "loss" 出现的次数
+# Count how many times "loss" appears in a log
 cat train.log | grep "loss" | wc -l
 
-# 从训练输出中提取 loss 值
+# Extract just the loss values from training output
 grep "loss:" train.log | awk '{print $NF}' > losses.txt
 
-# 实时跟踪日志文件更新，过滤错误
+# Watch a log file update in real time, filtering for errors
 tail -f train.log | grep --line-buffered "ERROR"
 
-# 按最终准确率排序实验
+# Sort experiments by final accuracy
 grep "final_accuracy" results/*.log | sort -t= -k2 -n -r
 
-# 将 stdout 和 stderr 重定向到不同文件
+# Redirect stdout and stderr to separate files
 python train.py > output.log 2> errors.log
 
-# 将两者重定向到同一文件
+# Redirect both to the same file
 python train.py > train_full.log 2>&1
 ```
 
-你需要掌握的三个重定向：
+你需要的三个转向:
 
-| 符号 | 作用 |
-|------|------|
-| `>` | 将 stdout 写入文件（覆盖） |
-| `>>` | 将 stdout 追加到文件 |
-| `2>` | 将 stderr 写入文件 |
-| `2>&1` | 将 stderr 发送到与 stdout 相同的位置 |
-| `\|` | 将一个命令的 stdout 作为 stdin 发送给下一个命令 |
+| Symbol | What it does |
+|--------|-------------|
+| `>` | Write stdout to file (overwrite) |
+| `>>` | Append stdout to file |
+| `2>` | Write stderr to file |
+| `2>&1` | Send stderr to same place as stdout |
+| `\|` | Send stdout of one command as stdin to the next |
 
-### 步骤 3：后台进程
+### 步骤3:背景过程
 
-训练运行需要数小时。你不想让终端一直开着。
+训练需要几个小时,你不想一直保持终端开放.
 
 ```bash
-# 在后台运行（输出仍发送到终端）
+# Run in background (output still goes to terminal)
 python train.py &
 
-# 在后台运行，不受 hangup 影响（关闭终端不会杀死它）
+# Run in background, immune to hangup (closing terminal won't kill it)
 nohup python train.py > train.log 2>&1 &
 
-# 查看后台运行的任务
+# Check what's running in background
 jobs
 ps aux | grep train.py
 
-# 将后台任务带回前台
+# Bring a background job to foreground
 fg %1
 
-# 终止后台进程
+# Kill a background process
 kill %1
-# 或者查找其 PID 并终止
+# or find its PID and kill that
 kill $(pgrep -f "train.py")
 ```
 
-`&`、`nohup` 与 `screen`/`tmux` 的区别：
+之间的区别`&`现在`nohup`其他`screen`现在,我们要去.`tmux`其他:
 
-| 方法 | 关闭终端后存活？ | 可重新附加？ |
-|------|----------------|-------------|
-| `command &` | 否 | 否 |
-| `nohup command &` | 是 | 否（查看日志文件） |
-| `screen` / `tmux` | 是 | 是 |
+| Method | Survives terminal close? | Can reattach? |
+|--------|-------------------------|---------------|
+| `command &` | No | No |
+| `nohup command &` | Yes | No (check log file) |
+| `screen` / `tmux` | Yes | Yes |
 
-对于超过几分钟的任务，使用 tmux。
+任何超过几分钟的时间,使用tmux.
 
-### 步骤 4：tmux
+### 步骤4:
 
-tmux 允许你在一个终端内创建持久化的多窗格会话。这是管理训练运行最实用的工具。
+通过 tmux,您可以创建多个面板的持续终端会议.
 
 ```bash
-# 安装
+# Install
 # macOS
 brew install tmux
 # Ubuntu
 sudo apt install tmux
 
-# 启动命名会话
+# Start a named session
 tmux new -s training
 
-# 水平分割
-# Ctrl+B 然后按 "
+# Split horizontally
+# Ctrl+B then "
 
-# 垂直分割
-# Ctrl+B 然后按 %
+# Split vertically
+# Ctrl+B then %
 
-# 在窗格间切换
-# Ctrl+B 然后按方向键
+# Navigate between panes
+# Ctrl+B then arrow keys
 
-# 断开（会话继续运行）
-# Ctrl+B 然后按 d
+# Detach (session keeps running)
+# Ctrl+B then d
 
-# 重新附加
+# Reattach
 tmux attach -t training
 
-# 列出会话
+# List sessions
 tmux ls
 
-# 终止会话
+# Kill a session
 tmux kill-session -t training
 ```
 
-典型的 AI 工作流会话：
+典型的人工智能工作流程:
 
 ```bash
 tmux new -s train
 
-# 窗格 1：开始训练
+# Pane 1: start training
 python train.py --epochs 100 --lr 1e-4
 
-# Ctrl+B, " 分割，然后运行 GPU 监控
+# Ctrl+B, " to split, then run GPU monitor
 watch -n1 nvidia-smi
 
-# Ctrl+B, % 垂直分割，跟踪日志
+# Ctrl+B, % to split vertically, tail the logs
 tail -f logs/experiment.log
 
-# 现在用 Ctrl+B, d 断开
-# SSH 出去，去喝杯咖啡，然后回来
+# Now detach with Ctrl+B, d
+# SSH out, go get coffee, come back
 # tmux attach -t train
 ```
 
-### 步骤 5：使用 htop 和 nvtop 监控
+### 步骤5:使用 htop 和 nvtop 监测
 
 ```bash
-# 系统进程（比 top 更好用）
+# System processes (better than top)
 htop
 
-# GPU 进程（如果你有 NVIDIA GPU）
-# 安装：sudo apt install nvtop (Ubuntu) 或 brew install nvtop (macOS)
+# GPU processes (if you have NVIDIA GPU)
+# Install: sudo apt install nvtop (Ubuntu) or brew install nvtop (macOS)
 nvtop
 
-# 快速 GPU 检查（无需 nvtop）
+# Quick GPU check without nvtop
 nvidia-smi
 
-# 每秒更新一次监控 GPU 使用情况
+# Watch GPU usage update every second
 watch -n1 nvidia-smi
 
-# 查看哪些进程正在使用 GPU
+# See which processes are using the GPU
 nvidia-smi --query-compute-apps=pid,name,used_memory --format=csv
 ```
 
-`htop` 你会用到的快捷键：
-- `F6` 或 `>` 按列排序（按内存排序以查找内存泄漏）
-- `F5` 切换树状视图（查看子进程）
-- `F9` 终止进程
-- `/` 搜索进程名称
+`htop`您将使用的键链:
+- `F6`或`>`按列排序 (按内存排序以查找内存泄漏)
+- `F5`切换树视图 (见儿童过程)
+- `F9`杀死一个过程
+- `/`搜索过程名称
 
-### 步骤 6：通过 SSH 连接远程 GPU 服务器
+### 步骤 6:远程GPU盒的SSH
 
-当你租用云 GPU（Lambda、RunPod、Vast.ai）时，通过 SSH 连接。
+当你租用云GPU (Lambda, RunPod,Vast.ai) 时,你通过SSH连接.
 
 ```bash
-# 基本连接
+# Basic connection
 ssh user@gpu-box-ip
 
-# 使用特定密钥
+# With a specific key
 ssh -i ~/.ssh/my_gpu_key user@gpu-box-ip
 
-# 复制文件到远程
+# Copy files to remote
 scp model.pt user@gpu-box-ip:~/models/
 
-# 从远程复制文件
+# Copy files from remote
 scp user@gpu-box-ip:~/results/metrics.json ./
 
-# 同步整个目录（文件多时更快）
+# Sync a whole directory (faster for many files)
 rsync -avz ./data/ user@gpu-box-ip:~/data/
 
-# 端口转发（在本地访问远程 Jupyter/TensorBoard）
+# Port forward (access remote Jupyter/TensorBoard locally)
 ssh -L 8888:localhost:8888 user@gpu-box-ip
-# 然后在浏览器中打开 localhost:8888
+# Now open localhost:8888 in your browser
 
-# SSH 配置（方便使用）
-# 添加到 ~/.ssh/config:
+# SSH config for convenience
+# Add to ~/.ssh/config:
 # Host gpu
 #     HostName 192.168.1.100
 #     User ubuntu
 #     IdentityFile ~/.ssh/gpu_key
 #
-# 然后只需：
+# Then just:
 # ssh gpu
 ```
 
-### 步骤 7：AI 工作的实用别名
+### 步骤7:人工智能工作的有用称
 
-将这些添加到你的 `~/.bashrc` 或 `~/.zshrc`：
+加入这些`~/.bashrc`或`~/.zshrc`其他:
 
 ```bash
 source phases/00-setup-and-tooling/10-terminal-and-shell/code/shell_aliases.sh
 ```
 
-或者复制你需要的。关键别名：
+别人可以复制你想要的.
 
 ```bash
-# 一目了然地查看 GPU 状态
+# GPU status at a glance
 alias gpu='nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader'
 
-# 终止所有 Python 训练进程
+# Kill all Python training processes
 alias killtraining='pkill -f "python.*train"'
 
-# 快速激活虚拟环境
+# Quick virtual environment activate
 alias ae='source .venv/bin/activate'
 
-# 实时查看训练 loss
+# Watch training loss
 alias watchloss='tail -f logs/*.log | grep --line-buffered "loss"'
 ```
 
-完整集合见 `code/shell_aliases.sh`。
+看到`code/shell_aliases.sh`对于整个集.
 
-### 步骤 8：常见的 AI 终端模式
+### 步骤8:常见的AI终端模式
 
-这些在实践中反复出现：
+这些问题在实践中反复出现:
 
 ```bash
-# 运行训练，记录所有内容，完成后通知
+# Run training, log everything, notify when done
 python train.py 2>&1 | tee train.log; echo "DONE" | mail -s "Training complete" you@email.com
 
-# 并排比较两个实验日志
+# Compare two experiment logs side by side
 diff <(grep "accuracy" exp1.log) <(grep "accuracy" exp2.log)
 
-# 查找最大的模型文件（清理磁盘空间）
+# Find the largest model files (clean up disk space)
 find . -name "*.pt" -o -name "*.safetensors" | xargs du -h | sort -rh | head -20
 
-# 从 Hugging Face 下载模型
+# Download a model from Hugging Face
 wget https://huggingface.co/model/resolve/main/model.safetensors
 
-# 解压数据集
+# Untar a dataset
 tar xzf dataset.tar.gz -C ./data/
 
-# 统计所有 Python 文件的行数（看看项目有多大）
+# Count lines in all Python files (see how big your project is)
 find . -name "*.py" | xargs wc -l | tail -1
 
-# 检查磁盘空间（训练数据会快速填满磁盘）
+# Check disk space (training data fills disks fast)
 df -h
 du -sh ./data/*
 
-# 训练前的环境变量检查
+# Environment variable check before training
 env | grep -i cuda
 env | grep -i torch
 ```
 
-## 使用场景
+## 用它
 
-在本课程期间，各个工具的使用时机如下：
+在课程中,每种工具都会发挥作用:
 
-| 工具 | 使用时机 |
-|------|---------|
-| tmux | 每次训练运行（Phase 3+） |
-| `tail -f` + `grep` | 监控训练日志 |
-| `nohup` / `&` | 快速后台任务 |
-| `htop` / `nvtop` | 调试慢训练、OOM 错误 |
-| SSH + `rsync` | 在云 GPU 上工作 |
-| 管道与重定向 | 处理实验结果 |
-| 别名 | 节省重复命令的时间 |
+| Tool | When you use it |
+|------|----------------|
+| tmux | Every training run (Phases 3+) |
+| `tail -f` + `grep` | Monitoring training logs |
+| `nohup` / `&` | Quick background tasks |
+| `htop` / `nvtop` | Debugging slow training, OOM errors |
+| SSH + `rsync` | Working on cloud GPUs |
+| Piping + redirects | Processing experiment results |
+| Aliases | Saving time on repetitive commands |
 
-## 练习
+## 运动
 
-1. 安装 tmux，创建一个包含三个窗格的会话，在一个窗格中运行 `htop`，另一个运行 `watch -n1 date`，第三个运行 Python 脚本。断开并重新附加。
-2. 将 `code/shell_aliases.sh` 中的别名添加到你的 Shell 配置中，并使用 `source ~/.zshrc`（或 `~/.bashrc`）重新加载。
-3. 使用以下命令创建伪造的训练日志：`for i in $(seq 1 100); do echo "epoch $i loss: $(echo "scale=4; 1/$i" | bc)"; sleep 0.1; done > fake_train.log`，然后使用 `grep`、`tail` 和 `awk` 提取 loss 值。
-4. 为你可以访问的服务器设置 SSH 配置条目（或使用 `localhost` 练习语法）。
+1. 安装tmux,创建一个三个面板的会议,然后运行`htop`在一个,`watch -n1 date`在另一个,和Python脚本在第三个.
+2. 添加来自的号`code/shell_aliases.sh`让你的子配置和重新充电`source ~/.zshrc`(或`~/.bashrc`)
+3. 创建一个假的训练日志`for i in $(seq 1 100); do echo "epoch $i loss: $(echo "scale=4; 1/$i" | bc)"; sleep 0.1; done > fake_train.log`然后使用`grep`现在`tail`其他`awk`只有输出值.
+4. 设置一个SSH配置输入,为您访问 (或使用) 的服务器`localhost`实践语法).
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Shell | "终端" | 解释你命令的程序（bash、zsh、fish） |
-| tmux | "终端复用器" | 允许你在一个窗口内运行多个终端会话，并可断开/重新附加的程序 |
-| 管道 | "那条竖线" | `\|` 运算符，将一个命令的输出作为另一个命令的输入 |
-| PID | "进程 ID" | 分配给每个运行进程的唯一天整数，用于监控或终止它 |
-| nohup | "不挂断" | 使命令不受挂断信号影响，关闭终端不会杀死它 |
-| SSH | "连接到服务器" | Secure Shell，一种用于在远程机器上运行命令的加密协议 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Shell | "The terminal" | The program that interprets your commands (bash, zsh, fish) |
+| tmux | "Terminal multiplexer" | A program that lets you run multiple terminal sessions inside one window, and detach/reattach |
+| Pipe | "The bar thing" | The `\|` operator that sends one command's output as input to another |
+| PID | "Process ID" | A unique number assigned to every running process, used to monitor or kill it |
+| nohup | "No hangup" | Runs a command immune to the hangup signal, so closing the terminal won't kill it |
+| SSH | "Connecting to the server" | Secure Shell, an encrypted protocol for running commands on a remote machine |

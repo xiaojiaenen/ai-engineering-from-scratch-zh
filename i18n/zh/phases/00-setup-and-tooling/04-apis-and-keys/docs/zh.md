@@ -1,62 +1,62 @@
-# API 与密钥
+# 应用程序和关键
 
-> 每个 AI API 的工作方式都相同：发送请求，获取响应。细节有所不同，但模式不变。
+> 每个人工智能API都以相同的方式运作:发送请求,得到回应. 细节改变,模式不改变.
 
-**类型：** 构建
-**语言：** Python、TypeScript
-**前置条件：** Phase 0、Lesson 01
-**时间：** 约 30 分钟
+**Type:** Build
+**Languages:** Python, TypeScript
+**Prerequisites:** Phase 0, Lesson 01
+**Time:** ~30 minutes
 
 ## 学习目标
 
-- 使用环境变量和 `.env` 文件安全地存储 API 密钥
-- 使用 Anthropic Python SDK 和原始 HTTP 发起 LLM API 调用
-- 对比基于 SDK 和原始 HTTP 的请求/响应格式，便于调试
-- 识别并处理常见 API 错误，包括认证失败和速率限制
+- 通过环境变量安全存储API密钥,`.env`文件
+- 使用人类 Python SDK 和原始 HTTP 进行LLM API 调用
+- 进行调试,比较基于SDK和原始HTTP请求/响应格式
+- 识别和处理包括身份验证和速度限制在内的常见API错误
 
 ## 问题
 
-从 Phase 11 开始，你将调用 LLM API（Anthropic、OpenAI、Google）。在 Phase 13-16 中，你会构建在这些 API 循环中运行的智能体。你需要了解 API 密钥的工作原理、如何安全存储它们，以及如何发起你的第一次 API 调用。
+从第11阶段开始,你将打电话给LLM API (人类,OpenAI,谷歌).在第13-16阶段,你将建立使用这些API的代理.你需要知道API密钥如何工作,如何安全存储它们,以及如何进行你的第一个API电话.
 
 ## 概念
 
 ```mermaid
 sequenceDiagram
-    participant C as 你的代码
-    participant S as API 服务器
-    C->>S: HTTP 请求（含 API 密钥）
-    S->>C: HTTP 响应（JSON）
+    participant C as Your Code
+    participant S as API Server
+    C->>S: HTTP Request (with API key)
+    S->>C: HTTP Response (JSON)
 ```
 
-每次 API 调用都包含：
-1. 一个端点（URL）
-2. 一个 API 密钥（身份验证）
-3. 一个请求体（你请求的内容）
-4. 一个响应体（你收到的结果）
+每个API通话都有:
+1. 终端点 (URL)
+2. 应用程序的 API 密钥 (身份验证)
+3. 要求机构 (您需要什么)
+4. 响应器 (你得到的回报)
 
 ```figure
 s0-secret-inject
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：安全地存储 API 密钥
+### 步骤1:安全存储API密钥
 
-永远不要将 API 密钥写在代码里。使用环境变量。
+永远不要把API密钥放入代码中.
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
 export OPENAI_API_KEY="sk-..."
 ```
 
-或者使用 `.env` 文件（将其添加到 `.gitignore`）：
+或使用一个`.env`文件 (添加到`.gitignore`):
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 ```
 
-### 步骤 2：第一次 API 调用（Python）
+### 步骤2:第一个API调用 (Python)
 
 ```python
 import os
@@ -70,15 +70,15 @@ MODEL = os.environ.get("LLM_MODEL", "claude-sonnet-5")
 response = client.messages.create(
     model=MODEL,
     max_tokens=256,
-    messages=[{"role": "user", "content": "用一句话解释什么是神经网络"}]
+    messages=[{"role": "user", "content": "What is a neural network in one sentence?"}]
 )
 
 print(response.content[0].text)
 ```
 
-`LLM_MODEL` 用于选择 Anthropic 模型 id，默认是未标注日期的 Sonnet 别名。其他提供商（OpenAI、Google 及其他）也遵循"密钥 + 模型 id"的模式，但每家都有自己独有的 SDK、端点和请求/响应结构。
+`LLM_MODEL`其他提供商 (OpenAI,Google等) 遵循相同的键和模型 id 模式,但每个都有自己的 SDK,终端点和请求/响应方案.
 
-### 步骤 3：第一次 API 调用（TypeScript）
+### 步骤3:第一个API调用 (TypeScript)
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk";
@@ -90,13 +90,13 @@ const MODEL = process.env.LLM_MODEL ?? "claude-sonnet-5";
 const response = await client.messages.create({
   model: MODEL,
   max_tokens: 256,
-  messages: [{ role: "user", content: "用一句话解释什么是神经网络" }],
+  messages: [{ role: "user", content: "What is a neural network in one sentence?" }],
 });
 
 console.log(response.content[0].text);
 ```
 
-### 步骤 4：原始 HTTP（不使用 SDK）
+### 步骤4:原始 HTTP (没有 SDK)
 
 ```python
 import os
@@ -112,7 +112,7 @@ headers = {
 body = json.dumps({
     "model": os.environ.get("LLM_MODEL", "claude-sonnet-5"),
     "max_tokens": 256,
-    "messages": [{"role": "user", "content": "用一句话解释什么是神经网络"}],
+    "messages": [{"role": "user", "content": "What is a neural network in one sentence?"}],
 }).encode()
 
 req = urllib.request.Request(url, data=body, headers=headers, method="POST")
@@ -121,36 +121,36 @@ with urllib.request.urlopen(req) as resp:
     print(result["content"][0]["text"])
 ```
 
-这正是 SDK 在底层所做的事情。理解原始 HTTP 调用有助于调试。
+了解原始 HTTP 调用帮助在调试时.
 
-## 使用指南
+## 用它
 
-本课程中：
+对于这个课程:
 
-| API | 使用时机 | 免费额度 |
-|-----|---------|---------|
-| Anthropic（Claude） | Phase 11-16（智能体、工具） | 注册送 $5 额度 |
-| OpenAI | Phase 11（对比练习） | 注册送 $5 额度 |
-| Hugging Face | Phase 4-10（模型、数据集） | 免费 |
+| API | When you need it | Free tier |
+|-----|-----------------|-----------|
+| Anthropic (Claude) | Phases 11-16 (agents, tools) | $5 credit on signup |
+| OpenAI | Phase 11 (comparison) | $5 credit on signup |
+| Hugging Face | Phases 4-10 (models, datasets) | Free |
 
-你不需要现在就全部设置好。在课程需要时再配置。
+你不需要他们现在,当课时需要的时候,就把它们设置起来.
 
-## 交付物
+## 运送它
 
-本课产出：
-- `outputs/prompt-api-troubleshooter.md` — 诊断常见 API 错误
+这一课产生了:
+- `outputs/prompt-api-troubleshooter.md`- 诊断常见的API错误
 
-## 练习
+## 运动
 
-1. 获取 Anthropic API 密钥并发起你的第一次 API 调用
-2. 尝试原始 HTTP 版本，并将响应格式与 SDK 版本进行对比
-3. 故意使用错误的 API 密钥，阅读错误信息
+1. 获取一个人类API密钥,并进行你的第一个API电话
+2. 试试原始 HTTP 版本,并将响应格式与 SDK 版本进行比较
+3. 故意使用错误的API键并读取错误信息
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| API 密钥 | "API 的密码" | 标识你账户并授权请求的唯一字符串 |
-| 速率限制 | "他们在限制我" | 每分钟/每小时最大请求数，用于防止滥用并保障公平使用 |
-| Token | "一个词"（API 语境下） | 计费单位：输入和输出的 token 分别计数并分别计费 |
-| 流式传输 | "实时响应" | 逐词接收响应，而非等待完整响应返回 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| API key | "Password for the API" | A unique string that identifies your account and authorizes requests |
+| Rate limit | "They're throttling me" | Maximum requests per minute/hour to prevent abuse and ensure fair usage |
+| Token | "A word" (in API context) | A billing unit: input and output tokens are counted and charged separately |
+| Streaming | "Real-time responses" | Getting the response word by word instead of waiting for the full response |

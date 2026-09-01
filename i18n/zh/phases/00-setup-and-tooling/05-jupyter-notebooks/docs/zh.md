@@ -1,100 +1,100 @@
-# Jupyter Notebooks
+# 朱皮特笔记本
 
-> Notebooks are the lab bench of AI engineering. You prototype here, then move what works into production.
+> 笔记本是人工智能工程的实验室.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** Phase 0, Lesson 01
-**时间：** 约 30 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 0, Lesson 01
+**Time:** ~30 minutes
 
 ## 学习目标
 
-- 安装并启动 JupyterLab、Jupyter Notebook 或带 Jupyter 扩展的 VS Code
-- 使用魔法命令（`%timeit`、`%%time`、`%matplotlib inline`）进行基准测试和行内可视化
-- 区分何时使用笔记本（notebook）与脚本，并应用"在笔记本中探索，用脚本交付"的工作流
-- 识别并避免常见的笔记本陷阱：执行顺序错乱、隐藏状态和内存泄漏
+- 通过Jupyter扩展安装和启动JupyterLab,Jupyter笔记本或VS代码
+- 使用魔术命令 (`%timeit`现在`%%time`现在`%matplotlib inline`) 进行基准和可视化直线
+- 区分使用笔记本与脚本的时间,并应用"在笔记本中探索,在脚本中运输"工作流程
+- 识别和避免常见的笔记本电脑陷:失序执行,隐藏状态和内存泄漏
 
-## 问题背景
+## 问题
 
-每篇 AI 论文、教程和 Kaggle 比赛都在使用 Jupyter 笔记本。它们让你可以分段运行代码、行内查看输出、将代码与解释混合排列，并快速迭代。如果你不借助笔记本学习 AI，就如同做数学题却不用草稿纸。
+每个人工智能论文,教程和Kaggle竞赛都使用Jupyter笔记本.它们让你运行代码,看到输出线,混合代码和解释,并快速反复.如果你试图学习人工智能,没有笔记本,你就没有抓纸做数学功课了.
 
-但笔记本存在真实的陷阱。有人把它们用于所有事情，包括他们并不擅长的事。知道何时该用笔记本、何时该用脚本，能帮你避免日后调试时的噩梦。
+但笔记本有真正的陷.人们用它们做一切,包括他们很糟糕的事情.知道什么时候使用笔记本和什么时候使用脚本,
 
-## 概念解析
+## 概念
 
-一个笔记本是一系列单元格的列表。每个单元格要么是代码，要么是文本。
+一本笔记本是单元单元的列表.
 
 ```mermaid
 graph TD
-    A["**Markdown 单元格**\n# 我的实验\n测试学习率 0.01"] --> B["**代码单元格** ► 运行\nmodel.fit(X, y, lr=0.01)\n---\n输出：loss = 0.342"]
-    B --> C["**代码单元格** ► 运行\nplt.plot(losses)\n---\n输出：行内图表"]
+    A["**Markdown Cell**\n# My Experiment\nTesting learning rate 0.01"] --> B["**Code Cell** ► Run\nmodel.fit(X, y, lr=0.01)\n---\nOutput: loss = 0.342"]
+    B --> C["**Code Cell** ► Run\nplt.plot(losses)\n---\nOutput: inline plot"]
 ```
 
-内核（kernel）是一个在后台运行的 Python 进程。当你运行某个单元格时，它会把代码发送给内核，内核执行后把结果发回。所有单元格共享同一个内核，因此变量在单元格之间会持久保留。
+核是一个在背景下运行的Python进程.当你运行一个细胞时,它会发送代码到核子中,核子执行它,然后返回结果.所有细胞都共享相同的核子,所以细胞之间存在变量.
 
 ```mermaid
 graph LR
-    A[笔记本界面] <--> B[内核\nPython 进程]
-    B --> C[在内存中保留变量]
-    B --> D[按你点击的顺序执行单元格]
-    B --> E[重启时会终止]
+    A[Notebook UI] <--> B[Kernel\nPython process]
+    B --> C[Keeps variables in memory]
+    B --> D[Runs cells in whatever order you click]
+    B --> E[Dies when you restart it]
 ```
 
-"按你点击的顺序执行"这部分既是超能力，也是脚踩地雷。
+无论你点击什么命令,这部分都是超级大国和步枪.
 
 ```figure
 s0-cell-order
 ```
 
-## 动手构建
+## 建立它
 
-### 第 1 步：选择你的界面
+### 步骤1:选择你的接口
 
-三种选择，同一种格式：
+只有一个格式:
 
-| 界面 | 安装方式 | 最适合 |
+| Interface | Install | Best for |
 |-----------|---------|----------|
-| JupyterLab | `pip install jupyterlab` 然后 `jupyter lab` | 完整 IDE 体验，多个标签页，文件浏览器，终端 |
-| Jupyter Notebook | `pip install notebook` 然后 `jupyter notebook` | 简单轻量，一次一个笔记本 |
-| VS Code | 安装 "Jupyter" 扩展 | 已在编辑器内，git 集成，支持调试 |
+| JupyterLab | `pip install jupyterlab` then `jupyter lab` | Full IDE experience, multiple tabs, file browser, terminal |
+| Jupyter Notebook | `pip install notebook` then `jupyter notebook` | Simple, lightweight, one notebook at a time |
+| VS Code | Install "Jupyter" extension | Already in your editor, git integration, debugging |
 
-三者读取和写入的都是同一种 `.ipynb` 文件。选你喜欢的就行。JupyterLab 在 AI 工作中最常见。
+三个都读写一样.`.ipynb`根据人工智能技术的标准,
 
 ```bash
 pip install jupyterlab
 jupyter lab
 ```
 
-### 第 2 步：常用的键盘快捷键
+### 关键键盘快捷方式
 
-你有两种操作模式。按 `Escape` 进入命令模式（左侧出现蓝色条），按 `Enter` 进入编辑模式（左侧出现绿色条）。
+您可以在两个模式下操作.`Escape`对于命令模式 (左侧蓝色条),`Enter`对于编辑模式 (绿色).
 
-**命令模式（最常用）：**
+**Command mode (most used):**
 
-| 按键 | 操作 |
+| Key | Action |
 |-----|--------|
-| `Shift+Enter` | 运行当前单元格，移动到下一个 |
-| `A` | 在上方插入单元格 |
-| `B` | 在下方插入单元格 |
-| `DD` | 删除单元格 |
-| `M` | 转换为 Markdown |
-| `Y` | 转换为代码 |
-| `Z` | 撤销单元格操作 |
-| `Ctrl+Shift+H` | 显示所有快捷键 |
+| `Shift+Enter` | Run cell, move to next |
+| `A` | Insert cell above |
+| `B` | Insert cell below |
+| `DD` | Delete cell |
+| `M` | Convert to markdown |
+| `Y` | Convert to code |
+| `Z` | Undo cell operation |
+| `Ctrl+Shift+H` | Show all shortcuts |
 
-**编辑模式：**
+**Edit mode:**
 
-| 按键 | 操作 |
+| Key | Action |
 |-----|--------|
-| `Tab` | 自动补全 |
-| `Shift+Tab` | 显示函数签名 |
-| `Ctrl+/` | 切换注释 |
+| `Tab` | Autocomplete |
+| `Shift+Tab` | Show function signature |
+| `Ctrl+/` | Toggle comment |
 
-`Shift+Enter` 是你每天会按上千次的那个。先学会它。
+`Shift+Enter`你每天要使用一千次的. 首先学会它.
 
-### 第 3 步：单元格类型
+### 步骤3:细胞类型
 
-**代码单元格** 运行 Python 并显示输出：
+**Code cells**运行Python并显示输出:
 
 ```python
 import numpy as np
@@ -102,154 +102,154 @@ data = np.random.randn(1000)
 data.mean(), data.std()
 ```
 
-输出：`(0.0032, 0.9987)`
+输出:`(0.0032, 0.9987)`
 
-**Markdown 单元格** 渲染格式化的文本。用它来记录你在做什么以及为什么这样做。支持标题、加粗、斜体、LaTeX 数学公式（`$E = mc^2$`）、表格和图片。
+**Markdown cells**支持头条,大体,斜体,拉特克斯数学 (`$E = mc^2$`),表格和图像.
 
-### 第 4 步：魔法命令
+### 步骤4: 魔术命令
 
-这些不是 Python，而是 Jupyter 特有的命令，以 `%`（行魔法）或 `%%`（单元魔法）开头。
+这些不是Python,而是从 Jupyter 开始的命令.`%`没有什么可怕的东西.`%%`们都在着.
 
-**对你的代码计时：**
+**Time your code:**
 
 ```python
 %timeit np.random.randn(10000)
 ```
 
-输出：`45.2 us +/- 1.3 us per loop`
+输出:`45.2 us +/- 1.3 us per loop`
 
 ```python
 %%time
 model.fit(X_train, y_train, epochs=10)
 ```
 
-输出：`Wall time: 2.34 s`
+输出:`Wall time: 2.34 s`
 
-`%timeit` 多次运行代码并取平均值。`%%time` 只运行一次。用 `%timeit` 做微基准测试，用 `%%time` 做训练过程计时。
+`%timeit`运行代码多次,平均.`%%time`运行一次.`%timeit`对于微型标志,`%%time`为了训练.
 
-**启用行内图表：**
+**Enable inline plots:**
 
 ```python
 %matplotlib inline
 ```
 
-之后每一个 `plt.plot()` 或 `plt.show()` 都会直接在笔记本中渲染。
+每一个`plt.plot()`或`plt.show()`现在直接在笔记本中转载.
 
-**不离开笔记本就能安装包：**
+**Install packages without leaving the notebook:**
 
 ```python
 !pip install scikit-learn
 ```
 
-`!` 前缀可以运行任意 shell 命令。
+其他`!`预写程序运行任何命令.
 
-**查看环境变量：**
+**Check environment variables:**
 
 ```python
 %env CUDA_VISIBLE_DEVICES
 ```
 
-### 第 5 步：行内显示丰富的输出
+### 步骤5: 显示丰富输出直线
 
-笔记本会自动显示单元格中的最后一个表达式。但你也可以自己控制：
+笔记本本可以自动显示细胞中的最后一个表达式.
 
 ```python
 import pandas as pd
 
 df = pd.DataFrame({
-    "模型": ["线性", "随机森林", "神经网络"],
-    "准确率": [0.72, 0.89, 0.94],
-    "训练时间": [0.1, 2.3, 45.6]
+    "model": ["Linear", "Random Forest", "Neural Net"],
+    "accuracy": [0.72, 0.89, 0.94],
+    "training_time": [0.1, 2.3, 45.6]
 })
 df
 ```
 
-这会渲染出一个格式化的 HTML 表格，而不是纯文本。图表也一样：
+这样将呈现一个格式化的HTML表,而不是一个文本垃圾.
 
 ```python
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(8, 4))
 plt.plot([1, 2, 3, 4], [1, 4, 2, 3])
-plt.title("行内图表")
+plt.title("Inline Plot")
 plt.show()
 ```
 
-图表会直接出现在单元格下方。这就是笔记本在 AI 领域占据主导地位的原因。你把数据、图表和代码放在一起看。
+图表就在细胞下面出现.这就是为什么笔记本主导人工智能工作.你看到数据,图表和代码在一起.
 
-对于图片：
+图片:
 
 ```python
 from IPython.display import Image, display
 display(Image(filename="architecture.png"))
 ```
 
-### 第 6 步：Google Colab
+### 步骤 6:谷歌协作
 
-Colab 是云端的免费 Jupyter 笔记本。它提供 GPU、预装库和 Google Drive 集成。无需本地设置。
+科拉布是云中的免费Jupyter笔记本电脑. 它提供了 GPU,预装库和谷歌驱动器集成.
 
-1. 访问 [colab.research.google.com](https://colab.research.google.com)
-2. 从本课程中上传任意 `.ipynb` 文件
-3. 运行时 > 更改运行时类型 > T4 GPU（免费）
+1. 走去[colab.research.google.com](https://colab.research.google.com)
+2. 装载任何`.ipynb`从本课程的文件
+3. 运行时间 > 改变运行时间类型 > T4 GPU (免费)
 
-Colab 与本地 Jupyter 的差异：
-- 文件在不同会话之间不会保留（保存到 Drive 或下载）
-- 预装：numpy、pandas、matplotlib、torch、tensorflow、sklearn
-- 用 `from google.colab import files` 上传/下载文件
-- 用 `from google.colab import drive; drive.mount('/content/drive')` 实现持久化存储
-- 免费套餐下，会话在 90 分钟无活动后会超时
+与本地Jupyter的可拉比分:
+- 文件不会在会议之间存在 (保存到驱动或下载)
+- 预装:,熊猫,,火,,
+- `from google.colab import files`为了上传/下载文件
+- `from google.colab import drive; drive.mount('/content/drive')`为了持续存储
+- 停课时间90分钟不活动后 (免费级别)
 
-## 使用技巧
+## 用它
 
-### 笔记本 vs 脚本：何时用哪个
+### 笔记本与脚本:何时使用哪个
 
-| 适合用笔记本的场景 | 适合用脚本的场景 |
+| Use notebooks for | Use scripts for |
 |-------------------|-----------------|
-| 探索数据集 | 训练流水线 |
-| 原型设计模型 | 可复用的工具函数 |
-| 可视化结果 | 包含 `if __name__` 的代码 |
-| 解释你的工作 | 定时运行的代码 |
-| 快速实验 | 生产环境代码 |
-| 课程练习 | 包和库 |
+| Exploring a dataset | Training pipelines |
+| Prototyping a model | Reusable utilities |
+| Visualizing results | Anything with `if __name__` |
+| Explaining your work | Code that runs on a schedule |
+| Quick experiments | Production code |
+| Course exercises | Packages and libraries |
 
-核心原则：**在笔记本中探索，用脚本交付**。
+规则:**explore in notebooks, ship in scripts**现在,我们要去.
 
-AI 中常见的工作流：
-1. 在笔记本中探索数据
-2. 在笔记本中原型化你的模型
-3. 验证可行后，把代码移到 `.py` 文件里
-4. 在笔记本中重新导入这些 `.py` 文件进行进一步实验
+人工智能领域的常见工作流程:
+1. 在笔记本中查找数据
+2. 在笔记本中原型
+3. 一旦它工作,将代码移动到`.py`文件
+4. 进口这些`.py`文件将返回笔记本,以便进行进一步的实验.
 
-### 常见陷阱
+### 常见的陷
 
-**执行顺序错乱。** 你先运行了第 5 个单元格，又运行第 2 个，再运行第 7 个。你的机器上正常运行，但别人从头到尾顺序执行时就崩了。解决方法：分享前执行 内核 > 重启并运行全部。
+**Out-of-order execution.**运行电脑的电脑,然后电脑的电脑,然后电脑的电脑.
 
-**隐藏状态。** 你删除了一个单元格，但它创建的那个变量依然留在内存里。笔记本看起来干干净净，却依赖一个"幽灵单元格"。解决方法：定期重启内核。
+**Hidden state.**您删除一个细胞,但它创建的变量仍然存储在内存中.笔记本看起来很清洁,但依赖于鬼细胞.
 
-**内存泄漏。** 加载一个 4GB 的数据集，训练模型，再加载另一个数据集。没有任何内存被释放。解决方法：`del variable_name` 并调用 `gc.collect()`，或直接重启内核。
+**Memory leaks.**运载4GB的数据集,训练一个模型,运载另一个数据集. 没有什么得到释放.`del variable_name`其他`gc.collect()`它们可以重新启动核.
 
-## 交付成果
+## 运送它
 
-本课产出：
-- `outputs/prompt-notebook-helper.md`，用于调试笔记本问题
+这一课产生了:
+- `outputs/prompt-notebook-helper.md`调试笔记本问题
 
-## 练习
+## 运动
 
-1. 打开 JupyterLab，创建一个笔记本，使用 `%timeit` 比较列表推导式与 numpy 在生成 10 万个随机数的数组时的性能差异
-2. 创建一个同时包含 Markdown 和代码单元格的笔记本，加载 CSV、显示 dataframe 并绘制图表。然后运行 内核 > 重启并运行全部 来验证从头到尾顺序执行时是否正常工作
-3. 把 `code/notebook_tips.py` 中的代码粘贴到 Colab 笔记本中，使用免费 GPU 运行它
+1. 打开JupyterLab,创建笔记本,然后使用`%timeit`为了比较清单理解与 numpy 创建一组100,000个随机数字
+2. 创建一个包含分类和代码单元的笔记本,将 CSV 加载,显示数据框架,并绘制图表.然后运行Kernel>重启 & 运行所有,以验证它从上到下
+3. 取代代码`code/notebook_tips.py`粘贴在Colab笔记本,然后用免费的GPU运行
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|----------------------|
-| Kernel（内核） | "运行我代码的那个东西" | 一个独立的 Python 进程，负责执行单元格并将变量保留在内存中 |
-| Cell（单元格） | "一段代码块" | 笔记本中可独立运行的单位，可以是代码或 Markdown |
-| Magic command（魔法命令） | "Jupyter 小技巧" | 以 `%` 或 `%%` 开头的特殊命令，用于控制笔记本环境 |
-| `.ipynb` | "笔记本文件" | 包含单元格、输出和元数据的 JSON 文件。IPython Notebook 的缩写 |
+| Kernel | "The thing running my code" | A separate Python process that executes cells and keeps variables in memory |
+| Cell | "A code block" | An independently runnable unit in a notebook, either code or markdown |
+| Magic command | "Jupyter tricks" | Special commands prefixed with `%` or `%%` that control the notebook environment |
+| `.ipynb` | "Notebook file" | A JSON file containing cells, outputs, and metadata. Stands for IPython Notebook |
 
-## 延伸阅读
+## 进一步阅读
 
-- [JupyterLab 文档](https://jupyterlab.readthedocs.io/) 完整功能介绍
-- [Google Colab FAQ](https://research.google.com/colaboratory/faq.html) Colab 专属限制与特性
-- [28 条 Jupyter Notebook 技巧](https://www.dataquest.io/blog/jupyter-notebook-tips-tricks-shortcuts/) 高级用户快捷键与技巧
+- [JupyterLab Docs](https://jupyterlab.readthedocs.io/)对于全功能集
+- [Google Colab FAQ](https://research.google.com/colaboratory/faq.html)对 Colab 特定的限制和特征
+- [28 Jupyter Notebook Tips](https://www.dataquest.io/blog/jupyter-notebook-tips-tricks-shortcuts/)电源用户快捷方式
