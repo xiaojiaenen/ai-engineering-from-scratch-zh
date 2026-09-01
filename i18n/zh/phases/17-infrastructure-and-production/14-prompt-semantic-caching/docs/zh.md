@@ -1,138 +1,138 @@
-# 提示词缓存与语义缓存经济学
+# 快速缓存和语义缓存经济
 
-> **定价快照日期：2026-04。** 下文中的数值引用均取自本课程发布时捕获的厂商费率表；在下文引用前，请对照所链接的官方文档进行核实。
+> **Pricing snapshot dated 2026-04.**下面的数字索赔反映了本课程发布时捕获的供应商利率卡;在下游报价之前,请与链接的文件进行验证.
 
-> 缓存发生在两个层次。L2（厂商层面）提示词/前缀缓存复用注意力 KV，用于重复的前缀 —— Anthropic 的提示词缓存文档宣称可节省高达 90% 的成本和 85% 的延迟（针对长提示词）；Claude 3.5 Sonnet 的缓存读取价格为 $0.30/M，而全新输入为 $3.00/M，TTL 为 5 分钟，而 1 小时 TTL 选项的写入溢价达 2 倍（docs.anthropic.com，2026-04）。OpenAI 提示词缓存对 ≥1024 token 的提示词自动生效，缓存输入的价格约为全新输入的 10%（platform.openai.com，2026-04）；具体每模型的缓存价格取决于实时费率表。L1（应用层面）语义缓存在嵌入相似度命中时完全跳过 LLM。厂商所称的"95% 准确率"指的是匹配正确率，而非命中率 —— 实际生产环境中报告的命中率范围从开放式聊天（10%）到结构化 FAQ（70%）不等；两家厂商均未公布官方基线，因此请将其视为社区观测数据而非保证。生产环境中的陷阱：并行化会破坏缓存（N 个并行请求在首次缓存写入之前发出，可能导致花费膨胀数倍），而前缀内的动态内容则会完全阻止缓存命中。ProjectDiscovery 报告称，通过将动态文本移出可缓存前缀，命中率从 7% 提升至 74%（2025-11）。
+> 缓存发生在两个层次.L2 (提供商级) 提示/预写缓存重复使用重复预写的注意 KV  人类的提示缓存文件在长时间提示上宣传到90%的成本降低和85%的延迟降低;对于Claude 3.5 Sonnet缓存读取是$0.30/M vs $清新3.00/M,为5分钟的TTL和1小时的TTL选项的2倍写费 (docs.anthropic.com, 2026-04). 开启AI提示缓存自动适用于提示 ≥1024个代币和价格缓存输入大约90%折扣对新鲜 (platform.openai.com, 2026-04);每个模型的确切缓存率取决于现场率卡. 应用程序级语义缓存将完全跳过LLM在嵌入类似性击中. 供应商"95%准确性"指匹配准确性,而不是击率 报告的生产击率从10% (开放式聊天) 到70% (结构化常见问题);任何供应商都没有发布官方基准,所以把这些视为社区远程测量而不是保证. 生产陷:并行化杀死缓存 (在第一个缓存写之前发出的N并行请求可以膨胀支出多倍),前内部的动态内容完全防止缓存击中. 项目发现报告通过从可缓存的前中移动动动态文本,从7%到74%的击中率 (2025-11)
 
-**类型：** 学习
-**语言：** Python（stdlib，玩具级两层缓存模拟器）
-**前置知识：** Phase 17 · 04（推理引擎内部原理）、Phase 17 · 06（SGLang RadixAttention）
-**时间：** 约 60 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, toy two-layer cache simulator)
+**Prerequisites:** Phase 17 · 04 (Serving Engine Internals), Phase 17 · 06 (SGLang RadixAttention)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 区分 L2 提示词/前缀缓存（厂商层 KV 复用）与 L1 语义缓存（相似提示词时绕过 LLM）。
-- 说明 Anthropic 的 `cache_control` 显式标记以及两种 TTL 选项（5 分钟 vs 1 小时）及其价格倍数。
-- 根据命中率、提示词/响应比例和 token 价格计算预期月度节省金额。
-- 说出会导致账单膨胀 5-10 倍的并行化反模式，以及会导致命中率崩溃的动态内容反模式。
+- 区分L2提示/预写缓存 (在提供商中重复使用KV) 与L1语义缓存 (在类似提示时绕过LLM).
+- 解释人类的故事`cache_control`显而易见的标记和两个TTL选项 (5分钟对比1小时) 及其价格乘法.
+- 计算预期的月性节省,以击中率,快速/响应混合和代币价格.
+- 给出一个反对比模式,使账单膨胀5到10倍,以及一个反对动态内容的反模式,
 
-## 问题所在
+## 问题
 
-你为自己的 RAG 服务添加了提示词缓存。账单纹丝不动。你测量命中率；只有 7%。你的提示词看起来是静态的，但并非如此 —— 系统提示词包含以分钟为单位格式化的当前时间、一个请求 ID，以及用于多样性的随机化示例重排。每条请求都写入一个新的缓存条目，读取为零。
+您将快速缓存添加到您的RAG服务中.账单保持平稳.您测量了击率;它是7%.您的提示看起来是静态,但它们不是.系统提示包括当前的日期格式为分钟,请求 ID,和随机的例子重新排序为多样性.每个请求写出一个新的缓存输入,读取零.
 
-此外，你的 agent 针对每个用户问题运行十个并行工具调用。所有十个请求都在首次缓存写入完成之前到达厂商。十次写入，零次读取。你的账单是"开启缓存后"应产生费用的 5-10 倍。
+您的代理人每次用户问话,每次运行10次并行工具调用.前10次预存写完成之前,所有10次都到达提供商.10次写,零次读.您的账单是5-10倍"预存"所需的成本.
 
-缓存是一种协议，不是一个开关。两层缓存，两种不同的故障模式。
+缓存是协议,不是旗.
 
-## 核心概念
+## 概念
 
-### L2 —— 厂商提示词/前缀缓存
+### L2 提供商提示/预设缓存
 
-厂商存储可缓存前缀的注意力 KV，并在下一次请求匹配该前缀时进行复用。你只需支付一次写入成本，读取几乎免费。
+提供商将注意力KV存储为可缓存的预写,并在下一次与预写匹配的请求上再使用它.
 
-**Anthropic（Claude 3.5 / 3.7 / 4 系列）**：请求中显式 `cache_control` 标记。你标记哪些块是可缓存的。TTL：5 分钟（写入成本为基准的 1.25 倍）或 1 小时（写入成本为基准的 2 倍）。缓存读取：Claude 3.5 Sonnet 上为 $0.30/M，而全新输入为 $3.00/M —— 便宜 10 倍（docs.anthropic.com，截至 2026-04）。各模型定价不同（Opus/Haiku 单独公布）；务必对照实时定价页面交叉核对。
+**Anthropic (Claude 3.5 / 3.7 / 4 series)**具体情况`cache_control`标记在请求中.您标记哪些块可以缓存. TTL: 5 分钟 (写费 1.25x 基础) 或 1 小时 (写费 2x 基础).缓存读取: $0.30/M on Claude 3.5 Sonnet vs $价格因车型而异 (Opus/Haiku 单独发布); 总是通过直播价格页面进行交叉检查.
 
-**OpenAI**：对 ≥1024 token 的提示词自动缓存（platform.openai.com，2026-04）。无需显式标记。在当前 gpt-4o/gpt-5 费率表下，缓存输入约为全新输入的 10% 价格。厂商文档和发布说明均未公布官方命中率基线；社区报告集中在 30%–60%（配合精心设计的提示词）。通过 `usage.cached_tokens` 监控以测量自己的数据。
+**OpenAI**现有gpt-4o/gpt-5率卡上,缓存输入比新增的约10倍便宜.文件和发布说明都没有公布官方的关键率基线;社区报告在3060%左右的细致的提示设计下集成.监测`usage.cached_tokens`为了测量自己的.
 
-**Google（Gemini）**：通过显式 API 进行上下文缓存；100 万 token 上下文意味着缓存的收益更高。
+**Google (Gemini)**通过明确的API进行内存存; 1M-代币内存意味着内存存付出更多.
 
-**自托管（vLLM、SGLang）**：Phase 17 · 06 涵盖 RadixAttention —— 相同模式，在你的自建算力上运行。
+**Self-hosted (vLLM, SGLang)**: 17 · 06 阶段涵盖RadixAttention 您自己的计算模式.
 
-### L1 —— 应用层语义缓存
+### L1 应用级语义缓存
 
-在调用 LLM 之前，先对提示词进行哈希、嵌入，并查找相似的已缓存请求（余弦相似度高于阈值，通常为 0.95+）。命中时返回缓存响应。未命中时调用 LLM 并缓存结果。
+在打电话给LLM之前,按点击提示,嵌入它,并寻找类似的缓存请求 (值以上的类似性,通常是0.95+).在击中,返回缓存响应.在错误时,打电话给LLM并缓存结果.
 
-开源方案：Redis Vector Similarity、GPTCache、Qdrant。商业方案：Portkey Cache、Helicone Cache。
+开源:Redis向量类似性,GPTCache,Qdrant.商业:Portkey Cache,Helicone Cache.
 
-厂商的准确率声明指的是返回的缓存响应在语义上是否恰当的频率 —— 而非命中率。生产环境中的命中率：
+供应商的准确性要求是指返回缓存响应的含义性适当度,而不是你打的频率.
 
-- 开放式聊天：10%-15%。
-- 结构化 FAQ / 客服：40%-70%。
-- 代码问题：20%-30%（小幅变体导致命中失败）。
-- 重复提示词的语音助手：50%-80%（语音规范化固定集）。
+- 开放式聊天: 10-15%.
+- 结构性常见问题/支持:40-70%.
+- 代码问题:20-30% (小变量杀死击中).
+- 语音代理重复提示:50-80% (语音正常化固定设置).
 
-### 并行化反模式
+### 平式化反模式
 
-你的 agent 并行发出 10 个工具调用。所有 10 个请求都含有相同的 4K token 系统提示词。Anthropic 缓存写入是按请求独立进行的；首次缓存写入在厂商看到提示词后约 300ms 完成。请求 2-10 在同一毫秒窗口内到达，每个都看到缓存未命中。你支付了 10 次写入溢价，零次读取折扣。
+您的代理人同时进行10次工具调用.所有10次都具有相同的4K代码系统提示.人类缓存写作是按要求进行的;提供者看到提示后,第一个缓存写作完成了大约300ms. 2-10次请求都在同一毫秒窗口中到达,每个缓存都会出现错误.您支付10次写费,0次阅读折扣.
 
-修复方法：先串行后批量 —— 单独发出请求 1，然后在请求 1 的缓存填充后发出请求 2-10。在首个工具调用上增加 300ms；节省 5-10 倍的账单。
+修复: 随序列-第一  单独请求 1,然后在 1' 缓存填充后,启动 2-10 秒. 添加300 ms到第一个工具调用;节省 5-10 倍的账单.
 
 ### 动态内容反模式
 
-你的系统提示词如下所示：
+你的系统提示看起来像:
 
 ```
-你是一个乐于助人的助手。当前时间是 14:32:17。
-用户 ID：abc123。今天是星期二...
+You are a helpful assistant. The current time is 14:32:17.
+User ID: abc123. Today is Tuesday...
 ```
 
-每条请求都是唯一的。每条请求都写入。零命中。
+每个请求都是独一无二的,每一个请求都写着,零打.
 
-修复方法：将所有真正静态的内容移至可缓存前缀；动态内容追加在缓存边界之后：
+修复:将真正静态的内容移动到可缓存的前置;在缓存边界后添加动态内容:
 
 ```
-[可缓存]
-你是一个乐于助人的助手。[规则、示例、指令]
-[/可缓存]
-[动态，不缓存]
-当前时间：14:32:17。用户：abc123。
+[cacheable]
+You are a helpful assistant. [rules, examples, instructions]
+[/cacheable]
+[dynamic, not cached]
+Current time: 14:32:17. User: abc123.
 ```
 
-ProjectDiscovery 通过这种方式将命中率从 7% 提升至 74%，并发布了详细分析。
+通过此方式,ProjectDiscovery从7%上升到74%的缓存击中率,并发布了解剖学.
 
-### 为夜间工作负载叠加批处理 + 缓存
+### 堆批量+夜间工作负载的缓存
 
-批处理 API（Phase 17 · 15）在 24 小时交付周期内提供 50% 折扣。在此基础上叠加缓存输入可再获约 10 倍优惠。夜间分类、标注和报告生成工作负载通过叠加，成本可降至同步无缓存成本的约 10%。
+批量API (阶段17 · 15) 在24小时转换时提供50%的折扣. 存储输入上方为您提供了10倍的额外. 通过堆叠,一夜间分类,标签和报告生成工作负载可以降至同步未加载成本的10%
 
-### 应记住的数值
+### 你应该记住的数字
 
-定价数据取自 2026-04 链接的厂商文档，每隔几个月就会变动 —— 在依赖前请重新核查。
+价格点从链接的供应商文件中被捕获2026-04年,每几个月都会被转移到重新检查之前依赖它们.
 
-- Anthropic 缓存读取：Claude 3.5 Sonnet 上为 $0.30/M，约为全新输入价格的 1/10（docs.anthropic.com）。
-- Anthropic 缓存写入溢价：1.25 倍（5 分钟 TTL）或 2 倍（1 小时 TTL）。
-- OpenAI 自动缓存：适用于 ≥1024 token 的提示词；当前费率表下缓存输入价格约为全新输入的 10%（platform.openai.com）。
-- 语义缓存命中率（社区报告）：开放聊天约 10%；结构化 FAQ 高达约 70%。非厂商官方基线。
-- ProjectDiscovery：将动态内容移出前缀后，命中率从 7% 提升至 74%（ProjectDiscovery 博客，2025-11）。
-- 并行化反模式：当 N 个并行请求均未命中首次缓存写入时，常见账单膨胀 5-10 倍的报告。
+- 克劳德3.5索尼特的缓存读数:0.30美元/万,比新输入的价格约是10倍.
+- 人类缓存写入溢价: 1.25x (5分钟TL) 或 2x (1小时TL).
+- 开AI自动缓存:适用于提示 ≥1024个代币;缓存输入价格约为当前价格卡的新输入的10% (platform.openai.com).
+- 语义缓存击中率 (社区报告): ~10%开放聊天;高达 ~70%结构化的FAQ. 不是供应商记录的基线.
+- 项目发现: 7% → 74% 的击中率通过从前移动动态 (项目博客, 2025-11).
+- 平式化反模式:在N平行请求错过第一个缓存写时,典型报告510x账单通胀.
 
 ```figure
 semantic-cache-hit
 ```
 
-## 动手实践
+## 用它
 
-`code/main.py` 模拟混合工作负载下的 L1 + L2 缓存。报告命中率、账单，并展示并行化惩罚。
+`code/main.py`报告中显示了率,账单,并显示了并行处罚.
 
-## 实战项目
+## 运送它
 
-本课程产出 `outputs/skill-cache-auditor.md`。给定提示词模板和流量，审计可缓存性并提供重构建议。
+这一课产生了`outputs/skill-cache-auditor.md`鉴于快速的模板和流量,审计可存储性,并建议进行重组.
 
-## 练习题
+## 运动
 
-1. 运行 `code/main.py`。切换并行化标志。账单变化多少？
-2. 你的系统提示词包含日期。将其移出。展示前后命中率的计算。
-3. 根据请求到达速率，计算 1 小时 TTL（2 倍写入）与 5 分钟 TTL（1.25 倍写入）的成本平衡点。
-4. 语义缓存阈值为 0.95 时命中率为 20%；阈值为 0.85 时命中率为 50%，但你会看到不正确的缓存响应。选择合适的阈值并说明理由。
-5. 你为每个用户问题批处理 10 个并行子查询。在不增加端到端延迟的情况下，改写为缓存友好模式。
+1. 跑步`code/main.py`换并行标志. 账单有多少变化?
+2. 系统提示有日期,请移动,显示前后的按率.
+3. 根据您的请求到达率,计算1小时的TTL (2x写) 与5分钟的TTL (1.25x写) 的破解平衡.
+4. 在0.95的门时,语义缓存达到20%.在0.85时,它达到50%但你看到错误的缓存响应.
+5. 按用户问题进行10个并行子查询. 为了缓存友好性,再写,而不需要添加端到端延迟.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的说法 | 实际含义 |
-|------|----------------|----------|
-| L2 提示词缓存 | "前缀缓存" | 厂商为重复前缀存储 KV |
-| `cache_control` | "Anthropic 缓存标记" | 显式属性标记可缓存块 |
-| 缓存写入溢价 | "写入税" | 首次未命中写入缓存的额外成本（1.25 倍或 2 倍） |
-| L1 语义缓存 | "嵌入缓存" | 调用 LLM 之前的应用层哈希与嵌入 |
-| GPTCache | "LLM 缓存库" | 流行的开源 L1 缓存库 |
-| 缓存命中率 | "命中数 / 总数" | 从缓存服务的请求占比 |
-| 并行化反模式 | "N 次写入陷阱" | N 个并行请求导致缓存未命中 N 次 |
-| 动态内容陷阱 | "提示词含时间陷阱" | 前缀中包含动态字节会摧毁命中率 |
-| RadixAttention | "副本内缓存" | SGLang 的前缀缓存实现 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| L2 prompt cache | "prefix cache" | Provider stores KV for repeated prefix |
+| `cache_control` | "Anthropic cache marker" | Explicit attribute marking cacheable blocks |
+| Cache write premium | "write tax" | Extra cost for first miss-to-cache (1.25x or 2x) |
+| L1 semantic cache | "embedding cache" | App-level hash-and-embed before calling LLM |
+| GPTCache | "LLM caching lib" | Popular OSS L1 cache library |
+| Cache hit rate | "hits / total" | Fraction of requests served from cache |
+| Parallelization anti-pattern | "the N-write trap" | N parallel requests miss cache N times |
+| Dynamic content trap | "the time-in-prompt trap" | Dynamic bytes in prefix kill hit rate |
+| RadixAttention | "intra-replica cache" | SGLang's prefix-cache implementation |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Anthropic Prompt Caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching) —— 官方 `cache_control` 语义和 TTL 说明。
-- [OpenAI Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) —— 自动缓存行为和适用条件。
+- [Anthropic Prompt Caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)官方`cache_control`语义和TL.
+- [OpenAI Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching)自动缓存行为和资格.
 - [TianPan — Semantic Caching for LLMs Production](https://tianpan.co/blog/2026-04-10-semantic-caching-llm-production)
 - [ProjectDiscovery — Cut LLM Costs 59% With Prompt Caching](https://projectdiscovery.io/blog/how-we-cut-llm-cost-with-prompt-caching)
 - [DigitalOcean / Anthropic — Prompt Caching](https://www.digitalocean.com/blog/prompt-caching-with-digital-ocean)
