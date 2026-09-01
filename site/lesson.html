@@ -3483,7 +3483,7 @@
         // missing local file use the branch-aware raw source from build-meta.
         var enPath = path + '/docs/en.md';
         var lang = currentLang();
-        var translatedUrl = 'https://raw.githubusercontent.com/rohitg00/ai-engineering-from-scratch/translations/i18n/'
+        var translatedUrl = 'https://raw.githubusercontent.com/' + SOURCE_OWNER + '/' + SOURCE_REPO + '/translations/i18n/'
           + lang + '/' + path + '/docs/' + lang + '.md';
 
         if (!retried || !lessonQuizPromise) {
