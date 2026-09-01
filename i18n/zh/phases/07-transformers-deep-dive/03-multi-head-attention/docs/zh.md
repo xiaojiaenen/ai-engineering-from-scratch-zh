@@ -1,52 +1,52 @@
-# 多头注意力（Multi-Head Attention）
+# 多头注意力
 
-> 一个注意力头一次只学习一种关系。八个头就学习八种。头是免费的，多拿几个。
+> 一个注意力头一次学会一个关系. 八个头学习八个. 头是自由的. 拿更多的.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** Phase 7 · 02（从零实现自注意力）
-**预计用时：** ~75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 7 · 02 (Self-Attention from Scratch)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-一个自注意力头只计算一个注意力矩阵。该矩阵只能捕捉一类关系——通常是 whichever 在训练信号下使损失最小化的那一类。如果你的数据同时纠缠着主谓一致、共指消解、长距离篇章结构和句法分块，单个头会将它们 smeared 进一个 softmax 分布里，丢了一半的信号。
+一个自我注意力头计算一个注意力矩阵.那个矩阵捕捉到一种关系,通常是减少任何训练信号的损失.如果你的数据有主体verb协议,共参考,长距离的演讲和语法分断,都在一起,一个头将它们成一个软最大分布,失去了一半的信号.
 
-2017 年 Vaswani 论文提出的修复方案：并行运行多个注意力函数，每个头各有独立的 Q、K、V 投影，然后把输出拼起来。每个头在维度为 `d_model / n_heads` 的较小子空间里运作。总参数量保持不变，表达能力却提升了。
+2017年瓦斯瓦尼论文的修正:并行运行几个注意力函数,每个都具有自己的Q,K,V投影,并连接输出.每个头部都在更小的子空间中运行.`d_model / n_heads`总参数保持相同,表达功率上升.
 
-多头注意力是 2026 年每一个 Transformer 的标配。唯一争论的是*多少个*头，以及键和值是否共享投影（分组查询注意力 GQA、多查询注意力 MQA、多头潜注意力 MLA）。
+单个论点是关于*多少头,以及键和值是否共享投影 (组列查询注意力,多查询注意力,多头潜伏注意力).
 
 ## 概念
 
-![多头注意力拆分、注意力计算、拼接](../assets/multi-head-attention.svg)
+![Multi-head attention splits, attends, concatenates](../assets/multi-head-attention.svg)
 
-**拆分。** 取 `X`，形状为 `(N, d_model)`。投影到 Q、K、V，每个形状都是 `(N, d_model)`。reshape 为 `(N, n_heads, d_head)`，其中 `d_head = d_model / n_heads`。转置为 `(n_heads, N, d_head)`。
+**Split.**接下来`X`形状`(N, d_model)`项目到Q,K,V,每个形状`(N, d_model)`改装到`(N, n_heads, d_head)`在哪里`d_head = d_model / n_heads`转移到`(n_heads, N, d_head)`现在,我们要去.
 
-**并行做注意力。** 在每个头内跑缩放点积注意力。每个头产出 `(N, d_head)`。这些头在嵌入的不同子空间上运作，在注意力计算本身期间互不通信。
+**Attend in parallel.**运行一个级别的点产品注意力在每个头脑.`(N, d_head)`头部在嵌入器的不同子空间上运行,并且在注意力计算过程中永远不会说话.
 
-**拼接并投影。** 把头重新叠成 `(N, d_model)`，再乘上一个可学习的输出矩阵 `W_o`，形状为 `(d_model, d_model)`。`W_o` 是让头之间互相混合的地方。
+**Concatenate and project.**堆头回去`(N, d_model)`并且乘以学习的输出矩阵`W_o`形状`(d_model, d_model)`现在,我们要去.`W_o`这就是头脑的混合.
 
-**为什么有效。** 每个头可以专业化，而不与其他头争夺表示预算。2019–2024 年的探针研究表明存在不同的头角色分工：位置头、 attends to the previous token 的头、copy 头、命名实体头、诱导头（induction heads，是上下文学习的基础）。
+**Why it works.**每个头都可以专业化,而不与其他对象预算竞争.2019年2024年的探测研究显示了不同的头部角色:位置头,参加前一个代币的头,复制头,命名实体头,诱导头 (这是内文学习的基础).
 
-**2026 年的变体谱系：**
+**The 2026 lineage of variations:**
 
-| 变体 | Q 头数 | K/V 头数 | 使用方 |
+| Variant | Q heads | K/V heads | Used by |
 |---------|---------|-----------|---------|
-| 多头（MHA） | N | N | GPT-2、BERT、T5 |
-| 多查询（MQA） | N | 1 | PaLM、Falcon |
-| 分组查询（GQA） | N | G（如 N/8） | Llama 2 70B、Llama 3+、Qwen 2+、Mistral |
-| 多头潜注意力（MLA） | N | 压缩为低秩 | DeepSeek-V2、V3 |
+| Multi-head (MHA) | N | N | GPT-2, BERT, T5 |
+| Multi-query (MQA) | N | 1 | PaLM, Falcon |
+| Grouped-query (GQA) | N | G (e.g. N/8) | Llama 2 70B, Llama 3+, Qwen 2+, Mistral |
+| Multi-head latent (MLA) | N | compressed to low-rank | DeepSeek-V2, V3 |
 
-GQA 成为现代默认选择，因为它把 KV cache 内存削减了 `N/G` 倍，同时几乎保留完整质量。MLA 更进一步，把 K/V 压缩进潜空间，再在计算时投影回来——多花 FLOPs，省更多内存。
+由于它削减了KV缓存存储量`N/G`通过将K/V压缩到隐藏空间,然后在计算时间上投影回来,
 
 ```figure
 multihead-split
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：从已有的单头注意力上拆分出头
+### 步骤1:从我们已经有的单头关注中分开头
 
-从第 02 课的 `SelfAttention` 出发，用 split/concat 一对把它包起来。`code/main.py` 里有 numpy 实现；逻辑如下：
+拿起`SelfAttention`子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子`code/main.py`对于一个无数的实现,逻辑是:
 
 ```python
 def split_heads(X, n_heads):
@@ -59,11 +59,11 @@ def combine_heads(H):
     return H.transpose(1, 0, 2).reshape(n, h * d_head)
 ```
 
-一次 reshape，一次 transpose。没有循环。这正是 PyTorch 在 `nn.MultiheadAttention` 下做的事。
+一个重塑,一个转换,没有循环. 这正是PyTorch在做的事情.`nn.MultiheadAttention`现在,我们要去.
 
-### 步骤 2：按头跑缩放点积注意力
+### 步骤2:按标点进行产品关注
 
-每个头拿到自己的 Q、K、V 切片。注意力变成一个 batched matmul：
+每个头都得到了自己的Q,K,V.
 
 ```python
 def mha_forward(X, W_q, W_k, W_v, W_o, n_heads):
@@ -80,11 +80,11 @@ def mha_forward(X, W_q, W_k, W_v, W_o, n_heads):
     return concat @ W_o, weights
 ```
 
-在真实硬件上 `Qh @ Kh.transpose(...)` 是一次 `bmm`。GPU 看到的是形状为 `(heads, N, d_head) × (heads, d_head, N) -> (heads, N, N)` 的单个 batched matmul。增加头数是免费的。
+在真正的硬件上`Qh @ Kh.transpose(...)`是一个`bmm` GPU 看到一个单批的形状.`(heads, N, d_head) × (heads, d_head, N) -> (heads, N, N)`增加头子是免费的.
 
-### 步骤 3：分组查询注意力（GQA）变体
+### 步骤3: 组列查询注意力变体
 
-只有键和值的投影发生变化。Q 分到 `n_heads` 组；K 和 V 分到 `n_kv_heads < n_heads` 组，然后 repeat 以匹配：
+只有关键和值预测变化.`n_heads`组; K 和 V 得到`n_kv_heads < n_heads`组,并重复一致:
 
 ```python
 def gqa_project(X, W, n_kv_heads, n_heads):
@@ -93,15 +93,15 @@ def gqa_project(X, W, n_kv_heads, n_heads):
     return np.repeat(kv, repeat, axis=0)      # (n_heads, n, d_head)
 ```
 
-推理时这能省内存，因为只有 `n_kv_heads` 份副本留在 KV cache 里，而不是 `n_heads` 份。Llama 3 70B 用了 64 个 query head、8 个 KV head——cache 缩小 8 倍。
+根据推论,这节省了记忆力,因为只有`n_kv_heads`没有在KV缓存中存活的副本`n_heads`拉马370B使用64个查询头,8个KV头,一个8倍缓存缩小器.
 
-### 步骤 4：探测每个头学到了什么
+### 步骤4:检查每个头脑学到的东西
 
-在短句上跑 MHA，设 4 个头。对每个头打印 `(N, N)` 注意力矩阵。你会看到不同的头即使在随机初始化下也各自挑出不同的结构——这部分是信号，部分是子空间里的旋转对称性。
+按一个短句子,用4个头来运行MHA.`(N, N)`随机初始化,也就是部分信号,部分旋转对称性.
 
-## 使用方式
+## 用它
 
-PyTorch 里的一行版本：
+在 PyTorch 中,单行版本:
 
 ```python
 import torch.nn as nn
@@ -109,55 +109,55 @@ import torch.nn as nn
 mha = nn.MultiheadAttention(embed_dim=512, num_heads=8, batch_first=True)
 ```
 
-PyTorch 2.5+ 里的 GQA：
+根据 PyTorch 2.5+ 的 GQA:
 
 ```python
 from torch.nn.functional import scaled_dot_product_attention
 
-# scaled_dot_product_attention 会在 CUDA 上自动 dispatch 到 Flash Attention。
-# 对于 GQA，传入形状为 (B, n_heads, N, d_head) 的 Q 和形状为
-# (B, n_kv_heads, N, d_head) 的 K、V。PyTorch 会自动处理 repeat。
+# scaled_dot_product_attention auto-dispatches Flash Attention on CUDA.
+# For GQA, pass Q of shape (B, n_heads, N, d_head) and K,V of shape
+# (B, n_kv_heads, N, d_head). PyTorch handles the repeat.
 out = scaled_dot_product_attention(q, k, v, is_causal=True, enable_gqa=True)
 ```
 
-**头数怎么选？** 2026 年产线模型的业界经验法则：
+**How many heads?**2026年生产模型的指纹规则:
 
-| 模型规模 | d_model | n_heads | d_head |
+| Model size | d_model | n_heads | d_head |
 |------------|---------|---------|--------|
-| 小型（~125M） | 768 | 12 | 64 |
-| 基础（~350M） | 1024 | 16 | 64 |
-| 大型（~1B） | 2048 | 16 | 128 |
-| 前沿（~70B） | 8192 | 64 | 128 |
+| Small (~125M) | 768 | 12 | 64 |
+| Base (~350M) | 1024 | 16 | 64 |
+| Large (~1B) | 2048 | 16 | 128 |
+| Frontier (~70B) | 8192 | 64 | 128 |
 
-`d_head` 几乎总是 64 或 128。它是衡量一个头能"看"多少的基本单位。低于 32，头会与缩放因子 `sqrt(d_head)` 打架；高于 256，就会失去"很多小专家"的收益。
+`d_head`几乎总是降落在64或128位.这是一个头能"看到"多少的单位.`sqrt(d_head)`您将失去"许多小专家"的福利.
 
-## 交付
+## 运送它
 
-参见 `outputs/skill-mha-configurator.md`。该 skill 会针对给定参数预算、序列长度和部署目标的新型 Transformer，推荐头数、KV 头数和投影策略。
+看到`outputs/skill-mha-configurator.md`技能建议对新变压器进行头数, kv头数和投影策略,以设置参数预算,序列长度和部署目标.
 
-## 练习
+## 运动
 
-1. **简单。** 从 `code/main.py` 中的 MHA 出发，把 `n_heads` 从 1 改为 16，固定 `d_model=64`。在一个合成 copy 任务上训练一个极简单层模型并绘制 loss 曲线。头越多越好、收敛后持平、还是反而变差？
-2. **中等。** 实现 MQA（所有 query 头共享一个 KV 头）。测量参数量相比完整 MHA 减少了多少。计算 N=2048 时推理阶段 KV cache 缩小了多少。
-3. **困难。** 实现一个简版的多头潜注意力（MLA）：把 K、V 压缩到秩为 `r` 的潜变量，把潜变量存入 KV cache，在注意力时再解压。在 `r` 取何值时缓存内存会降到完整 MHA 的 1/8 以下，同时质量仍在验证 ppl 的 1 bit 之内？
+1. **Easy.**取出MHA的`code/main.py`改变`n_heads`从1到16`d_model=64`更多头脑有助于,高,或伤害?
+2. **Medium.**实现MQA (所有查询头都共享一个KV头).测量参数数量多少下降与全MHA.计算在推断时KV缓存尺寸缩小多少为N=2048.
+3. **Hard.**执行多头潜伏注意的小版本:压缩K,V到一个级别`r`隐藏在KV缓存中,在注意时解压.`r`缓存内存在满满MHA的1/8以下,而质量在验证后保持在1位内?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| Head | "一个独立的注意力电路" | 一组维度为 `d_head = d_model / n_heads` 的 Q/K/V 投影，以及它自己的注意力矩阵。 |
-| d_head | "头维度" | 每个头的隐藏宽度；产线中几乎总是 64 或 128。 |
-| Split / combine | "reshape 技巧" | 注意力前后围绕 `(N, d_model) ↔ (n_heads, N, d_head)` 的 reshape+transpose。 |
-| W_o | "输出投影" | 拼接完头之后应用的 `(d_model, d_model)` 矩阵；头在这里互相混合。 |
-| MQA | "一个 KV 头" | Multi-Query Attention：单个共享的 K/V 投影。KV cache 最小，有一定质量损失。 |
-| GQA | "Llama 2 以来的默认" | 分组查询注意力，`n_kv_heads < n_heads`；repeat 以匹配 Q。 |
-| MLA | "DeepSeek 的招数" | 多头潜注意力：K/V 压缩为低秩潜变量，注意力时再解压。 |
-| Induction head | "上下文学习背后的电路" | 一对头，检测之前的出现位置，并 copy 其后的内容。 |
+| Head | "A single attention circuit" | One Q/K/V projection of dimension `d_head = d_model / n_heads` with its own attention matrix. |
+| d_head | "Head dimension" | Per-head hidden width; almost always 64 or 128 in production. |
+| Split / combine | "Reshape tricks" | `(N, d_model) ↔ (n_heads, N, d_head)` reshape+transpose around attention. |
+| W_o | "Output projection" | `(d_model, d_model)` matrix applied after concatenating heads; where heads mix. |
+| MQA | "One KV head" | Multi-Query Attention: single shared K/V projection. Smallest KV cache, some quality loss. |
+| GQA | "The default since Llama 2" | Grouped-Query Attention with `n_kv_heads < n_heads`; repeats to match Q. |
+| MLA | "DeepSeek's trick" | Multi-head Latent Attention: K,V compressed to low-rank latent, decompressed at attend time. |
+| Induction head | "The circuit behind in-context learning" | A pair of heads that detect previous occurrences and copy what followed them. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Vaswani et al. (2017). Attention Is All You Need §3.2.2](https://arxiv.org/abs/1706.03762) —— 原始多头规范。
-- [Shazeer (2019). Fast Transformer Decoding: One Write-Head is All You Need](https://arxiv.org/abs/1911.02150) —— MQA 论文。
-- [Ainslie et al. (2023). GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints](https://arxiv.org/abs/2305.13245) —— 如何在训练后把 MHA 转成 GQA。
-- [DeepSeek-AI (2024). DeepSeek-V2 Technical Report](https://arxiv.org/abs/2405.04434) —— MLA 及为何它在缓存内存上优于 MHA/GQA。
-- [Olsson et al. (2022). In-context Learning and Induction Heads](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html) —— 从机理角度观察头实际在做什么。
+- [Vaswani et al. (2017). Attention Is All You Need §3.2.2](https://arxiv.org/abs/1706.03762)原始多头型规格.
+- [Shazeer (2019). Fast Transformer Decoding: One Write-Head is All You Need](https://arxiv.org/abs/1911.02150)MQA论文
+- [Ainslie et al. (2023). GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints](https://arxiv.org/abs/2305.13245)如何在培训后将MHA转换为GQA.
+- [DeepSeek-AI (2024). DeepSeek-V2 Technical Report](https://arxiv.org/abs/2405.04434) MLA 和为什么它超过MHA/GQA在缓存内存.
+- [Olsson et al. (2022). In-context Learning and Induction Heads](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html)机械化看看头部实际上做什么.

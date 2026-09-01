@@ -1,104 +1,104 @@
-# 专家混合（MoE）
+# 专家组合 (MoE)
 
-> 一个稠密的70B Transformer对每个token都会激活所有参数。而一个671B的MoE每个token只激活37B参数，却在各项基准测试中全面超越前者。稀疏性是这十年最重要的扩展理念。
+> 密集的70B变压器会激活每个代币的每个参数. 671B MoE 激活每代币只有37B,并且在每个基准上都超过它.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** 第7阶段 · 05（完整Transformer）、第7阶段 · 07（GPT）
-**预计时间：** 约45分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 7 · 05 (Full Transformer), Phase 7 · 07 (GPT)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-稠密Transformer在推理时的FLOPs等于其参数量（正向传播乘以2）。放大稠密模型时，每个token都要支付全额账单。到2024年，前沿模型已触及计算瓶颈：想要显著更智能，就需要每个token呈指数级增长的FLOPs。
+密集变压器的FLOP在推断时等于其参数数数量 (前进传输的2倍). 扩展密集模型,每个代币都支付了全部账单.到2024年,边界正在撞击计算墙:要更聪明,你需要每代币的FLOP数量呈指数.
 
-专家混合（Mixture of Experts）打破了这种绑定。将每个FFN替换为 `E` 个独立专家 + 一个为每个token选择 `k` 个专家的路由器。总参数 = `E × FFN_size`。每个token的激活参数 = `k × FFN_size`。典型2026配置：`E=256`，`k=8`。存储随 `E` 扩展，计算随 `k` 扩展。
+专家组合打破了这个联系.`E`独立专家 + 选择路由器`k`标记的专家.`E × FFN_size`每代币的活跃参数 = `k × FFN_size`典型的2026配置:`E=256`现在`k=8`存储量量`E`计算规模`k`现在,我们要去.
 
-2026年的前沿几乎全是MoE：DeepSeek-V3（总计671B / 激活37B）、Mixtral 8×22B、Qwen2.5-MoE、Llama 4、Kimi K2、gpt-oss。在 Artificial Analysis 的独立排行榜上，前10名开源模型全部是MoE。
+2026年边界几乎完全是MoE:DeepSeek-V3 (671B总量 / 37B活跃),Mixtral 8×22B,Qwen2.5-MoE,Llama 4,Kimi K2,gpt-oss.在人工分析的独立领先榜单上,前10个开源模型都是MoE.
 
-## 核心概念
+## 概念
 
-![MoE层：路由器为每个token从E个专家中选择k个](../assets/moe.svg)
+![MoE layer: router selects k of E experts per token](../assets/moe.svg)
 
-### FFN的替换
+### 转换的FFN
 
-稠密Transformer块：
+密集变压器块:
 
 ```
 h = x + attn(norm(x))
 h = h + FFN(norm(h))
 ```
 
-MoE块：
+门:
 
 ```
 h = x + attn(norm(x))
 scores = router(norm(h))              # (N_tokens, E)
-top_k = argmax_k(scores)              # 为每个token从E个中选k个
+top_k = argmax_k(scores)              # pick k of E per token
 h = h + sum_{e in top_k}(
         gate(scores[e]) * Expert_e(norm(h))
     )
 ```
 
-每个专家都是一个独立的FFN（通常为SwiGLU）。路由器是一个单层线性网络。每个token自主挑选 `k` 个专家，并获得其输出的门控混合。
+每个专家都是一个独立的FFN (通常是SwiGLU).路由器是一个单一的线性层.每个代币都选择了自己的代币.`k`专家们可以通过他们的输出来进行封闭的混合.
 
-### 负载均衡问题
+### 负载平衡问题
 
-如果路由器将90%的token都送往专家3，其他专家就会饥饿。三种解决方案曾被尝试：
+如果路由器通过专家3将90%的代币,其他专家就会饿死.
 
-1. **辅助负载均衡损失**（Switch Transformer、Mixtral）。添加与专家使用方差成正比的惩罚。有效，但引入了一个超参数和一个额外的梯度信号。
-2. **专家容量限制 + token丢弃**（早期Switch）。每个专家最多处理 `C × N/E` 个token；超出部分的token跳过该层。会损害质量。
-3. **无需辅助损失的平衡**（DeepSeek-V3）。为每个专家添加一个可学习的偏置，用于偏移路由器的top-k选择。偏置通过训练损失之外的方式更新。不影响主目标函数的损失。这是2024年的关键突破。
+1. **Auxiliary load-balancing loss**根据专家使用的差异,加一个惩罚. 工作,但增加了一个超参数和第二个梯度信号.
+2. **Expert capacity + token dropping**每个专家最多处理`C × N/E`标记,过度标记跳过层. 损害质量.
+3. **Auxiliary-loss-free balancing**通过"深度搜索" (DeepSeek-V3) 增加一个学习的专家偏见,改变路由器的顶级k选择.偏见在训练损失之外更新.没有罚款在主要目标.2024年大解锁.
 
-DeepSeek-V3的做法：在每个训练步骤之后，对于每个专家，检查其使用量高于还是低于目标值。将偏置按 `±γ` 调整。选择使用 `scores + bias`。用于门控的专家概率保持原始 `scores` 不变。将路由与输出表达解耦。
+对于每位专家,在每一步培训后,检查其使用是否超越目标或低于目标.`±γ`选择用途`scores + bias`专家使用的概率是原料`scores`没有变化. 脱离路由与表达.
 
-### 共享专家
+### 共同的专家
 
-DeepSeek-V2/V3还将专家拆分为*共享*和*路由*两类。每个token都会经过所有共享专家。路由专家通过top-k选择。共享专家捕获通用知识；路由专家负责 specialization。V3运行1个共享专家 + 256个路由专家中的top-8。
+根据 DeepSeek-V2/V3 的规定,专家分为 *共享*和 *路由*.每个代币都通过所有共享专家.路由专家通过顶级k 选出.共享专家捕获了共同知识;路由专家专业化. V3运行 1 个共享专家加上 256 个路由专家中最前8个.
 
-### 细粒度专家
+### 精细粮食专家
 
-经典MoE（GShard、Switch）：每个专家与完整FFN等宽。`E` 较小（8–64），`k` 较小（1–2）。
+经典MoE (GShard,Switch):每个专家的宽度就像一个完整的FFN. `E`只有小的 (864),`k`是小的 (12).
 
-现代细粒度MoE（DeepSeek-V3、Qwen-MoE）：每个专家更窄（1/8 FFN大小）。`E` 较大（256+），`k` 也较大（8+）。总参数相同，但组合数增长快得多。`C(256, 8) = 400万亿` 个可能的token级"专家"组合。质量提升，延迟保持不变。
+现代细粒度的MoE (DeepSeek-V3,Qwen-MoE):每个专家的尺寸较窄 (1/8FFN). `E`是大 (256+),`k`总参数相同,但组合规模更快. `C(256, 8) = 400 trillion`质量上升,延迟保持平稳.
 
-### 成本构成
+### 成本概况
 
-每个token、每层：
+按标记,按层:
 
-| 配置 | 每token激活参数 | 总参数 |
-|------|-----------------|--------|
+| Config | Active params / token | Total params |
+|--------|-----------------------|--------------|
 | Mixtral 8×22B | ~39B | 141B |
-| Llama 3 70B（稠密） | 70B | 70B |
+| Llama 3 70B (dense) | 70B | 70B |
 | DeepSeek-V3 | 37B | 671B |
-| Kimi K2（MoE） | ~32B | 1T |
+| Kimi K2 (MoE) | ~32B | 1T |
 
-DeepSeek-V3在几乎所有基准测试上都超越了Llama 3 70B（稠密），同时**每个token的激活FLOPs更少**。更多参数 = 更多知识。更多激活FLOPs = 每个token更多计算。MoE将二者解耦。
+在执行过程中,DeepSeek-V3几乎在每个基准上击败了Llama 3 70B (密集).**fewer active FLOPs per token**更多参数 = 更多知识. 更多的活跃FLOPs = 更多的计算每代币.
 
-### 隐患：显存
+### 捕获:记忆
 
-所有专家无论是否被激活都驻留在GPU上。一个671B模型需要约1.3 TB的fp16权重显存。前沿MoE部署需要专家并行——在GPU间分片专家，通过网络路由token。延迟主要由all-to-all通信主导，而非矩阵乘法。
+所有专家都使用GPU,不管哪个是射击的.671B模型需要1.3TB的VRAM用于fp16权重.边界MoE部署需要专家平行性.
 
 ```figure
 expert-routing
 ```
 
-## 动手实现
+## 建立它
 
-参见 `code/main.py`。一个纯标准库实现的紧凑MoE层，包含：
+看到`code/main.py`纯的紧的MoE层,含有:
 
-- `n_experts=8` 个类SwiGLU专家（每个专家仅一个线性层，用于演示）
-- top-k=2 路由
-- softmax归一化门控权重
-- 通过每专家偏置实现无辅助损失的平衡
+- `n_experts=8`光 (SwiGLU) 的专家 (每一个线性,说明)
+- 顶级k=2路由
+- 软max正常化的门重量
+- 通过专家偏见进行无损辅助平衡
 
-### 步骤1：路由器
+### 步骤1:路由器
 
 ```python
 def route(hidden, W_router, top_k, bias):
     scores = [sum(h * w for h, w in zip(hidden, W_router[e])) for e in range(len(W_router))]
     biased = [s + b for s, b in zip(scores, bias)]
     top_idx = sorted(range(len(biased)), key=lambda i: -biased[i])[:top_k]
-    # 对选中的专家使用原始score计算softmax
+    # softmax over ORIGINAL scores of the chosen experts
     chosen = [scores[i] for i in top_idx]
     m = max(chosen)
     exps = [math.exp(c - m) for c in chosen]
@@ -107,66 +107,66 @@ def route(hidden, W_router, top_k, bias):
     return top_idx, gates
 ```
 
-偏置只影响选择，不影响门控权重。这就是DeepSeek-V3的技巧——偏置纠正负载不均衡，但不引导模型的预测。
+偏差影响选择,而不是门权重.这是DeepSeek-V3技巧.
 
-### 步骤2：让100个token通过路由器
+### 步骤2:通过路由器运行100个代币
 
-追踪各专家的触发频率。没有偏置时，使用分布不均匀。加入偏置更新循环（对过度使用的专家 `-γ`，对使用不足的专家 `+γ`），几次迭代后使用率就会收敛到均匀分布。
+随着专家的射击频率的追踪.`-γ`对于过度使用的专家,`+γ`对于未使用的使用量),使用量在几次代中趋于均分布.
 
-### 步骤3：参数量对比
+### 步骤3:参数数量比较
 
-打印MoE配置的"稠密等价"参数。DeepSeek-V3架构：256个路由专家 + 1个共享专家，8个激活，d_model=7168。总参数量令人咋舌。而激活参数仅为稠密Llama 3 70B的七分之一。
+打印MoE配置的"密度相当" .深度搜索V3形: 256路由 + 1共享, 8 活跃,d_model=7168. 总参数数是眼睛. 活跃数量是密度Llama 3 70B的第七个.
 
-## 使用它
+## 用它
 
-HuggingFace加载：
+拥抱面部加载:
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
 model = AutoModelForCausalLM.from_pretrained("mistralai/Mixtral-8x22B-v0.1")
 ```
 
-2026年生产推理：vLLM原生支持MoE路由。SGLang拥有最快的专家并行路径。两者都自动处理top-k选择和专家并行。
+2026 产量推断:vLLM 支持MoE路由本地.SGLang 具有最快的专家平行路径.两者都自动处理顶级选项和专家平行.
 
-**何时选择MoE：**
-- 你希望在更低的每token推理成本下获得前沿质量。
-- 你拥有足够的VRAM / 专家并行基础设施。
-- 你的工作负载是token密集型（聊天、代码）而非上下文密集型（长文档）。
+**When to pick MoE:**
+- 你想要以低的推断成本的标准质量.
+- 你有VRAM/专家并行基础设施.
+- 你的工作量是代币重 (聊天,代码) 而不是文本重 (长文档).
 
-**何时不选择MoE：**
-- 边缘部署——任何激活FLOPs都要支付全额存储开销。
-- 低延迟关键的单用户服务——专家路由带来额外开销。
-- 小模型（<7B）——MoE的质量优势只在超过一定计算阈值后显现（约6B激活参数）。
+**When NOT to pick MoE:**
+-  边缘部署 您为任何活跃的FLOP付出了全部存储费.
+- 专家路由增加了总费用.
+- 小型型号 (<7B) MoE的质量优势仅在计算门 (~6B活性参数) 以上.
 
-## 交付
+## 运送它
 
-参见 `outputs/skill-moe-configurator.md`。该技能根据参数预算、训练token数和部署目标，为新MoE选择E、k和共享专家布局。
+看到`outputs/skill-moe-configurator.md`技能选择E,k和共享专家布局,以实现新的MoE参数预算,培训代币和部署目标.
 
-## 练习
+## 运动
 
-1. **简单。** 运行 `code/main.py`。观察无辅助损失的偏置更新如何在50次迭代内使专家使用趋于均衡。
-2. **中等。** 将可学习路由器替换为基于哈希的路由器（确定性、无需学习）。比较质量与平衡性。为什么可学习路由器更好？
-3. **困难。** 实现GRPO风格的"rollout匹配路由"（DeepSeek-V3.2技巧）：记录推理时哪些专家被激活，在梯度计算时强制使用相同的路由。在玩具策略梯度设置下测量其影响。
+1. **Easy.**跑步`code/main.py`观察如何辅助免损失偏见更新平衡专家使用超过50次.
+2. **Medium.**换取学习路由器以基于哈希的路由器 (确定性,没有学习). 进行质量和平衡比较.
+3. **Hard.**实现GRPO类型的"推广匹配路由" (DeepSeek-V3.2技巧):记录专家在推断过程中发射的,在梯度计算过程中强迫相同的路由.测量玩具政策梯度设置的影响.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|----------|
-| 专家（Expert） | "众多FFN中的一个" | 一个独立的前馈网络；参数专用于FFN计算的稀疏子集。 |
-| 路由器（Router） | "门控" | 一个小型线性层，对每个token计算与各专家的相关分数；进行top-k选择。 |
-| Top-k路由 | "每token k个激活专家" | 每个token的FFN计算恰好经过k个专家，由门控加权。 |
-| 辅助损失（Auxiliary loss） | "负载均衡惩罚" | 额外的损失项，惩罚不均衡的专家使用。 |
-| 无辅助损失（Auxiliary-loss-free） | "DeepSeek-V3的技巧" | 仅通过对路由器选择的每专家偏置实现平衡；不引入额外梯度。 |
-| 共享专家（Shared expert） | "始终激活" | 一个每个token都会经过的额外专家；捕获通用知识。 |
-| 专家并行（Expert parallelism） | "按专家分片" | 将不同专家分配到不同GPU；通过网络路由token。 |
-| 稀疏性（Sparsity） | "激活参数 < 总参数" | 比率 `k × expert_size / (E × expert_size)`；DeepSeek-V3约为37/671 ≈ 5.5%。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| Expert | "One FFN among many" | An independent feed-forward network; parameters dedicated to a sparse slice of the FFN computation. |
+| Router | "The gate" | A tiny linear layer that scores each token against each expert; top-k selection. |
+| Top-k routing | "k active experts per token" | Each token's FFN computation goes through exactly k experts, weighted by gate. |
+| Auxiliary loss | "Load-balance penalty" | Extra loss term that penalizes skewed expert usage. |
+| Auxiliary-loss-free | "DeepSeek-V3's trick" | Balance via per-expert bias on the router's selection only; no extra gradient. |
+| Shared expert | "Always on" | Extra expert through which every token passes; captures common knowledge. |
+| Expert parallelism | "Shard by expert" | Distribute different experts to different GPUs; route tokens across the network. |
+| Sparsity | "Active params < total params" | The ratio `k × expert_size / (E × expert_size)`; 37/671 ≈ 5.5% for DeepSeek-V3. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Shazeer et al. (2017). Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer](https://arxiv.org/abs/1701.06538) — 最初的理念。
-- [Fedus, Zoph, Shazeer (2022). Switch Transformer: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](https://arxiv.org/abs/2101.03961) — Switch，经典MoE。
-- [Jiang et al. (2024). Mixtral of Experts](https://arxiv.org/abs/2401.04088) — Mixtral 8×7B。
-- [DeepSeek-AI (2024). DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437) — MLA + 无辅助损失MoE + MTP。
-- [Wang et al. (2024). Auxiliary-Loss-Free Load Balancing Strategy for Mixture-of-Experts](https://arxiv.org/abs/2408.15664) — 基于偏置的平衡论文。
-- [Dai et al. (2024). DeepSeekMoE: Towards Ultimate Expert Specialization in Mixture-of-Experts Language Models](https://arxiv.org/abs/2401.06066) — 本教程路由器使用的细粒度 + 共享专家拆分。
-- [Kim et al. (2022). DeepSpeed-MoE: Advancing Mixture-of-Experts Inference and Training](https://arxiv.org/abs/2201.05596) — 共享专家原始论文。
+- [Shazeer et al. (2017). Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer](https://arxiv.org/abs/1701.06538)这个想法.
+- [Fedus, Zoph, Shazeer (2022). Switch Transformer: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](https://arxiv.org/abs/2101.03961)开关,经典的MoE.
+- [Jiang et al. (2024). Mixtral of Experts](https://arxiv.org/abs/2401.04088)混合物8×7B.
+- [DeepSeek-AI (2024). DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437) MLA + 无损辅助MoE + MTP.
+- [Wang et al. (2024). Auxiliary-Loss-Free Load Balancing Strategy for Mixture-of-Experts](https://arxiv.org/abs/2408.15664)基于偏差的平衡纸.
+- [Dai et al. (2024). DeepSeekMoE: Towards Ultimate Expert Specialization in Mixture-of-Experts Language Models](https://arxiv.org/abs/2401.06066)精细的+共享专家 分开本课的路由器使用.
+- [Kim et al. (2022). DeepSpeed-MoE: Advancing Mixture-of-Experts Inference and Training](https://arxiv.org/abs/2201.05596)原始共享专家论文.
