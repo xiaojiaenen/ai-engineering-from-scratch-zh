@@ -1,45 +1,45 @@
-# MCP Model Input: Sampling 迁移与无状态 MRTR
+# 采样移民和无国籍MRTR
 
-> MCP 2026-07-28 弃用 Sampling，并为新设计移除服务端到客户端的请求通道。如果现有工作流仍需要客户端的模型，服务端返回 `input_required` 结果，客户端则携带模型输出重试原始请求。推理循环在协议层变为显式、有界且无状态。
+> 通过MCP 2026-07-28将新设计的样本取消,并删除服务器到客户端请求道.如果现有工作流仍然需要客户端的模型,服务器将返回一个 `input_required`结果是,客户端将原始请求重新尝试,使用模型输出.
 
-**类型:** 构建
-**语言:** Python
-**前置知识:** Phase 13 · 07（MCP 服务端）、Phase 13 · 10（资源和提示）
-**时间:** 约 75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 13 · 07 (MCP server), Phase 13 · 10 (resources and prompts)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 解释为何 MCP 2026-07-28 弃用 Sampling，并为新服务端选择直接模型集成方案。
-- 实现一个通过多轮往返请求（MRTR）承载 `sampling/createMessage` 的兼容工作流。
-- 在每个请求的 `_meta` 对象中包含协议修订和客户端能力信息。
-- 返回 `resultType: "input_required"`，并使用新的 JSON-RPC id 重试原始方法。
-- 使用完整性保护 `requestState`，并将其绑定到主体、方法、参数和有效期。
-- 通过能力检查、审批、响应验证和轮次限制来约束模型辅助循环。
+- 解释为什么MCP 2026-07-28中采样已过时,并选择新服务器的直接模型集成默认.
+- 实现兼容性工作流程`sampling/createMessage`通过多次回路请求 (MRTR).
+- 将协议修改和客户端功能放入每个请求中`_meta`它们是什么?
+- 返回`resultType: "input_required"`通过新的JSON-RPCID重新尝试原始方法.
+- 保护完整性`requestState`并且将其绑定到本,方法,论点和过期.
+- 附带模型辅助循环,具有能力检查,批准,响应验证和圆的限制.
 
-## 协议之前的决策
+## 议定书前的决定
 
-一个类似 `summarize_repo` 的工具需要完成两类工作：
+工具如`summarize_repo`需要两种工作:
 
-1. 确定性工作：列出文件、读取允许的文件、验证路径并组装内容。
-2. 模型工作：选择代表性文件并综合摘要。
+1. 确定性工作:列表文件,阅读允许文件,验证路径和组装内容.
+2. 模型工作:选择代表文件并合成总结.
 
-你如今有两种有效的架构。
+现在你有两个有效的架构.
 
-### 新服务端：直接与模型提供商集成
+### 新服务器:直接与模型提供商集成
 
-这是当前的默认方案。服务端负责模型选择、凭据、预算、重试和可观测性。它向 MCP 客户端返回一个普通的 `tools/call` 结果。
+服务器拥有模型选择,凭证,预算,重试和可观测性.它返回一个普通 `tools/call`结果对MCP客户.
 
-当服务端已是托管服务，或可预测的模型行为比使用主机模型更重要时，选择此方案。
+当服务器已经是一个托管服务或预测模型行为比使用托管模型更重要时,选择此.
 
-### 现有 Sampling 工作流：迁移到 MRTR
+### 现有样本工作流程:将其迁移到MRTR
 
-Sampling 在弃用窗口期内仍然存在。面向 2026-07-28 的服务端无法向客户端发送实时 `sampling/createMessage` 请求，而是将其嵌入到 `InputRequiredResult` 中。
+针对2026-07-28的服务器不能发送直播`sampling/createMessage`要求返回客户.`InputRequiredResult`现在,我们要去.
 
-仅在使用客户端模型和凭据是真实产品需求时选择此兼容路径。记录删除计划，因为新的实现不应采用已弃用的 Sampling。
+选择这种兼容性路径只有在使用客户端模型时,并且凭证是真正的产品要求.记录一个删除计划,因为新的实现不应该采用过时的样本.
 
-## 无状态契约
+## 无国籍合同
 
-2026 年 7 月的协议没有 `initialize` 交换、没有 `notifications/initialized`，也没有 `Mcp-Session-Id`。每个请求都携带了原本在握手过程中的信息：
+2026年7月份的协议没有`initialize`交换,没有`notifications/initialized`没有.`Mcp-Session-Id`每个请求都包含了以前在握手中生活的信息:
 
 ```json
 {
@@ -61,21 +61,21 @@ Sampling 在弃用窗口期内仍然存在。面向 2026-07-28 的服务端无�
 }
 ```
 
-服务端对每个请求验证修订版本。缺少或非字符串形式的版本为无效参数，返回 `-32602`。不支持的版本字符串返回 `-32022`，附带精确数据 `{"supported":["2026-07-28"],"requested":"<客户端版本>"}`。缺少 Sampling 能力时返回 `-32021`，`data.requiredCapabilities` 设为 `{"sampling":{}}`。
+服务器验证每一个请求的修改. 缺失或无字符串版本是无效的参数,`-32602`没有支持的字符串返回`-32022`具有准确的数据`{"supported":["2026-07-28"],"requested":"<client version>"}`缺失的样本能力返回`-32021`随着`data.requiredCapabilities`设置为`{"sampling":{}}`现在,我们要去.
 
-没有 JSON-RPC `id` 的封包是通知。接收方可处理它，但不发出成功响应或错误响应。Streamable HTTP 适配器对已接受的通知返回 `202 Accepted`，无响应体。
+没有JSON-RPC的封面`id`接收器可能会处理它,但它不会发出成功响应或错误响应.`202 Accepted`没有接受通知的机构.
 
-服务端还实现了 `server/discover`，携带精确的 `supportedVersions` 键、能力、`ttlMs` 和 `cacheScope`，以便客户端能够在调用工具前学习和缓存服务端契约。由于发现接口会发布 `tools`，服务端还需实现强制的 `tools/list`。其确定性 `summarize_repo` 描述符包括有效的对象 `inputSchema`、`resultType: "complete"`、服务端标识元数据和公开的缓存提示。
+服务器还实现了`server/discover`准确的`supportedVersions`关键,能力,`ttlMs`其他`cacheScope`为了让客户端能够在调用工具之前学习和缓存服务器合同.`tools`服务器也执行强制性`tools/list`它是决定性的.`summarize_repo`描述符包含一个有效的对象`inputSchema`现在`resultType: "complete"`服务器身份元数据,以及公共缓存提示.
 
-每个成功的现代结果都带有鉴别器：
+每一个成功的现代结果都有一个差异:
 
-- `resultType: "complete"` 表示操作已完成。
-- `resultType: "input_required"` 表示客户端必须完成嵌入的请求并重试。
-- 扩展可以定义额外的结果类型。Tasks 扩展在第 13 课中添加了 `"task"`。
+- `resultType: "complete"`代表行动结束.
+- `resultType: "input_required"`客户必须满足嵌入式请求,并再次尝试.
+- 扩展可能定义其他结果类型. 任务扩展添加 `"task"`在第13课.
 
-## 单轮 MRTR
+## 一轮MRT
 
-服务端在处理请求期间无法调用客户端。它返回如下结果：
+服务器无法在处理请求时调用客户端.
 
 ```json
 {
@@ -110,7 +110,7 @@ Sampling 在弃用窗口期内仍然存在。面向 2026-07-28 的服务端无�
 }
 ```
 
-客户端验证其支持 Sampling，应用其审批和模型策略，然后获得模型响应。接着发送一个新请求，使用不同的 JSON-RPC id：
+客户端验证它支持采样,应用其批准和模型政策,并获得模型响应.然后它发送一个新的请求,使用不同的JSON-RPC id:
 
 ```json
 {
@@ -140,72 +140,72 @@ Sampling 在弃用窗口期内仍然存在。面向 2026-07-28 的服务端无�
 }
 ```
 
-重试不是协议会话的延续。它是一个新请求，重复原始方法参数，仅添加当前轮的 `inputResponses`，并逐字节回显 `requestState`。
+复试不是协议会议的延续,而是重复原始方法和参数的新请求,只添加当前轮的参数.`inputResponses`声的声音`requestState`字节对字节.
 
-MRTR 仅允许用于 `tools/call`、`prompts/get` 和 `resources/read`。服务端不得从无关方法返回 `input_required`。
+只有在 `tools/call`现在`prompts/get`其他`resources/read`服务器不得返回`input_required`没有相关的方法.
 
-## 多轮状态
+## 多圆形状态
 
-本课需要两次模型调用：
+这一课需要两个模式:
 
-1. `pick_files` 返回一个 JSON 数组。
-2. `summary` 返回最终文本。
+1. `pick_files`返回一个JSON阵列.
+2. `summary`返回最后的散文.
 
-每次重试只携带该轮的响应。因此服务端将阶段和验证后的中间数据放入下一个 `requestState`。
+每次重试只包含了该轮回复.因此服务器将阶段和验证的中间数据放入下一个轮.`requestState`现在,我们要去.
 
-将该值视为由攻击者控制。仅对原始阶段名称签名是不够的。将状态绑定到：
+通过使用一个原始的相位名称,将状态绑定到:
 
-- 经过认证的主体，而非自报的 `clientInfo`；
-- 发起的方法；
-- 原始参数的摘要；
-- 短有效期；
-- 当前阶段和验证后的中间值。
+- 证实的资本,非自报 `clientInfo`其他
+- 产品来源方法;
+- 关于本案的论点的摘要;
+- 短期的期限;
+- 现阶段和验证的中间值.
 
-当不需要保密性时使用 HMAC。当不允许客户端读取状态时使用认证加密。对签名错误、过期值、主体变更或参数变更使用 `-32602` 拒绝。
+使用HMAC,如果不需要保密.使用验证加密,如果客户端不能读取状态.拒绝错误的签名,过期值,改变主题或改变参数.`-32602`现在,我们要去.
 
-客户端不得解析或修改 `requestState`。它的唯一职责是在重试时原样回显该字符串。
+客户不得分析或修改`requestState`唯一的任务是重试时回声.
 
 ## 模型偏好是提示
 
-`costPriority`、`speedPriority` 和 `intelligencePriority` 是独立的偏好。它们不是概率分布，也不必加总为一。客户端可以忽略它们，因为客户端拥有模型策略。
+`costPriority`现在`speedPriority`其他`intelligencePriority`客户可能会忽略它们,因为客户拥有模型政策.
 
-如果你维护传统的 Sampling 流程，请保持 `includeContext` 为 `"none"`。其他上下文模式会增加泄露风险，且它们本身也被弃用。在请求中传递最少的显式上下文。
+保持`includeContext`在`"none"`如果您保留已旧的样本流量.其他语境模式增加泄漏风险,本身已过时.请通过请求中最小明确的语境.
 
-## 安全不变式
+## 安全变化
 
-客户端是嵌入 Sampling 请求的信任边界。
+客户是嵌入式样本请求的信任界限.
 
-- 当策略需要审批时，向用户展示服务端要求模型执行的操作。
-- 限制 MRTR 轮次。否则恶意服务端可以创建模型消耗循环。
-- 在使用前验证每个采样响应，作为文件名、URL 或工具输入。
-- 限制每轮的字节数和 token 数。
-- 拒绝当前客户端能力中未声明的输入请求。
-- 将模型输出排除在授权决策之外。
-- 记录发起的方法和输入请求键，但不要记录敏感的提示内容。
+- 显示用户在政策需要批准时服务器要求模型做什么.
+- 通过MRT,一个恶意服务器可以创建一个模型支出循环.
+- 在使用它作为文件名,URL或工具输入之前验证每个样本反应.
+- 每轮的字节和代币限制.
+- 拒绝未在当前客户端功能中声明的输入请求.
+- 保持模型输出在授权决策中.
+- 记录原始方法和输入请求键,而不记录敏感的提示内容.
 
-`clientInfo` 和 `serverInfo` 是展示和诊断元数据。绝不将它们用作经过认证的身份。
+`clientInfo`其他`serverInfo`任何一个数据都不能被认证身份.
 
 ```figure
 t3-sampling-flip
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现了完整的两轮流程，无需第三方包：
+`code/main.py`实现了完全的双轮流,没有第三方包:
 
-- `server/discover` 返回 `supportedVersions`，发布工具支持，并返回缓存提示。
-- `tools/list` 返回确定性、可缓存的 `summarize_repo` 描述符，包含对象输入模式。
-- `tools/call` 对每个请求验证元数据。
-- 第一个结果嵌入用于文件选择的 `sampling/createMessage`。
-- 第一次重试验证模型结果并嵌入第二个请求。
-- HMAC 保护的 `requestState` 在独立请求间承载阶段信息。
-- 最终结果使用 `resultType: "complete"`。
+- `server/discover`收益`supportedVersions`通过Cache,广告工具支持,并返回缓存提示.
+- `tools/list`返回一个确定性,可缓存的`summarize_repo`具有对象输入方案的描述符.
+- `tools/call`根据请求验证了元数据.
+- 首先,结果是`sampling/createMessage`文件选择.
+- 第一次重试验证实模型结果,并嵌入第二次请求.
+- 受到HMAC保护`requestState`独立请求之间的阶段.
+- 最终结果使用`resultType: "complete"`现在,我们要去.
 
-伪装的宿主模型使示例保持确定性。连接真实宿主时仅替换 `fake_host_model`。服务端状态机应保持确定性和可测试性。
+假的主机模型使得例子是确定性的.`fake_host_model`服务器边状态机应该保持确定性和可测试性.
 
-## 使用
+## 用它
 
-从仓库根目录：
+根据数据库根:
 
 ```bash
 cd phases/13-tools-and-protocols/11-mcp-sampling/code
@@ -213,53 +213,53 @@ python3 main.py
 python3 -m unittest discover tests -v
 ```
 
-预期检查点：
+预期的检查站:
 
-- 发现接口返回包含 `ttlMs` 和 `cacheScope` 的完整结果。
-- 工具发现返回相同的排序描述符，包含 `resultType`、服务端标识和缓存提示。
-- 缺失的能力和不支持的版本使用精确的 `-32021` 和 `-32022` 错误数据。
-- 没有 id 的通知不产生 JSON-RPC 响应。
-- 请求 id 为 `[1, 2, 3]`，证明每个 MRTR 轮次是独立的。
-- 前两个结果为 `input_required`。
-- 最终结果为 `complete`，包含所选文件和摘要。
-- 在重试时更改原始参数会导致状态检查失败。
+- 发现返回一个完整的结果`ttlMs`其他`cacheScope`现在,我们要去.
+- 工具发现返回相同的分类描述符`resultType`服务器身份,缓存提示.
+- 缺失功能和不支持版本使用精确的`-32021`其他`-32022`错误数据.
+- 没有 id 的通知不会产生 JSON-RPC 响应.
+- 要求身份证是`[1, 2, 3]`证明每次MRTR轮都是独立的.
+- 首先的两个结果是`input_required`现在,我们要去.
+- 最终结果是`complete`包含选定的文件以及总结.
+- 试验中改变原始参数将失败于请求状态检查.
 
-## 交付
+## 运送它
 
-`outputs/skill-sampling-loop-designer.md` 现在是迁移规划器。它首先决定是移除 Sampling 以采用直接模型集成。如果需要兼容性，它生成 MRTR 轮次、状态绑定、能力门控、预算、验证和删除计划。
+`outputs/skill-sampling-loop-designer.md`现在是迁移规划师.它首先决定是否应该取消样本以支持直接模型集成.如果需要兼容性,它会产生MRTR轮,状态绑定,能力门,预算,验证和取消计划.
 
-## 练习
+## 运动
 
-1. 将文件选择响应改为无效 JSON。确认服务端返回 `-32602` 而非信任模型输出。
-2. 在首次调用和重试之间更改 `audience`。解释密封状态如何阻止跨请求重用。
-3. 添加第三轮，要求宿主对摘要进行审查。在签名状态中携带之前的摘要，并将整个流程限制在三轮内。
-4. 通过用服务端拥有的模型适配器替换伪装宿主回调来移除 Sampling。列出哪些审批、计费、可观测性职责转移到服务端。
-5. 添加使用超出截止时间一秒的状态值的过期测试。
+1. 改变文件选择响应为无效的JSON. 确认服务器返回`-32602`而不是相信模型的输出.
+2. 改变`audience`解释为什么封闭状态阻止了交叉请求的重复使用.
+3. 加入第三轮,要求主机批评总结. 携带之前的总结进入签署状态,并将整个流量限制在三个轮.
+4. 通过用服务器所有模型适配器取代假的主机回调,删除样本.列出哪些批准,发票和可观察责任转移到服务器.
+5. 添加使用超过一秒的状态值的过期测试.
 
-## 关键术语
+## 关键词
 
-| 术语 | 2026-07-28 中的含义 |
+| Term | Meaning in 2026-07-28 |
 |------|------------------------|
-| Sampling | 已弃用的功能，向客户端的模型请求补全 |
-| MRTR | 用于请求期间需要客户端输入的无状态重试模式 |
-| `InputRequiredResult` | 带有 `resultType: "input_required"` 的结果 |
-| `inputRequests` | 服务端分配的嵌入提示、采样或根请求的映射 |
-| `inputResponses` | 当前轮的客户端结果，按 `inputRequests` 的键形式组织 |
-| `requestState` | 由客户端原样回显、由服务端验证的不透明服务端状态 |
-| `resultType` | 现代 MCP 结果必需的鉴别器 |
-| Direct model integration | 需要模型推理的新服务端推荐的替代方案 |
-| Capability gate | 防止发送客户端未声明的嵌入请求的规则 |
-| Loop budget | 操作允许的最大轮次、token、字节、时间和花费 |
+| Sampling | Deprecated feature that asks the client's model for a completion |
+| MRTR | Stateless retry pattern for client input required during a request |
+| `InputRequiredResult` | Result with `resultType: "input_required"` |
+| `inputRequests` | Server-assigned map of embedded elicitation, sampling, or roots requests |
+| `inputResponses` | Current round's client results keyed like `inputRequests` |
+| `requestState` | Opaque server state echoed exactly by the client and verified by the server |
+| `resultType` | Required discriminator for modern MCP results |
+| Direct model integration | Recommended replacement for new servers that need model inference |
+| Capability gate | Rule that prevents sending an embedded request the client did not advertise |
+| Loop budget | Maximum rounds, tokens, bytes, time, and spend allowed for the operation |
 
-## 遗留兼容
+## 遗产兼容性
 
-固定在 2025-11-25 的客户端仍可通过实时连接使用旧的服务端发起的 `sampling/createMessage` 流程。仅在版本特定适配器中保留该行为。不要将使服务端会话依赖的路径作为 2026-07-28 服务端的架构。
+预定到2025-11-25的客户端可能仍然使用旧的服务器启动`sampling/createMessage`通过直播连接来传输. 仅在版本特定的适配器中保持这种行为. 不要让会议的路径成为2026-07-28服务器的架构.
 
-官方 SDK 可以为旧版对端翻译现代 `input_required` 处理器。该适配层是兼容边界，而非添加新会话依赖逻辑的许可。
+官方SDK可以翻译现代化`input_required`对于老年同龄人来说,这种闪是兼容性界限,而不是允许添加新的依赖于会议的逻辑.
 
-## 延伸阅读
+## 进一步阅读
 
-- [MCP 2026-07-28 多轮往返请求](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr)
-- [MCP 2026-07-28 变更日志](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
-- [MCP Sampling 弃用](https://modelcontextprotocol.io/seps/2577-deprecate-roots-sampling-and-logging)
-- [MCP 2026-07-28 服务端发现](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)
+- [MCP 2026-07-28 Multi Round-Trip Requests](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr)
+- [MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+- [MCP Sampling deprecation](https://modelcontextprotocol.io/seps/2577-deprecate-roots-sampling-and-logging)
+- [MCP 2026-07-28 server discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)

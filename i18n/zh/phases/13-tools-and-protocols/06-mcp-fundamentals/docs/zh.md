@@ -1,60 +1,60 @@
-# MCP 基础：无状态请求与 JSON-RPC
+# 无国籍申请和JSON-RPC
 
-> 现代 MCP 没有握手，也没有协议会话。每个请求都必须携带足够的元数据，以便独立理解、授权、路由和重试。
+> 现代MCP没有握手和协议会议.每个请求必须包含足够的元数据,才能被理解,授权,路由和重新尝试.
 
-**类型：** 学习
-**语言：** Python
-**前置条件：** 第 13 阶段，课程 01 至 05
-**时间：** 约 55 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 13, Lessons 01 through 05
+**Time:** ~55 minutes
 
 ## 学习目标
 
-- 区分 MCP 的服务端原语与其客户端功能。
-- 为 MCP `2026-07-28` 构建有效的 JSON-RPC 2.0 请求和响应。
-- 在每个请求中附带协议版本、客户端能力和客户端身份。
-- 使用 `server/discover` 并处理 `UnsupportedProtocolVersionError`，无需握手。
-- 跟踪一个独立请求从验证到完整结果的完整流程。
+- 区分MCP的服务器原始功能与客户端功能.
+- 建立有效的JSON-RPC 2.0请求和响应`2026-07-28`现在,我们要去.
+- 添加协议版本,客户端功能和客户端身份到每个请求.
+- 使用`server/discover`手`UnsupportedProtocolVersionError`没有握手.
+- 追踪一个独立的请求从验证到完整的结果.
 
-## 问题所在
+## 问题
 
-一个 MCP 服务端可以在同一个进程或 HTTP worker 上接收来自不同客户端的两个连续请求，它们具有不同的能力。如果服务端记住了前一个请求所声明的内容，就可能导致权限判断错误或返回错误的 wire shape。
+如果服务器记住前一个请求声明了什么,它可以应用错误的权限或返回错误的电线形状.
 
-MCP `2026-07-28` 消除了这种歧义。协议核心是无状态的。服务端必须根据当前请求来决定如何处理它，而不是依据连接历史。
+股`2026-07-28`服务器必须从当前请求中决定如何处理当前请求,而不是从连接历史中决定.
 
-这改变了心智模型。旧的顺序是：先建立连接，再做握手，最后执行操作。现代的顺序更简单：
+这改变了心理模型.旧的序列是连接第一,握手第二,操作第三.现代的序列更简单:
 
-1. 客户端发送一个自描述的请求。
-2. 服务端验证该请求的版本和能力。
-3. 服务端处理方法。
-4. 服务端返回一个类型化的结果或 JSON-RPC 错误。
+1. 客户向客户发出自定义请求.
+2. 服务器验证了请求的版本和功能.
+3. 服务器处理该方法.
+4. 服务器返回输入结果或JSON-RPC错误.
 
-下一个请求从开始重复同样的过程。
+接下来的请求从零开始重复相同的过程.
 
 ## 概念
 
-### 服务端原语
+### 服务器原始
 
-MCP 服务端暴露三个主要原语：
+ MCP 服务器暴露了三个主要的原始性:
 
-1. **工具（Tools）** 是由模型控制的操作，通过 `tools/list` 发现，通过 `tools/call` 调用。
-2. **资源（Resources）** 是 URI 寻址的数据，通过 `resources/list` 发现，通过 `resources/read` 读取。
-3. **提示词（Prompts）** 是可重用的模板，通过 `prompts/list` 发现，通过 `prompts/get` 渲染。
+1. **Tools**它们是模型控制的行动,`tools/list`,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.`tools/call`现在,我们要去.
+2. **Resources**发现的数据是 URI-  адресат的数据`resources/list`子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子`resources/read`现在,我们要去.
+3. **Prompts**它们是可重复使用的模板,`prompts/list`字母为`prompts/get`现在,我们要去.
 
-Roots、采样和日志记录在 `2026-07-28` 模式图中仍保留用于兼容性，但已标记弃用。新的实现应使用显式的工具或资源输入来处理 roots，使用直接模型提供商 API 来处理采样，使用 stderr 或 OpenTelemetry 来处理日志。Elicitation 仍可通过多轮往返请求实现，即服务端返回一个输入请求，客户端重试原始操作。现代服务端从不发起独立的 JSON-RPC 请求。
+根源,样本采集和伐木仍然存在`2026-07-28`它们是过时的. 新的实施应使用明确的工具或资源输入,用于根源,直接的模型提供商API用于采样,以及用于记录的 stderr或 OpenTelemetry. 通过多次回路请求,服务器返回输入请求,客户端重复初始操作. 现代服务器从来没有启动独立的JSON-RPC请求.
 
-### JSON-RPC 信封
+### 其他类型的文件
 
-MCP 使用 JSON-RPC 2.0：
+采用JSON-RPC 2.0的MCP:
 
-- 请求：`{jsonrpc, id, method, params}`
-- 响应：`{jsonrpc, id, result}` 或 `{jsonrpc, id, error}`
-- 通知：`{jsonrpc, method, params}`，没有 `id`
+- 要求:`{jsonrpc, id, method, params}`
+- 答案:`{jsonrpc, id, result}`或`{jsonrpc, id, error}`
+- 通知:`{jsonrpc, method, params}`没有`id`
 
-请求的 `id` 用于关联一个响应。它不会创建协议会话。
+要求`id`没有创建协议会议.
 
-### 必需的请求元数据
+### 要求的请求元数据
 
-每个现代请求都在 `params` 内携带一个 `_meta` 对象：
+每个现代要求都包含一个`_meta`内部的物体`params`其他:
 
 ```json
 {
@@ -74,13 +74,13 @@ MCP 使用 JSON-RPC 2.0：
 }
 ```
 
-协议版本和客户端能力是必需的。客户端身份是推荐项。它是自我报告的显示和调试数据，而非安全凭据。
+需要协议版本和客户端功能. 客户端身份是建议的. 它是自主报告的显示和调试数据,而不是安全凭证.
 
-服务端不得从早期请求、stdio 进程、HTTP 连接或传输层头部中推断这些值中的任何一个。
+服务器不得从之前的请求,工作室进程,HTTP连接或单独的运输标题中推断这些值.
 
-### 完整结果与服务端身份
+### 完整的结果和服务器身份
 
-每个成功的现代结果都包含 `resultType`。普通最终结果使用 `"complete"`。服务端还应在结果元数据中标识自身：
+每一个成功的现代结果都包括`resultType`正常的最终结果使用`"complete"`服务器还应在结果的元数据中识别自己:
 
 ```json
 {
@@ -101,21 +101,21 @@ MCP 使用 JSON-RPC 2.0：
 }
 ```
 
-`tools/list`、`resources/list`、`prompts/list`、`resources/templates/list`、`resources/read` 和 `server/discover` 是可缓存的结果。它们包含 `ttlMs` 和 `cacheScope`。一个安全的默认值是 `ttlMs: 0` 和 `cacheScope: "private"`。列表项应具有确定性顺序，以便等效响应产生稳定的缓存键和稳定的模型上下文。
+`tools/list`现在`resources/list`现在`prompts/list`现在`resources/templates/list`现在`resources/read`其他`server/discover`它们包括:`ttlMs`其他`cacheScope`安全的默认是`ttlMs: 0`其他`cacheScope: "private"`列表项应有确定性排序,因此相当的响应产生稳定的缓存键和稳定的模型背景.
 
-### 无握手的发现
+### 没有握手的发现
 
-每个现代服务端都必须实现 `server/discover`。客户端可以在调用其他方法之前调用它，以获取：
+每个现代服务器都必须实现`server/discover`客户可以在其他方法之前调用:
 
 - `supportedVersions`
-- 服务端 `capabilities`
-- 可选的使用说明 `instructions`
-- 结果 `_meta` 中的服务端身份
+- 服务器`capabilities`
+- 选择性使用`instructions`
+- 结果是服务器身份`_meta`
 - 缓存提示
 
-发现是有用的，但它不是一个门控。客户端可以先发送 `tools/list`，因为该请求已经携带了它的协议版本和能力。
+发现是有用的,但它不是一个门户.`tools/list`首先,因为该请求已经包含了协议版本和功能.
 
-如果请求的版本不受支持，服务端返回 JSON-RPC 代码 `-32022`，内容为：
+如果未支持请求版本,服务器将返回JSON-RPC代码 `-32022`含有:
 
 ```json
 {
@@ -124,83 +124,83 @@ MCP 使用 JSON-RPC 2.0：
 }
 ```
 
-客户端选择一个双方都支持的现代版本，并使用新的 JSON-RPC 请求 id 重试。
+客户端选择一个互助的现代版本,并再次尝试使用新的JSON-RPC请求ID.
 
-### 一个请求的生命周期
+### 一个请求生命周期
 
-按以下顺序跟踪一个现代请求：
+追踪一个现代要求的顺序:
 
-1. 解析一个 JSON-RPC 信封。
-2. 确认 `jsonrpc` 为 `"2.0"`，存在 `id`，`method` 是字符串，`params` 是对象。
-3. 要求在 `params._meta` 中存在版本字符串和能力对象；格式错误或缺失的元数据返回 `-32602`。
-4. 在 HTTP 边界处，将版本、方法和适用的名称头部与请求体进行比较。即使其中一个版本值不受支持，不匹配也会返回 `-32020`。
-5. 建立匹配后，拒绝已匹配但版本不支持的请求，返回 `-32022`。
-6. 检查所需的能力，然后按 `method` 路由并验证方法特定的参数。
-7. 在处理器运行之前，对具体操作进行认证和授权。
-8. 返回带有服务端身份的完整结果。
-9. 遗忘请求范围的协议元数据。
+1. 分析一个JSON-RPC封面.
+2. 确认`jsonrpc`是`"2.0"`其他`id`存在的`method`是一个字符串,`params`是一个物体.
+3. 要求版本字符串和功能对象在 `params._meta`错误的或缺失的元数据`-32602`现在,我们要去.
+4. 在HTTP边界,将版本,方法和适用的名称标题与体格进行比较.`-32020`即使两个版本值中的一个不支持.
+5. 通过" 支持不支持的版本"来拒绝相匹配的版本.`-32022`现在,我们要去.
+6. 检查所需的能力,然后通过路线`method`验证特定方法的参数.
+7. 在操作器运行之前,验证和授权混凝土操作.
+8. 返回一个完整的结果,提供服务器身份.
+9. 忘记请求范围的协议元数据.
 
-该顺序防止两个组件解读不同的调用。网关不能在授权 `Mcp-Name: notes.read` 的同时，让源端执行 `params.name: notes.delete`。它还使格式错误的输入、头部混淆、版本协商、能力失败、授权失败和处理器失败成为独立的证据。
+通过该命令,两个组件无法解释不同的通话.`Mcp-Name: notes.read`在原始执行时`params.name: notes.delete`它还将错误输入,标题混,版本谈判,能力故障,授权和处理器故障作为明显的证据.
 
-关闭 stdin 或 HTTP 响应会结束传输活动。它不会终止协议会话，因为现代 MCP 没有协议会话。
+关闭STDIN或HTTP响应结束了运输活动.它不会终止协议会议,因为现代MCP没有协议会议.
 
-### 显式遗留兼容
+### 显而易见的遗产兼容性
 
-版本至 `2025-11-25` 使用 `initialize`、`notifications/initialized`、连接范围的能力，以及在早期 Streamable HTTP 上可选的协议会话。当一个双时代客户端与旧服务端通信时，这些行为仍然相关。
+通过版本`2025-11-25`使用`initialize`现在`notifications/initialized`由于这种行为仍然是相关的,当一个双代客户端与旧服务器交谈时.
 
-保持时代分离。现代请求由必需的每请求元数据标识。遗留连接仅通过文档记录的回退路径选择。不要将 `initialize` 作为 `2026-07-28` 服务端的默认操作。
+保持时代分开.现代请求由每请求所需的元数据识别.只通过记录后退路径选择旧连接.`initialize`作为一个 `2026-07-28`服务器.
 
-因此，"无状态"具有特定时代的含义。在 `2026-07-28` 中，它是一个协议不变量：每个普通请求都是独立可解释的，不存在 MCP 会话。在 `2025-11-25` 之前的版本中，初始化和协商的能力属于连接，因此兼容适配器可以保留该遗留连接状态。双时代实现不是一个宽松的有限状态机。它是在一个隔离的遗留适配器旁运行的无状态现代核心，在任一解析器运行之前有明确的选路决策。
+无国籍因此具有特定时代的意义.`2026-07-28`任何普通请求都可以独立解释,没有MCP会议.`2025-11-25`双代实现不是一个允许状态的机器.它是一个独立的传统适配器旁边的无状态现代核心,在任何解析器运行之前,它明确选择决定.
 
-这两种含义都不禁止持久的应用状态。工作流、任务或草稿可以生活在共享存储中一个不透明句柄之后。客户端将该句柄作为普通输入发送，每个副本对其使用进行认证和授权。协议上下文不得泄漏到该存储中以替代被移除的会话。
+任何一个意思都禁止持久的应用状态.一个工作流程,任务或草案可以在共享存储器中的不透明的手柄背后生活.客户端将该手柄作为普通输入,每个复制都验证并授权其使用.协议文本不得作为删除的会议的替代品泄露到该存储器中.
 
 ```figure
 mcp-tool-call
 ```
 
-## 实践使用
+## 用它
 
-`code/main.py` 在没有框架的情况下构建、验证、跟踪和分发现代 MCP 消息。运行：
+`code/main.py`建立,验证,追踪和发送现代MCP消息,而无需框架.
 
 ```bash
 python3 code/main.py
 python3 -m unittest discover code/tests -v
 ```
 
-在输出中关注三个不变量：
+检查输出中的三个不变:
 
-- 每个请求都重复其 `_meta` 字段。
-- 每个成功的结果都是 `resultType: "complete"` 并包含服务端身份。
-- 列表结果是确定性排序的，并具有显式的缓存提示。
+- 每个请求都重复了自己的要求.`_meta`其他地方
+- 每个成功的结果都是`resultType: "complete"`包含服务器身份.
+- 列表结果是确定性排序的,并且有明确的缓存提示.
 
-## 交付使用
+## 运送它
 
-本课交付 `outputs/skill-mcp-handshake-tracer.md`。历史文件名保持稳定，但该工件现在是一个无状态请求追踪器。它独立审计每条消息，仅在真正存在时才标记遗留握手流量。
+这一课是很好的.`outputs/skill-mcp-handshake-tracer.md`历史文件名仍然稳定,但该文物现在已成为一个无状态请求追踪器. 它独立审计每个消息,并且只有当它真正存在时才标记旧的握手流量.
 
-## 练习
+## 运动
 
-1. 将一个请求的协议版本改为 `2027-01-01`。确认错误代码为 `-32022`，且数据中公布了支持的版本。
-2. 从第二个请求中移除 `io.modelcontextprotocol/clientCapabilities`。确认服务端不会重用第一个请求的能力。
-3. 反转内存中的工具注册表。确认 `tools/list` 仍返回相同的确定性顺序。
-4. 将 `cacheScope` 从 `public` 改为 `private`。解释在每种情况下哪些授权上下文可以重用该响应。
-5. 添加一个可选的 `clientInfo` 省略测试。该请求应保持有效，因为客户端身份是推荐项，而非必需项。
+1. 改变一个请求的协议版本为 `2027-01-01`确认错误代码是`-32022`数据宣传支持版本.
+2. 删除`io.modelcontextprotocol/clientCapabilities`确认服务器不使用第一请求的功能.
+3. 转换内存工具登记器. 确认`tools/list`仍然返回相同的确定性顺序.
+4. 改变`cacheScope`其他`public`为了`private`解释哪些授权环境可以在每个情况下重复使用响应.
+5. 添加一个可选的`clientInfo`由于客户身份是建议的,而不是要求的,请求应保持有效.
 
-## 关键术语
+## 关键词
 
-| 术语 | 含义 |
-|------|------|
-| 无状态协议 | 每个请求都提供解释它所需的元数据 |
-| 请求元数据 | 版本、客户端能力和推荐的客户端身份，位于 `params._meta` 中 |
-| `server/discover` | 用于版本、能力、说明和身份的必要服务端方法 |
-| `resultType` | 每个成功的现代结果上的判别字段 |
-| 可缓存结果 | 包含必需 `ttlMs` 和 `cacheScope` 提示的结果 |
-| 协议时代 | 现代每请求元数据或遗留的连接范围初始化 |
-| 传输生命周期 | 进程、连接或响应流的寿命，而非协议会话状态 |
-| `-32022` | 不支持的协议版本错误，包含请求版本和支持版本 |
+| Term | Meaning |
+|------|---------|
+| Stateless protocol | Every request supplies the metadata needed to interpret it |
+| Request metadata | Version, client capabilities, and recommended client identity in `params._meta` |
+| `server/discover` | Mandatory server method for versions, capabilities, instructions, and identity |
+| `resultType` | Discriminator on every successful modern result |
+| Cacheable result | Result that includes required `ttlMs` and `cacheScope` hints |
+| Protocol era | Modern per-request metadata or legacy connection-scoped initialization |
+| Transport lifetime | Process, connection, or response-stream lifetime, not protocol session state |
+| `-32022` | Unsupported protocol version error with requested and supported versions |
 
-## 延伸阅读
+## 进一步阅读
 
-- [MCP 架构](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
-- [MCP 基础协议](https://modelcontextprotocol.io/specification/2026-07-28/basic)
-- [MCP 服务端发现](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)
-- [MCP 2026-07-28 变更日志](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+- [MCP Architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [MCP Base Protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic)
+- [MCP Server Discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)
+- [MCP 2026-07-28 Changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)

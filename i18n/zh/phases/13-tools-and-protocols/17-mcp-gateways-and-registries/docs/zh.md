@@ -1,63 +1,63 @@
-# 无状态 MCP 网关与注册表准入
+# 无国籍MCP门户和注册表入口
 
-> 网关应当使每条路由都显式化。2026-07-28 协议在不依赖传输会话的情况下，赋予了它方法、名称、版本、能力、身份、缓存和追踪边界。
+> 网关应该明确每个路线. 2026-07-28协议给它方法,名称,版本,能力,身份,缓存和跟踪边界,而无需运输会议.
 
-**类型：** 学习
-**语言：** Python
-**前置条件：** 第 13 · 15 阶段（安全性）、第 13 · 16 阶段（授权）
-**时间：** 约 75 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 13 · 15 (security), Phase 13 · 16 (authorization)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 在不依赖会话亲和性的情况下，将多个 MCP 服务器聚合到一个 2026-07-28 端点后面。
-- 在策略或转发之前验证每个请求的元数据和路由头。
-- 使用稳定命名空间、确定性顺序、描述符锁定、RBAC 和私有缓存来合并工具。
-- 将注册表记录视为发现证据，但仍需要准入策略。
-- 正确路由请求范围的 SSE、`subscriptions/listen`、MRTR 重试和 Tasks 扩展调用。
-- 将旧式握手和会话支持与现代化路径隔离。
+- 聚合多个MCP服务器在一个2026-07-28终端点后,而没有会话亲密性.
+- 在政策或转发之前,按要求验证元数据和路由标题.
+- 结合工具,使用稳定的命名空间,确定性顺序,描述符针,RBAC和私人缓存.
+- 作为发现证据,仍然需要入学政策.
+- 路线要求范围的SSE,`subscriptions/listen` MRTR 再试, 任务延长调用正确.
+- 隔离传统的握手和会议支持.
 
 ## 问题
 
-将一个客户端直接连接到一台服务器很简单。更大的部署需要对更难的问题给出一致的答案：
+直接连接一个客户端到一个服务器是简单的.更大的部署需要一致的答案更难的问题:
 
-- 哪些服务器被允许？
-- 哪个主体可以查看和调用每个工具？
-- 当两个后端暴露相同名称时会发生什么？
-- 描述符变更如何审查？
-- 速率限制和审计事件应用在哪里？
-- 任何实例都能处理下一个请求吗？
+- 哪些服务器可以使用?
+- 哪个校长可以看到和打电话每个工具?
+- 如果两个后端暴露出同一个名字,会发生什么?
+- 描述符的变化如何进行审查?
+- 利率限制和审计活动在哪里适用?
+- 任何一个案例能处理下一个请求吗?
 
-网关位于客户端和后端 MCP 服务器之间。它呈现一个 MCP 端点，应用跨切面策略，并转发经过批准的请求。
+网关位于客户端和后端MCP服务器之间. 它呈现一个MCP终端点,应用跨界政策,并传递批准的请求.
 
-旧的网关设计通常将一个客户端会话多路复用到多个后端会话并重写 `Mcp-Session-Id`。这是一种遗留兼容性设计。2026-07-28 核心没有协议会话。
+旧的网关设计通常将一个客户端会议复杂化成多个后端会议,然后重新写`Mcp-Session-Id`这是一个传统的兼容性设计. 2026-07-28核心没有协议会议.
 
 ## 概念
 
-### 现代化网关路径
+### 现代门口之路
 
-对于每个请求：
+对于每项请求:
 
-1. 从传输授权中认证主体。
-2. 验证 `MCP-Protocol-Version`、`Mcp-Method`、`Mcp-Name` 和 `params._meta`。
-3. 对主体、资源、方法、工具和参数进行授权。
-4. 应用描述符、注册表、速率和数据策略。
-5. 为选定的后端创建独立的新请求。
-6. 验证后端结果并返回网关结果。
-7. 记录审计事件但不记录密钥。
+1. 确认出境许可证的本人身份.
+2. 验证`MCP-Protocol-Version`现在`Mcp-Method`现在`Mcp-Name`其他`params._meta`现在,我们要去.
+3. 授权主题,资源,方法,工具和论点.
+4. 应用描述符,注册表,利率和数据政策.
+5. 创建一个新的独立请求,为选择的后端.
+6. 验证后端结果并返回网关结果.
+7. 记录一个审计事件,没有记录秘密.
 
-没有步骤需要隐藏的协议会话。应用程序状态仍然可以存在于数据库、显式句柄、Tasks 或完整性保护的 MRTR 状态中。
+没有步骤需要隐藏协议会议.应用状态仍然可以存在数据库,明确手柄,任务或完整性保护的MRTR状态中.
 
-### 运行时策略是主要网关决策
+### 运行时间政策是主要的关门决定
 
-准入决定哪个后端版本可以进入网关。它不对实时调用进行授权。对于每个请求，网关根据已认证主体、发行者和资源、租户、匹配的方法和名称、归一化参数、已准入的描述符锁、当前后端健康状态、能力交集、数据分类、速率状态以及任何操作绑定批准重新计算策略。
+录取决定后端版本可以进入门口.它不授权直播通话.对于每个请求,门口从认证的主,发行者和资源,租户,匹配的方法和名称,正常化参数,被允许的描述符针,当前后端健康,能力交叉,数据分类,利率状态以及任何行动相关的批准重新计算了政策.
 
-这个顺序很重要。一个注册表记录可以在用户角色被撤销后仍然保持活动状态。一个描述符可以在目标参数跨越租户边界时保持锁定。一个后端可以在事件策略隔离状态变更调用时保持批准。因此，运行时策略是主要的允许或拒绝决策，注册表和描述符证据作为输入。
+登记记录可以保持活跃,而用户的角色被撤销.一个描述符可以保持固定,而一个目的地参数跨越租户界限.一个后端可以保持批准,而事件政策隔离状态变化的呼叫.因此,运行时间政策是主要允许或拒绝决定,登记和描述符证据作为输入.
 
-不要在连接或已删除的会话标识符下缓存允许决策。如果策略不可用，按操作类别遵循声明的失败策略。一个安全的默认做法是对状态变更和敏感读取失败关闭，而明确批准的公共读取路径仅在风险模型允许时使用短期最后已知策略。记录哪个策略版本和失败路径做出了决策，然后在返回之前验证后端结果。
+不要在连接或删除会议识别器下缓存允许决定. 如果没有可用的政策,按操作类进行声明的失败政策. 安全默认是,如果无法关闭状态变化和敏感阅读,而明确批准的公共阅读路径只能使用短期的最后已知政策,只有当其风险模型允许时. 记录该政策版本和失败路径作出决定,然后在返回之前验证后端结果.
 
-### 一个 POST 端点
+### 一个POST终点
 
-现代 Streamable HTTP 通过 POST 发送每个 JSON-RPC 消息：
+现代流向 HTTP 通过 POST 发送每个 JSON-RPC 消息:
 
 ```text
 POST /mcp
@@ -68,19 +68,19 @@ Mcp-Name: notes.search
 Accept: application/json, text/event-stream
 ```
 
-网关可以返回 JSON 或该 POST 的请求范围 SSE。GET 和 DELETE 对现代请求返回 405。`Mcp-Session-Id` 和 `Last-Event-ID` 不创建权限、亲和性或重放行为。
+网关可以返回JSON或请求-scoped SSE,为 POST. GET和 DELETE返回405现代请求. `Mcp-Session-Id`其他`Last-Event-ID`不要创造权威,亲密关系或重复行为.
 
-头和正文值必须一致。在查找后端之前，拒绝不匹配并返回 `-32020`。这使负载均衡器、网关和速率限制器无需解析完整正文即可路由，同时保留端到端完整性。
+标题和体值必须一致. 拒绝与`-32020`在搜索后端之前,这允许负载平衡器,门户和速度限制器路由,而不会分析整个机体,同时保持端到端完整性.
 
-按以下精确顺序验证：JSON-RPC 和元数据类型、头和正文相等性，然后是对匹配版本的支持。不匹配返回 HTTP 400 和 `-32020`。如果头和正文在不支持的版本上一致，则返回 HTTP 400 和 `-32022` 以及 `data` 精确为 `{"supported":["2026-07-28"],"requested":"<actual>"}`。未知方法返回 HTTP 404 和 `-32601`。
+验证在一个确切的顺序:JSON-RPC和元数据类型,标题和体格等,然后支持匹配的版本.一个不匹配返回HTTP 400`-32020`如果标题和体格同意不支持的版本,请返回HTTP 400`-32022`其他`data`完全是`{"supported":["2026-07-28"],"requested":"<actual>"}`未知方法返回了HTTP 404`-32601`现在,我们要去.
 
-`ProtocolError` 携带可选 `data`，网关将其序列化为 JSON-RPC 错误对象。通知没有 `id`，因此永远不会收到 JSON-RPC 成功或错误。接受的 HTTP 通知返回 202 和空正文。
+`ProtocolError`带有可选的`data`通过一个通道将其串行到JSON-RPC错误对象中.`id`通过 HTTP 通知,它返回 202 个空格.
 
-### 在每一层实现发现
+### 实现发现在每个层
 
-网关为客户端实现 `server/discover`。它还发现每个后端，以便了解协议版本、能力和扩展。
+通过网关实现`server/discover`它还发现每个后端,所以它知道协议版本,功能和扩展.
 
-示例网关结果：
+举例的网关结果:
 
 ```json
 {
@@ -100,13 +100,13 @@ Accept: application/json, text/event-stream
 }
 ```
 
-仅通告网关能够端到端 honored 的能力交集。后端功能并非自动安全暴露。没有后端路径的网关功能不适合通告。
+广告只能在网关可以尊重的功能交叉点.后端功能不自动安全地暴露.没有后端路径的网关功能不有用广告.
 
-`serverInfo` 是自报的显示和诊断数据。不要将其用作注册表或发布者证明。
+`serverInfo`没有任何数据显示或诊断数据,请不要使用它们作为注册表或出版商证明.
 
-### 每个请求的客户端能力
+### 客户端要求能力
 
-每个转发请求都需要当前的 `_meta` 信封：
+每个转发的请求都需要一个最新的信息`_meta`包裹:
 
 ```json
 {
@@ -119,11 +119,11 @@ Accept: application/json, text/event-stream
 }
 ```
 
-不要盲目地将外部客户端能力复制到后端。网关是后端的客户端。仅通告网关将正确中介的功能。
+通过后端,不要盲目复制外部客户端功能.门户端是后端客户端. 广告只能具有门户端正确的调解功能.
 
-### 确定性命名空间
+### 确定性名称空间
 
-在稳定公共名称下合并后端工具：
+合并后端工具以稳定的公共名称:
 
 ```text
 notes.search
@@ -132,28 +132,28 @@ issues.list
 issues.open
 ```
 
-保持从公共名称到后端和原始工具名称的映射。永远不要选择第一个或最后一个冲突项。公共名称是审批和审计合同的一部分，因此更改它是迁移。
+保持一个地图从公众名称到后端和原始工具名称. 永远不要选择第一个或最后的碰撞. 公众名称是批准和审计合同的一部分,所以更改它是一个迁移.
 
-`tools/list` 必须是确定性的。当可见性因主体而异时，返回 `cacheScope: private`。有界的 `ttlMs` 减少后端发现负载，同时不允许用户特定列表跨授权上下文泄漏。
+`tools/list`显度因主体而异时,返回`cacheScope: private`没有任何限制.`ttlMs`减少后端发现负载,而不会允许用户特定列表在授权环境中泄露.
 
-每个暴露的工具描述符都包括稳定名称、描述和对象根 `inputSchema`。命名空间无法删除必需的描述符字段。完整的列表结果还包括 `resultType`、服务器身份元数据和缓存提示。
+每个暴露的工具描述符都包含一个稳定的名称,描述和对象根`inputSchema`名称空间不能删除所需的描述字段.完整列表结果还包括`resultType`服务器身份元数据,以及缓存提示.
 
-### 锁定已批准描述符
+### 印批准的描述符
 
-在准入时，规范化完整描述符并在限定公共名称下存储其摘要。在列表和调用时，将活动描述符与批准摘要进行比较。
+在入学时,将完整的描述符归类为法典,并将其消化器存储在合格的公众名称下.在列表和电话时间,将现场描述器与批准的消化器进行比较.
 
-如果发生变化：
+如果变化:
 
-- 从 `tools/list` 中移除它。
-- 拒绝直接调用。
-- 发出审计事件。
-- 在更新锁之前需要策略或人工重新批准。
+- 删除它`tools/list`现在,我们要去.
+- 拒绝直接电话.
+- 发出审计活动.
+- 需要在更新之前重新批准政策或人类.
 
-网关是一个有用的中央执行点，但它不会使首次看到的描述符变得安全。初始审查仍然是必要的。
+网关是一个有用的中央执行点,但它不会使一条第一次看到的描述符成为安全的描述符.
 
-### 注册表帮助发现，而非决策
+### 登记文件帮助发现,而不是决定
 
-注册表 `server.json` 提供发布元数据。包支持的记录可能如下所示：
+一个注册书`server.json`提供出版元数据. 包装支持的记录可以看起来像这样:
 
 ```json
 {
@@ -172,7 +172,7 @@ issues.open
 }
 ```
 
-发布元数据不携带网关的安全决策。在单独的准入状态中保留经验证的发布者和溯源证据：
+发布元数据不包含网关的安全决定. 保存经验证的出版商和来源证据在单独的录取状态:
 
 ```json
 {
@@ -187,64 +187,64 @@ issues.open
 }
 ```
 
-网关检查 `server.json` 形状并将其加入外部状态。网关仍然需要准入策略。
+门口检查了`server.json`通过通过该网关,我们可以将其与外部状态联系起来.
 
-对于每个已准入的后端，记录：
+对于每一个被允许的后端,记录:
 
-- 确切的注册表和记录标识符。
-- 经验证的发布者命名空间或域证据。
-- 允许的传输和端点。
-- 锁定版本或批准升级策略。
-- 工件或描述符摘要。
-- 授权发行者和资源。
-- 审查者、批准时间和过期时间。
+- 记录和记录的确切标识.
+- 经过验证的出版商名字空间或域名证据.
+- 允许运输和终点.
+- 嵌版本或批准的升级政策.
+- 艺术品或描述器消化.
+- 授权发行人和资源.
+- 审核,批准时间,和过期.
 
-不要因其显示名称类似于熟悉的产品而接受服务器。不要将注册表存在视为运营安全检查。私有服务器可以通过相同的证据模式准入，即使它们从不出现在公共注册表中。
+由于其显示名称类似于熟悉的产品,所以不要接受服务器.不要把登记器存在视为运营安全审查.即使它们从未出现在公开登记器中,也可以通过相同的证据方案接入私人服务器.
 
-本教程实现网关接缝：在后端变得可路由之前，将发布证据加入本地准入。[课程 30：MCP 注册表供应链、准入、漂移和回滚](../../30-mcp-registry-supply-chain-and-drift/docs/en.md) 构建了完整的控制平面，用于精确命名空间证明、工件溯源、不可变锁定、活动描述符漂移、注册表状态协调、防篡改准入分类账和基于证据的回滚。将该供应链状态与上述请求范围的运行时决策保持分离。
+这一课实现了门口接:在后端成为可路由之前,将出版证据与本地录取相结合. [Lesson 30: MCP Registry Supply Chain, Admission, Drift, and Rollback](../../30-mcp-registry-supply-chain-and-drift/docs/en.md)建立完整的控制平面,以确定名称空间的确切性,文物来源,不可变的针头,直播描述器漂移,登记处状态调整,具有明显的录取账本和证据支持的反转.保持供应链状态与上述按要求运行时间决定分开.
 
-### 凭据中介
+### 权证调解
 
-网关对其调用者进行认证，并单独向后端认证。后端凭据永不发送给客户端。
+后端的身份证件从未传递给客户端.
 
-保持这些绑定明确：
+保持这些义务明确:
 
 ```text
-外部主体 -> 网关角色和策略
-后端发行者 + 资源 -> 后端注册和令牌
+outer principal -> gateway role and policy
+backend issuer + resource -> backend registration and token
 ```
 
-切勿将外部网关令牌传递给后端。切勿在不同发行者或资源处重用后端令牌。如果工具代表最终用户操作，则通过设计交换或声明模型保留该委托，而不是使用共享服务凭据冒充用户。
+永远不要将外部门口代币传递给后端.永远不要在不同的发行商或资源中重复使用后端代币.如果工具代表最终用户,则用设计的交易或索赔模型保存该代权,而不是用共享服务凭证伪装用户.
 
-### 无会话的速率限制
+### 没有会议的定位限制
 
-按已认证主体、发行者、资源、公共工具、成本类和 time window 的关键限制。会话 id 不存在，即使存在也很容易被轮换。
+通过认证的资本,发行人,资源,公共工具,成本类别和时间窗口的关键限制. 会议ID是缺失的,即使存在,也很容易旋转.
 
-在消耗昂贵工作之前应用廉价验证。决定被拒绝的调用是否计入滥用限制、业务配额或两者。
+在消耗昂贵的工作之前,请使用廉价验证.
 
 ### 审计决策链
 
-记录足够重建调用的内容：
+记录足以重建电话:
 
-- 请求和追踪标识符。
-- 已认证主体和发行者。
-- 公共工具和后端路由。
-- 描述符锁版本。
-- 策略决策和原因。
-- 延迟和结果类别。
-- 适用时的 MRTR 轮次或任务标识符。
+- 要求和追踪标识符.
+- 证实资本和发行人
+- 公共工具和后端路线.
+- 描述器印版本.
+- 政策决定和理由.
+- 延迟和结果类.
+- 适用时MRTR轮或任务标识符.
 
-脱敏 bearer 令牌、授权码、刷新令牌、原始密钥和不必要的敏感参数。
+编辑代码,授权代码,更新代码,原始秘密和不必要的敏感论点.
 
-### 请求范围的 SSE
+### 根据要求进行的SSE
 
-正常 POST 可能在工作流期间返回请求范围的 SSE。关闭响应流会取消该进行中的现代 HTTP 请求。
+当一个请求中工作流时,正常的POST可能会返回请求-scopeed SSE.关闭响应流会取消飞行中现代HTTP请求.
 
-不要创建单独的 GET 流，也不要承诺 Last-Event-ID 重放。这些是较旧的传输假设。
+别创建一个独立的GET流,不要承诺重播最后事件ID.
 
-### 长期变更通知
+### 长期变化通知
 
-对于列表和资源变更通知，当前客户端通过 POST 发送 `subscriptions/listen` 并接收 SSE 响应。通知过滤器使用精确的平面字段 `toolsListChanged`、`promptsListChanged`、`resourcesListChanged` 和 `resourceSubscriptions`：
+对于列表和资源更改通知,当前客户端发送`subscriptions/listen`通知过器使用精确的平面字段 `toolsListChanged`现在`promptsListChanged`现在`resourcesListChanged`其他`resourceSubscriptions`其他:
 
 ```json
 {
@@ -263,7 +263,7 @@ issues.open
 }
 ```
 
-第一个事件确认支持的子集。其订阅标识符是打开流请求的 JSON-RPC id：
+首先,确认支持的子集.其订阅标识符是开放流的请求的JSON-RPC id:
 
 ```json
 {
@@ -280,48 +280,48 @@ issues.open
 }
 ```
 
-然后网关仅转发已确认的更改类型。该流上的每个通知都在 `params._meta` 中携带相同的 `io.modelcontextprotocol/subscriptionId`。没有自动重放或自动重新监听。重新连接时，客户端重新打开订阅并刷新其依赖的列表。服务器发起的优雅关闭返回带有相同订阅 id 标记的最终完整结果。
+接下来,网关只传输确认的变更类型.`io.modelcontextprotocol/subscriptionId`在`params._meta`没有自动重播或自动重听.重连接后,客户端重新打开订阅并更新其依赖的列表.服务器启动的优雅闭幕返回最终完整结果,标记为相同的订阅ID.
 
-现代化路径替换了 `resources/subscribe`、`resources/unsubscribe` 和未请求的独立 GET 流。仅在版本门控的旧路径中保留这些。
+现代道路取代了`resources/subscribe`现在`resources/unsubscribe`保持这些只在一个版本封闭的旧路径.
 
-### 通过网关的 MRTR
+### 通过门口的MRTR
 
-当后端返回 `resultType: input_required` 时，网关可以转发该结果，前提是外部客户端支持所需的输入请求。按字节保留 `requestState`，除非网关故意终止并重新发出交互。
+当一个后端回来时`resultType: input_required`通过输入,网关只能转发该结果,如果外部客户端支持所需的输入请求.`requestState`字节对字节,除非门户故意终止并重新发行互动.
 
-客户端使用新的 JSON-RPC id 和 `inputResponses` 重试原始公共工具。网关重新授权重试，检查相同的公共路由，然后转发新的后端请求。它不能假设较早的轮次授予了无限批准。
+客户端将使用新 JSON-RPC ID 重新尝试原始公共工具`inputResponses`网关重新授权重新尝试,检查相同的公共路线,然后发送新的后端请求. 它不能假设一个早些时候获得无限批准.
 
-### Tasks 扩展路由
+### 任务扩展路由
 
-Tasks 是通过 `io.modelcontextprotocol/tasks` 标识的官方扩展。它们不是核心会话的替代。
+任务是官方扩展,`io.modelcontextprotocol/tasks`它们不是一个核心会议的替代品.
 
-客户端在请求范围的客户端能力内声明扩展，网关仅在能够端到端保留生命周期时才在发现中通告它。对于受支持的 `tools/call`，后端单独决定是返回普通结果还是 `resultType: task`。任务结果在结果中直接携带 `taskId`、`status`、时间戳、`ttlMs` 和可选的 `pollIntervalMs`。任务在该结果发送之前必须已经持久可读。
+客户端声明扩展在每次请求客户端功能内,门口只在能够保存生命周期终端时将其公布在发现中.`tools/call`后端单独决定是否返回普通结果`resultType: task`任务结果带有`taskId`现在`status`时间,`ttlMs`其他选择性`pollIntervalMs`任务必须在发送结果之前已经可读.
 
-网关为不透明任务标识符记录已认证主体和后端路由。后续的 `tasks/get`、`tasks/update` 和 `tasks/cancel` 调用使用 `params.taskId` 作为 `Mcp-Name`，这为中间件提供了路由键。`tasks/get` 返回带有当前任务状态的 `resultType: complete`，并在终端状态中内联最终结果或协议错误。`tasks/update` 为待处理的任务输入发送带键的 `inputResponses` 并返回空完整确认。`tasks/cancel` 是具有空完整确认的合作意图，而不是保证工作停止。
+后者是: 通过该网关记录了不透明任务识别器的认证主和后端路线.`tasks/get`现在`tasks/update`其他`tasks/cancel`电话使用`params.taskId`作为`Mcp-Name`通过此, 提供了路由密钥.`tasks/get`收益`resultType: complete`输入到终端状态的终端结果或协议错误. `tasks/update`发送钥匙`inputResponses`对于未完成任务输入,返回一个空白的完整确认. `tasks/cancel`合作的意图是完全承认的,而不是保证工作停止.
 
-不要实现新的 `tasks/list` 或 `tasks/result` 方法。它们属于较旧的实验模型。需要输入的任务通过 `tasks/get` 暴露完整的嵌入式请求；客户端通过 `tasks/update` 回答它们，而不是通过重试原始工具调用。客户端仍然按建议的间隔轮询；任务创建仍然由服务器指导。
+不要实施新的`tasks/list`或`tasks/result`需要输入的任务将通过 系统中包含的请求进行解明.`tasks/get`客户通过回复`tasks/update`客户端仍然在建议的间隔中进行投票;任务创建仍然是服务器导向的.
 
-持久的任务路由状态是按任务句柄键控的应用数据，而不是协议会话。
+持久任务路径状态是应用程序数据,由任务处理器键化,而不是协议会议.
 
-### 兼容性边界
+### 兼容性界限
 
-如果网关必须服务较旧的客户端或后端：
+如果网关必须为旧客户端或后端服务:
 
-- 明确检测时代。
-- 将初始化、传输会话、GET 流、资源订阅和旧任务词汇保留在遗留适配器中。
-- 切勿将遗留会话 id 泄漏到现代路由或授权中。
-- 优先使用有界发现探测和显式回退策略，而非静默降级。
+- 显然可以探测到时代.
+- 保存初始化,运输会议,GET流,资源订阅和旧任务词汇在旧适配器中.
+- 永远不要将旧的会议身份证泄露到现代路由或授权中.
+- 宁愿有限于发现探测器和明确的反弹政策,
 
 ```figure
 t3-gateway-funnel
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了进程内协议网关和两个后端服务器。每个后端接收一个新鲜当前协议的请求。网关提供发现、用户过滤的确定性 `tools/list`、命名空间路由、注册表 `server.json` 加外部准入状态、描述符锁、RBAC、主体键控速率限制、审计决策和模拟的 `subscriptions/listen` SSE 确认。
+`code/main.py`通过程序中协议网关和两个后端服务器实现.每个后端都收到一个新的当前协议请求.`tools/list`名称间路由,登记`server.json`另外,外接状态,描述符,RBAC,主要关键利率限制,审计决定以及一个模型`subscriptions/listen`证实安全性.
 
-模型接收解析的请求正文、路由头和已认证的 bearer 身份。它不是完整的 HTTP 适配器，也不解析 `Content-Type` 或完整的 `Accept` 合同。将其连接到第 09 课的 Streamable HTTP 适配器，它需要 `Content-Type: application/json` 和包含 `application/json` 和 `text/event-stream` 的 `Accept` 值。
+该模型接收解析请求体,路由标题和认证的载体身份.它不是完整的HTTP适配器,也不解析`Content-Type`或是全部`Accept`连接到第09课的流向HTTP适配器,`Content-Type: application/json`其他`Accept`含有两者中的值`application/json`其他`text/event-stream`现在,我们要去.
 
-运行它：
+运行它:
 
 ```bash
 cd phases/13-tools-and-protocols/17-mcp-gateways-and-registries
@@ -329,48 +329,48 @@ python3 code/main.py
 python3 -m unittest discover code/tests -v
 ```
 
-演示打印外部请求 id 和新鲜后端请求 id，以便看到无状态跳跃。
+演示程序将打印外部请求 ID 和新版本的后端请求 ID,
 
-## 使用它
+## 用它
 
-用真实当前协议客户端替换进程内后端对象。保持相同的接缝：
+换取实时协议客户端的进程后端对象.保持相同的连接:
 
-- 连接前的准入记录。
-- 能力暴露前的后端发现。
-- 授权前的限定公共名称。
-- 列表或调用前的描述符锁。
-- 转发前的新鲜请求范围元数据。
-- 返回前的结果验证。
+- 在连接前的录取记录.
+- 在能力曝光之前的后端发现.
+- 在授权之前的合格公众名称.
+- 在列表或电话之前,点描述符.
+- 在转发前,每次请求的新型元数据.
+- 在返回之前验证结果.
 
-## 交付它
+## 运送它
 
-本课程交付 `outputs/skill-gateway-bootstrap.md`。它生成一个现代网关设计，涵盖入口、发现、准入、命名空间、授权、缓存、流式传输、订阅、MRTR、Tasks、可观测性和遗留隔离。
+这一课是很好的.`outputs/skill-gateway-bootstrap.md`它生产了一个现代化的门户设计,涵盖入口,发现,录取,命名空间,授权,缓存,流媒体,订阅,MRTR,任务,可观察性和遗产隔离.
 
-## 练习
+## 运动
 
-1. 将追踪上下文添加到外部和转发请求元数据，并在审计事件中记录关联。
-2. 添加一个支持 Tasks 的后端并通过 `Mcp-Name` 中的任务 id 路由 `tasks/get`。
-3. 更改一个后端描述符并证明发现和直接调用都被阻止。
-4. 添加一个特定主体的服务器能力并解释为什么发现必须保持私有缓存。
-5. 编写一个遗留适配器接口，而不向现代 `Gateway` 类添加任何遗留状态。
+1. 添加跟踪文本到外部和转发的请求元数据,并记录在审计事件中相关性.
+2. 添加一个可执行任务的后端和路线`tasks/get`按任务ID`Mcp-Name`现在,我们要去.
+3. 改变一个后端描述符,证明发现和直接调用都被阻止了.
+4. 添加一个主要特定的服务器功能,并解释为什么发现必须保持私密缓存.
+5. 写一个旧的适配器界面,而不需要添加任何旧状态到现代的`Gateway`课程.
 
-## 关键术语
+## 关键词
 
-| 术语 | 含义 |
+| Term | Meaning |
 |------|---------|
-| MCP 网关 | 客户端和后端 MCP 服务器之间的策略和路由服务器 |
-| 准入记录 | 允许一个后端进入网关的证据和策略决策 |
-| 限定工具名称 | 稳定公共路由，如 `notes.search` |
-| 描述符锁 | 在发现和分发期间检查的批准摘要 |
-| 私有缓存范围 | 仅限于一个授权上下文的缓存结果 |
-| 请求范围 SSE | 附加到一个 POST 请求的流式响应 |
-| `subscriptions/listen` | 客户端打开的用于选定长期变更通知的 SSE 流 |
-| 任务路由 | 从不透明任务 id 到其后端的应用程序映射 |
-| 遗留适配器 | 旧握手和会话行为的显式版本门控边界 |
+| MCP gateway | Policy and routing server between clients and backend MCP servers |
+| Admission record | Evidence and policy decision allowing one backend into the gateway |
+| Qualified tool name | Stable public route such as `notes.search` |
+| Descriptor pin | Approved digest checked during discovery and dispatch |
+| Private cache scope | Cached result restricted to one authorization context |
+| Request-scoped SSE | Streaming response attached to one POST request |
+| `subscriptions/listen` | Client-opened SSE stream for selected long-lived change notifications |
+| Task route | Application mapping from an opaque task id to its backend |
+| Legacy adapter | Explicit version-gated boundary for old handshake and session behavior |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Streamable HTTP 传输](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
-- [服务器发现](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)
-- [官方注册表 server.json 要求](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/official-registry-requirements.md)
-- [MCP Tasks 扩展](https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks)
+- [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
+- [Server discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover)
+- [Official Registry server.json requirements](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/official-registry-requirements.md)
+- [MCP Tasks extension](https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks)

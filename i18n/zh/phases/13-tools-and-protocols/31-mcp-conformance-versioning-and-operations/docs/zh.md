@@ -1,74 +1,74 @@
-# MCP 一致性工程：版本、证据与运维
+# 标准规范工程:版本化,证据和运营
 
-> 服务器并非因为通过某个 SDK 的"快乐路径"就能称之为一贯兼容。一致性存在于协议层、版本边界、中间件代理以及回滚过程中。
+> 服务器不符合,因为其快乐路径通过一个SDK工作. 符合性在线,版本边界,通过中间人,以及在滚动过程中.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 第 13 阶段 · 09（传输层）、第 13 阶段 · 17（网关）、第 13 阶段 · 30（注册表准入）
-**时间：** 约 100 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 13 · 09 (transports), Phase 13 · 17 (gateways), Phase 13 · 30 (registry admission)
+**Time:** ~100 minutes
 
 ## 学习目标
 
-- 将规范性 MCP 规则转化为正向和负向的协议层记录。
-- 保持严格的 `2026-07-28` 行为与受限遗留回退机制的分离。
-- 区分可接受的增量未知字段与无效的未知 `resultType`。
-- 比较原始 JSON-RPC 证据与 SDK 规范化视图。
-- 通过真实代理边界验证头部和载荷完整性。
-- 使用脱敏记录、健康状态和回滚证据来拦截发布。
+- 转换规范性MCP规则成金色和负线转录.
+- 保持严格的态度`2026-07-28`行为与传统的背后行为是不同的.
+- 区分添加未知的字段与无效未知的字段`resultType`现在,我们要去.
+- 进行原始JSON-RPC证据与SDK正常化的视图的比较.
+- 通过一个真正的代理界限证明头部和身体的完整性.
+- 关口的发行文件,有编辑的转录,健康和反弹证据.
 
-## 问题所在
+## 问题
 
-你的客户端通过 SDK 调用 `tools/list` 并获取到工具列表。集成测试通过了。
+你的客户打电话`tools/list`通过 SDK,获得工具.
 
-但这个结果留下了许多重要问题未得到回答：
+这样,我们仍然没有回答重要问题:
 
-- 请求是否携带了现代协议的逐请求元数据？
-- `MCP-Protocol-Version`、`Mcp-Method` 和 `Mcp-Name` 是否与 JSON-RPC 主体匹配？
-- 响应在协议层是否包含有效的 `resultType`，还是由 SDK 合成的？
-- 客户端是否会保留未来的增量字段？
-- 已识别的现代错误是否会意外触发遗留握手？
-- 代理是否保留了原始状态码和 JSON-RPC 错误？
-- 通知序列化器是否发出了被禁止的响应？
-- 运维能否证明发布被提升或回滚的原因，而无需存储凭证？
+- 要求是否包含了现代的每次请求协议的元数据?
+- 确实`MCP-Protocol-Version`现在`Mcp-Method`其他`Mcp-Name`能否与JSON-RPC的体格相匹配?
+- 答案是否包含有效的`resultType`电线上,或者SDK合成了一个?
+- 客户是否会保留未来的添加剂领域?
+- 现在的错误会导致一个遗产的握手吗?
+- 代理是否保存了源状态和JSON-RPC错误?
+- 通知序列化器发出了禁止响应吗?
+- 没有保密的释放或推迟?
 
-一致性是一组可观测的不变量。在生产流量必须发现这些不变量之前，构建一个能捕获它们的测试框架。
+合规性是观察到的不变元件的集合. 在生产流量必须发现它们之前,建立一个捕获不变元件的带.
 
 ```figure
 mcp-conformance-operations
 ```
 
-## 从版本时代开始
+## 开始使用版本时代
 
-MCP `2026-07-28` 使用自包含的逐请求元数据。一个现代请求携带 `params._meta.io.modelcontextprotocol/protocolVersion` 和 `params._meta.io.modelcontextprotocol/clientCapabilities`。精确的命名空间键至关重要；裸的 `protocolVersion` 或 `clientCapabilities` 别名是格式错误的。当 HTTP 边界存在镜像路由头时，其值必须与 JSON-RPC 主体一致。现代成功响应携带 `resultType`。
+股`2026-07-28`现代请求包含了`params._meta.io.modelcontextprotocol/protocolVersion`其他`params._meta.io.modelcontextprotocol/clientCapabilities`确切的名称间隔的密钥是重要的;`protocolVersion`或`clientCapabilities`标题标题是错误的.当镜像路由标题在HTTP边界存在时,它们的值必须与JSON-RPC体一致.现代成功结果带来了`resultType`现在,我们要去.
 
-截至 `2025-11-25` 的版本使用早期的初始化时代。没有 `resultType` 的遗留结果只有在客户端选择了那个早期时代后才会被视为完整。
+通过版本`2025-11-25`没有任何数据的遗产结果.`resultType`只有客户选择了早期时代后才被解释为完整.
 
-不要创建一个同时接受两种形状的宽松验证器。使用两个分支：
+不要创建一个允许验证器,同时接受两个形状. 使用两个分支:
 
-| 分支 | 入口证据 | 缺少 `resultType` | 初始化 |
+| Branch | Entry evidence | Missing `resultType` | Initialization |
 |---|---|---|---|
-| 现代 | 成功的 `server/discover` 或已识别的现代响应 | 无效 | 非常规路径 |
-| 遗留 | 配置的允许列表以及在非结论性现代探测后有效的遗留 `initialize` 结果 | 视为完整 | 该时代所需 |
+| Modern | Successful `server/discover` or recognized modern response | Invalid | Not the default path |
+| Legacy | Configured allowlist plus a valid legacy `initialize` result after an inconclusive modern probe | Interpreted as complete | Required by that era |
 
-这种分离防止了格式错误的现代端点获得较弱的验证。
+隔离使得一个错误的现代同龄人不会得到更弱的验证.
 
 ### 严格模式
 
-严格模式需要现代行为的证明。成功的 `server/discover` 证明了现代分支。已识别的现代 JSON-RPC 错误也证明了它。修正请求或停止。绝不因为服务器返回了 `-32020`、`-32021` 或 `-32022` 就降级。
+严格模式需要证明现代行为.`server/discover`现在,我们已经发现了一个新的版本,它可以证明现代分支.一个已知的现代JSON-RPC错误也证明了这一点.`-32020`现在`-32021`其他`-32022`现在,我们要去.
 
-### 回退模式
+### 倒退模式
 
-回退模式执行一次受限的现代探测。超时、空回复、连接关闭或无法识别的响应都是非结论性的。这并不能证明对端是遗留的。只有明确配置或列入兼容性允许列表的端点才能随后接收受限的遗留探测，且客户端仅在验证该探测的 `initialize` 结果和协商的遗留修订版后才选择遗留分支。
+倒退模式执行一个有限的现代探测器.时间过关,空答,关闭连接或未识别的响应是不确定性的.它并不证明同行是遗产.只有一个明确配置或配置的终点才能接收一个有限的遗产探测器,客户端只选择了验证该探测器的遗产分支后.`initialize`结果和谈判的遗产修订.
 
-回退不是"任何错误后尝试遗留"。已识别的现代错误包含有用的修正信息。在其之后降级可能会隐藏头部不匹配、缺失的能力声明或不支持的版本。
+错误后,反弹不是被遗留的. 已认可的现代错误包含有用的纠正信息. 降级后,可能隐藏标题不匹配,缺失功能声明或不支持版本.
 
-这防止了攻击者、故障或过滤代理通过丢弃现代响应来强制降级。记录端点策略、非结论性的现代观察、确切的阳性遗留证据和所选时代在一起。
+这样,攻击者,中断或过代理不会通过放弃现代响应强加降级.记录终点政策,无可推断的现代观察,确切的积极遗产证据和选定的时代.
 
-在每个记录旁记录所选的时代。没有这个事实，缺失的字段在一个测试运行中可能看起来可以接受，而在另一个中则无效。
+没有这个事实,一个缺失的字段可能在一个测试过程中看起来是可接受的,而另一个则看起来是不有效的.
 
-## 构建记录语料库
+## 建立一个转录体
 
-记录夹具记录的是跨越边界的字节，而不仅仅是 SDK 调用：
+转录器记录了跨越界限的内容,而不仅仅是SDK调用:
 
 ```json
 {
@@ -101,175 +101,175 @@ MCP `2026-07-28` 使用自包含的逐请求元数据。一个现代请求携带
 }
 ```
 
-保留两类夹具。
+保持两个类的灯具.
 
-### 正向记录
+### 黄金的转录
 
-正向记录证明可接受的行为：
+黄金的转录证明了被接受的行为:
 
-- 带有匹配元数据和头部的现代发现或方法请求
-- 包含必需字段的完整结果
-- 方法可以请求更多输入时的 `input_required` 结果
-- 在相应能力已声明后的扩展结果
-- 在选定遗留时代的遗留结果（无 `resultType`）
-- 无 JSON-RPC 响应的通知处理
+- 现代发现或方法请求,配合的元数据和标题
+- 要求的字段的完整结果
+- `input_required`结果是,当方法可以要求更多输入时
+- 扩展结果仅在相应的功能被广告后
+- 没有遗产结果`resultType`只有在选择的遗产时代
+- 没有JSON-RPC响应的通知处理
 
-正向记录是精确的，而非庞大的。保持易变的 ID 和时间为确定性，或在比较前规范化它们。
+黄金的转录是精确的,不是大. 保持可变的身份证和时间标签确定性或在比较之前将它们正常化.
 
-### 负向记录
+### 负面转录
 
-负向记录证明拒绝行为：
+负面的转录证明拒绝行为:
 
-- 头部与主体不匹配
-- 缺少逐请求能力
-- 不支持的匹配协议版本
-- 缺少现代 `resultType`
-- 未知或未声明的 `resultType`
-- `jsonrpc` 非 `2.0` 或 ID 在值或 JSON 类型上不同
-- 同时包含 `result` 和 `error`，或两者都不包含
-- 缺少整数 `code` 和字符串 `message` 的错误
-- 已知协议错误映射到错误的 HTTP 状态
-- 为通知发出的响应
-- 格式错误的 JSON-RPC 信封
-- 代理折叠协议错误
+- 头部和身体的不匹配
+- 缺少按要求的能力
+- 支持不到的匹配协议版本
+- 没有现代`resultType`
+- 未知或未公告`resultType`
+- 反应`jsonrpc`其他`2.0`或是值或JSON类型不同的ID
+- 包含两者之间的反应`result`其他`error`没有一个
+- 没有整数的错误`code`子`message`
+- 已知协议错误被错误的HTTP状态映射
+- 发出通知的回应
+- 错误的JSON-RPC封面
+- 协议错误的代理崩
 
-对于每种负向情况，断言拒绝边界和稳定的错误代码。"调用失败"太弱了。代理生成的 500 和原始的 `-32020` 都可以看起来像失败，但告诉操作员完全不同的故事。
+对于每一个负例,请确认拒绝边界和稳定错误代码. 呼叫失败太弱.`-32020`虽然它们都能看起来像失败,但却却会讲述完全不同的故事.
 
-头部不匹配的夹具必须包含服务器实际的 HTTP 400 JSON-RPC 响应，带有匹配的请求 ID 和错误代码 `-32020`。每当本地验证器观察到 `HeaderMismatch` 时自动强制执行此操作，不要将响应验证设为可选的夹具标志。HTTP 500 且无主体的案例即使本地拒绝代码正确也会失败。在其自身请求验证器抛出后停止的框架只测试了自己，而非服务器的协议层行为。
+标题不匹配配器件必须包含服务器的实际HTTP 400 JSON-RPC响应,并包含匹配请求ID和错误代码`-32020`当地方验证器观察时,自动执行.`HeaderMismatch`对于一个 HTTP 500 系统,即使当地拒绝代码是正确的,也会出现故障. 通过自己的请求验证器投射后停止的链接只测试了自己,而不是服务器的电线行为.
 
-官方 MCP 一致性项目可作为外部套件和版本化参考使用。同时保留你的本地记录。它们捕获了你的代理、SDK、认证、扩展和发布路径，这是一般套件所不知晓的。
+官方MCP合规项目作为外部套件和版本参考很有用. 保存您的本地转录.它们捕获您的代理,SDK,身份验证,扩展和发布路径,而一般套件无法知道.
 
-## 头部值必须与 RPC 主体匹配
+## 标题值必须与PC体相匹配
 
-在现代 Streamable HTTP 中，中间件可以使用镜像头部进行路由或强制执行策略。JSON-RPC 主体仍然是协议事实的来源。不匹配是完整性失败，而不是选择其中一个值的提示。
+在现代流式HTTP中,中间人可以通过镜头标题进行路由或执行政策.JSON-RPC的机体仍然是协议的真相来源.不匹配是完整性失败,而不是选择一个值的暗示.
 
-按以下顺序验证：
+在此顺序进行验证:
 
-1. 解析并验证 JSON-RPC 信封和元数据类型。
-2. 比较 `MCP-Protocol-Version` 与 `params._meta.io.modelcontextprotocol/protocolVersion`。
-3. 比较 `Mcp-Method` 与 `method`。
-4. 当方法有路由名称时，比较 `Mcp-Name` 与相应的主休值。
-5. 建立相等性后，决定匹配的版和本领集是否得到支持。
+1. 分析和验证JSON-RPC封装和元数据类型.
+2. 比较`MCP-Protocol-Version`随着`params._meta.io.modelcontextprotocol/protocolVersion`现在,我们要去.
+3. 比较`Mcp-Method`随着`method`现在,我们要去.
+4. 如果该方法有路由名称,则比较`Mcp-Name`具有相应的体值.
+5. 确定平等后,决定是否支持匹配的版本和功能集.
 
-此顺序区分不匹配 `-32020` 与不支持的版本 `-32022`。它还阻止网关授权头部名称而原始执行不同的主体名称。
+这种顺序区分了不匹配`-32020`没有支持的版本`-32022`通过此,一个网关可以使用一个不同的机体名称.
 
-HTTP 字段名不区分大小写，而其值区分大小写。在查找前规范化头部名称并拒绝冲突的重复项。对于不安全、非 ASCII 或前后有空白的 `Mcp-Name`，在与其主体比较之前解码精确的 `=?base64?{Base64EncodedValue}?=` UTF-8 哨兵。以 `-32020` 拒绝不完整的哨兵、无效 Base64、无效 UTF-8 或原始不安全值。原始周围空白无效，即使主体包含相同字符，因为该值在传输前需要哨兵编码。
+HTTP 字段名称是不敏感的,而它们的值仍然是敏感的. 在搜索之前,正常化头条名称,拒绝矛盾的重复.对于不安全的,非ASCII或领先或后续的白色空间.`Mcp-Name`解码了精确的`=?base64?{Base64EncodedValue}?=`拒绝一个不完整的哨兵,不有效的Base64,不有效的UTF-8,或原始的不安全值`-32020`虽然机身包含相同的字符,但原料周围的白色空间是无效的,因为该值需要在运输前进行哨兵编码.
 
-中间件可以在请求到达 MCP 服务器之前拒绝格式错误的 HTTP，因此其失败可能是没有 JSON-RPC 的 HTTP 错误。捕获拒绝是来自中间件还是原始服务器。当原始 MCP 服务器处理了有效的 JSON-RPC 请求时，应使用协议错误契约。
+介绍一个错误的HTTP,在请求到达MCP服务器之前可以拒绝错误的HTTP,因此其失败可能是没有JSON-RPC的HTTP错误. 捕获是否拒绝来自介绍者或来源. 当处理有效的JSON-RPC请求时,原始MCP服务器应该使用协议错误合同.
 
-## 未知字段不是未知结果
+## 无人知之田不是无人知之产物
 
-前向兼容性需要两条不同的规则。
+未来兼容性需要两个不同的规则.
 
-### 增量未知字段
+### 添加未知字段
 
-结果对象和 `_meta` 映射可以增加字段。验证器应根据其角色保留或忽略增量字段，除非该字段违反了保留契约。示例在证据中保留完整原始结果，并在已知结果旁边接受 `futureHint`。
+结果对象和`_meta`根据其作用,验证者应保留或忽略添加值的字段,除非该字段违反了保留合同.`futureHint`除了已知结果之外.
 
-如果你是透明代理，保留未知字段通常比剥离它更安全。如果你是应用客户端，忽略它可能是有效的。你的差异测试仍应揭示 SDK 省略了它，因此行为是故意的。
+如果您是透明代理,保存一个未知的字段通常比剥夺它更安全.如果您是应用程序客户端,忽略它可能是有效的.您的差异测试仍然应该显示SDK遗漏它,因此行为是故意的.
 
-### 未知 `resultType`
+### 没有人知道`resultType`
 
-`resultType` 是一个判别器。核心现代结果使用 `complete` 或 `input_required`。扩展只能在其能力已声明时添加另一个值。例如，Tasks 扩展可以在协商的能力上下文中添加 `task`。
+`resultType`核心现代结果使用`complete`或`input_required`扩展只能在其功能被广告时添加另一个值.`task`在谈判能力的背景下.
 
-未知或未声明的判别器不能被安全地视为完整。客户端不知道它会丢弃的生命周期。拒绝它。
+客户不知道它会丢弃的生命周期. 拒绝它.
 
-因此，相同的原始响应可以包含可接受的未知字段和不可接受的未知结果类型。测试两种情况。
+因此,相同的原始反应可以包含一个可接受的未知的字段和一个不可接受的未知的结果类型.
 
-判别器只是第一层。在其后验证方法特定的载荷。完整的 `tools/list` 结果需要一个 `tools` 数组，其描述符具有唯一非空名称、有用描述和对象根 `inputSchema` 值。`task` 结果仅对具有 Tasks 能力的合格 `tools/call` 有效，并需要 `taskId`、已知状态、创建和更新时间戳以及 `ttlMs`，加上有效的可选轮询间隔。完整的 `completion/complete` 结果需要一个 `completion` 对象，最多包含 100 个字符串值、一个可选的非负整数 `total`（不小于返回的值）和一个可选布尔值 `hasMore`。拼写正确的 `resultType` 不能使格式错误的载荷符合规范。
+区分器只是第一层. 验证后的方法特定的有效载荷.`tools/list`结果需要一个`tools`配列的描述符具有独特的非空名,有用的描述和对象根`inputSchema`值.`task`结果仅适用于符合条件的`tools/call`具有任务能力和要求`taskId`已知状态,创建和更新时间标签,`ttlMs`另外一个有效的选项选项间隔.`completion/complete`结果需要一个`completion`具有不超过100个字符串值的对象,可选的非负整数 `total`且可选的布尔式值`hasMore`一个好拼写的`resultType`无法制造一个错误的有效载荷的符合性.
 
-## 通知不变量
+## 通知变异
 
-JSON-RPC 通知没有 `id`。接收方不得发送 JSON-RPC 成功或错误响应。
+没有JSON-RPC通知`id`接收器不得发送一个成功或错误的JSON-RPC响应.
 
-对于接受的 HTTP 通知形状，框架期望 HTTP `202` 和空主体。MCP `2026-07-28` 未在 Streamable HTTP 上定义任何核心客户端到服务器通知。示例仅使用命名空间课程扩展通知来测试单向序列化器不变量。不要将其呈现为新的核心方法。
+对于被接受的HTTP通知形状,带期望一个HTTP`202`没有任何东西.`2026-07-28`定义没有基于 Streamable HTTP 的核心客户端到服务器通知.样本仅使用一个名字空间的进程扩展通知来测试单向串联器不变量.不要将其作为一个新的核心方法.
 
-测试序列化器，而不仅仅是处理器。处理器可能返回 `None`，而中间件将其包装在 JSON 成功对象中。捕获最终的出口字节。
+测试连续化器,不仅是操作器.`None`通过中文软件将其包裹成一个JSON成功对象.
 
-## 添加 SDK 差异分析
+## 添加一个 SDK 区别值
 
-SDK 经常将协议层对象转换为方便的语言类型。这很有用，但规范化对象无法证明接收到了什么。
+ SDK 经常将线程对象转化为方便的语言类型. 这很有用,但一个正常化的对象不能证明收到的内容.
 
-对于每个高风险夹具，捕获：
+对于每一个高风险装置,捕获:
 
-1. SDK 解码前的原始状态、头部和响应主体。
-2. SDK 规范化返回值或异常。
-3. 所选时代的预期语义投影。
-4. 由 SDK 提升、合成、剥离或更改的字段。
+1. 在 SDK 解码之前,原始状态,标题和响应器官.
+2.  SDK正常化回报值或例外
+3. 预期的选择时代的语义投影.
+4.  SDK 提升,合成,剥离或更改的场地.
 
-示例允许 SDK 仅移除已知的协议层簿记如 `resultType`、`_meta`、`ttlMs` 和 `cacheScope`，同时在比较应用载荷时。它报告了丢失的 `futureHint`，因为该未知语义字段消失了。
+样本允许仅使用SDK去除已知电线账本,如`resultType`现在`_meta`现在`ttlMs`其他`cacheScope`应用程序的有效载荷.`futureHint`因为这个未知的语义领域消失了.
 
-不要假设每个差异都是 SDK 错误。目的是使转换可见。决定你的组件是应用端点（可能忽略增量字段）还是透明中间件（应保留它）。
+您的组件是否是一个应用程序终端点,可以忽略添加字段,或者一个透明的中间体,该组件应该保存它.
 
-对每个发布的 SDK 和版本运行差异分析。如果两个 SDK 以不同方式规范化相同的记录，发布策略应说明哪种行为可接受，而不是事后选择最方便的输出。
+如果两个SDK以不同的方式正常化相同的转录,则发布政策应该说明哪种行为是可接受的,而不是选择最方便的输出.
 
 ## 捕获代理证据
 
-大多数生产 MCP 故障发生在多个进程之间。记录三个视图：
+产品MCP失败的大部分发生在多个过程中.记录三个视图:
 
-| 视图 | 最小证据 |
+| View | Minimum evidence |
 |---|---|
-| 入口 | 请求头部、JSON-RPC 主体、内容类型、认证路由、接收时间 |
-| 原始 | 转发头部和主体摘要、原始状态、响应头部和主体 |
-| 出口 | 客户端可见状态、头部、主体和发送时间 |
+| Ingress | request headers, JSON-RPC body, content type, authenticated route, receive time |
+| Origin | forwarded headers and body digest, origin status, response headers and body |
+| Egress | client-visible status, headers, body, and send time |
 
-示例检测到两个常见变换：
+样本检测到两个常见的变化:
 
-- 原始 HTTP 400 或 404 JSON-RPC 错误变为通用代理 500
-- 出口 JSON-RPC 主体与原始主体不同
+- 源 HTTP 400 或 404 JSON-RPC 错误成为通用代理 500
+- 出口JSON-RPC体与原体不同
 
-为内容类型、`Accept`、压缩、请求作用域 SSE、缓存头部和跟踪相关性添加部署特定断言。在策略允许时捕获 TLS 终止的两侧。切勿为了证明路径而记录凭证。
+添加内容类型的部署特定声明,`Accept`检查TLS终止的两侧,当政策允许时.永远不要记录凭证,只是为了证明路径.
 
-## 在证据离开内存前脱敏
+## 记忆不完之前再写一篇
 
-脱敏是一致性运维的一部分，而非后续的清理工作。在序列化、哈希、日志、测试工件或故障上传之前应用它。
+编辑是符合性操作的一部分,而不是后续清理工作. 在串行,哈希,日志,测试文物或失败上传之前应用它.
 
-示例对键名进行大小写折叠并在匹配前移除分隔符，然后在诸如 `Authorization`、`Cookie`、`Set-Cookie`、`X-Api-Key`、`accessToken`、`clientSecret`、`registrationAccessToken`、`token`、`password`、`secret` 和 `api_key` 等键下递归替换值。规范化和禁用列表必须使用相同的表单，以便 camelCase、连字符、下划线和点号变体不能相互绕过策略。生产收集器应添加方法特定的参数策略，因为无害的键如 `query` 仍可能包含个人或被监管数据。
+样本案例将关键名称折叠,在匹配之前删除分区,然后再次次替换关键下的值,如`Authorization`现在`Cookie`现在`Set-Cookie`现在`X-Api-Key`现在`accessToken`现在`clientSecret`现在`registrationAccessToken`现在`token`现在`password`现在`secret`其他`api_key`纳化和丹尼尔单必须使用相同的形式,因此马,字符串,强调和点子变体不能绕过彼此的政策.`query`仍可能包含个人或受监管的数据.
 
-对脱敏证据包进行哈希。仅在批准的特定时限系统中保留原始捕获，当特定调查需要它们时。摘要证明哪个脱敏包驱动了决策；它不会揭示被移除的值。
+除了这些数据,还可以将其保存在已批准的短暂系统中,只需要进行特定调查. 化证明了哪些数据驱动了决定;它不显示删除的值.
 
-## 使健康和回滚成为门禁的一部分
+## 让健康和回归成为门户的一部分
 
-协议一致性是必要的但非充分的发布条件。一个一致候选者仍可能超时、内存泄漏或过载依赖项。
+协议合规性是必要的,但不够的释放. 合规候选人仍然可以过时,泄漏内存或过度负载依赖性.
 
-在发布前定义健康窗口：
+在推出之前定义健康窗口:
 
-- 最小样本数
-- 最大错误率
-- 最大延迟百分位数
-- 饱和度或资源限制
-- 观察持续时间
-- 与准入基准的比较
+- 样本数量最低
+- 错误率最高
+- 延迟最大百分比
+- 和资源限制
+- 观察时间
+- 与被允许的基线的比较
 
-在发布前也定义回滚证据：
+在推出之前也定义反弹证据:
 
-- 确切的先前版本
-- 准入证据摘要
-- SHA-256 工件和描述符引脚
-- 当前注册表状态
-- 当前健康结果
-- 路由恢复程序
-- 来自可信发布控制器身份的对这些精确字段的证明
+- 确切的前版本
+- 录取证据消化
+- 石器和描述器SHA-256
+- 目前的登记处状态
+- 现状健康结果
+- 航线恢复程序
+- 证据证明这些精确的领域来自可靠的释放控制器身份
 
-要求在提升前验证回滚目标，而不仅是在候选者失败后。没有可用恢复路径的成功发布不是生产就绪的。
+要求提升前,不仅需要候选人失败后,还要验证并健康的反弹目标.
 
-如果候选者失败且回滚目标缺少该证据，请保持流量而不是猜测。"回滚到 Whatever 存在的东西"不是运维控制。
+如果候选人失败,而反弹目标缺乏这些证据, 停止交通,而不是猜测.
 
-不要将就绪性简化为真值检查，如非空版本、`healthy: "yes"` 或任意证据字符串。示例需要精确类型、活动状态、三个 SHA-256 摘要、可信签名者和对完整回滚载荷的有效 HMAC-SHA-256 证明。其确定性演示密钥是非秘密夹具。在生产的发布边界注入受保护的密钥、KMS 验证结果或公钥证明验证器。
+不要减少对未空版本等真实性检查的准备,`healthy: "yes"`样本需要准确的类型,活跃状态,三个SHA-256字段,一个可信的签名器和一个有效的HMAC-SHA-256证明,在完整的反弹有效载荷上.其确定性演示密钥是一个非秘密的装置.在生产的释放边界注入一个保护密钥,KMS验证结果或公钥验证证证.
 
-发布门禁还拒绝空的记录、SDK 差异或代理证据。每个来源必须携带有效的证据摘要。绿色健康窗口不能填充从未观察到的边界。
+发放门也拒绝空格转录,SDK差异或代理证据.每个来源都必须携带有效的证据消化.绿色健康窗口不能填补未被观察过的边界.
 
-## 构建它
+## 建立它
 
-运行标准库框架：
+运行标准图书馆带:
 
 ```bash
 cd phases/13-tools-and-protocols/31-mcp-conformance-versioning-and-operations
 python3 code/main.py
 ```
 
-演示恰好运行十五个正向和负向记录，包括有效和格式错误的完成结果，比较原始结果与 SDK 视图，检查折叠原始错误的代理，评估健康状态，认证回滚证据，并选择目标。
+演示程序运行了15个黄金和负面的转录,包括有效和错误的完成结果,将原始结果与SDK视图进行比较,检查一个失败的代理,评估健康,验证反弹证据,并选择目标.
 
-预期形状：
+预期的形状:
 
 ```json
 {
@@ -285,43 +285,43 @@ python3 code/main.py
 }
 ```
 
-按以下顺序阅读 `code/main.py`：
+阅读`code/main.py`在此顺序:
 
-1. `validate_request()` 强制执行时代特定的请求和头部规则。
-2. `validate_result()` 分离缺少的遗留判别器、有效的现代值、扩展和未知值。
-3. `select_era()` 实现严格和受限回退策略。
-4. `run_transcript()` 评估正向和负向夹具。
-5. `compare_sdk_view()` 揭示规范化差异。
-6. `inspect_proxy()` 比较入口、原始和出口证据。
-7. `redact()` 在证据哈希前移除明显凭证。
-8. `rollback_evidence_ready()` 验证精确引脚字段和可信发布证明。
-9. `ReleaseGate.evaluate()` 连接非空一致性、SDK、代理、健康和回滚证据。
+1. `validate_request()`执行特定时代的请求和标题规则.
+2. `validate_result()`区分失踪的传统歧视者,有效的现代价值观,扩展和未知的价值观.
+3. `select_era()`实施严格的反弹政策.
+4. `run_transcript()`评估黄金和负光.
+5. `compare_sdk_view()`报告显示了正常化差异.
+6. `inspect_proxy()`进行了进口,出口和出口证据的比较.
+7. `redact()`在证据被除之前,它会删除明显的秘密.
+8. `rollback_evidence_ready()`验证准确的针字段和可靠的释放证书.
+9. `ReleaseGate.evaluate()`加入非空格合规性,SDK,代理,健康和反弹证据.
 
-## 使用它
+## 用它
 
-在四个点运行框架：
+运行四个点:
 
-1. 每次实现更改时使用进程内测试适配器。
-2. 针对构建的客户端和服务器二进制文件通过真实传输层。
-3. 通过部署的代理或网关在预发环境中。
-4. 在金丝雀发布期间使用实时健康和回滚证据。
+1. 在每次实施变更时,使用在过程中测试适配器.
+2. 针对实际运输的客户端和服务器二进制.
+3. 通过部署的代理或门户在一个舞台环境中.
+4. 在加拿大鱼发射期间,有现实健康和反弹证据.
 
-跨层保持相同的稳定用例名称。`negative-header-body-mismatch` 应在单元测试、端到端、代理和金丝雀报告中意味着相同的不变量。证据摘要会因边界变化而不同；要求不应改变。
+保持相同的稳定案例名称在各层.`negative-header-body-mismatch`据悉,在""中,该指数的数量是1个,且在"端到端",代理和可查报告中,该指数的变量不相同.
 
-在版本控制中存储夹具模式。在发布系统中存储脱敏运行证据。仅在事件访问控制下存储短期原始捕获。
+存储版本控制中的固定方案. 在发布系统中存储编辑的运行证据. 仅在事件访问控制下存储短暂的原始捕获.
 
-## 交互实验室
+## 互动实验室
 
-### 实验室 A：证明时代边界
+### 实验室A:证明时代的边界
 
-从 `code` 目录打开 Python：
+关于`code`开放字符串:
 
 ```bash
 cd phases/13-tools-and-protocols/31-mcp-conformance-versioning-and-operations/code
 python3 -q
 ```
 
-运行：
+运行:
 
 ```python
 from main import *
@@ -329,7 +329,7 @@ validate_result({"tools": []}, "legacy")
 validate_result({"tools": []}, "modern")
 ```
 
-遗留调用推断 `complete`。现代调用抛出 `ProtocolViolation`。现在测试回退：
+遗产的呼叫是无效的`complete`现代的呼唤引起了`ProtocolViolation`现在试试倒:
 
 ```python
 select_era({"kind": "timeout"}, "fallback")
@@ -342,18 +342,18 @@ select_era(
 select_era({"kind": "jsonrpc_error", "code": -32021}, "fallback")
 ```
 
-第一个超时因静默不是遗留证据而失败关闭。第二个调用仅在配置允许且观察到有效的遗留初始化结果时选择遗留。已识别的缺少能力错误证明了现代分支。
+由于沉默不是遗产证据,所以第一时间停止运行.第二次调用仅因为配置允许,所以选择遗产,并且观察到有效的遗产初始化结果.
 
-### 实验室 B：增量字段与判别器
+### 实验室B:添加式场与差异
 
 ```python
 validate_result({"resultType": "complete", "tools": [], "futureHint": True}, "modern")
 validate_result({"resultType": "future_mode", "tools": []}, "modern")
 ```
 
-第一个结果保留 `futureHint`。第二个被拒绝因为生命周期判别器未知。
+首先,结果保持了`futureHint`另一种原因是因为生命周期的差异是未知的.
 
-### 实验室 C：检查 SDK 变换
+### 实验室C:检查 SDK 转型
 
 ```python
 compare_sdk_view(
@@ -362,35 +362,35 @@ compare_sdk_view(
 )
 ```
 
-决定你的组件是否可以忽略 `futureHint` 或必须转发它。将该选择写入发布策略。不要无声地消除差异。
+决定是否可以忽略你的组件`futureHint`您可以将此选项写入释放政策中.
 
-### 实验室 D：修复代理
+### 实验室D:修复代理
 
-修改演示交换，使出口保留原始状态和主体。再次运行 `python3 main.py`。代理问题应该消失，但 SDK 差异仍会阻止提升。然后将 `futureHint` 包含在 SDK 视图中，观察当每个证据源通过时动作变为 `promote`。
+修改演示表格,以保证出口的原始状态和体质.`python3 main.py`现在,我们需要一个新的方法来实现.`futureHint`在 SDK 视图中,并观察行动变化到`promote`当一切证据都过去了.
 
 ## 实践实验室
 
-将请求作用域 SSE 记录添加到框架中。
+加入要求测量的SSE转录到带上.
 
-要求：
+要求:
 
-- 捕获响应状态、内容类型、有序 SSE 事件和流终止。
-- 证明每个 JSON-RPC 事件具有有效的时代特定结果或错误。
-- 为在转发前缓冲完整流的代理添加负向案例。
-- 为 JSON-RPC id 与请求不同的 SSE 事件添加负向案例。
-- 在写入证据前脱敏事件数据。
-- 在健康窗口中包含流持续时间、首事件延迟和事件计数。
-- 使发布门禁在流失败时仅选择有证据的回滚目标。
+- 捕获响应状态,内容类型,订单的SSE事件和流程终止.
+- 证明每个JSON-RPC事件具有有效的时代特定结果或错误.
+- 添加一个负案例,为代理,在转发之前缓冲整个流.
+- 添加一个与请求不同的JSON-RPCID的SSE事件的负案例.
+- 在写证据之前,重新编写事件数据.
+- 包含流程时间,第一次事件延迟和事件数量在健康窗口中.
+- 让释放门选择只有一个证明的反弹目标,当流失败.
 
-成功意味着相同的用例直接在代理前后运行，报告识别出改变行为的精确边界。
+成功意味着同一案例直接通过代理运行, 报告确定了改变行为的确切边界.
 
-## 交付工件
+## 运输的文物
 
-本课交付 `outputs/skill-mcp-conformance-release-gate.md`。使用它将服务器、客户端、网关或 SDK 更改转换为版本化一致性矩阵和发布决策。该工件需要原始协议层证据、负向案例、显式时代选择、SDK 差异、代理证明、脱敏、健康阈值和回滚证据。
+这一课是很好的.`outputs/skill-mcp-conformance-release-gate.md`通过它将服务器,客户端,门户或SDK更改成版本的兼容矩阵和发布决定.该文物需要原始线索证据,负案例,明确时代选择,SDK差异,代理证明,编辑,健康门和反弹证据.
 
-## 验证它
+## 检查
 
-运行演示和确定性套件：
+运行演示和确定性套件:
 
 ```bash
 cd phases/13-tools-and-protocols/31-mcp-conformance-versioning-and-operations
@@ -398,50 +398,50 @@ python3 code/main.py
 python3 -m unittest discover -s code/tests -v
 ```
 
-验证应证明：
+验证应证明:
 
-- 每个包含的正向和负向记录达到其预期结果
-- 现代请求需要精确的命名空间元数据键
-- HTTP 头部名称按不区分大小写匹配且编码的 `Mcp-Name` 值精确解码
-- 头部与主体不匹配返回现代不匹配代码
-- 验证响应版本、ID、结果或错误互斥性、错误形状和 HTTP 映射
-- 强制实施方法特定的工具列表、任务和完成载荷要求
-- 每个观察到的 `HeaderMismatch` 需要实际的 HTTP 400 JSON-RPC `-32020` 响应
-- 原始 `Mcp-Name` 空白被拒绝而精确哨兵编码的空白往返
-- 缺少 `resultType` 仅在选定的遗留时代有效
-- 增量字段在原始验证中存活而未知结果类型失败
-- 扩展结果类型需要其声明的能力
-- 已识别的现代错误从不导致遗留回退
-- 通知不产生 JSON-RPC 响应
-- SDK 簿记移除和语义字段丢失被区分
-- 检测代理错误折叠并在 camelCase 和分隔符变体下递归脱敏凭证
-- 提升需要非空的记录、SDK、代理和健康运维证据
-- 提升和回滚都需要经过认证、固定、活动、健康的回滚目标
+- 每个包含的黄金和负面的转录都达到预期的结果
+- 现代要求需要精确的名称空间的元数据密钥
+-  HTTP 标题名称是不敏感的,并且编码.`Mcp-Name`值被解码准确
+- 标题和机身不匹配返回现代不匹配代码
+- 答案版本,ID,结果或错误独占性,错误形状和HTTP映射被验证
+- 执行方法特定的工具列表,任务和完成有效载荷要求
+- 每个观察到的`HeaderMismatch`需要一个实际的HTTP 400 JSON-RPC `-32020`反应
+- 原料`Mcp-Name`时被拒绝,而精确的哨兵编码的白空间回来旅行
+- 失踪的`resultType`仅在选择的遗产时代有效
+- 添加式字段存活原始验证,而未知的结果类型失败
+- 扩展结果类型需要其广告的能力
+- 现代错误从来没有导致遗产倒退
+- 通知没有产生JSON-RPC响应
+-  SDK 会计删除和语义字段损失分别
+- 检测到代理错误崩,并且在camelCase和分离器变体中恢复性删除凭证
+- 促进需要非空格转录,SDK,代理和健康的运营证据
+- 促进和推翻都需要一个认证,固定,活跃,健康的推翻目标
 
-## 生产故障模式
+## 生产失败模式
 
-| 故障 | 弱测试报告什么 | 框架必须证明什么 |
+| Failure | What the weak test reports | What the harness must prove |
 |---|---|---|
-| SDK 合成缺失的判别器 | "tools/list 通过" | 原始现代结果缺少 `resultType` 且无效 |
-| 客户端在 `-32021` 后降级 | "遗留重试成功" | 已识别的现代错误禁止回退 |
-| 未知结果类型被视为完整 | "响应已解析" | 未声明的生命周期判别器被拒绝 |
-| 代理授权一个工具而原始执行另一个 | "请求到达服务器" | `Mcp-Name` 在每个跃点等于主体路由名称 |
-| 框架在读服务器响应前抛出 | "头部不匹配测试通过" | HTTP 400 和 JSON-RPC `-32020` 响应被捕获和验证 |
-| 代理将原始 400 变为通用 500 | "上游错误" | 原始和出口状态及 JSON-RPC 主体被保留 |
-| 通知中间件发出 `{result: null}` | "处理器返回 none" | 最终出口主体为空且无 JSON-RPC 响应 |
-| SDK 剥离增量字段 | "类型化对象匹配" | 原始和规范化视图显示精确丢失的字段 |
-| 故障工件泄露承载令牌 | "调试包已上传" | 在哈希、日志或上传前发生脱敏 |
-| 凭证键风格绕过脱敏 | "禁用列表包含 api_key" | camelCase 和分隔符变体共享一个规范禁用列表形式 |
-| 金丝雀无样本但看似健康 | "零错误" | 强制执行最小样本数 |
-| 回滚选择未知构建 | "先前部署已恢复" | 目标版本、准入摘要、引脚、状态和健康存在 |
+| SDK synthesizes a missing discriminator | “tools/list passed” | Raw modern result lacked `resultType` and is invalid |
+| Client downgrades after `-32021` | “legacy retry worked” | Recognized modern error forbids fallback |
+| Unknown result type treated as complete | “response parsed” | Unadvertised lifecycle discriminator is rejected |
+| Proxy authorizes one tool and origin executes another | “request reached server” | `Mcp-Name` equals the body routing name at every hop |
+| Harness throws before reading the server response | “header mismatch test passed” | HTTP 400 and JSON-RPC `-32020` response are captured and validated |
+| Proxy turns origin 400 into generic 500 | “upstream error” | Origin and egress statuses and JSON-RPC bodies are preserved |
+| Notification middleware emits `{result: null}` | “handler returned none” | Final egress body is empty and no JSON-RPC response exists |
+| SDK strips an additive field | “typed objects match” | Raw and normalized views show the exact dropped field |
+| Failure artifact leaks a bearer token | “debug bundle uploaded” | Redaction occurred before hashing, logging, or upload |
+| Credential key style bypasses redaction | “denylist contains api_key” | CamelCase and separator variants share one canonical denylist form |
+| Canary has no samples but appears healthy | “zero errors” | Minimum sample count is enforced |
+| Rollback selects an unknown build | “previous deployment restored” | Target version, admission digest, pins, status, and health are present |
 
-## 运维规则
+## 运营规则
 
-测试你发送的字节、每个中间件转发的字节、每个 SDK 暴露的语义以及运维在压力下将使用的证据。兼容性是一个显式分支。回滚是一个有证据支持的发布动作。它们都不应是对宽松解析器的意外副作用。
+测试你发送的字节,每个中间件的字节向前,每个SDK暴露的语义,以及在压力下使用的证据操作.兼容性是明确的分支.滚动是基于证据的释放行动.任何一个不能是允许解析器的意外副作用.
 
 ## 进一步阅读
 
-- [MCP 2026-07-28 基础协议](https://modelcontextprotocol.io/specification/2026-07-28/basic)
-- [MCP 版本协商](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
+- [MCP 2026-07-28 base protocol](https://modelcontextprotocol.io/specification/2026-07-28/basic)
+- [MCP version negotiation](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
 - [MCP Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
-- [官方 MCP 一致性项目](https://github.com/modelcontextprotocol/conformance)
+- [Official MCP conformance project](https://github.com/modelcontextprotocol/conformance)
