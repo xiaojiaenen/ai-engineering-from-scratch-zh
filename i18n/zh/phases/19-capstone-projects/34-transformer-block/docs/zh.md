@@ -1,137 +1,137 @@
-# 从零开始构建 Transformer Block
+# 变压器从零开始
 
-> 一个 Block 是每一个现代解码器大语言模型的基本单元。LayerNorm、多头注意力、残差连接、MLP、残差连接。pre-LN 变体无需预热即可稳定训练。post-LN 变体是原始论文所采用的方案。本课程将并排构建这两种变体，并展示在常见学习率下，哪一种能够撑过 12 层堆叠。
+> 一块是每个现代解码器LLM的单位.层规范,多头注意,残余,MLP,残余.LN前变体稳定地没有加热.LN后变体是原始纸运输的.这堂课构建了两者,并显示在普通学习速度下,哪个能够存活12层堆.
 
-**类型：** 动手构建
-**语言：** Python
-**前置知识：** 第 19 阶段课程 30 至 33（分词器、嵌入、注意力数学、批处理数据加载器）
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 19 lessons 30 to 33 (tokenizer, embeddings, attention math, batched data loader)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 用 PyTorch 从零构建 Transformer Block，包含四个核心组件：LayerNorm、多头因果注意力、残差连接、逐位置 MLP。
-- 将 LayerNorm 以两种配置（pre-LN 和 post-LN）放置，并解释为何其中一种无需预热即可稳定训练。
-- 在多头注意力中实现因果掩码，使 token `i` 无法看到 token `j > i`。
-- 追踪 12 层堆叠上两种变体的梯度流，并通过直观观察得出结论。
-- 将 Block 作为即插即用单元复用于下一课程中组装 1.24 亿参数的 GPT 模型。
+- 在 PyTorch 中构建一个变压器块,从四个移动件中:LayerNorm,多头因果注意力,残留连接,位置智能MLP.
+- 设置LayerNorms在两个配置 (LN前和LN后) 并解释为什么一个火车稳定地没有加热.
+- 实现因果化掩饰在多头注意力中,所以标志性`i`没有看到代币`j > i`现在,我们要去.
+- 追踪梯度流动在12层堆上的两种变体,并读取结果,而不挥手.
+- 在下一个课程组装12400万参数GPT时,再用块作为一个落入单位.
 
-## 问题所在
+## 问题
 
-Transformer 就是一个 Block 的重复堆叠。如果 Block 写错一次，再重复十二遍，你交付的模型将在第一个 epoch 就发散，或者需要依赖预热这类 hack 才能继续训练。本课你将看到的两种故障模式并不罕见。它们出现在学习者第一次 naive 堆叠 Block 的时候。一种是注意力层能看到未来 token；另一种是 LayerNorm 放置的位置无法在深层压制残差信号。
+变压器是重复一个块. 错误的块一次,重复12次,你将运送一个模型,在第一时代分歧或需要升温的黑客. 在这门课中,你会看到的两个失败模式并不奇怪. 学生第一次起块时,它们就会出现. 一是关注未来的注意力层. 另一种是LayerNorm放置在它不能制在深度的残留信号.
 
-一旦看穿问题，修复就很机械。Block 恰好有两条残差路径和两个归一化位置。选对位置后，剩下的堆叠只是账本工作。
+现在,我们可以看到一个小块,它是机械的. 块有两个剩余路径和两个正常化位置.
 
-## 核心概念
+## 概念
 
-每一个仅解码器的 Transformer Block 都是一个函数：输入形状为 `(batch, sequence, embedding)` 的张量，输出相同形状的张量。内部由两个子层完成计算。
+每个解码器只有变压器块,都是一个形式数的函数.`(batch, sequence, embedding)`在内部,两个子层做了这项工作.
 
 ```mermaid
 flowchart TB
-  X[输入嵌入<br/>形状 B, T, D] --> N1[LayerNorm 1]
-  N1 --> MHA[多头因果注意力]
-  MHA --> R1[残差相加]
+  X[Input embedding<br/>shape B, T, D] --> N1[LayerNorm 1]
+  N1 --> MHA[Multi head causal attention]
+  MHA --> R1[Add residual]
   X --> R1
   R1 --> N2[LayerNorm 2]
-  N2 --> MLP[逐位置 MLP<br/>D → 4D → D]
-  MLP --> R2[残差相加]
+  N2 --> MLP[Position wise MLP<br/>D to 4D to D]
+  MLP --> R2[Add residual]
   R1 --> R2
-  R2 --> Y[输出，同形状]
+  R2 --> Y[Output, same shape]
 ```
 
-这是 pre-LN 变体。LayerNorm 位于残差分支内部，在子层之前。残差连接携带未归一化的信号向前传递。
+现在,它是LN前的变体. LayerNorm位于残留分支内,在子层之前.残留连接将非正常信号传递到前面.
 
-post-LN 变体将 LayerNorm 移至残差相加之后。
+后LN变体将LayerNorm移动到剩余添加后.
 
 ```mermaid
 flowchart TB
-  X[输入] --> MHA[多头因果注意力]
-  MHA --> R1[残差相加]
+  X[Input] --> MHA[Multi head causal attention]
+  MHA --> R1[Add residual]
   X --> R1
   R1 --> N1[LayerNorm 1]
-  N1 --> MLP[逐位置 MLP]
-  MLP --> R2[残差相加]
+  N1 --> MLP[Position wise MLP]
+  MLP --> R2[Add residual]
   N1 --> R2
   R2 --> N2[LayerNorm 2]
-  N2 --> Y[输出]
+  N2 --> Y[Output]
 ```
 
-形状完全一致。训练行为却不同。使用 post-LN 时，沿残差路径回传的梯度必须经过 LayerNorm。在深度为 12、学习率为 `3e-4` 的情况下，该梯度衰减到需要预热调度。pre-LN 使残差路径保持未归一化，因此梯度能够干净地传播到嵌入层。正因如此，pre-LN 是 GPT-2 及后续模型的默认配置。
+形状是相同的.训练行为不是.在LN后,流回剩余路径的梯度必须通过LayerNorm.在深度十二和学习速度.`3e-4`预-LN 让残余路径不正常,所以渐变率在嵌入层上清洁传播.预-LN 是GPT-2前进船的配置.
 
-### 因果多头注意力
+### 原因多头注意
 
-注意力子层将输入投影三次，得到 query、key、value 张量。每个张量从 `(B, T, D)` 重排为 `(B, H, T, D/H)`，其中 `H` 是头数。缩放点积注意力按头计算 `softmax(Q K^T / sqrt(d_k))`，对右上角三角区域施加负无穷掩码，经 softmax 应用掩码后再与 `V` 相乘。最后将各头拼接回单个 `(B, T, D)` 张量，再进行一次投影。掩码是唯一让模型具备因果性的部分。忘记加掩码，你就是在训练一个作弊的模型。
+关注子层将输入投射到查询,关键和值数器中.`(B, T, D)`为了`(B, H, T, D/H)`在哪里`H`标点产品注意力计算`softmax(Q K^T / sqrt(d_k))`按头,将上方三角形掩盖到负无限,通过软max应用面具,然后乘以`V`头部被连接到一个单个`(B, T, D)`面具是唯一使模型因果的部分.忘记面具,你训练一个欺骗的模型.
 
-### MLP
+### 农业发展部
 
-逐位置 MLP 对每个 token 独立应用同一个两层网络。隐藏层宽度是嵌入宽度的四倍，激活函数为 GELU，第二次线性层之后接一个 dropout。MLP 内部 token 之间互不交流。所有 token 间的混合都在注意力中完成。
+位置智能MLP独立地将相同的两个层网络应用于每个代币.隐藏宽度是嵌入宽度的四倍,激活是GELU,而下列线性则会出现中断.在MLP内部没有代币彼此交谈.所有代币混合都在注意力中发生.
 
-### 残差连接做两件事
+### 剩余的连接可以做两件事
 
-它们使梯度路径在深度方向呈可加性，从而在整个十二层中保持梯度范数在合理尺度。同时，它们让每个 Block 学习对当前表示的增量更新，而非全量替换。这两点正是 Block 能扩展的原因。
+它们使梯度路径在深度上变量,从而保持梯度标准在尺度中通过十二层.它们还让每个块学习运行表示的增量更新而不是完全的替代.这两个效果是区块尺度的原因.
 
 ```figure
 cc-transformer-block
 ```
 
-## 动手实现
+## 建立它
 
-`code/main.py` 实现了：
+`code/main.py`执行:
 
-- `class LayerNorm`：含可学习的缩放与偏置，支持 biased eps，逐 token 向量施加。
-- `class MultiHeadAttention`：含 `num_heads`、`head_dim = d_model // num_heads`、融合式 QKV 投影、注册的因果掩码、注意力 dropout 与残差 dropout。
-- `class FeedForward`：含两个线性层、GELU 激活、dropout。
-- `class TransformerBlock`：含 `pre_ln` 标志位，用于切换两种变体。
-- 一个演示：构建 6 层 pre-LN 堆栈与 6 层 post-LN 堆栈，使用相同输入，打印（a）输出形状、（b）反向传播一次后嵌入层的梯度范数。
+- `class LayerNorm`具有可学习的规模和转移,偏向的eps,按代币向量应用.
+- `class MultiHeadAttention`随着`num_heads`现在`head_dim = d_model // num_heads`化QKV投射,注册因果面具,注意力和残留脱节.
+- `class FeedForward`两层线性,GELU激活,脱落.
+- `class TransformerBlock`具有一个`pre_ln`两种变体之间转换的旗.
+- 构建一个6层前LN堆和一个6层后LN堆的演示,具有相同的输入和打印 (a) 出口形状, (b) 后退的传输后嵌入式的梯度标准.
 
-运行：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-输出：两套堆栈的形状检查、梯度范数并排显示。在相同学习率下，pre-LN 堆栈的嵌入层梯度比 post-LN 堆栈高出一个数量级，这就是 pre-LN 无需预热即可训练的实证信号。
+输出:两堆的形状检查,梯度规范一边.LN前堆的嵌入梯度是与LN后堆大于相同的学习速度,这是没有加热的LN前火车的经验信号.
 
-## 依赖
+## 堆
 
-- `torch`：用于张量运算、自动微分和 `nn.Module` 基础设施。
-- 不依赖 `transformers`，不加载预训练权重。Block 完全由基本原语实现。
+- `torch`对于数数学,自格级,`nn.Module`管道.
+- 没有.`transformers`没有预训练的重量. 区块是从原始的实现.
 
-## 工业界常见模式
+## 野生生产模式
 
-有三种模式能把教材中的 Block 变成可 shipped 的代码。
+三个模式将教科书块变成可以运送的东西.
 
-**融合式 QKV 投影。** 三个独立线性层意味着三次 kernel launch 和三次矩阵乘法。用一个宽度为 `3 * d_model` 的线性层即可完成相同工作，只需一次 launch，然后在最后一个轴上分割输出。融合路径在每种加速器上都更快，并且与 GPT-2、LLaMA、Mistral 的参考实现一致。
+**Fused QKV projection.**单独的线性层成本是三个核发射和三个.`3 * d_model`合路径在每个加速器上更快,并且匹配GPT-2,LLaMA和Mistral的参考实现.
 
-**注册的因果掩码 buffer。** 掩码仅依赖于最大上下文长度。在构造时用 `register_buffer` 分配一次，每次前向传播时切片当前窗口，跳过逐次分配。忽略这一点会让掩码成为长上下文场景下的分配热点。
+**Registered causal mask buffer.**面具只依赖于最大的背景长度.`register_buffer`忘记这一点将面具变成一个分配器热点在长文中.
 
-**Dropout 放在两处，不是三处。** Dropout 应位于注意力 softmax 之后（注意力 dropout）以及 MLP 第二次线性层之后（残差 dropout）。如果在残差本身上加 dropout，会破坏让梯度在深层流通的可加恒等结构。一些早期实现在这里犯错，并为此付出了训练不稳定的代价。
+**Dropout in two places, not three.**沉积在注意力软max (注意力沉积) 和 MLP (残留沉积) 的第二线性之后.残留物上的沉积本身破坏了让梯度流动在深度的添加身份.一些早期的实现错了这一点,并通过脆弱的训练支付了.
 
-## 如何使用
+## 用它
 
-- 本课的 Block 可直接无缝接入第 35 课的 GPT 组装流程，无需修改。
-- pre-LN 变体是当前所有现代开源权重 LLM 所用的方案。post-LN 变体是 2017 年注意力原始论文所使用的方案。了解两者足以读懂你会遇到的任何解码器架构。
-- 将 GELU 替换为 SiLU，你就得到了 LLaMA 家族的激活函数。将 LayerNorm 替换为 RMSNorm，你就得到了 LLaMA 家族的归一化方案。骨架相同。
+- 在第35课中,这个课程的块直接连接到GPT组件中,没有修改.
+- 之前LN变体是每个现代开放权重LLM使用的.后LN变体是原始2017年注意力纸使用的.知道这两种是足够的阅读任何你会遇到的解码架构.
+- 换GELU为SiLU,就会有LLaMA家族激活,换LayerNorm为RMSNorm,就会有LLaMA家族正常化.
 
-## 练习
+## 运动
 
-1. 为 Block 中的每个线性层添加 `bias=False` 标志。现代开源权重 LLM 在线性层上不携带偏置。测量在一个 12 层、768 维的模型中节省了多少参数。
-2. 用手工实现的 RMSNorm 替换 `nn.LayerNorm`，并验证输出形状不变。
-3. 添加一个标志位，返回第一个头的注意力权重为 `(B, T, T)` 张量。绘制右上角三角区域以确认 softmax 之后它为零。
-4. 构建一个自检用例：向两个变体分别传入形状为 `(2, 16, 384)` 的张量、`H=6`，并在权重初始化相同且 dropout 设为零的条件下，断言前向输出不同（例如 `not torch.allclose`）。
+1. 添加一个`bias=False`现在,我们可以在线上测量一个线性模型,然后我们可以测量一个线性模型中的数量.
+2. 取代`nn.LayerNorm`通过手动滚动RMSNorm,检查输出形状没有变化.
+3. 添加一个标志,返回注意力重量为第一头作为一个`(B, T, T)`按上方三角形图,确认它是零的,
+4. 建立一个健康检查,`(2, 16, 384)`子的子`H=6`通过两种变体和断言,前进输出是不同的 (例如,`not torch.allclose`) 时重量初始化相同,放弃设置为零.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Pre-LN | "Pre norm" | LayerNorm 位于残差分支内部、每个子层之前；残差携带未归一化的信号 |
-| Post-LN | "Post norm" | LayerNorm 位于残差相加之后；2017 年论文所使用的方案，需要预热 |
-| Causal mask | "Triangle mask" | 注意力 logit 的右上角三角区域被设为负无穷，使 token i 在 j > i 时无法读取 token j |
-| Fused QKV | "Combined projection" | 一个宽度为 3D 的线性层，而非三个宽度为 D 的线性层；一次 kernel launch，一次矩阵乘法 |
-| Residual stream | "Skip connection" | 沿每个 Block 自顶向下流动的未归一化张量；每个 Block 向其添加更新 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Pre-LN | "Pre norm" | LayerNorm inside the residual branch, before each sublayer; the residual carries the unnormalized signal |
+| Post-LN | "Post norm" | LayerNorm after the residual add; what the 2017 paper shipped and what needs warmup |
+| Causal mask | "Triangle mask" | The upper triangle of the attention logits set to negative infinity so token i cannot read token j when j is greater than i |
+| Fused QKV | "Combined projection" | One linear of width 3D instead of three linears of width D; one kernel, one matmul |
+| Residual stream | "Skip connection" | The unnormalized tensor that flows top to bottom through every block; what each block adds to |
 
-## 延伸阅读
+## 进一步阅读
 
-- 第 7 阶段课程 02（从零实现自注意力）：理解本 Block 底层的注意力数学。
-- 第 7 阶段课程 05（完整 Transformer）：同一骨架的编码器-解码器版本。
-- 第 10 阶段课程 04（预训练迷你 GPT）：本 Block 所接入的训练流程。
-- 第 19 阶段课程 35（本课程主线）：将十二个此类 Block 堆叠为 GPT 模型。
+- 阶段7课程02 (自从零开始注意) 为这个区块下面的注意力数学.
+- 阶段7课05 (全变压器) 对同一骨架的编码解码版本.
+- 阶段10课04 (预训练小GPT) 对于该区块所涉及的培训程序.
+- 阶段19课35 (本轨道) 将这两个块堆积成GPT模型.

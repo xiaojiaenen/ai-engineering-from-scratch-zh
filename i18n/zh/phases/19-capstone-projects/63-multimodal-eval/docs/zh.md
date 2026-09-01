@@ -1,162 +1,162 @@
-# 多模态评估
+# 多型评估
 
-> 训练只是循环的一半，另一半是测量。本课基于基础组件构建三个评估面：以 R@1、R@5、R@10 报告的图像-标题检索；以精确匹配准确率报告的视觉问答；以及以 BLEU-4 报告的图像描述。每个指标都是模型输出和合成评估套件上的函数，运行耗时仅数秒。
+> 训练是半循环.另一半是测量.这个课程从原始的基础上构建了三个评估表面:图像标题检索报告为R@1,R@5,R@10;视觉问题回答报告为精确匹配准确性;图像标题报告为BLEU-4.每个度量是模型输出的函数和合成评估套件,运行在秒钟内.
 
-**类型：** 构建
-**语言：** Python
-**前置要求：** 第19阶段课程 58-62（Track E 基础：编码器、Transformer、投影、交叉注意力融合、预训练）
-**时间：** 约90分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 19 lessons 58-62 (Track E foundations: encoder, transformer, projection, cross-attention fusion, pretraining)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 从图像和标题嵌入之间的相似度矩阵计算 Recall@K。
-- 从将 (图像, 问题) 对映射到固定答案词汇表的模型计算精确匹配 VQA 准确率。
-- 从生成和参考词元序列计算 BLEU-4，无需任何外部库。
-- 针对在第62课训练的模型之上构建的合成套件运行全部三种评估。
+- 计算图像和标题嵌入之间的类似性矩阵 Recall@K.
+- 从绘制对 (图像,问题) 的模型计算到固定答案词汇库的精确匹配VQA准确性.
+- 根据生成的代币序列计算BLEU-4,并且没有任何外部库.
+- 运行所有三个评估与一个合成套件建立在训练模型的上课62.
 
-## 问题所在
+## 问题
 
-诱惑在于，当训练损失 plateau 时便宣布多模态模型已完成训练。训练损失衡量的是在训练分布上的拟合程度；它不能衡量模型是否能在保留批次中排名对、回答问题，或写出人类能接受的描述。三个标准评估面为：
+试图在训练损失平原时宣布一个多模模型完成.训练损失量度适合训练分布;它不测量模型是否可以在一批被持久的批量中排名对,回答问题,或写一个字幕一个人会接受.三个评估表面是标准的:
 
-- **检索（R@1, R@5, R@10）。** 为查询标题构建联合嵌入；按余弦相似度对所有图像排序；报告匹配图像是否出现在前1、前5、前10名。对称形式（图像到文本）以相同方式运行。
-- **视觉问答（精确匹配）。** 给定 (图像, 问题)，模型输出一个答案词元。精确匹配是每个样本的一比特：预测答案是否等于参考答案？在评估集上取平均。
-- **描述（BLEU-4）。** 生成描述。计算与参考描述的1-gram到4-gram精确度的几何平均，并加上长度惩罚。多参考是标准形式（一张图像，多个参考描述）。
+- **Retrieval (R@1, R@5, R@10).**构建查询标题的联合嵌入;按代数排列评估池中的每个图像;报告是否匹配图像落在前1位,前5位,前10位.对称 (图像到文本) 形式运行相同.
+- **Visual question answering (exact match).**给出 (图像,问题),模型输出了一个答案代号. 精确的匹配是每样本的一位:预测答案是否等于参考答案?
+- **Captioning (BLEU-4).**生成标题. 计算1克到4克精度的几何平均值与参考标题,使用简短处罚.多引用是标准形式 (一个图像,多个参考标题).
 
-每个指标都是一个薄函数。本课用代码构建所有这些指标，使数学具体化，并保持评估面对你可控。真实基准套件（MS-COCO、VQA v2、GQA、OK-VQA）可接入相同函数形状。
+每个指标都是一个薄型的函数.课程都以代码构建它们,所以数学是具体的,表面保持在你的控制之下.真正的基准套件 (MS-COCO,VQA v2,GQA,OK-VQA) 插入相同的函数形状.
 
 ## 概念
 
 ```mermaid
 flowchart TB
-  Model[训练好的多模态模型] --> Embed[评估集上的联合嵌入]
-  Embed --> Sim[相似度矩阵]
-  Sim --> R1[R@1]
-  Sim --> R5[R@5]
-  Sim --> R10[R@10]
-  Model --> VQA[为每个问题预测答案词元]
-  VQA --> EM[精确匹配准确率]
-  Model --> Caps[生成的描述]
-  Caps --> BLEU[BLEU-4 vs 参考描述]
+  Model[trained multimodal model] --> Embed[joint embeddings on eval set]
+  Embed --> Sim[similarity matrix]
+  Sim --> R1[R at 1]
+  Sim --> R5[R at 5]
+  Sim --> R10[R at 10]
+  Model --> VQA[predict answer token per question]
+  VQA --> EM[exact match accuracy]
+  Model --> Caps[generated captions]
+  Caps --> BLEU[BLEU-4 vs references]
 ```
 
-### 来自相似度矩阵的 Recall@K
+### 从类似性矩阵中回忆@K
 
-构建图像和标题嵌入之间的 `(N, N)` 余弦相似度矩阵。对每一行，按相似度降序排列列。Recall@K 是行对角列索引位于前 K 位中的行分数。对称 Recall@K（标题到图像）在转置矩阵上计算。两个数值均报告。对于 N=100 的评估，R@1 = 0.6 意味着100个标题中有60个在首匹中检索到其正确图像。
+建立一个`(N, N)`图像和标题嵌入之间的共数相似性矩阵. 按下降的相似性来排序列. 记住@K是线索对角列指数位于顶部K位置的部分. 交换矩阵的代码是: 报道了两位数字. 对于N=100的评价,R@1 =0.6意味着60个标题中100个获取了正确的图像作为顶部匹配.
 
-### VQA 精确匹配
+### 完全匹配的VQA
 
-对每个 (图像, 问题, 答案)，编码图像，嵌入问题，通过解码器融合，并读出下一个词元。预测词元 id 与参考 id 比较；相等则正确。在评估集上取平均。真实 VQA 数据集每题附多个人工标注答案，并使用软准确率公式（若10个标注者中至少3个一致则为1.0，按比例缩放）；本课为清晰起见使用单答案精确匹配。
+对于每一个图像 (图像,问题,答案),编码图像,嵌入问题,通过解码器并阅读下一个标志. 预测的代币ID与参考ID进行比较;如果等,则正确. 平均值超过评估集. 实际的VQA数据集每一个问题都包含多个人注释的答案,使用柔软精度公式 (1.0如果至少有3个注释者同意,以下缩小);课程使用单个答案的精确匹配来提供清晰度.
 
-### BLEU-4
+### 蓝色-4
 
 ```text
 BLEU-4 = BP * exp(mean(log p1, log p2, log p3, log p4))
 ```
 
-其中 `p_n` 是修正 n-gram 精确度（生成 n-gram 中出现在任意参考中的截断计数，除以总生成 n-gram），`BP` 是长度惩罚：
+在哪里?`p_n`是修改的 n-gram精度 (任何参考中出现的生成 n-gram 的剪切数量,分为生成的 n-gram 总数),以及`BP`是短暂的处罚:
 
 ```text
-BP = 1                如果生成长度 > 参考长度
-   = exp(1 - r/g)     否则，其中 r 为参考长度，g 为生成长度
+BP = 1                if generated length > reference length
+   = exp(1 - r/g)     otherwise, where r is reference length and g is generated
 ```
 
-对于某些 `p_n` 为零的小样本，需要平滑处理。实现使用 Chen 和 Cherry 的"方法1"（对任何零计数，分子分母各加1），这是低计数情形最安全的默认值。
+需要滑滑小样本,其中一些样本`p_n`实现使用陈和桃"方法 1" (为任何零数量添加1到数量和命名器),这是低数量模式的最安全默认.
 
 ### 合成评估套件
 
-从与第62课相同的模拟语料模式在内存中构建一个50样本的评估套件，使用独立种子。三个列表构成套件：
+根据第62课中使用的模拟体格,在内存中构建了一个50个样本的评估套件,其中有一个持久的种子.
 
-- `pairs`：用于检索的50个 (图像, caption_ids) 对。
-- `vqa`：50个 (图像, question_ids, answer_id) 三元组。
-- `caps`：50个 (图像, [reference_caption_ids, ...]) 条目，每图像最多3个参考。
+- `pairs`: 50 (图片,字幕_字幕) 对可检索.
+- `vqa`图片,问题,答案:50倍
+- `caps`: 50 (图片, [引用_标题_字符, ...]) 条目每张图片最多有3个引用.
 
-套件由种子确定，且与训练语料隔离，因此指标在模型从未见过的数据上计算。将套件持久化到 JSON 留作练习（见下文）。
+套件是从种子中确定性的,并从训练体中延伸出来,因此测量表是基于模型从未见过的数据计算的.将套件保持到JSON是作为一个练习 (见下面).
 
-| 指标 | 范围 | 随机基线（N=50） |
-|------|------|------------------|
-| R@1 | 0 到 1 | 0.02（1 / N） |
-| R@5 | 0 到 1 | 0.10 |
-| R@10 | 0 到 1 | 0.20 |
-| VQA EM | 0 到 1 | 1 / vocab |
-| BLEU-4 | 0 到 1 | 小但非零 |
+| Metric | Range | Random baseline (N=50) |
+|--------|-------|------------------------|
+| R@1 | 0 to 1 | 0.02 (1 / N) |
+| R@5 | 0 to 1 | 0.10 |
+| R@10 | 0 to 1 | 0.20 |
+| VQA EM | 0 to 1 | 1 / vocab |
+| BLEU-4 | 0 to 1 | small but nonzero |
 
-对于合成数据的50步训练，指标预期不高；但预期高于随机基线，这正是演示检查的内容。
+对于基于合成数据的50步训练,预计测量不会高,预计将超过随机基线,这是演示测试的结果.
 
 ```figure
 ch-recall-window
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现：
+`code/main.py`执行:
 
-- `recall_at_k(sim_matrix, k)`，返回 `[0, 1]` 范围内的浮点数，双向均适用。
-- `vqa_exact_match(predictions, references)`，返回 `int` 相等的均值。
-- `bleu4(generated, references, smoothing=True)`，支持多参考。
-- `build_eval_suite(seed, n_samples, vocab_size, max_len)`，返回三个确定性评估列表。
-- `evaluate(model, suite)`，运行全部三种指标并返回数值 `dict`。
-- 一个演示：加载第62课新初始化的多模态模型，评估它，然后训练50步再评估，打印前后指标。
+- `recall_at_k(sim_matrix, k)`回一个浮动的`[0, 1]`两方向都会发生.
+- `vqa_exact_match(predictions, references)`返回平均值`int`平等.
+- `bleu4(generated, references, smoothing=True)`通过多个参考支持.
+- `build_eval_suite(seed, n_samples, vocab_size, max_len)`返回三个确定性评估列表.
+- `evaluate(model, suite)`运行所有三个指标,返回一个`dict`它们是数字的.
+- 通过一个测试,从第62课中装载一个新启动的多模式模型, 评估它, 然后训练它50步,
 
-运行：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-输出：前后指标表显示检索从接近随机向模型学到的信号改进，VQA 在随机之上改进，BLEU-4 改进（合成结构足以让4-gram精确度提升）。
+输出:前后的表表显示,从近随机到模型学习的信号的检索改善,VQA在随机上改善,BLEU-4的改善 (合成结构足以实现4克精密升降).
 
-## 使用
+## 用它
 
-每个指标直接映射到生产基准：
+每个指标直接映射到生产基准指标上:
 
-- **检索。** MS-COCO 5K val、Flickr30K、ImageNet 零样本都是同一相似度矩阵上的 R@K 问题。用真实文件替换合成评估，函数签名不变。
-- **VQA。** VQA v2、GQA、OK-VQA 使用相同的精确匹配形状（VQA v2 使用软准确率而非单答案 EM）。
-- **BLEU-4。** MS-COCO 描述、NoCaps、Flickr30K 描述均使用 BLEU-4 加上 CIDEr 和 METEOR。添加 CIDEr 只需一个额外函数。
+- **Retrieval.**基于相同的类似性矩阵的R@K问题,可以将合成的 eval取代为真实文件,并且函数签名保持不变.
+- **VQA.**VQA v2,GQA,OK-VQA使用相同的完全匹配形状 (VQA v2 采用软 acc 而不是单响应 EM).
+- **BLEU-4.**加入CIDEr是另一个功能.
 
-对于真实基准，用真实加载器替换 `build_eval_suite`，保持函数体不变。数学是基准无关的。
+对于真正的基准,交换`build_eval_suite`算法是基准无知的.
 
 ## 测试
 
-`code/test_main.py` 覆盖：
+`code/test_main.py`覆盖:
 
-- recall@k 在完美恒等相似度矩阵上返回1.0，在翻转矩阵上对 k < N 返回0.0
-- recall@k 尊重 `k <= N` 上界
-- bleu4 在生成与参考完全相同时返回1.0
-- bleu4 在不相交词汇上返回0.0
-- vqa 精确匹配等于相等对的分数
-- build_eval_suite 返回预期的对数、vqa 项数和描述条目数
+- 返回回回0在完美的身份相似性矩阵上,并返回0在翻转的矩阵上为k < N
+- 提醒@k尊重`k <= N`上边界
+- 当生成时, bleu4返回1.0是相当于一个引用的确切值
+- 蓝色4返回了0.0的分离词汇库
+- 完全匹配的vqa等于等于等对的分数
+- build_eval_suite返回预期对数,vqa项和标题入口
 
-运行：
+运行它们:
 
 ```bash
 python3 -m unittest code/test_main.py
 ```
 
-## 练习
+## 运动
 
-1. 在描述指标中添加 CIDEr。CIDEr 使用 n-gram 上的 TF-IDF 加权，奖励信息性词元。
+1. 添加CIDEr到标题指标中.CIDEr使用TF-IDF权重在n克,从而奖励信息代币.
 
-2. 实现软准确率 VQA：每题多个人工答案，若有任何匹配，准确率为 `min(human_count / 3, 1)`。复现 VQA v2。
+2. 实施柔性精度VQA:每一个问题多个人答案,精度是`min(human_count / 3, 1)`如果有任何匹配,则复制VQA v2.
 
-3. 添加 `bleu4` 的 NaN 安全变体，处理空生成序列而不崩溃。
+3. 添加一个安全的 NaN 变体`bleu4`无需毁,处理空格生成的序列.
 
-4. 与 R@K 一起计算平均倒数排名（MRR）。MRR 对正确项落在 top K 之外的位置敏感；R@K 对正确项是否落在 top K 内敏感。
+4. 计算与R@K的平均对方级别 (MRR).MRR对正确项落在顶部K之外的位置敏感;R@K对它落在顶部K是否敏感.
 
-5. 在训练期间的五个检查点（步骤 0、10、20、30、40、50）对模型运行评估并绘制学习曲线。确认指标轨迹跟踪损失轨迹。
+5. 在训练期间,在五个检查点 (步骤0, 10, 20, 30, 40, 50) 运行模型的评估,绘制学习曲线.确认测量轨迹跟踪损失轨迹.
 
-## 关键术语
+## 关键词
 
-| 术语 | 含义 |
-|------|------|
-| R@K | 正确匹配落在前 K 结果中的查询分数 |
-| 精确匹配 | 最简单的 VQA 评分：预测答案等于参考 |
-| BLEU-4 | 1-gram 到 4-gram 精确度的几何平均，含长度惩罚 |
-| 多参考 | 描述指标每图像接受多个参考描述 |
-| 隔离 | 评估集从与训练语料不交的种子上采样 |
+| Term | What it means |
+|------|---------------|
+| R@K | Fraction of queries where the correct match lands in the top K results |
+| Exact match | The simplest VQA scoring: predicted answer equals reference |
+| BLEU-4 | Geometric mean of 1- to 4-gram precisions, with brevity penalty |
+| Multi-reference | A captioning metric accepts several reference captions per image |
+| Held-out | The eval set is sampled from a seed disjoint from the training corpus |
 
-## 延伸阅读
+## 进一步阅读
 
-- VQA v2 论文中的软准确率公式和数据集统计。
-- CIDEr 论文中的 TF-IDF 加权 n-gram 描述。
-- BLEU 原始论文（Papineni et al., 2002）中的平滑变体。
-- MS-COCO 描述评估脚本中的规范参考实现。
+- 软精度公式和数据集统计的VQA v2文件.
+- 对于TF-IDF权重 n克字幕的CIDER纸.
+- 对于滑滑变体,BLEU原始 (Papineni等人,2002).
+- 标题标题的MS-COCO评价脚本用于可信参考实现.

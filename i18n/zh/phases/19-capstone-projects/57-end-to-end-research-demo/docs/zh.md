@@ -1,112 +1,110 @@
-```markdown
-# 端到端研究演示
+# 终端到终端的研究演示
 
-> 演示是每个合约都汇聚的地方。如果其中任何一个合约出现泄漏，演示就是捕获它的课程。
+> 演示是你之前写的每一份合同都必须写的场所.如果其中一个泄露,演示是抓住它的教训.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** Phase 19 课程 50-53
-**时间：** 约90分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 19 lessons 50-53
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 端到端连接自动研究循环：假设种子、实验运行器、调度器、批判循环、论文撰写器。
-- 通过普通的 Python 导入组合前四个 Track D 课程中的原语，而非框架。
-- 运行循环直至自我终止，并生成一份演示报告，列出每个阶段的输出。
-- 保持演示的确定性，使测试套件能够断言最终结构。
-- 当任一阶段合约破裂时暴露出清晰的失败模式，使下一阶段不会在损坏的输入上继续运行。
+- 通过自动研究循环进行结尾:假设种子,实验运行者,安排者,评论者循环,论文作家.
+- 通过简单的Python进口,而不是框架,编写前四个D轨道课程的原始内容.
+- 运行循环到一个自动结束的终端, 发出一个单个演示报告,
+- 保持演示确定性,以便测试组可以确认最终的形状.
+- 任何阶段的合同破裂时,表面上设置一个明显的故障模式,以便下一个阶段不会出现破产输入.
 
 ```figure
 ch-research-pipeline
 ```
 
-## 组合关系
+## 在这里构成的
 
 ```mermaid
 flowchart LR
-    Seed[假设种子] --> Sched[迭代调度器]
-    Sched --> Exp[实验运行器]
-    Exp --> Bus[结果总线]
+    Seed[Seed hypotheses] --> Sched[Iteration scheduler]
+    Sched --> Exp[Experiment runner]
+    Exp --> Bus[Result bus]
     Bus --> Sched
-    Bus --> Trig[论文触发器]
-    Trig --> Pick[最佳结果选择器]
-    Pick --> Critic[批判循环]
-    Critic --> Writer[论文撰写器]
-    Writer --> Report[演示报告]
+    Bus --> Trig[Paper trigger]
+    Trig --> Pick[Best result picker]
+    Pick --> Critic[Critic loop]
+    Critic --> Writer[Paper writer]
+    Writer --> Report[Demo report]
 ```
 
-五个阶段。假设种子是一个包含三个假设的列表。调度器以三个并行槽位在它们上运行六个实验。总线报告一个或多个论文触发器。选择器选择唯一的最佳结果。批判循环基于该结果构建的草稿进行迭代。论文撰写器输出了最终的 LaTeX、BibTeX 和清单文件。
+种子是一个列表三个假设. 编程师在它们上进行了六次实验,其中有三个并行插槽. 公共汽车报告一个或多个纸质触发器. 选手选择了单个最佳结果. 评论者循环在该结果构建的草稿上反复. 纸质编写者发出了最终的Latex,BibTeX和表格.
 
-## 为何使用导入而非复制
+## 为什么进口而不是复制
 
-每个前期课程都附带一个 `main.py`，包含公共数据类和函数。演示通过调整 `sys.path` 到每个课程父目录来导入它们。这不是框架接线；它与前期课程中测试文件使用的导入方式相同。
+每个早些时候的课程都会带来一个`main.py`演示程序通过调整它们进口`sys.path`这不是框架线程,而是以前的课程已经使用的检测文件的导入.
 
 ```mermaid
 flowchart TB
-    Demo[57: 端到端演示] --> A[54: 论文撰写器]
-    Demo --> B[55: 批判循环]
-    Demo --> C[56: 迭代调度器]
-    Demo --> Inline[内联桩：种子与运行器]
+    Demo[57: end-to-end demo] --> A[54: PaperWriter]
+    Demo --> B[55: CriticLoop]
+    Demo --> C[56: IterationScheduler]
+    Demo --> Inline[Inline stub: seed and runner]
 ```
 
-内联桩替代课程五十一到五十三：一个小的假设种子生成器和一个同步奖励函数。用户可以通过调整两处导入，将内联桩替换为来自这些课程的真实原语。
+线条取代了50到53课程:一个小种子假设生成器和同步的奖励函数.用户可以通过调整两个进口来替换线条取这些课程的真实原始.
 
-## 确定性保证
+## 确定性保障
 
-演示在构造上保证确定性。实验运行器使用带种子的 numpy。批判循环的修订者按固定维度以固定顺序遍历。论文撰写器的文生器是课程五十四中的模拟版本。调度器的 UCB 选择器按迭代顺序打破平局，而非随机选择。
+演示是建立的决定性.实验运行者种植的.评论循环的修改器在固定顺序中行走固定尺寸.纸作家的散文生成器是第五十四课中的嘲笑.规划者的UCB选手在反复顺序上打破了联系,而不是随机选择.
 
-给定相同的种子，演示会输出相同的报告。测试通过运行两次演示并比较清单来断言这一性质。
+测试通过两次运行演示并比较表格来证实这一属性.
 
-## 演示报告结构
+## 演示报告形状
 
 ```mermaid
 flowchart TB
-    Rep[演示报告] --> Sch[调度器报告]
-    Rep --> Pick[最佳分支和最佳奖励]
-    Rep --> Cri[批判结果]
-    Rep --> Pap[论文清单]
-    Rep --> Term[停止原因]
+    Rep[DemoReport] --> Sch[scheduler_report]
+    Rep --> Pick[best_branch and best_reward]
+    Rep --> Cri[critic_result]
+    Rep --> Pap[paper_manifest]
+    Rep --> Term[stop_reason]
 ```
 
-每个字段都直接来自上游阶段。演示不转换任何输出；它们被组合在一起。这就是该演示本身要检验的内容。
+每个字面上都是从上游阶段来的.演示程序不会转换任何输出,它会构成它们.这是演示程序的测试.
 
-## 失败模式处理
+## 失效模式处理
 
-每个阶段要么成功，要么抛出类型化错误。
+每个阶段都会成功,或者会出现输入错误.
 
 ```text
-调度器 ......... 返回 SchedulerReport，其中 stop_reason
-                 取值为 {queue_empty, max_experiments, deadline}
-最佳结果选择器 . 若无论文触发器则抛出 NoTriggerError
-批判循环 ........ 返回 LoopResult，status 为 converged 或 stopped
-论文撰写器 ...... 合约破裂时抛出 PaperValidationError
+Scheduler ........ returns SchedulerReport with stop_reason
+                   in {queue_empty, max_experiments, deadline}
+Best-result pick . raises NoTriggerError if no paper trigger fired
+Critic loop ...... returns LoopResult with status converged or stopped
+Paper writer ..... raises PaperValidationError on contract break
 ```
 
-任一阶段的失败会以类型化异常短路演示。测试钉住这一合约：`test_no_triggers_raises_typed_error` 和 `test_best_picker_raises_when_no_triggers` 断言当没有分支触发时，选择器抛出 `NoTriggerError` / `BestResultError`，且撰写器永远不会被调用。
+测试中,有任何阶段的失败, 测试中只有一种输入例外.`test_no_triggers_raises_typed_error`其他`test_best_picker_raises_when_no_triggers`确认选手提升`NoTriggerError`现在,`BestResultError`当没有一支支支支火发起子的时候,
 
-## 最佳结果选择器
+## 最好的选择者
 
-调度器为每个分支输出论文触发器。选择器选出跨所有触发器平均奖励最高的分支。平局时按分支 id 字母顺序打破，使演示保持确定性。选择器是一个小型纯函数；测试在固定的调度器报告上钉住它。
+调度器每分支发出纸质触发器. 调度器选择所有触发器中最高平均奖励的分支. 结按分支 id 字母分裂,因此演示是确定性的. 调度器是一个小的纯函数;测试键在固定调度器报告上.
 
-## 连接批判循环
+## 电缆的关键循环
 
-课程五十五中的批判循环作用于 `MiniPaper`。演示通过用分支 id 填充摘要、初始化两个章节（Introduction 和 Results），并从分支的平均奖励设置 `originality_tag`（`>= 0.8` 为 high，`>= 0.6` 为 medium，其余为 low）来从所选分支构建 `MiniPaper`。
+五五课中的批判循环运行在一个`MiniPaper`演示程序建立了一个`MiniPaper`通过将抽象填写到分支ID,种植两个部分 (介绍和结果),并设置`originality_tag`根据分支的平均奖励 (如果高`>= 0.8`平均水平`>= 0.6`其他情况下,低).
 
-修订者随后迭代草稿至收敛。输出进入论文撰写器。
+修改者将草案重复到融合.输出进入纸质写作器.
 
-## 连接论文撰写器
+## 电缆的报纸作家
 
-课程五十四中的论文撰写器作用于包含图表和参考文献的完整 `Paper` 结构。演示通过 `mini_to_full_paper` 升级收敛后的 `MiniPaper`，为所选分支附加一张图表和一个由批判者建议的 cite keys 的并集构建的小型合成参考文献列表。演示添加的每个 cite 也被添加到参考文献列表中，从而通过验证。
+课54的报纸作家在全文工作.`Paper`演示程序将升级收藏的数据.`MiniPaper`通过`mini_to_full_paper`根据评论家建议的引用密钥联盟,它将一个数字连接到选定的分支和一个小型合成文献.
 
-## 如何阅读代码
+## 如何读取代码
 
-`code/main.py` 定义了 `BestResultError`、`NoTriggerError`、`DemoReport`、`pick_best_branch`、`build_mini_paper`、`mini_to_full_paper` 和 `run_demo`。顶部的导入调整一次 `sys.path`，并从各自的课程中拉取 `PaperWriter`、`CriticLoop` 和 `IterationScheduler`。
+`code/main.py`定义`BestResultError`现在`NoTriggerError`现在`DemoReport`现在`pick_best_branch`现在`build_mini_paper`现在`mini_to_full_paper`其他`run_demo`进口量在最高调整`sys.path`一次,然后拉下`PaperWriter`现在`CriticLoop`其他`IterationScheduler`他们的课程.
 
-`code/tests/test_e2e.py` 覆盖以下内容：演示端到端运行并生成包含所有五个字段的报告、两次运行之间的确定性、无分支达到阈值时抛出 NoTriggerError、撰写器合约破裂时抛出 PaperValidationError、论文清单包含所选分支的图表，以及调度器的停止原因是预期值之一。
+`code/tests/test_e2e.py`封面:演示程序从端到端运行,并发出一个报告,所有五个填满的字段,两次运行中的确定性,没有分支越过门时的错误, 文件验证错误,当作者合同破裂时,纸质表包含选定的分支的数字,和安排器停止原因是预期值之一.
 
-## 进一步扩展
+## 走得更远
 
-有三个值得在演示通过测试后接线的扩展。第一，持久化状态：每个阶段的结果写入小型 JSON 存储，使重启时可以继续而无需重新运行低成本阶段。第二，仪表板：来自调度器和批判循环的追踪事件渲染为一条时间线。第三，真实模型调用：将模拟文生器和确定性批判者替换为模型驱动的；接线方式不变。
+一旦演示程序绿色,就值得连接三个扩展. 首先,持续状态:每个阶段的结果写入一个小的JSON存储器, 第二,仪表板:从调度器和评论循环中追踪事件作为一个单一的时间线. 第三,真正的模型调用:将嘲笑的散文生成器和确定性评论器换成基于模型的;
 
-演示的目的是证明组合即架构。五个课程、四个导入、一份报告。下一次你添加一个阶段时，接线只需增加一行。
-```
+演示的任务是证明构成是建筑.五个课程,四个进口,一个报告.下次你添加一个阶段,

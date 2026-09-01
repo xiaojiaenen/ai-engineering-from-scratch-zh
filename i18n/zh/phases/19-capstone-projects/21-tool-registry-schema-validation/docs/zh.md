@@ -1,30 +1,30 @@
-# 带有 Schema 验证的工具注册表
+# 工具注册表与方案验证
 
-> 无法验证的工具就是无法调用的工具。在构建工具之前，先构建注册表和 schema 检查器。
+> 工具不能验证的工具是代理不能调用的工具. 在构建工具之前,建立注册表和方案检查器.
 
-**类型：** 构建
-**语言：** Python
-**前置要求：** Phase 13 课程 01-07，Phase 14 课程 01
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 13 lessons 01-07, Phase 14 lesson 01
+**Time:** ~90 minutes
 
 ## 学习目标
-- 维护一个类型明确的注册表（工具名 → schema → handler），让调度器只需查询一次即可信任后续调用。
-- 实现一个覆盖 90% 工具调用实际使用关键词的 JSON Schema 2020-12 子集。
-- 返回精确的、符合 json-pointer 格式的错误路径，以便模型能在一次往返中自我修正。
-- 拒绝未明确覆盖的重复注册，因为静默覆盖正是生产环境工具目录发生漂移的根源。
-- 保持验证器纯净（无 I/O、无时间依赖、无全局变量），以便可在重放日志上重复运行。
+- 保持一个输入的工具名称 → schema → 处理器登记,发送者可以一次询问,然后信任.
+- 实现一个JSON Schema 2020-12子集,涵盖了工具调用中90%的关键字.
+- 返回精确的,Json指针形状的错误路径,以便模型在一次回路中自行纠正.
+- 拒绝重新注册,没有明确的覆盖,因为无声覆盖是生产工具目录的流动方式.
+- 保持验证器纯净 (无输入/运输,无时间,无全球)
 
-````text
+```figure
 cf-registry-validate
-````
+```
 
-## 为什么注册表要先于工具构建
+## 为什么注册表在工具之前
 
-2026 年的代码智能体拥有的已注册工具数量，已超过单个上下文窗口所能容纳的规模。一个非平凡的 harness 会注册两百个工具，并在任意一轮对话中暴露十到四十个。注册表是以下三个问题的唯一真相来源：“存在哪些工具”、“它们的参数是什么形状”以及“我应该调用哪个 handler”。一旦这三个答案确定下来，harness 的其余部分就可以停止猜测。
+2026年,编码代理的注册工具超过模型可以在单一的文本窗口中合适的数量. 无关紧要的带将记录200个工具,在任何转折时,表面上出现10到40个. 记录是"有什么工具","他们的论点有什么形状",以及"我叫什么处理器".
 
-我们要避免的错误是：发布没有 schema 的 handler，或者发布没有验证功能的 schema。这两种情况都很常见。两者都会把下一层（第 23 课中的 dispatcher）变成一个猜谜游戏，其唯一的故障表现就是 handler 抛出的堆栈跟踪。
+我们避免的错误是没有计划的运输手机,或者没有验证的运输手机.这两者都是共同的.这两者都将下一个层 (第23课中的发送器) 变成了一个猜测游戏,唯一的失败模式是从处理器那里的堆痕迹.
 
-## 工具记录的结构
+## 工具记录是什么样子
 
 ```text
 ToolRecord
@@ -36,11 +36,11 @@ ToolRecord
   timeout_ms  : int          (override per-tool dispatcher default)
 ```
 
-schema 是验证器唯一会处理的字段。handler 对其而言是黑盒。我们有意将它们分离。schema 是数据。handler 是代码。将二者混用会诱使你把验证逻辑塞进 handler 里，而这正是我们要阻止的 bug。
+验证器触摸的仅一个是该方案.处理器对此不透明.我们故意将它们分开.该方案是数据.处理器是代码.将它们混合诱惑你将验证逻辑放入处理器中,这是我们正在阻止的错误.
 
-## JSON Schema 2020-12 子集
+## 基于 JSON 方案 2020-12 的子集
 
-完整的 2020-12 规范是一篇论文。我们只需要八个关键词。
+整个2020-12规范是一篇论文.我们需要八个关键字.
 
 ```text
 type           string / number / integer / boolean / object / array / null
@@ -53,11 +53,11 @@ pattern        ECMA-262-compatible regex, applies to strings
 items          schema applied to every array element
 ```
 
-这足以覆盖工具 API 实际需要的功能。我们不添加的关键词（oneOf、anyOf、allOf、$ref、conditionals）在生产级 schema 中是有效的，但会让验证器变成带有环的树形遍历器。我们在构建的是注册表，而不是 JSON Schema 引擎。
+对于一个工具API所需要的内容来说,这足够了.我们不添加的关键字 (oneOf, anyOf, allOf, $ref,条件) 在生产方案中是有效的,但将验证器转化为一个循环的树步行器.我们正在构建一个注册表,而不是一个JSON方案引擎.
 
-## JSON Pointer 错误路径
+## 标志器错误路径
 
-当验证失败时，验证器会返回一个错误列表。每个错误都携带一条指向输入数据的 json-pointer 路径。指针是由斜杠前缀的属性名和数组索引组成的序列。
+当验证失败时,验证器返回错误列表.每个错误都带有json指针路径进入输入.指针是属性名称和数组指数的斜率先定序列.
 
 ```text
 {"a": {"b": [1, 2, "x"]}}
@@ -65,39 +65,39 @@ items          schema applied to every array element
                     /a/b/2
 ```
 
-模型理解错误路径的能力比理解自然语言句子更强。如果 schema 要求 `args.user.email` 而模型传入了一个整数，错误路径应为 `/user/email`，并附带 `expected_type: string`。模型会在下一次调用中直接修正，无需经历一轮自然语言交互。
+如果一个方案要求 模型读错误路径比它读句子更好.`args.user.email`如果模型通过整数,则错误应该是`/user/email`随着`expected_type: string`模型在下一次电话中没有自然语言的解决方案.
 
-## 注册与覆盖
+## 登记和过失
 
-`register(name, schema, handler, **opts)` 默认拒绝重复注册。调用方必须传入 `override=True` 才能替换。这是运维层面的基本规范。代码库的两个部分静默注册同一个工具名，是一种在生产环境中要花一周才能排查出来的 bug。
+`register(name, schema, handler, **opts)`默认拒绝重新登记.`override=True`两个部分的代码库默默地注册相同的工具名称是生产中需要一周的错误.
 
-注册表暴露了三个读方法。`get(name)` 返回记录或抛出异常。`validate(name, args)` 返回一个 `Ok` 或错误列表。`names()` 按注册顺序返回工具名列表。
+登记库揭示了三种阅读方法.`get(name)`报价或升级.`validate(name, args)`返回一个`Ok`没有任何错误.`names()`返回工具名称以注册顺序.
 
-## 验证器的边界
+## 验证器是什么,不是什么
 
-它对 schema 树进行单次递归遍历。它是纯函数。它不会调用 handler。它不会进行类型强制转换（字符串 `"42"` 无法通过 number schema 的校验）。它不会静默截断数据。
+它是单次通过图案树,复制性. 它是纯的. 它不调用处理器. 它不强迫类型 (一个字符串)`"42"`没有通过一个数字方案.
 
-它不是安全边界。即使验证通过，恶意 handler 仍可能表现出异常行为。第 23 课中的 dispatcher 会补充超时和沙箱层。注册表只负责保证结构形状。
+经验证通过后,恶意处理器仍然可能会行为不当.第二十三课中的发送器添加时间限和沙盒层.登记器添加形状.
 
-## 结构
+## 形状
 
 ```mermaid
 flowchart TD
-    code[你的代码]
+    code[your code]
     reg[ToolRegistry<br/>name<br/>schema<br/>handler<br/>timeout]
-    out[Ok 或错误列表]
+    out[Ok or list of errors]
     code -->|register name, schema, handler| reg
     reg -->|validate args| out
 ```
 
-## 如何阅读代码
+## 如何读取代码
 
-`code/main.py` 定义了 `ToolRegistry`、`ToolRecord`、`ValidationError` 以及八个验证函数。验证器会根据 `schema["type"]` 进行分发（或者将含有 `enum` 的 schema 视为无类型枚举检查）。每个类型验证器要么返回空列表，要么返回 `ValidationError` 列表。顶层遍历器在向下遍历时会将错误拼接起来，并前置路径段。
+`code/main.py`定义`ToolRegistry`现在`ToolRecord`现在`ValidationError`验证器发送在`schema["type"]`(或处理一个方案`enum`任何类型验证器都会返回一个空清单或一个列表`ValidationError`顶级步行器将错误连接在一起,并随着下降预先将路径段段.
 
-`code/tests/test_registry.py` 覆盖了注册、覆盖、验证成功、带路径的验证失败，以及子集中的所有关键词。
+`code/tests/test_registry.py`覆盖注册,过失,验证成功,验证失败,路径以及子集中的每个关键字.
 
-## 后续扩展
+## 走得更远
 
-本课落地后你会想要补充的两个扩展是：针对本地 definitions 块的 `$ref` 解析，以及用于严格形状的 `additionalProperties: false`。两者都很小。当工具目录增长到超过五十个时，添加这两项是很常见的做法。我们将它们排除在本课之外，以保持单文件阅读量可控。
+两次扩展将需要一旦这个课程落地`$ref`解决一个地方定义区块的问题,`additionalProperties: false`它们都很小,随着工具目录的增长,它们都增加了50个工具.
 
-下一课（第 22 课）将构建 JSON-RPC stdio 传输层，将此注册表暴露给模型客户端。再下一课（第 23 课）将在带有超时和重试机制的 dispatcher 背后封装这两者。
+下一堂课 (二十二) 构建了JSON-RPC工作室运输,该系统将该注册表显示给模型客户端.

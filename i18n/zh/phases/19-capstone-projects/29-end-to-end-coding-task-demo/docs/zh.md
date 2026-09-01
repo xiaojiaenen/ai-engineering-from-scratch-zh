@@ -1,27 +1,27 @@
-# Capstone Lesson 29: Harness 上的端到端编码代理
+# 石29课: 终端编码剂在上
 
-> Track A's payoff. This lesson stitches the gate chain, the sandbox, the eval harness, and the OTel spans into one working coding agent that fixes a real (small, fixture-scale) bug in a multi-file Python project. The agent is a deterministic policy, not an LLM; the substitution makes the lesson reproducible and shows that the harness was the interesting part all along. The contract is identical: a real model plugs in at the policy seam.
+> 追踪A的回报. 这一课将门链,沙盒, eval 带,和OTel 扩展到一个工作编码代理, 代理是一个确定性政策,而不是一个 LLM; 替代使课程可复制, 合同是相同的:一个真正的模型插入了政策接.
 
-**类型：** 构建
-**语言：** Python (stdlib)
-**前置条件：** Phase 19 · 25（验证闸门）、Phase 19 · 26（沙箱）、Phase 19 · 27（评估工具链）、Phase 19 · 28（可观测性）、Phase 14 · 38（验证闸门）、Phase 14 · 41（真实仓库的工作台）、Phase 14 · 42（代理工作台结项）
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 19 · 25 (verification gates), Phase 19 · 26 (sandbox), Phase 19 · 27 (eval harness), Phase 19 · 28 (observability), Phase 14 · 38 (verification gates), Phase 14 · 41 (workbench for real repos), Phase 14 · 42 (agent workbench capstone)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 将闸门链、沙箱、评估工具链和 span 构建器组合为单个代理循环。
-- 实现一个确定性策略，使用 read_file、run_tests 和 write_file 来修复 fixture 级别的 bug。
-- 在整个端到端运行过程中强制执行全局步骤预算和观测令牌预算。
-- 为整个运行过程生成完整的 OTel GenAI 追踪和 Prometheus 指标。
-- 验证代理在少于 12 步内解决 fixture 问题，且在合法工具调用上零次闸门拒绝。
+- 组建门链,沙盒,评估带,和跨度构建器成一个单个代理循环.
+- 执行一个确定性政策,使用 read_file, run_tests和 write_file来修复一个固定错误.
+- 执行全球步骤预算加上观察代币预算在一段终端运行中.
+- 发出完整的OTel GenAI痕迹和Prometheus指标,以实现完整运行.
+- 检查代理在不到12个步骤中解决了问题, 没有任何法律工具的关门.
 
-## 问题所在
+## 问题
 
-大多数代理演示都在孤立环境中运行：单独的沙箱、单独的评估工具链、单独的 span 发射器。看起来都没问题。把它们组合起来，接缝就暴露了。
+许多代理演示都独立工作:一个沙盒,一个评估带,一个跨度发射器.它们看起来很好.
 
-闸门链说 ALLOW（允许），但沙箱出于闸门链未能预料的原因拒绝。评估工具链记录了一次通过，但 OTel spans 显示闸门拒绝了代理声称它使用的工具。Prometheus 计数器在被应该只增一次时被增了两次。观测预算被超了，但代理仍在继续，因为预算在链中跟踪而沙箱并不知道。
+门链说允许,但沙箱拒绝, 评估器记录了通行,但Otel的范围说,门拒绝了代理声称使用的工具. 预测计器应增加两次, 监测预算超出了,但代理人继续继续,因为预算被追踪在链上,
 
-本节课是整个 Track A 的集成测试。代理必须按顺序完成四件事：读取项目、运行测试、从测试失败中识别 bug、写入修复、重新运行测试、停止。每个操作都经过闸门链。每个工具执行都经过沙箱。每个步骤都被 span 包裹。评估工具链在最后对整个运行进行评分。
+这一课是整条轨道的整合测试. 经理必须做四件事:阅读项目,运行测试,识别测试失败的错误,写作修正,重启测试,停止. 每个操作都通过门链. 每个工具执行都通过沙盒. 每一步都包裹在一个跨度. 评估带在最后得分整个东西.
 
 ## 概念
 
@@ -33,23 +33,27 @@ flowchart TD
   Harness --> Out[EvalReport + JSONL<br/>+ Prometheus exposition]
 ```
 
-代理的策略是一个状态机。五个状态。
+代理的政策是州机器.
 
-`SURVEY`：代理读取项目列表。下一个状态是 RUN_TESTS。
+`SURVEY`项目列表:经纪人读取项目列表. 下一个状态是RUN_TESTS.
 
-`RUN_TESTS`：代理运行测试命令。如果测试通过，状态机以成功终止。否则下一个状态是 INSPECT。
+`RUN_TESTS`测试机器成功停止,否则下一个状态是INSPECT.
 
-`INSPECT`：代理读取失败源的源文件。下一个状态是 FIX。
+`INSPECT`接下来是FIX.
 
-`FIX`：代理写入更正后的文件。下一个状态是 VERIFY。
+`FIX`接下来是 VERIFY.
 
-`VERIFY`：代理再次运行测试命令。如果测试通过，成功终止。否则失败终止。
+`VERIFY`试验命令再次执行. 如果测试通过,停止成功.否则停止失败.
 
-每个状态对应一个工具调用。每个工具调用都经过闸门链。如果工具调用被拒绝，代理在追踪中报告拒绝并终止。
+每个状态都与工具调用相匹配. 每个工具调用通过门链. 如果一个工具调用被拒绝,代理在追踪中报告拒绝并停止.
 
-fixture 中的 bug 是 `fizz.py` 中的一个 off-by-one 错误。确定性策略通过正则表达式从测试失败消息中检测到此 bug 并发出更正后的文件。用 LLM 替换策略不会改变工具链的合同。
+设备的错误是个单独的`fizz.py`确定性政策通过regex检测失败消息检测到错误并发出纠正的文件.将该政策取代为LLM不会改变使用合同.
 
-## 架构
+```figure
+cg-harness-weave
+```
+
+## 建筑
 
 ```mermaid
 flowchart TD
@@ -65,44 +69,44 @@ flowchart TD
   Back --> Policy
 ```
 
-课程是自包含的。每个先前课程的原始模块都以最小规模在 `main.py` 中重新实现（闸门、沙箱、账本、span），以便课程无需导入同级模块即可运行。名称与课程 25-28 完全匹配，使得概念映射清晰无歧义。
+每个前课原始的每一个课程都在最小的规模上重新实施.`main.py`它们的名称与25-28课程相匹配,所以概念地图是明确的.
 
-## 你将构建什么
+## 你会建造什么
 
-`main.py` 提供：
+`main.py`船舶:
 
-1. 最小的工具链原始模块，名称与课程 25-28 相同：`GateChain`、`Sandbox`、`ObservationLedger`、`SpanBuilder`、`MetricsRegistry`。
-2. `CodingAgentPolicy` 类：具有五个状态的状态机。
-3. `Repo` 助手：准备带有捆绑的 buggy fixture 的临时目录。
-4. `AgentRun` 类：驱动策略，通过工具链分发，返回 `AgentRunReport`。
-5. 捆绑的 fixture（`fixture_repo/`）包含 src/fizz.py、tests/test_fizz.py 和用于评估工具链的 expected/ 树。
-6. 演示：端到端运行策略，打印逐步追踪，断言通过，打印指标。
+1. 简单的带原始, 复制与25-28课程相同的名字:`GateChain`现在`Sandbox`现在`ObservationLedger`现在`SpanBuilder`现在`MetricsRegistry`现在,我们要去.
+2. `CodingAgentPolicy`五个状态的状态机.
+3. `Repo`助手:用捆绑的车装置做出痕.
+4. `AgentRun`类:驱动保险,通过带,返回一个`AgentRunReport`现在,我们要去.
+5. 捆绑式装置 (`fixture_repo/`) 配合 src/fizz.py, tests/test_fizz.py,以及预期的/对 eval 带的树.
+6. 演示:从端到端运行政策, 打印一步一步的跟踪, 确认通过, 打印指标.
 
-捆绑的 fixture 与课程 27 的任务结构形状相同：一个 buggy 文件和一个测试文件。测试失败消息包含足够的信息供确定性策略识别修复方案。真实的 LLM 会做同样的工作，但更慢且召回范围更广，但它不会改变工具链的预期。
+组装的固定件与27课任务结构相同的形状:一个buggy文件和一个测试文件.测试失败消息包含足够的信息,使得确定性政策能够识别解决方案.一个真正的LLM将做同样的工作,慢慢和更广泛的回忆,但它不会改变带的期望.
 
-## 为什么策略不是 LLM
+## 为什么政策不是法定士
 
-真实的 LLM 需要 API 密钥、网络调用和不可验证的随机性。工具链才是课程关心的部分。用确定性策略替代可以让课程在任何开发者笔记本电脑上运行，无需任何外部依赖，并让测试套件断言精确的步骤计数。
+实际的LLM需要API密钥,网络调用,以及无法验证的 stochasticity. 带是课程关心的部分. 确定性政策中 Subbing 允许课程在任何开发者笔记本电脑上运行,并且允许测试套件确切地计算步骤.
 
-课程的策略是 LLM 代理行为的严格子集。策略读取仓库，看到失败的测试，识别行号，并发出修复方案。LLM 会经历相同的循环，使用相同的工具链合同；簿记完全相同。
+课程的政策是一个严格的子集,一个LLM代理所做的.政策阅读了备忘录,看到失败的测试,识别了线路,并发出了修正.一个LLM通过相同的循环与相同的使用合同;会计是相同的.
 
-## 演示断言什么
+## 演示所说的
 
-端到端演示在退出时断言五件事，测试套件以编程方式重新断言它们。
+测试组将程序性地重新确认它们.
 
-策略在少于 12 步内解决了 fixture 问题。
+政策在不到12步的时间里解决了这个问题.
 
-观测预算从未被超过。
+观察预算从未过度过.
 
-零次闸门拒绝在合法工具上触发。（代理从未发明一个被拒绝的工具名称。）
+没有人能说,我在这个问题上,
 
-每个步骤在 traces.jsonl 中都有对应的 span。
+每一步都在线路上有相应的跨度.
 
-Prometheus 暴露内容包含一个 `tools_called_total{tool="read_file"}` 条目和一个 `tool_latency_ms` 直方图。
+普罗梅泰斯的展览包含一个`tools_called_total{tool="read_file"}`进入和一个`tool_latency_ms`瘤图
 
-## 与本 Track A 其余部分的组合
+## 如何与A轨道的其他部分相结合
 
-本课程是集成测试。课程 25 编写了闸门链。课程 26 编写了沙箱。课程 27 编写了评估工具链。课程 28 编写了可观测性。课程 29 证明它们作为系统一起工作。一个真实的代理工具链从此扩展：将确定性策略替换为模型，将捆绑的 fixture 替换为真实仓库任务，将 JSONL 导出器替换为 OTLP。
+这一课是集成. 第25课写了门链. 第26课写了沙箱. 第27课写了评估带. 第28课写了可观性. 第29课证明它们作为系统工作. 从这里开始,一个真正的代理带延伸到:换取确定性政策为模型,换取捆绑的固定物为实体复制任务,换取JSONL出口者为OTLP.
 
 ## 运行它
 
@@ -112,4 +116,4 @@ python3 code/main.py
 python3 -m pytest code/tests/ -v
 ```
 
-演示打印每步追踪、最终评估报告和 Prometheus 暴露内容。退出代码为零。测试覆盖策略状态转换、合成工具调用上的闸门拒绝、在捆绑 fixture 上的端到端运行以及步骤预算不变量。
+测试打印每步的跟踪,最终评估报告和Prometheus曝光.出口代码为零.测试涵盖政策状态转变,合成工具调用的门拒绝,捆绑的装置的端到端运行和步骤预算不变.

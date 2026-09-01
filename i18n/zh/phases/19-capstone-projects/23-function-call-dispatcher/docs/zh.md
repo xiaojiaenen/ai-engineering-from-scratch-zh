@@ -1,110 +1,110 @@
-# 函数调用分发器
+# 函数调用调用器
 
-> 分发器是框架为 Schema 做出的每一个承诺买单的地方。超时、重试、去重、错误映射，全在这一处接口。
+> 发射器是指,带支付了每一个计划所做的承诺,时间,重试,减值,错误映射.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** 第 13 课 01-07、第 14 课 01
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 13 lessons 01-07, Phase 14 lesson 01
+**Time:** ~90 minutes
 
 ## 学习目标
-- 用每次调用的超时包装工具处理器，返回类型化错误而非让循环挂起。
-- 应用带抖动（jitter）的指数退避重试及最大尝试次数。
-- 基于幂等键对重试进行去重，使与慢速原始调用竞态的重试不会执行两次。
-- 将处理器异常和传输故障映射到框架循环已理解的单一错误信封。
-- 用并发上限约束并行分发，使四十个工具调用的扇出不会耗尽事件循环。
+- 打回一个输入错误的通话时间,而不是挂的工具处理器.
+- 应用动和最大尝试数.
+- 通过无能率键进行复制,使得慢的原始比赛的复制尝试不会两次运行.
+- 运输错误的错误,已经理解了该链路的错误包.
+- 交叉发送与同步限制,所以四十个工具调用的风扇不耗尽事件循环.
 
 ```figure
 cf-dispatch-retry
 ```
 
-## 分发器所在的位置
+## 发送机坐的地方
 
-介于框架循环（第 20 课）与工具注册表（第 21 课）之间。传输层（第 22 课）喂给循环，循环把工具调用交给分发器，分发器调用注册表、运行处理器，返回结果或 JSON-RPC 形状的错误信封。
+运输 (课二十二) 给循环提供了食物.循环向发送器传递工具调用.发送器调用了注册表,运行了处理器,并返回了结果或一个JSON-RPC形状的错误包.
 
 ```mermaid
 flowchart TD
-    loop[框架循环]
-    disp[分发器]
-    reg[工具注册表]
-    handler[处理器]
+    loop[harness loop]
+    disp[dispatcher]
+    reg[tool registry]
+    handler[handler]
     loop --> disp
-    disp -->|获取名称| reg
-    disp -->|验证参数| reg
-    disp -->|asyncio.wait_for 处理器 参数 超时| handler
-    handler -->|成功| disp
-    handler -->|TimeoutError → 重试或失败| disp
-    handler -->|Exception → 映射为错误码| disp
-    disp -->|Ok 结果 或 DispatchError| loop
+    disp -->|get name| reg
+    disp -->|validate args| reg
+    disp -->|asyncio.wait_for handler args timeout| handler
+    handler -->|success| disp
+    handler -->|TimeoutError -> retry or fail| disp
+    handler -->|Exception -> map to error code| disp
+    disp -->|Ok result or DispatchError| loop
 ```
 
-分发器是唯一知道定时器、重试和幂等性的层。循环不知道，注册表不知道，处理器也不知道。这种隔离性正是设计目标。
+发送器是唯一知道时间表,反试和无能率的层.循环没有.登记器没有.处理器没有.隔离是重点.
 
-## 超时
+## 时间限制
 
-每个工具都有默认超时时间。注册表记录携带 `timeout_ms`。当框架传入按次覆盖值时，分发器会对其进行覆盖。我们使用 `asyncio.wait_for`。超时发生时，处理器任务被取消，分发器返回 `DispatchError(kind="timeout")`。
+每个工具都有默认的时间限制.`timeout_ms`发送器在传输链时将其转移到通话时.`asyncio.wait_for`在时间休止时,处理任务被取消,`DispatchError(kind="timeout")`现在,我们要去.
 
-对于非幂等工具而言，超时默认不可重试。一个超时的 `db.write` 可能已经提交，也可能没有。重试会导致写入重复。分发器会遵循注册表记录中的 `idempotent` 标志：幂等工具会重试，非幂等工具不会。
+时间过关不是非自主工具的默认可重复错误.`db.write`发送者尊重发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者, 发送者`idempotent`无权的工具再试,无权的工具没有.
 
-## 指数退避重试
+## 复试,以指数式后退
 
-重试策略最多三次尝试。退避呈指数增长并加入抖动。
+复试政策是三次最大,反击率是指数值的,
 
 ```text
-attempt 1  → delay 0
-attempt 2  → delay 0.1s * (1 + random[0..0.5])
-attempt 3  → delay 0.4s * (1 + random[0..0.5])
+attempt 1  -> delay 0
+attempt 2  -> delay 0.1s * (1 + random[0..0.5])
+attempt 3  -> delay 0.4s * (1 + random[0..0.5])
 ```
 
-只有 `timeout` 和 `transient` 错误会重试。`schema` 错误、`not_found` 或 `internal` 错误不会重试。Schema 错误是确定性的，重试不会改变结果却会消耗预算。
+只有`timeout`其他`transient`错误再试.`schema`错误`not_found`其他`internal`错误不会再尝试. 方案错误是决定性的. 再尝试不会改变结果,并且会损失预算.
 
-重试循环遵循框架传入的预算。若调用者的预算剩余工具调用数为零，分发器在第一次尝试时快速失败，返回 `kind="budget_exceeded"`。
+如果调用者的预算剩余的工具调用是零,发送器在第一次尝试中很快失败,然后返回.`kind="budget_exceeded"`现在,我们要去.
 
-## 幂等键去重
+## 无能关键扣除
 
-原始调用仍在进行中时就触发重试是一个真实的生产 Bug。第一次调用在 4.9 秒时挂起（刚好低于超时阈值），重试在 5 秒时触发。于是两个请求竞态访问同一后端。如果工具是 `payments.charge`，你就被扣了两次款。
+试机在原始机器仍在飞行中再次发射,这是一个真正的生产错误.第一次电话挂在4点9秒 (就在时间限下).重试5秒发射.现在两个请求与相同的后端竞赛.如果工具是`payments.charge`你已经收费了两次.
 
-分发器接受可选的 `idempotency_key`。若到达的调用对应的键已在飞行中，分发器会等待该飞行中的 future 并返回其结果。缓存会在完成六十秒后清除键，以吸收迟到重试。
+发送器接受了可选的`idempotency_key`如果同一键在通话到达时在飞行中,发射器会等待飞行中的未来,然后返回结果.
 
-键由调用方负责生成。框架从规划器派生它：`f"{step_id}:{tool_name}:{hash(args)}"`。分发器不自己发明键，因为仅从参数推导键会让语义不同的两次调用看起来相同。
+关键是电话给人负责.`f"{step_id}:{tool_name}:{hash(args)}"`发送器不会发明钥匙,因为仅仅从参数中得出一个钥匙,
 
-## 错误信封
+## 错误封面
 
-一次失败的分发返回单一结构。
+失败的发射返回一个形状.
 
 ```text
 DispatchError
   kind        : "timeout" | "transient" | "schema" | "not_found" | "internal" | "budget_exceeded"
   message     : str
   attempts    : int
-  jsonrpc_code: int   （-32601、-32602、-32603 之一）
+  jsonrpc_code: int   (one of -32601, -32602, -32603)
 ```
 
-框架循环将 `kind` 映射到下一个状态：`schema` 和 `not_found` 转到 `on_error` 并触发重新规划；`timeout` 和 `transient` 转到 `on_error`，是否重新规划取决于尝试次数；`budget_exceeded` 触发 `on_budget_exceeded`。
+连接环路图`kind`让我们去下一个州.`schema`其他`not_found`走去`on_error`引发一个重机.`timeout`其他`transient`走去`on_error`根据尝试,可能会重新计划或不重新计划. `budget_exceeded`触发器`on_budget_exceeded`现在,我们要去.
 
-## 扇出的并发上限
+## 风扇外出的货币限制
 
-`gather(*calls)` 同时运行所有协程。面对四十个工具调用，就是四十个开放 socket 或四十条子进程管道。大多数后端并不喜欢从一个客户端来的四十个并行连接。
+`gather(*calls)`通过40个工具调用,即40个开源或40个子处理管.大多数后台不喜欢一个客户端的40个并行连接.
 
-分发器用信号量包装 `gather`。默认并发上限为八。每次调用在分发前获取信号量，完成后释放。调用方看到 `gather` 风格的输出，但实际调度是有界的。
+发送器包装`gather`在一个通讯器中.默认的同步限为八.每次通话都在发送之前收购通讯器,并在完成时释放.通话者看到`gather`实际的时间表是有限的.
 
-## 单次调用的流程
+## 流动一次通话
 
 ```mermaid
 flowchart TD
-    start([调用方：dispatch name, args, opts])
+    start([caller: dispatch name, args, opts])
     validate[registry.validate name, args]
     schema_err[DispatchError kind=schema]
-    idem_check{幂等缓存命中？}
-    in_flight[等待已有 future]
-    cached[返回缓存结果]
+    idem_check{idempotency cache?}
+    in_flight[await existing future]
+    cached[return cached result]
     attempt[asyncio.wait_for handler args, timeout]
-    success[缓存 + 返回结果]
-    timeout_branch{TimeoutError + 幂等？}
-    retry[以退避重试]
+    success[cache + return result]
+    timeout_branch{TimeoutError + idempotent?}
+    retry[retry with backoff]
     fail[DispatchError]
-    transient_branch{TransientError？}
-    other[将 Exception 映射为 kind，不重试]
+    transient_branch{TransientError?}
+    other[map Exception to kind, no retry]
     exhausted[DispatchError]
 
     start --> validate
@@ -124,16 +124,16 @@ flowchart TD
     retry --> attempt
 ```
 
-## 如何阅读代码
+## 如何读取代码
 
-`code/main.py` 定义了 `Dispatcher`、`DispatchError` 和 `TransientError`。分发器在构造时接收一个注册表。异步方法 `dispatch(name, args, ...)` 是唯一的入口点。按次超时在 `_run_with_retries` 内部通过 `asyncio.wait_for` 内联应用。`gather_bounded(calls)` 以并发上限运行多次分发。
+`code/main.py`定义`Dispatcher`现在`DispatchError`其他`TransientError`发送机记录了建筑物.`dispatch(name, args, ...)`只有一个进入点. 每次试验的时间限制在内线.`_run_with_retries`使用`asyncio.wait_for`现在,我们要去.`gather_bounded(calls)`运行许多随机发送的发送量.
 
-`code/tests/test_dispatcher.py` 覆盖了超时触发、瞬态错误重试、schema 错误不重试、幂等去重（具有相同键的两次并发调用合并为一次处理器调用）以及并发限制（信号量生效）。
+`code/tests/test_dispatcher.py`覆盖时间限开,暂时重试,方案错误无重试,无效率减免 (两个同时调用相同键的崩到一个处理器调用),并行限制 (在操作中的半径).
 
-测试使用 `asyncio.sleep(0)` 和基于 `Counter` 的确定性处理器，因此它们以毫秒级完成，不依赖真实墙钟计时。
+测试使用`asyncio.sleep(0)`确定性`Counter`它们可以在毫秒内完成,而不会依赖于墙钟的时间.
 
-## 进一步扩展
+## 走得更远
 
-生产级分发器通常加入两种扩展。其一，在每个状态转换处进行结构化日志记录（循环的事件流已为你提供此信息，但分发器也应发出 `dispatch.attempt` 与 `dispatch.retry` 事件）。其二，熔断器：在时间窗口内失败 N 次后，该工具进入冷却期，期间分发直接返回 `kind="circuit_open"` 而不再尝试处理器。这两项都可叠加在本分发器之上而不改变契约。
+首先,在每个过渡时进行结构化记录 (循环的事件流已经给你提供了,但发射器也应该发射`dispatch.attempt`其他`dispatch.retry`系统中出现的电路断裂事件.`kind="circuit_open"`两者都在这个发射器上,没有改变合同.
 
-第 24 课将分发器粘合到 plan-and-execute 智能体上，让你看到全部四个组件同时运转。
+课24将发射器粘贴到一个计划执行的代理,

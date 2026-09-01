@@ -1,31 +1,31 @@
-# Capstone Lesson 28：使用 OTel GenAI Spans 和 Prometheus 指标的可观测性
+# 石28课:使用OTel GenAI跨度和普罗梅斯指标可观察性
 
-> 一个没有可观测性的 agent harness 就是一个烧钱的黑盒。本课手工实现了一个 span 构建器，它生成符合 OpenTelemetry GenAI 语义规范的记录，每行写一个 span 到 JSON-Lines 文件，并以 Prometheus 文本格式暴露计数器和直方图。整个实现只使用 Python 标准库，可离线运行。
+> 无可观察的代理带是花钱的黑盒子.本课程手动滚动一个跨度构造器,它发出符合OpenTelemetry GenAI语义公约的记录,将它们写入一个JSON-Lines文件,每行一个跨度,并暴露了Prometheus文本格式的计数器和历史图.整个东西是Stdlib Python,并运行离线.
 
-**类型：** 构建
-**语言：** Python（标准库）
-**前置要求：** Phase 19 · 25（验证门）、Phase 19 · 26（沙箱）、Phase 19 · 27（评估 harness）、Phase 13 · 20（OpenTelemetry GenAI）、Phase 14 · 23（OTel GenAI 规范）
-**预计时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 19 · 25 (verification gates), Phase 19 · 26 (sandbox), Phase 19 · 27 (eval harness), Phase 13 · 20 (OpenTelemetry GenAI), Phase 14 · 23 (OTel GenAI conventions)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 构建符合 OpenTelemetry GenAI 语义规范的 span 数据类。
-- 实现一个 JSONL 导出器，每行写入一个完整的 span。
-- 使用标签构建计数器和直方图，并以 Prometheus 文本格式导出。
-- 将任意可调用对象包装在 span 上下文管理器中，记录持续时间、状态和异常。
-- 验证发出的 span 经过 `json.loads` 后能正确往返，并匹配规范形状。
+- 建立一个以OpenTelemetry GenAI语义公约为形状的跨度数据类.
+- 实现一个JSONL出口程序,每行写出一个独立的跨度.
+- 建立标签和Prometheus文本格式曝光的计数器和历史图.
+- 包装任何调用器在一个记录时间,状态和例外的跨度环境管理器中.
+- 检查发射的跨度是否回路通过`json.loads`并且与规格的形状相匹配.
 
-## 问题所在
+## 问题
 
-生产环境中的编码 agent 每轮产生三类产物：模型调用、工具执行和验证门决策。如果没有结构化的遥测数据，这些都没有用处。
+在生产中,编码代理每次生产三类文物:模型调用,工具执行和验证门决策.
 
-第一个故障模式是**缺少追踪**。周二出了问题，但唯一的记录是一段 500 行的聊天记录。没有任何记录表明哪个工具被执行、耗时多久、提示词进了多少 token、或者门控是否拒绝了什么。agent 作者只能靠猜。
+首先是失败模式是缺失的痕迹.周二发生了一些错误,但唯一记录是500行聊天日志.没有记录哪个工具运行,需要多长时间,多少代币进入提示,或者门是否拒绝任何东西.代理作者必须猜测.
 
-第二个故障模式是**无法解析的追踪**。harness 写了 spans，但使用了自定义的字段名。Grafana、Honeycomb、Jaeger 或本地 CLI 中没有任何工具能读取它们。团队技术栈中现有的任何工具都浪费了，因为这些 span 不是标准格式。
+其他方法是: 子写了跨度,但使用了自己的专用字段名称.Grafana,Honeycomb,Jaeger或本地CLI中没有任何东西能读取它们.团队堆中存在的任何工具都会浪费,因为跨度是不标准的.
 
-第三个故障模式是**未聚合的指标**。你可以在追踪中看到一次慢速工具调用，但无法回答"过去一小时内 read_file 调用的 p95 延迟是多少？"——因为只有追踪，没有指标。
+第三种故障模式是未聚合的指标.你可以看到一个缓慢的工具调用在追踪中,但你不能回答"在上个小时内读_文件调用的p95延迟是什么?"因为没有指标,只有痕迹.
 
-OpenTelemetry GenAI 语义规范正是为了解决这些问题而存在的。它们定义了一组标准的属性集，被各 LLM 框架的 span 发射器共享。如果你的 harness 写入这些属性，每个 OTel 兼容的后端都能读取它们。
+开放Telemetry GenAI语义公约是为了这个.它们定义了一个小组标准属性,在LLM框架中跨度发射者共享.如果你的带写这些属性,每个与OTel兼容的后端都可以读取它们.
 
 ## 概念
 
@@ -39,19 +39,19 @@ flowchart TD
   Metrics --> Prom[/metrics text/]
 ```
 
-harness 中的每个操作都会产生一个 span。span 拥有 trace id（整个 agent 调用）、span id（当前这个操作）、名称（例如 `gen_ai.chat`、`gen_ai.tool.execution`）、遵循 GenAI 规范属性的属性集、开始和结束时间、以及状态。
+跨度具有一个追踪ID (整个代理调用),一个跨度ID (这个操作),一个名称 (例如 `gen_ai.chat`现在`gen_ai.tool.execution`), 基因AI公约的属性,开始和结束时间以及状态.
 
-GenAI 规范将这些属性键标准化：`gen_ai.system`（哪个提供者，如 `anthropic`、`openai`）、`gen_ai.request.model`（模型 id）、`gen_ai.request.max_tokens`、`gen_ai.usage.input_tokens`、`gen_ai.usage.output_tokens`、`gen_ai.response.model`、`gen_ai.response.id`、`gen_ai.operation.name`，以及工具特定的键 `gen_ai.tool.name` 和 `gen_ai.tool.call.id`。
+基因AI公约标准化了这些属性密钥: `gen_ai.system`(哪个提供商,例如`anthropic`现在`openai`), `gen_ai.request.model`(模型标识),`gen_ai.request.max_tokens`现在`gen_ai.usage.input_tokens`现在`gen_ai.usage.output_tokens`现在`gen_ai.response.model`现在`gen_ai.response.id`现在`gen_ai.operation.name`另外,工具特定的钥匙`gen_ai.tool.name`其他`gen_ai.tool.call.id`现在,我们要去.
 
-导出器使用 JSONL 格式。每行一个 JSON 对象。这是下游工具链可以流式处理、grep 和导入的最简格式。真实的 OTel 导出器会走 OTLP gRPC；本课的 JSONL 导出器是离线等价物，在每个工作站上以零退出码退出。
+导出者写JSONL.每行一个JSON对象.这是下游工具可以流媒体,抓取和进口的最简单的格式.一个真正的OTel导出者会说OTLP gRPC;课程的JSONL导出者是离线相当的,并且在每个工作站上出发为零.
 
-指标与追踪并存。计数器在每次工具调用时递增：`tools_called_total{tool="read_file"}`。直方图记录观察到的延迟：`tool_latency_ms{tool="read_file"}`。两者均序列化为 Prometheus 文本暴露格式，这是拉取式指标的事实标准。
+工具的每次调用中,一个反增量:`tools_called_total{tool="read_file"}`历史图记录观察到的延迟:`tool_latency_ms{tool="read_file"}`它们都将串行成Prometheus文本曝光格式,这是基于拉力的指标的实际标准.
 
 ```figure
 trace-spans
 ```
 
-## 架构
+## 建筑
 
 ```mermaid
 flowchart LR
@@ -61,37 +61,37 @@ flowchart LR
   Metrics --> Prom[Prometheus text<br/>exposition]
 ```
 
-span 构建器是一个小类，带有 `span(name, attrs)` 方法，返回一个上下文管理器。该上下文管理器在进入时记录开始时间，退出时记录结束时间，如果有异常抛出则附加异常信息，并将最终化的 span 推送给导出器。
+跨度构造商是一个小类的`span(name, attrs)`文本管理器记录入口开始时间,记录出口结束时间,将一个例外添加,如果一个被提升,并将最终的跨度推向出口商.
 
-指标注册表由两个字典组成。计数器是 `{(name, frozen_labels): int}`。直方图将原始样本保存在列表中，并在暴露时序列化为 Prometheus 直方图桶。
+计数是两个指数.`{(name, frozen_labels): int}`异谱记录原料样本,并将其在暴露时串行到Prometheus异谱桶中.
 
-## 你将构建的内容
+## 你会建造什么
 
-`main.py` 提供：
+`main.py`船舶:
 
-1. `GenAISpan` 数据类：trace_id、span_id、parent_span_id、name、attributes、start_unix_nano、end_unix_nano、status、status_message、events。
-2. `SpanBuilder` 类，带有 `span(name, attrs, parent=None)` 上下文管理器。
-3. `JSONLExporter` 类，带有 `export(span)` 方法，每次追加一行。
-4. `Counter` 和 `Histogram` 类以及 `MetricsRegistry`。
-5. `prometheus_exposition(registry)` 函数，生成文本格式输出。
-6. `wrap_tool_call(name)` 装饰器，发出 span 并更新指标。
-7. 演示：合成一个完整的 agent 调用（在工具 span 外围包裹 gen_ai.chat span），写入 traces.jsonl，打印 Prometheus 暴露内容，以零退出码退出。
+1. `GenAISpan`数据类: trace_id, span_id, parent_span_id,名称,属性, start_unix_nano, end_unix_nano,状态, status_message,事件.
+2. `SpanBuilder`课程`span(name, attrs, parent=None)`环境管理者.
+3. `JSONLExporter`课程`export(span)`它们的位置是
+4. `Counter`其他`Histogram`课程加上`MetricsRegistry`现在,我们要去.
+5. `prometheus_exposition(registry)`输出文本格式.
+6. `wrap_tool_call(name)`装饰器发射跨度,并更新数据.
+7. 演示:合成一个完整的代理调用 (gen_ai.chat跨度在工具跨度周围),写 traces.jsonl,打印Prometheus曝光,退出零.
 
-span id 和 trace id 是 16 字节十六进制字符串，由 `os.urandom` 生成。这与 OTel 的 W3C 追踪上下文匹配。导出器永不抛出；IO 错误会被暴露，但 harness 继续运行。
+跨度ID和跟踪ID是16字节的六字符串,由 `os.urandom`导出者从来没有扔掉, IO 错误被发现,但带仍然运行.
 
-直方图采用固定的桶集合（OTel 延迟默认值，单位为毫秒：5、10、25、50、100、250、500、1000、2500、5000、10000、+Inf）。样本以列表形式存储；暴露时按需计算每个桶的计数。
+历史图表有一个固定的桶集合 (OTel默认的延迟在毫秒: 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, +Inf).样本存储为列表; 曝光按要求计算每桶计数.
 
-## 为何手工实现而非使用 opentelemetry-sdk
+## 为什么用手动滚动而不是开放式仪表sdk
 
-OTel Python SDK 是一个真实的依赖项。但它也有数千行代码、OTLP 导出器的多个进程，以及一个会淹没课程预算的运行时代价。手工实现的版本教授了线路格式。在生产环境中，你可以将这些相同的属性接入真正的 SDK，免费获得 OTLP 导出器、批量处理和资源检测能力。
+托特尔 Python SDK 是一个真正的依赖性.它还包括几千行代码,多个过程为OTLP出口商,并有一个运行时间成本,这淹没了课程预算.手动滚动版本教导了线程格式.在生产中,你将相同的属性线程到真正的SDK中,并获得OTLP出口商,批量和资源检测免费.
 
-规范是稳定的。本课导出的线路格式在 2030 年仍可被解析，因为 OTel 从不破坏 GenAI 属性名——它们只会新增。
+课程发射的电线格式将在2030年继续分析,因为OTel从来没有打破GenAI属性名称;他们只添加新的属性.
 
-## 与 Track A 其余部分的组合
+## 如何与A轨道的其他部分相结合
 
-第 25 课生成了门链。第 26 课生成了沙箱。第 27 课生成了评估 harness。第 28 课使这三者都可观测。第 29 课将整个端到端演示的每一步都包裹在 span 中，并在末尾打印 Prometheus 文本。
+第25课产生了门链. 第26课产生了沙箱. 第27课产生了评估带. 第28课使所有三个都可观看. 第29课将端到端演示的每个步骤包裹成跨度,并在最后打印了普罗梅蒂乌斯文本.
 
-## 运行方式
+## 运行它
 
 ```bash
 cd phases/19-capstone-projects/28-observability-otel-traces
@@ -99,4 +99,4 @@ python3 code/main.py
 python3 -m pytest code/tests/ -v
 ```
 
-演示会在课程的当前工作目录中生成一个 `traces.jsonl`（结束后清理），然后打印三个 span 的样例，再打印计数器与直方图的 Prometheus 暴露内容。测试验证 span 能否正确往返序列化、是否存在规范的 GenAI 属性、计数器是否正确递增、以及直方图暴露是否包含预期的桶计数。
+演示显示一个`traces.jsonl`在课程工作的 dir (在结束时清洁),然后打印一个三个跨度的样本,然后打印了计数和历史图的普罗梅泰斯曝光.测试验验证,跨度连续回路,可нони性GenAI属性存在,数量正确增加,以及历史图的曝光包含预期的桶数量.

@@ -1,159 +1,159 @@
-# 顶点项目 05 —— 自主研究智能体（AI-Scientist 类）
+# 自主研究代理 (AI科学家类)
 
-> Sakana 的 AI-Scientist-v2 发表了完整论文，Agent Laboratory 运行了实验，Allen AI 分享了追踪日志。2026 年的形态是在实验上执行计划-执行-验证树搜索、预算成本、沙箱化代码执行、视觉反馈 LaTeX 撰写器，以及自动化 NeurIPS 风格评审集成。顶点任务是构建一个这样的系统，以每篇论文 $30 的成本端到端运行，并通过 Sakana 记录的沙箱逃逸红队测试。
+> 萨卡纳的AI科学家-v2发表了完整的论文. 实验室经营了实验. 艾尔恩分享了痕迹. 2026 形状是计划执行验证实验的树搜索,预算成本,沙盒代码执行,视觉反的LateX编写器,以及一个自动 NeurIPS 风格的评论员组. 终点是建造一个,每张纸每期运行在30美元内,
 
-**类型：** 顶点项目
-**语言：** Python（智能体 + 沙箱）、LaTeX（输出）
-**先决条件：** 阶段 2（机器学习）、阶段 3（深度学习）、阶段 7（Transformer）、阶段 10（从零构建 LLM）、阶段 14（智能体）、阶段 15（自主系统）、阶段 16（多智能体）、阶段 18（安全）
-**涉及阶段：** P0 · P2 · P3 · P7 · P10 · P14 · P15 · P16 · P18
-**时间：** 40 小时
+**Type:** Capstone
+**Languages:** Python (agent + sandbox), LaTeX (output)
+**Prerequisites:** Phase 2 (ML), Phase 3 (deep learning), Phase 7 (transformers), Phase 10 (LLMs from scratch), Phase 14 (agents), Phase 15 (autonomous), Phase 16 (multi-agent), Phase 18 (safety)
+**Phases exercised:**子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子,子
+**Time:** 40 hours
 
 ## 问题
 
-自主研究智能体在 2026 年跨过了一个门槛。Sakana AI 的 AI-Scientist-v2 发表于 Nature，其生成的论文通过了工作坊同行评审。ShinkaEvolve（ICLR 2026）将这一方向扩展到假设演化。AMD 的 Agent Laboratory 提供了可复现的追踪日志。这些智能体并非魔法——它们是在候选实验树上运行的计划-执行-验证循环，带有成本上限、种子绑定的沙箱和自动化评审。关键在于循环设计、预算控制和安全保障。
+自主研究机构在2026年超过了门. 萨卡纳AI的AI-Scientist-v2在自然杂志上发表了通过论文, 卡Evolve (ICLR 2026) 将这一线延伸到不断发展的假设. 美国麻醉剂实验室发送了可复制的痕迹. 代理人不是魔法,他们是一个计划执行验证循环, 运行在候选人实验的树上, 飞船是通报的,预算,安全故事.
 
-你通过在一个狭窄领域（例如对 1 亿参数 Transformer 进行注意力稀疏性消融实验）针对一个种子想法实现一个智能体来学习这个循环。价值不在于第一次运行就发现新东西，而在于基础设施：树搜索、实验沙箱、撰写-评审循环、红队报告。Sakana 团队记录了沙箱逃逸失败案例；你的智能体必须通过同样的红队测试。
+通过在狭窄领域的种子想法中实现一个循环学习 (例如,在100M参数变压器上注意力-度的缩). 发现新东西不是最重要的. 价值在基础设施中:树木搜索,实验沙箱,作家-评论员循环,红团报告. 萨卡纳团队记录了逃离沙箱失败,你的代理必须通过同一个红色团队.
 
 ## 概念
 
-智能体是一个最佳优先树搜索。节点是实验规范：(假设、配置、代码、预期结果)。扩展步骤通过微小编辑提出子节点（更换优化器、调整批次大小、消融某个组件）。每个子节点在具有硬性资源上限的新沙箱中运行。结果反馈到评分函数，按（新颖性 × 质量 × 剩余预算）对节点排序。树持续增长直到预算耗尽，然后撰写最佳分支。
+代理是最好的第一棵树搜索. 节点是实验规格: (假设,配置,代码,预期结果). 扩展步骤建议小编辑 (换换优化器,换批量大小,拆除组件). 每个孩子都在一个新鲜的沙箱里跑着, 结果将返回一个分数函数,该函数将节点排列为 (新品 × 质量 × 剩余预算). 树长得很长,直到预算耗尽,然后最好的枝子被写出来.
 
-撰写器是多模态的。它生成 LaTeX 草稿，编译它，渲染图表，并将渲染后的 PDF 反馈给 Claude Opus 4.7 的视觉模式进行排版、图表可读性和主张-证据对齐的批判。由五个 LLM 法官组成的评审集成体发出 NeurIPS 风格的评分（新颖性、严谨性、清晰度、可复现性、影响力）；如果平均分低于阈值，论文将返回撰写器并附上批评意见。
+写作者是多元化. 它生成了Latex草案,编译,呈现数字,并将呈现的PDF重新输入Claude Opus 4.7的视觉模式,用于对布局,图像可读性和索赔证据的批评. 五名LLM法官组成的评审团发出NeurIPS类型的分数 (新奇性,严格性,清晰性,可复制性,影响);如果平均值低于门,则论文将与批评回归作者.
 
-安全是关键负担。每个实验在 E2B 或 Daytona 沙箱中运行，无网络出口、有界的墙钟时间和固定的资源限制。智能体的代码生成步骤通过一个策略层，阻止会逃逸沙箱的系统调用。红队报告重现了 Sakana 记录的攻击面（fork 炸弹、文件系统逃逸、LLM 编写的网络调用）。
+安全性是承载性的.每一次实验都在E2B或Daytona沙箱中运行,没有网络出口,有界限的墙钟和固定资源限制.代理的代码生成步骤通过一个政策层来阻止逃离沙箱的系统调用.红团报告复制了萨卡纳文档的攻击表面 (叉子炸弹,文件系统逃脱,LLM编写的网络调用).
 
-## 架构
+## 建筑
 
 ```
-种子想法 + 领域
+seed idea + domain
       |
       v
-  文献搜索（Semantic Scholar + OpenAlex + FAISS 缓存）
+  literature search (Semantic Scholar + OpenAlex + FAISS cache)
       |
       v
-  LangGraph 计划-执行-验证树
+  LangGraph plan-execute-verify tree
       |
       v
-  +--- 扩展节点 ----+      每个节点的沙箱
-  |                    |      （E2B / Daytona）
-  v                    v      资源上限
-  child_1           child_k   无网络出口
-  |                    |      确定性种子
+  +--- expand node ----+      per-node sandbox
+  |                    |      (E2B / Daytona)
+  v                    v      resource caps
+  child_1           child_k   no network egress
+  |                    |      deterministic seeds
   v                    v
-  运行实验            运行实验
+  run experiment       run experiment
   |                    |
   v                    v
-  按（新颖性、质量、预算）评分节点
+  score nodes by (novelty, quality, budget)
       |
       v
-  最佳分支 → LaTeX 撰写器
+  best branch -> LaTeX writer
       |
       v
-  编译 + 视觉批判（Opus 4.7 视觉模式）
+  compile + vision critique (Opus 4.7 vision)
       |
       v
-  评审集成体（5 个 LLM 法官，NeurIPS 评分标准）
+  reviewer ensemble (5 LLM judges, NeurIPS rubric)
       |
       v
   paper.pdf + review.md + trace.json
 ```
 
-## 技术栈
+## 堆
 
-- 编排：带检查点和人工审批网关的 LangGraph
-- 树搜索：基于实验节点自定义的最佳优先搜索（来自 Sakana v2 的 AB-MCTS 风格）
-- 沙箱：每个实验使用 E2B，Docker-in-Docker 备选；通过 cgroups 进行资源上限控制
-- 文献：Semantic Scholar Graph API + OpenAlex + 本地 FAISS 缓存（摘要）
-- 撰写器：LaTeX 模板 + Claude Opus 4.7（视觉模式）用于图表批判和排版
-- 评审：5 个法官集成体（Opus 4.7、GPT-5.4、Gemini 3 Pro、DeepSeek R1、Qwen3-Max），带加权聚合
-- 实验框架：物理实验使用 PyTorch 2.5，W&B 用于日志记录
-- 可观测性：Langfuse 用于智能体追踪，每篇论文 $30 硬性预算
+- 配乐:有检查点和人机批准门的LangGraph
+- 树的搜索:自定义最佳首次对实验节点 (从Sakana v2中的AB-MCTS风格)
+- 沙箱:每次实验的E2B,Docker-in-Docker倒退;通过cgroups的资源限制
+- 文学:语义学家图 API + OpenAlex + 摘要的当地 FAISS缓存
+- 作者: LaTeX模板 + Claude Opus 4.7 (视觉模式) 图像评论和布局
+- 评审员:由5名评委组成 (Opus 4.7,GPT-5.4,Gemini 3 Pro,DeepSeek R1,Qwen3-Max)
+- 实验框架:PyTorch 2.5用于物理实验,W&B用于伐木
+- 观察性: 长用于探测代理,每张纸张30美元的预算
 
 ```figure
 ce-experiment-tree
 ```
 
-## 构建步骤
+## 建立它
 
-1. **种子和领域界定。** 采用一个种子想法（例如，"调查 sub-1B Transformer 注意力图中稀疏性模式"）。定义搜索空间：模型、数据集、计算预算。
+1. **Seed and domain scoping.**设置一个种子想法 (例如"研究1B变压器的注意力地图中的稀疏性模式").定义搜索空间:模型,数据集,计算预算.
 
-2. **文献遍历。** 查询 Semantic Scholar + OpenAlex 获取 50 篇最相关的被引论文；将摘要缓存在本地；生成 1 页领域摘要。
+2. **Literature pass.**查询50篇最引用的相关论文;缓存摘要本地;生成1页域名摘要.
 
-3. **树骨架。** 以种子假设为根初始化。实现 `expand(node) -> children`，带有微小编辑提议（每个子节点一个配置变更）。实现 `score(node)` 作为加权的新颖性 × 质量 × 预算项。
+3. **Tree scaffolding.**首先将根源与种子假设进行初始化.`expand(node) -> children`通过小编辑建议 (每孩子每次进行一个配置更改).`score(node)`作为重量新品 × 质量 × 预算期限.
 
-4. **沙箱封装。** 每个实验运行 `docker run --network=none --memory=8g --cpus=2 --pids-limit=256 --read-only`（或等效的 E2B 策略）。种子写入沙箱；输出以只读方式挂载回来。
+4. **Sandbox wrapping.**每次实验都会运行.`docker run --network=none --memory=8g --cpus=2 --pids-limit=256 --read-only`种子被写入沙箱,输出只可读.
 
-5. **计划-执行-验证循环。** `plan` 提出子节点。`execute` 运行沙箱，捕获日志和指标。`verify` 对指标运行单元测试（损失是否下降？消融是否隔离了效果？）。失败的节点在树上存储失败原因。
+5. **Plan-execute-verify loop.** `plan`让我知道.`execute`运行沙箱,捕获日志和指标. `verify`失败节点将存储在树上失败原因.
 
-6. **撰写器。** 预算耗尽后，选择最佳分支。用 matplotlib 渲染图表。通过 Claude Opus 4.7 生成包含分支追踪上下文的 LaTeX 草稿。编译。将编译后的 PDF 反馈给 Opus 4.7 视觉模式进行批判。迭代。
+6. **Writer.**预算后,选择最好的分支.用matplotlib生成数字.通过Claude Opus 4.7生成一个LateX草案,将分支的痕迹在文本中.编译.将编译的PDF返回Opus 4.7视觉进行评论.重复.
 
-7. **评审集成体。** 五个法官根据（新颖性、严谨性、清晰度、可复现性、影响力）对草稿进行评分，使用 NeurIPS 风格评分标准。如果平均分 < 4.0/5，带着批判意见返回撰写器。重写超过 3 次则硬停止。
+7. **Reviewer ensemble.**五名评委通过NeurIPS类型的标题评分草案 (新鲜性,严格性,清晰性,可复制性,影响性).如果平均值 <4.0/5,返回作者与批评. 3次重写后,硬停止.
 
-8. **红队。** 构建或集成一组针对沙箱的对抗性任务：fork 炸弹、网络窃取尝试、文件系统逃逸、LLM 编写的 shell 元字符。确认全部被阻止。撰写发现报告。
+8. **Red team.**构建或集成针对沙箱的反抗任务:叉子炸弹,网络泄密尝试,文件系统逃逸,LLM写的子元字符.确认所有被阻止.写出发现.
 
-9. **可复现性。** 每篇论文附带树搜索追踪 JSON、种子、W&B 运行链接、沙箱配置和一个端到端复现的 README。
+9. **Reproducibility.**每张纸都带着树木搜索的JSON,种子,W&B运行链接,沙盒配置,以及一个 README重复它.
 
-## 使用方式
+## 用它
 
 ```
-$ ai-scientist run --seed "sub-1B Transformer 中的注意力稀疏性" --budget 30
-[lit]    50 篇论文，摘要 12s 完成
-[tree]   扩展 8 个节点，预算 12/30
-[exec]   节点 #3 稀疏性=top-8，loss=2.83（迄今最佳）
-[exec]   节点 #6 稀疏性=top-4，loss=3.12（更差）
+$ ai-scientist run --seed "attention sparsity in sub-1B transformers" --budget 30
+[lit]    50 papers, digest in 12s
+[tree]   expanded 8 nodes, budget 12/30
+[exec]   node #3 sparsity=top-8, loss=2.83 (best so far)
+[exec]   node #6 sparsity=top-4, loss=3.12 (worse)
 [exec]   ...
-[tree]   选择以节点 #3 为根的分支（新颖性 0.62，质量 0.81）
-[write]  LaTeX 草稿 v1 完成
-[vision] 批判：图 2 图例太小，主张-证据合理
-[write]  经过 3 次编辑后的草稿 v2
-[review] 平均 4.2/5（新颖性 3.9，严谨性 4.3，清晰度 4.1，可复现性 4.5，影响力 4.2）
-[done]   paper.pdf + review.md + trace.json     花费 $28.40
+[tree]   chose branch rooted at node #3 (novelty 0.62, quality 0.81)
+[write]  LaTeX draft v1 complete
+[vision] critique: figure 2 legend too small, claim-evidence ok
+[write]  draft v2 after 3 edits
+[review] mean 4.2/5 (novelty 3.9, rigor 4.3, clarity 4.1, repro 4.5, impact 4.2)
+[done]   paper.pdf + review.md + trace.json     $28.40 spent
 ```
 
-## 交付
+## 运送它
 
-`outputs/skill-ai-scientist.md` 是交付物。给定一个种子想法 + 领域 + $30 预算，它运行完整管道并发出一篇可评审的论文加可复现包。
+`outputs/skill-ai-scientist.md`由于一个种子想法+一个域名+一个30美元的预算,它运行了整个管道,
 
-| 权重 | 标准 | 测量方式 |
+| Weight | Criterion | How it is measured |
 |:-:|---|---|
-| 25 | 论文质量 | 针对已发表工作坊论文的盲审评分 |
-| 20 | 实验严谨性 | 基线、种子、消融；每个主张由结果表中的单元格支撑 |
-| 20 | 成本和计算纪律 | 强制执行 $30/篇上限，Langfuse 追踪 |
-| 20 | 安全性 | 沙箱红队通过；网络策略和紧急开关验证 |
-| 15 | 可复现性 | 一键重跑，相同种子复现论文 |
+| 25 | Paper quality | Blind rubric review against published workshop papers |
+| 20 | Experimental rigor | Baselines, seeds, ablations; every claim backed by a cell in the results table |
+| 20 | Cost and compute discipline | $30/paper ceiling enforced, Langfuse-traced |
+| 20 | Safety | Sandbox red team passes; network policy and kill-switch verified |
+| 15 | Reproducibility | One-command rerun with identical seeds reproduces the paper |
 | **100** | | |
 
-## 练习
+## 运动
 
-1. 在同一领域对三个不同种子想法运行管道。比较树搜索中重叠的部分。识别重复的浪费计算。
+1. 运行管道与同一领域的三个不同的种子想法进行比较. 树-搜索重叠的部分. 识别复制浪费计算.
 
-2. 在执行估计超过 $5 的节点之前添加一个人工审批网关。测量总成本下降多少。
+2. 在实验执行之前,为超过5美元的节点添加一个人-在循环的门.
 
-3. 用单个法官替换评审集成体。在一组已知的劣质论文 Held-out 集上测量误接受率。
+3. 根据一系列已知坏报纸,测量假接受率.
 
-4. 引入网络窃取红队测试：智能体编写尝试 `curl` 外部地址的代码。确认 `--network=none` 策略阻止了它。记录该尝试。
+4. 引入网络泄漏红团队测试: 代理编写试图`curl`确认一个外部地址.`--network=none`政策阻止了它.记录尝试.
 
-5. 将你的树搜索与平坦随机基线（相同预算，无扩展策略）进行比较。报告新颖性 × 质量的增益。
+5. 根据您的树木搜索和一个平坦的随机基线 (相同的预算,没有扩张策略) 进行比较.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|------------------------|
-| 树搜索 | "AB-MCTS 风格扩展" | 在实验节点上进行最佳优先探索，评分为新颖性×质量×预算 |
-| 沙箱 | "实验隔离" | 无网络的容器，有界的 CPU/内存，固定种子，只读输入 |
-| 视觉批判 | "渲染后读取" | 将论文编译为 PDF，把 PDF 反馈给 VLM 进行排版和主张-证据批判 |
-| 评审集成体 | "自动化同行评审" | 多个 LLM 法官使用 NeurIPS 评分标准对论文评分；加权聚合控制管道 |
-| 新颖性评分 | "这是否新颖？" | 惩罚与 50 篇论文文献缓存接近度的启发式方法 |
-| 成本上限 | "$ 预算" | 每篇论文的硬性支出上限；Langfuse 计数器 + 预运行估算 |
-| 红队 | "沙箱逃逸审计" | 如果策略有误就会逃逸沙箱的对抗性任务 |
+| Tree search | "AB-MCTS-style expansion" | Best-first exploration over experiment nodes with a novelty×quality×budget score |
+| Sandbox | "Experiment isolation" | Container with no network, bounded CPU/memory, pinned seeds, read-only inputs |
+| Vision critique | "Render-then-read" | Compile the paper to PDF, feed the PDF back to a VLM for layout and claim-evidence critique |
+| Reviewer ensemble | "Automated peer review" | Multiple LLM judges scoring the paper with a NeurIPS rubric; weighted aggregate gates the pipeline |
+| Novelty score | "Is this new?" | Heuristic that penalizes proximity to the 50-paper literature cache |
+| Cost ceiling | "$ budget" | Hard cap on total spend per paper; Langfuse counters + pre-run estimates |
+| Red team | "Sandbox-escape audit" | Adversarial tasks that would escape the sandbox if the policy is wrong |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Sakana AI-Scientist-v2 仓库](https://github.com/SakanaAI/AI-Scientist-v2) — 参考级生产研究智能体
-- [Sakana AI-Scientist-v1 论文 (arXiv:2408.06292)](https://arxiv.org/abs/2408.06292) — 原始方法
-- [ShinkaEvolve (Sakana ICLR 2026)](https://sakana.ai) — 演化扩展
-- [Agent Laboratory (AMD)](https://github.com/SamuelSchmidgall/AgentLaboratory) — 多角色研究实验室框架
-- [LangGraph 文档](https://langchain-ai.github.io/langgraph/) — 参考编排层
-- [Semantic Scholar Graph API](https://api.semanticscholar.org/) — 文献搜索
-- [E2B 沙箱](https://e2b.dev) — 参考实验隔离
-- [NeurIPS 评审指南](https://neurips.cc/Conferences/2026/Reviewer-Guidelines) — 评审集成体编码的评分标准
+- [Sakana AI-Scientist-v2 repository](https://github.com/SakanaAI/AI-Scientist-v2)参考生产研究机构
+- [Sakana AI-Scientist-v1 paper (arXiv:2408.06292)](https://arxiv.org/abs/2408.06292)原始方法
+- [ShinkaEvolve (Sakana ICLR 2026)](https://sakana.ai)进化扩展
+- [Agent Laboratory (AMD)](https://github.com/SamuelSchmidgall/AgentLaboratory)多功能研究实验室框架
+- [LangGraph documentation](https://langchain-ai.github.io/langgraph/)参考管弦层
+- [Semantic Scholar Graph API](https://api.semanticscholar.org/) 搜索文献
+- [E2B sandboxes](https://e2b.dev)参考实验隔离
+- [NeurIPS reviewer guidelines](https://neurips.cc/Conferences/2026/Reviewer-Guidelines)评审员组编码的条目

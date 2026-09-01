@@ -1,136 +1,136 @@
-# 训练循环与评估
+# 培训循环和评估
 
-> 不测量的循环就是谎言。本教程将构建驱动 GPT 模型的训练循环：带权重衰减分离的 AdamW、预热加余弦学习率调度、`calc_loss_batch` 辅助函数、在保留数据上的 `evaluate_model` 评估、每 K 步的 `generate_and_print_sample` 定性探针，以及可后续绘图的 JSONL 损失日志。这个骨架模板将训练你未来构建的每一个解码器式 LLM。
+> 这一课构建了GPT模型驱动的训练循环:AdamW与体重衰减分,加热加密的学习速度时间表,一个`calc_loss_batch`助手,一个`evaluate_model`传递已保留的数据,`generate_and_print_sample`您可以绘制一个JSONL损失记录,同一个骨架训练你将打造的每一个解码器LLM.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 第 19 阶段课程 30 至 35
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 19 lessons 30 to 35
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 构建一个训练循环，为下一个 token 预测计算具有正确输入和目标对齐的交叉熵损失。
-- 配置 AdamW，使权重衰减仅应用于权重张量，而非 LayerNorm 或偏置张量。
-- 实现具有线性预热和余弦衰减的学习率调度，并读取随时间变化的 LR。
-- 在保留集上通过 `evaluate_model` 进行评估，使评估损失在不同运行间可比。
-- 每 K 步通过 `generate_and_print_sample` 生成定性样本，在损失曲线发出警告前捕获发散。
-- 将每步损失持久化到 JSONL，以便重新加载、绘图并将训练日志作为交付物提交。
+- 建立一个训练循环,以计算了对象输入和目标对应的交叉输入损失.
+- 配置AdamW以重量衰减应用于重量位器而不是LayerNorm或偏差位器.
+- 实施一个以线性变暖和阴性衰变为基础的学习速度时间表,并随着时间的推移阅读结果的 LR.
+- 根据 经过的分离进行评估`evaluate_model`因此,测量损失可以在运行中比较.
+- 通过每一个K步骤生成一个质量样本`generate_and_print_sample`损失曲线之前,
+- 继续按步骤输入JSONL,以便您可以重新加载,绘制和将训练日志作为可交付的.
 
 ## 问题
 
-一个仅打印损失但无其他行为的训练脚本以三种方式失败。它无法告诉你损失是否在正确的方向下降（模型可能过拟合训练集而从未真正学习）。它无法告诉你发散是否正在开始（损失可能因一步骤而尖峰后恢复，也可能一步骤后崩溃）。它无法告诉你模型学到了什么（损失是一个标量；生成的样本是一段段落）。除非循环进行测量，否则这三种失败都会隐藏。
+训练脚本打印损失,但没有其他方法, 它不能告诉你是否有正确的原因导致损失减少 (模型可能会过度适应训练集,而从来没有学习). 它不能告诉你是否开始出现差距 (损失可能会增加一步,然后恢复,或者一步,然后崩). 它不能告诉模型所学到的东西 (损失是个尺度;生成的样本是个段落). 只有循环量度才能隐藏.
 
-本教程的循环以三种方式测量。每一步计算训练批的损失。每 K 步计算保留批的损失。每 K 步从固定提示生成一个延续。训练日志保存在 JSONL 中，因此工件是循环的证明。
+在本课程中,循环测量三个方法.每一步都会失去训练批次.每一步都会失去一个延长的批次.每一步都会产生一个固定的提示的延续.训练日志将降落在JSONL,所以文物是循环的证词.
 
 ## 概念
 
 ```mermaid
 flowchart TB
-  D[(Token 张量<br/>train + val)] --> B[创建批次<br/>input + target 偏移一位]
-  B --> F[前向传播<br/>logits]
-  F --> L[交叉熵<br/>沿批次和时间展平]
-  L --> Bw[反向传播]
-  Bw --> Cg[裁剪梯度范数]
-  Cg --> Step[AdamW 步骤]
-  Step --> Sched[余弦 LR 调度]
-  Sched --> JL[追加步骤记录<br/>到 losses.jsonl]
-  JL --> Probe{这一步是探针步吗？}
-  Probe -- 是 --> Eval[evaluate_model on val]
-  Probe -- 是 --> Sample[generate_and_print_sample]
-  Probe -- 否 --> Next[下一步]
+  D[(Token tensor<br/>train + val)] --> B[Make batches<br/>input + target shift by one]
+  B --> F[Forward<br/>logits]
+  F --> L[Cross entropy<br/>flatten over batch and time]
+  L --> Bw[Backward]
+  Bw --> Cg[Clip grad norm]
+  Cg --> Step[AdamW step]
+  Step --> Sched[Cosine LR schedule]
+  Sched --> JL[Append step record<br/>to losses.jsonl]
+  JL --> Probe{Step is a probe step?}
+  Probe -- yes --> Eval[evaluate_model on val]
+  Probe -- yes --> Sample[generate_and_print_sample]
+  Probe -- no --> Next[Next step]
   Eval --> Next
   Sample --> Next
 ```
 
-两个不明显的部分是损失对齐和 AdamW 衰减分离。
+两个不明显的部分是损失配线和亚当W衰变分.
 
-### 损失对齐
+### 损失配线
 
-模型在每个位置预测下一个 token。如果输入批次是 tokens `[t0, t1, t2, t3]`，目标批次必须是 `[t1, t2, t3, t4]`。交叉熵在展平的形状 `(batch * seq, vocab)` 和展平的目标 `(batch * seq,)` 上计算。忘记偏移，你将训练模型预测自身，这会收敛到零损失但什么都学不到。
+如果输入批量是代币,`[t0, t1, t2, t3]`目标批量必须是`[t1, t2, t3, t4]`交叉体是平面的.`(batch * seq, vocab)`针对平面目标`(batch * seq,)`忘记转变,你训练模型来预测自己,而这种模式将会达到零损失,而学习什么都没有用.
 
-### AdamW 衰减分离
+### 亚当W衰变分化
 
-权重衰减正则化权重张量，但不包括归一化尺度或偏置。将衰减放在 LayerNorm 尺度上会缓慢将尺度驱动到零并破坏归一化。将衰减放在偏置上在数学上是无害的，但浪费计算资源。标准分离是：矩阵形状的张量（线性权重、嵌入表）接受衰减，任何看起来像尺度或偏移的不接受。
+体重衰减调节了体重位数,但不是正常化尺度或偏差.在LayerNorm尺度上放下衰变,慢慢将尺度推到零,并打破正常化.在偏差上放下衰变是数学上无害的,但是浪费周期的.标准的分化是:矩阵形状的位数 (线性权重,嵌入表) 得到衰变,任何看起来像尺度或转移的东西都没有.
 
-### 预热加余弦调度
+### 热量加上位时间表
 
-预热将学习率从零逐渐增加到目标值，经过几百步，使优化器状态有时间填充。余弦衰减将学习率逐渐降低回接近零，经过剩余步数，使最终阶段以小步长微调权重。这个组合是最常见的开源权重 LLM 训练中使用的调度，因为它移除了前一千步和后一千步中最脆弱的部分。
+升温将学习速度从零升到目标, 通过几百步, 随着可西因衰变,学习速度降到零, 结合是开放权力LLM培训中最常见的时间表,因为它消除了第一千步和最后一千步中的大部分脆弱时刻.
 
-### 保留评估
+### 进行评估
 
-`evaluate_model` 运行固定数量的验证批次，累积损失，除以批次数后返回。无梯度。无 dropout。给定相同种子和相同分区，数字在不同运行间可复现。将保留损失与训练损失并列报告，是检测过拟合的方法。
+`evaluate_model`运行从验证分区的固定数量的批次,积累损失,由批次数分,并返回.没有梯度.没有落后.数量可重复在运行给出相同的种子和相同的分区.报告训练损失旁边的延续损失是如何发现过度匹配.
 
-### 定性采样作为早期信号
+### 质量样本作为早期信号
 
-一个训练损失良好下降但生成样本全是相同 token 的模型是损坏的。一个损失曲线看起来平坦但生成样本逐渐形成连贯词语的模型正在学习。定性探针比阅读完整曲线更快，并捕获标量遗漏的模式。
+训练损失下降的模型,但生成的样本都是一样的标志,被打破了.一个损失曲线看起来平坦的模型,但生成的样本变得变得一致的词汇是学习.质量探测器比阅读完整的曲线更快,并捕捉到度错过的模式.
 
 ```figure
 cap-training-loop
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现：
+`code/main.py`执行:
 
-- `make_batches(token_ids, batch_size, context_length)` 将长 token 张量切片为输入和目标对。
-- `calc_loss_batch(model, inputs, targets)` 执行前向传播、展平并返回标量交叉熵。
-- `evaluate_model(model, val_loader, max_batches)` 在无梯度模式下迭代固定数量的验证批次，返回平均损失。
-- `generate_and_print_sample(model, prompt, max_new_tokens)` 在固定提示上运行课程 35 的生成函数并打印结果。
-- `build_param_groups(model, weight_decay)` 生成双组 AdamW 参数列表。
-- `cosine_with_warmup(step, warmup_steps, total_steps, max_lr, min_lr)` 返回给定步骤的 LR。
-- `train(...)` 运行循环，持久化 `outputs/losses.jsonl`，并每 `eval_every` 步打印评估损失和样本。
-- 一个在合成数据上训练小模型的演示，经过少量步骤，写入 JSONL 日志，并在探针点打印评估损失和样本。演示在 CPU 上运行远少于一分钟。
+- `make_batches(token_ids, batch_size, context_length)`通过将一个长代币子切成输入和目标对.
+- `calc_loss_batch(model, inputs, targets)`它们可以向前,平坦化,并返回度交叉位.
+- `evaluate_model(model, val_loader, max_batches)`没有级别的验证批次复制数量,返回平均损失.
+- `generate_and_print_sample(model, prompt, max_new_tokens)`通过固定提示运行课程35代函数,并打印结果.
+- `build_param_groups(model, weight_decay)`产生了两个组的AdamW参数列表.
+- `cosine_with_warmup(step, warmup_steps, total_steps, max_lr, min_lr)`返回一个步骤的 LR.
+- `train(...)`绕着它,持续着.`outputs/losses.jsonl`并且每次打印了评估损失和样本`eval_every`走路.
+- 演示程序在一个小数量的步骤中训练一个小型模型,写一个JSONL日志,并在探测器点打印了评估损失和样本.演示程序在CPU上运行不到一分钟.
 
-运行：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-输出：每步损失行，每个探针步的评估损失，每个探针步的生成样本，以及最终的 `outputs/losses.jsonl`，可用 `json.loads` 逐行加载。
+输出:每一步损失线,每次探测量损失,每次探测量步骤产生一个样本,最后一个`outputs/losses.jsonl`您可以加载`json.loads`按一线.
 
-## 技术栈
+## 堆
 
-- `torch` 用于自动微分、优化器和模块。
-- `main.py` 本地重新实现了课程 35 的 `GPTModel` 和支持模块。
+- `torch`对于自动化,优化和模块.
+- `main.py`重新实现了第35课`GPTModel`支持模块在本地.
 
-## 生产环境中的模式
+## 野生生产模式
 
-三种模式将教科书循环变为可以整夜运行的东西。
+三个模式将课本循环变成一个可以一夜之间运行的东西.
 
-**梯度范数裁剪是不容协商的。** 一个糟糕的批次（异常数据、LR 尖峰、数值边界情况）产生巨大梯度，会抹去数小时的训练。`torch.nn.utils.clip_grad_norm_(params, max_norm=1.0)` 在 `backward` 之后和 `step` 之前调用，将优化器保持在安全范围内。裁剪值是自由参数；1.0 是大多数配置下存活下来的默认值。
+**Gradient norm clipping is non negotiable.**差的批量 (异常数据, LR ,数值边缘) 产生了巨大的梯度,`torch.nn.utils.clip_grad_norm_(params, max_norm=1.0)`之后`backward`在此之前`step`剪切值是一个自由参数;一个是大多数设置中存活的默认参数.
 
-**可恢复的 JSONL 日志，而非 pickle 状态。** 每步损失记录为 `{"step": int, "train_loss": float, "lr": float}` 的 JSONL 行是耐用的：任何崩溃都留下可读工件，你可以 grep，可以用三十行 Python 绘图，可以通过读取最后一步来恢复训练。pickle 状态将你绑定到产生文件的确切模块布局，这在重构时脆弱。
+**Resumable JSONL logging, not pickled state.**按步骤损失记录`{"step": int, "train_loss": float, "lr": float}`在JSONL中,任何崩都会留下可读的文物,你可以抓住,你可以用三十个字符串绘制,你可以通过阅读最后一步恢复训练. 色状态将你绑定到生成文件的模块布局,这是在反因器中脆弱的.
 
-**从固定切片抽取的评估批次。** 验证 token 在脚本启动时切片为批次，而非动态抽取。可复现性取决于评估批次在每次运行间相同；否则，比较两次运行的评估损失测量的是批次打乱，与模型相当。
+**Eval batches drawn from a fixed slice.**验证代币在脚本开始时被切成批次,而不是在飞行时.可复制性取决于评估批次从运行到运行相同;否则,在两个运行之间比较评估损失量度了批次混动与模型一样.
 
-## 使用
+## 用它
 
-- 本教程中的循环与在真实数据上训练 124M 模型的骨架相同。将合成 token 张量替换为 `datasets` 风格的加载器，循环无需更改即可运行。
-- JSONL 日志是将训练运行转化为证据的交付物。下一课使用其中一个来比较新训练的 Checkpoint 与预训练的 Checkpoint。
-- 定性样本探针是标量损失无法替代的捕获器。
+- 通过使用现实数据训练124M模型的同时,我们可以将合成代币数换为`datasets`路的运行方式是不变的.
+- 接下来的课程使用一个检查站来比较一个新训练的检查站和一个预训练的检查站.
+- 质量样本探测器是鱼的全部,
 
-## 练习
+## 运动
 
-1. 添加 `weight_decay_groups()` 单元测试，确认尺度和偏置参数落入无衰减组，线性和嵌入权重落入衰减组。
-2. 用来自小文本文件的字节替换合成随机 token，使演示训练在可辨识的内容上。验证生成样本使用文件中存在的字符。
-3. 为余弦调度添加 `max_lr` 10% 的 `min_lr` 下限并重新绘图。
-4. 除 JSONL 日志外，每 `eval_every` 步保存一个 Checkpoint。添加 `resume_from` 标志以重新加载模型状态和优化器状态。
-5. 在损失旁边记录每步吞吐量（每秒 token 数），并确认其保持在稳定范围内。
+1. 加入`weight_decay_groups()`确定尺度和偏差参数在不衰减组中降落,线性和嵌入式权重在衰减组中降落的单位测试.
+2. 换取合成随机代币,用小文本文件的字节,使示范器运行可读的东西. 验证生成的样本使用文件中存在的字符.
+3. 添加一个`min_lr`的10%`max_lr`现在,我们要把时间安排调整.
+4. 每次都会有一个检查站.`eval_every`添加一个 `resume_from`标志重新加载模型状态和优化状态.
+5. 记录损失旁边的每步吞吐量 (每秒代码) 并确认它保持在稳定的频段中.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| 损失对齐 | "偏移一位" | 输入 token 在位置 0..T-1，目标 token 在位置 1..T；交叉熵在展平形状上计算 |
-| 衰减分离 | "两组" | AdamW 接收带权重衰减的矩阵形状张量，以及无衰减的尺度或偏置张量 |
-| 预热 | "爬坡" | 学习率从零点逐步上升到目标，经过固定步数，使优化器状态能够填充 |
-| 评估批次 | "保留批次" | 验证 token 张量的固定切片，在脚本启动时切片一次，每个探针点使用相同 |
-| 定性探针 | "样本打印" | 从固定提示生成的短文本，每 K 步打印，以捕获损失单独隐藏的模式 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Loss alignment | "Shift by one" | Input tokens at positions 0..T-1, target tokens at positions 1..T; cross entropy is computed on flattened shapes |
+| Decay split | "Two groups" | AdamW receives matrix shaped tensors with weight decay and scale or bias tensors with none |
+| Warmup | "Ramp" | The learning rate climbs from zero to its target over a fixed number of steps so the optimizer state can populate |
+| Eval batches | "Held out batches" | A fixed slice of the validation token tensor, sliced once at script start, used identically every probe |
+| Qualitative probe | "Sample print" | A short generation from a fixed prompt printed every K steps to catch failure modes loss alone hides |
 
-## 延伸阅读
+## 进一步阅读
 
-- 第 19 阶段课程 35 了解循环驱动的模型。
-- 第 19 阶段课程 37 了解将预训练权重加载到相同模型中。
-- 第 10 阶段课程 04（预训练 mini GPT）了解在真实数据上的过程。
-- 第 10 阶段课程 10（评估）了解交叉熵损失之外的更广泛评估面。
+- 循环驱动的模型的19阶段课程35
+- 阶段19课37用于将预训练的重量装入同一模型中.
+- 阶段10课04 (预训练小GPT) 对实数据程序.
+- 阶段10课10 (评估) 对于跨入体损失以外的更广泛的评估表面.
