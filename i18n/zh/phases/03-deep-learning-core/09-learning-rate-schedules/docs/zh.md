@@ -1,189 +1,82 @@
-# 学习率调度与预热
-<<<
+# 学习时间表和热身
 
-> The learning rate is the single most important hyperparameter. Not the architecture. Not the dataset size. Not the activation function. The learning rate. If you tune nothing else, tune this.
+> 学习速度是最重要的超参数. 不是架构,数据集的尺寸,不是激活函数,学习速度.如果你没有调整其他东西,
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.06 (Optimizers), Lesson 03.08 (Weight Initialization)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 学习目标
 
-Let me translate this content. The content is about learning rate schedules in machine learning. Some technical terms I should keep or translate appropriately.
-
-Let me translate:
-- "Implement constant, step decay, cosine annealing, warmup + cosine, and 1cycle learning rate schedules from scratch"
-- "Demonstrate the three failure modes of learning rate selection: divergence (too high), stalling (too low), and oscillation (no decay)"
-- "Explain why warmup is necessary for Adam-based optimizers and how it stabilizes early training"
-- "Compare convergence speed across all five schedules on the same task and select the appropriate one for a given training budget"
-
-Technical terms: "learning rate schedules", "step decay", "cosine annealing", "warmup", "cosine", "1cycle", "Adam-based optimizers", "divergence", "stalling", "oscillation", "decay", "convergence speed"
-
-Let me translate carefully. These are technical terms. I should translate the general meaning but keep technical terms where appropriate. The rule says "Do NOT translate code, math, links, or technical terms." So I should keep technical terms like "Adam", "1cycle", "cosine annealing" etc.
-
-Let me translate:
-
-- 从零实现 constant、step decay、cosine annealing、warmup + cosine 和 1cycle 学习率调度策略
-- 展示学习率选择的三种失败模式：divergence（过高）、stalling（过低）和 oscillation（无 decay）
-- 解释为什么对于基于 Adam 的优化器 warmup 是必要的，以及它如何稳定早期训练
-- 在相同任务上比较所有五个调度策略的收敛速度，并根据给定的训练预算选择合适的策略
-
-Let me refine. The technical terms should be kept. "学习率调度策略" is a translation of "learning rate schedules" - this is fine as it's a general concept. Actually "learning rate" = 学习率, this is a standard term.
-
-Let me write the final translation.
-
-
-- 从零实现 constant、step decay、cosine annealing、warmup + cosine 和 1cycle 学习率调度策略
-- 展示学习率选择的三种失败模式：divergence（过高）、stalling（过低）和 oscillation（无 decay）
-- 解释为什么对于基于 Adam 的优化器，warmup 是必要的，以及它如何稳定早期训练
-- 在相同任务上比较所有五个调度策略的收敛速度，并根据给定的训练预算选择合适的策略
-
-<<<START>>>
-- 从零实现 constant、step decay、cosine annealing、warmup + cosine 和 1cycle 学习率调度策略
-- 展示学习率选择的三种失败模式：divergence（过高）、stalling（过低）和 oscillation（无 decay）
-- 解释为什么对于基于 Adam 的优化器，warmup 是必要的，以及它如何稳定早期训练
-- 在相同任务上比较所有五个调度策略的收敛速度，并根据给定的训练预算选择合适的策略
-<<<
+- 从零开始实施常态,步骤衰退,化,加热+化和1周期学习率计划
+- 展示学习率选择的三个失败模式:分离 (过高),停滞 (过低) 和振荡 (没有衰退)
+- 解释为什么亚当基础上优化者需要加热,以及如何稳定早期训练
+- 进行相同任务的五个时间表中的融合速度进行比较,并选择适合特定培训预算的时间表
 
 ## 问题
-<<<
 
-Set the learning rate to 0.1. Training diverges -- loss jumps to infinity in 3 steps. Set it to 0.0001. Training crawls -- after 100 epochs, the model has barely moved from random. Set it to 0.01. Training works for 50 epochs, then the loss oscillates around a minimum it can never reach because the steps are too large.
+设置学习率为0.1.训练分离 - - 损失在3步中跳到无限.设置为0.0001.训练爬行 - - 100个时代后,模型几乎没有从随机移动.设置为0.01.训练工作50个时代,然后损失在最低水平上摇摆,它永远无法达到,因为步骤太大.
 
-Let me translate this text about learning rates in machine learning.
+训练中最好的学习速度不是恒定的.训练期间它会发生变化.早期,你需要快速地步覆盖大层面.训练中晚些时候,你需要小小的步骤达到极度.90%准确的模型和95%准确的模型之间的区别通常只是时间表.
 
+过去三年中出版的每一个主要模型都使用学习率时间表.Llama 3使用了最大的 lr=3e-4,2000个加热步骤和可西因衰变到3e-5.GPT-3使用 lr=6e-4加热超过375万个代币.这些不是任意的选择.它们是大量的超参数扫描结果,成本数百万美元.
 
-最优的学习率并不是一个常数。它在训练过程中会发生变化。训练早期，你需要较大的步长来快速推进；训练晚期，你需要极小的步长来收敛到一个尖锐的极小值。一个 90% 准确的模型和一个 95% 准确的模型，差异往往就在于这个调度。
-
-过去三年发布的每个主流模型都采用了学习率调度。Llama 3 使用了峰值 lr=3e-4，经过 2000 步预热后余弦衰减到 3e-5。GPT-3 使用了 lr=6e-4，在 3.75 亿 token 上进行预热。这些并非随意做出的选择，而是大量超参数扫描的结果，耗资数百万美元。<<<
-
-Let me translate this text about machine learning schedules.
-
-
-理解调度（schedule）是必要的，因为默认设置无法解决你的问题。在对预训练模型进行微调时，合适的调度与从头训练不同。当你增大批量大小时，热身周期也需要相应调整。当训练在 10,000 步时中断，你需要判断这到底是调度问题还是其他问题。
-
-<<<START>>>
-理解调度（schedule）是必要的，因为默认设置无法解决你的问题。在对预训练模型进行微调时，合适的调度与从头训练不同。當你增大批量大小时，热身周期也需要相应调整。当训练在 10,000 步时中断，你需要判断这到底是调度问题还是其他问题。
-<<<
+你需要了解时间表,因为默认的规则不会解决你的问题.当你调整预训练模型时,正确的时间表与从头开始的训练不同.当你增加批量时,需要改变升温时间.当训练休息到10000步时,你需要知道这是一个时间表问题还是其他东西.
 
 ## 概念
-<<<
 
-### 固定学习率
-<<<
+### 持续学习率
 
->>>最简单的方法。选一个数字，在每一步中都使用它。<<<
+最简单的方法是选择一个数字,用它来执行每一步.
 
 ```
 lr(t) = lr_0
 ```
 
-Let me translate:
-"Rarely optimal." → 很难达到最优。
-"It's either too high for the end of training (oscillation around the minimum) or too low for the beginning (wasted compute on tiny steps)." → 在训练结束时要么太高（围绕最小值震荡），在训练开始时要么太低（在微小步上浪费算力）。
-"Works fine for small models and debugging." → 对于小模型和调试来说没问题。
-"A terrible choice for anything that trains for more than an hour." → 对于训练时间超过一小时的任何模型来说都是糟糕的选择。
+很少是最佳的.它要么太高于训练结束时 (动在最低点左右) 还要太低于开始 (浪费了微小步骤的计算).对于小型号和调试工作很好.对于训练超过一个小时的任何东西来说,这是一个可怕的选择.
 
-Let me refine the technical terms. "compute" - 算力 is fine. "oscillation around the minimum" - 围绕最小值震荡. "tiny steps" - 微小步. These are technical terms that I should preserve or translate appropriately. Actually the rule says don't translate technical terms. But some of these are descriptive. Let me keep it natural.
+### 步骤衰退
 
-Let me write the final translation.
-
-
->>>START>>>
-很难达到最优。在训练结束时要么太高（围绕最小值震荡），在训练开始时又太低（在微小步上浪费算力）。用于小模型和调试则没什么问题，但对于训练超过一小时的任何模型来说，都是一个糟糕的选择。
-<<<
-
-### Step Decay
-
-The old-school approach from the ResNet era. Cut the learning rate by a factor (usually 10x) at fixed epochs.
+通过 ResNet时代的旧式方法,在固定时代,减少学习率一倍 (通常是10倍).
 
 ```
 lr(t) = lr_0 * gamma^(floor(epoch / step_size))
 ```
 
-The text contains some English that refers to specific parameters/config. Let me translate:
+在Gamma=0.1和 step_size=30的意思是: lr每30个时代下降10倍.ResNet-50使用这个--lr=0.1,在30个时代下降10倍,60个时代下降90个时代.
 
-"Where gamma = 0.1 and step_size = 30 means: lr drops by 10x every 30 epochs. ResNet-50 used this -- lr=0.1, drop by 10x at epochs 30, 60, and 90."
+问题是:最佳的衰退点取决于数据集和架构. 转向另一个问题,你需要重新调整下降时间. 转变是突然的 - - 损失可能会升,当速度突然改变.
 
-Technical terms like gamma, step_size, lr, ResNet-50, epochs should be preserved. Let me translate the surrounding text.
+### 酸
 
-"其中 gamma = 0.1 且 step_size = 30 表示：lr 每 30 个 epoch 降低 10 倍。ResNet-50 使用了这个——lr=0.1，在 epoch 30、60 和 90 处各降低 10 倍。"
-
-
-<<<START>>>其中 gamma = 0.1 且 step_size = 30 表示：lr 每 30 个 epoch 降低 10 倍。ResNet-50 使用了这个——lr=0.1，在 epoch 30、60 和 90 处各降低 10 倍。<<<
-
-The problem: the optimal decay points depend on the dataset and architecture. Move to a different problem and you need to re-tune when to drop. The transitions are abrupt -- loss can spike when the rate suddenly changes.
-
-### Cosine Annealing
-
-Smooth decay from the maximum learning rate to a minimum, following a cosine curve:
+随着可西因曲线的顺序下降,从最大学习速度到最低水平:
 
 ```
 lr(t) = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(pi * t / T))
 ```
 
-Where t is the current step and T is the total number of steps.
+在此,t是当前的步骤,T是全部的步骤数.
 
-At t=0, the cosine term is 1, so lr = lr_max. At t=T, the cosine term is -1, so lr = lr_min. The decay is gentle at first, accelerates in the middle, and becomes gentle again near the end.
+在t=0,代数词是1,所以lr=lr_max.在t=T,代数词是-1,所以lr=lr_min.衰变最初是温和的,在中间加速,并在结束附近再次变得温和.
 
-<<<START>>>
-这是大多数现代训练运行的默认设置。除了 lr_max 和 lr_min 之外，没有其他需要调优的超参数。余弦形状与经验观察相符，即大多数学习发生在训练的中期——在那个关键时期，你需要合理的步长。
-<<<
+对于大多数现代训练运行来说,这是默认的.没有超值参数可以调整到 lr_max 和 lr_min.
 
-### Warmup: Why You Start Small
+### 热情:为什么你开始小
 
-Let me translate this fragment about Adam and adaptive optimizers in machine learning.
+亚当和其他适应优化器保持了梯度平均和变异的运行估计.在0步,这些估计初始化为零.第一些梯度更新基于垃圾统计.如果您在此期间的学习速度很大,模型会采取巨大的,不适合方向的步骤.
 
-The text discusses gradient mean and variance estimates, learning rates, etc. Technical terms like "Adam", "adaptive optimizers", "gradient", "learning rate", "variance" should be preserved (though "gradient" and "learning rate" are translated but are standard terms). Actually, the rule says don't translate technical terms. But some terms like "learning rate" are typically translated as 学习率 in Chinese ML context. Let me think about this.
-
-The rule says "Do NOT translate code, math, links, or technical terms." But this would make the text unreadable. I think technical terms that have established Chinese translations should be translated to keep readability, but code/math/links should stay. Actually, let me reconsider - the instruction is to keep the translation natural. Standard ML terms like "learning rate" (学习率), "gradient" (梯度) have standard Chinese equivalents. I'll translate the text naturally while keeping it accurate.
-
-Let me translate:
-
-"Adam and other adaptive optimizers maintain running estimates of gradient mean and variance."
-Adam 和其他自适应优化器持续维护梯度的均值与方差的运行估计。
-
-"At step 0, these estimates are initialized to zero."
-在第 0 步，这些估计会被初始化为零。
-
-"The first few gradient updates are based on garbage statistics."
-前几次梯度更新基于垃圾统计数据。
-
-"If your learning rate is large during this period, the model takes huge, poorly-directed steps."
-如果在此期间你的学习率过大，模型就会采取巨大但方向不佳的步骤。
-
-Let me refine this.
-
-
-<<<START>>>
-Adam 和其他自适应优化器会持续维护梯度均值与方差的运行估计。在第 0 步，这些估计会被初始化为零。前几次梯度更新所依据的是垃圾统计量。如果在此期间你的学习率过大，模型就会采取巨大却方向不佳的步骤。
-<<<
-
-- No explanation or preamble
-
-Let me translate this text about learning rate warmup.
-
-"Warmup fixes this. Start with a tiny learning rate (often lr_max / warmup_steps or even zero) and linearly ramp up to lr_max over the first N steps. By the time you reach the full learning rate, Adam's statistics have stabilized."
-
-Technical terms to keep: warmup, lr_max, warmup_steps, Adam
-
-Translation:
-"热身可以解决这个问题。开始时使用一个很小的学习率（通常是 lr_max / warmup_steps，甚至为零），在前 N 步中线性地将学习率提升到 lr_max。当你达到完整学习率时，Adam 的统计量已经稳定。"
-
-
-<<<START>>>热身可以解决这个问题。开始时使用一个很小的学习率（通常是 lr_max / warmup_steps，甚至为零），在前 N 步中线性地将学习率提升到 lr_max。当你达到完整学习率时，Adam 的统计量已经稳定。<<<
+热化解决了这一问题.从一个小的学习速度开始 (通常是lr_max / warmup_steps或甚至是零) 并线性地在第一个N步骤上升到lr_max.
 
 ```
 lr(t) = lr_max * (t / warmup_steps)     for t < warmup_steps
 ```
 
-典型预热：占总训练步骤的 1-5%。Llama 3 训练了约 1.8 万亿 tokens，预热了 2000 步。GPT-3 预热了 3.75 亿个 tokens。
-<<<
+典型的加热:总训练步骤的1-5%.Llama 3训练了约1.8万亿代币,加热了2000个步骤.GPT-3加热了超过3.75亿代币.
 
-### Linear Warmup + Cosine Decay
+### 线性变暖 + 化衰变
 
-The modern default. Ramp up linearly, then decay with cosine:
+现在的默认方式是:
 
 ```
 if t < warmup_steps:
@@ -193,53 +86,22 @@ else:
     lr(t) = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(pi * progress))
 ```
 
-This is what Llama, GPT, PaLM, and most modern transformers use. The warmup prevents early instability. The cosine decay settles the model into a good minimum.
+光电器的热量可以减少光电的光电. 光电器的热量可以减少光电的光电.
 
-### 1cycle Policy
+### 周期政策
 
-Leslie Smith's discovery (2018): ramp the learning rate up from a low value to a high value in the first half of training, then ramp it back down in the second half. Counterintuitive -- why would you *increase* the learning rate midway through?
+莱斯利·史密斯的发现 (2018):在训练的第一半年,学习率从低值升至高值,然后在下半年再降.
 
-Let me translate this:
-
-"The theory: a high learning rate acts as regularization by adding noise to the optimization trajectory. The model explores more of the loss landscape during the ramp-up phase, finding better basins. The ramp-down phase then refines within the best basin found."
-
-Translation:
-
-"Theory: 高学习率通过在优化轨迹中添加噪声来起到正则化的作用。在 ramp-up 阶段，模型探索了损失景观的更多区域，找到更好的盆地（basins）。然后，ramp-down 阶段会在找到的最优盆地内进行精细优化。"
-
-Let me keep technical terms untranslated: learning rate → 学习率 (this is a common term, could translate), regularization → 正则化, loss landscape → 损失景观, basin → 盆地, ramp-up phase, ramp-down phase.
-
-Actually the rule says do NOT translate technical terms. Let me be careful. Terms like "learning rate", "regularization", "loss landscape", "basins", "ramp-up phase", "ramp-down phase" are technical terms. But these are common enough that in Chinese ML literature they're often translated. However, the rule says don't translate technical terms. 
-
-Hmm, but this creates tension. Let me translate the general prose but keep clearly technical terms. Actually "learning rate" is usually 学习率 in Chinese, "regularization" is 正则化. These are standard Chinese terms. The instruction "do NOT translate ... technical terms" more likely refers to code, math symbols, and specific identifiers. Let me translate reasonably while keeping things natural.
-
-Let me write a natural translation:
-
-"理论：高学习率通过在优化轨迹中添加噪声来起到正则化的作用。在 ramp-up 阶段，模型探索了损失景观中更多的区域，从而找到更好的盆地。随后，ramp-down 阶段会在所找到的最优盆地内进行细化优化。"
-
-Let me keep it clean. I'll use the Chinese technical terms where they're standard (学习率、正则化、损失景观、盆地) but keep ramp-up/ramp-down as they might be kept, or translate to 爬坡阶段/降阶阶段. Actually I'll keep ramp-up/ramp-down as technical terms since they're phase names.
-
-Let me finalize.
-
-
-<<<START>>>
-理论：高学习率通过在优化轨迹中添加噪声来起到正则化的作用。在 ramp-up 阶段，模型探索了损失景观中更多的区域，从而找到更好的盆地。随后，ramp-down 阶段在所找到的最优盆地内进行细化优化。
-<<<
+理论:高学习率通过增加噪音来调整优化轨迹.模型在升级阶段探索更多的损失景观,找到更好的盆地.升级阶段然后在发现的最佳盆地内精炼.
 
 ```
 Phase 1 (0 to T/2):    lr ramps from lr_max/25 to lr_max
 Phase 2 (T/2 to T):    lr ramps from lr_max to lr_max/10000
 ```
 
-Technical terms: "1cycle", "cosine annealing", "compute budget" - these should not be translated. Let me keep them.
+对于固定计算预算,一轮车往往比轮车速.
 
-Let me translate:
-"对于固定的计算预算，1cycle 通常比 cosine annealing 训练得更快。权衡：你必须提前知道总步数。"
-
-
-对于固定的计算预算，1cycle 通常比 cosine annealing 训练得更快。权衡是：你必须提前知道总步数。
-
-### Schedule Shapes
+### 时间表的形状
 
 ```mermaid
 graph LR
@@ -260,9 +122,7 @@ graph LR
     end
 ```
 
-<<<START>>>
 ### 决策流程图
-<<<
 
 ```mermaid
 flowchart TD
@@ -280,7 +140,7 @@ flowchart TD
     Cosine --> MinLR["Set lr_min = lr_max / 10"]
 ```
 
-### Real Numbers from Published Models
+### 已出版的模型中的真实数字
 
 ```mermaid
 graph TD
@@ -296,15 +156,11 @@ graph TD
 lr-schedule
 ```
 
-## Build It
+## 建立它
 
->>>START>>>
+### 步骤1:安排工作
 
-### 步骤 1：调度函数
-
->>>
-
-Each function takes the current step and returns the learning rate at that step.
+每个函数都按照当前步骤进行学习,并返回当前步骤的学习速度.
 
 ```python
 import math
@@ -342,10 +198,9 @@ def one_cycle_schedule(step, lr=0.01, total_steps=1000, **kwargs):
         return lr * (1 - progress) + (lr / 10000) * progress
 ```
 
-### 第二步：可视化所有时间表
-<<<
+### 第二步: 设想所有时间表
 
->>>打印一张基于文本的图，展示每个调度在训练过程中的演进情况。<<<
+打印一个基于文字的图表,显示每个课程在训练过程中如何发展.
 
 ```python
 def visualize_schedule(name, schedule_fn, total_steps=500, **kwargs):
@@ -363,10 +218,9 @@ def visualize_schedule(name, schedule_fn, total_steps=500, **kwargs):
         print(f"  Step {s:4d}: lr={lr_val:.6f} {bar}")
 ```
 
-### Step 3: Training Network
+### 第三步:培训网络
 
-在 circle 数据集上的一个简单两层网络，与之前的课程相同，但现在我们调整调度。
-<<<
+简单的两个层网络,像以前的课程一样,但现在我们改变时间表.
 
 ```python
 import random
@@ -450,10 +304,9 @@ def train_with_schedule(schedule_fn, schedule_name, data, epochs=300, base_lr=0.
     return epoch_losses
 ```
 
-### Step 4: Compare All Schedules
+### 步骤4: 进行所有时间表的比较
 
-使用每个调度训练同一网络，并比较最终损失与收敛行为。
-<<<
+训练同一个网络,并比较最终损失和合行为.
 
 ```python
 def compare_schedules(data):
@@ -475,10 +328,9 @@ def compare_schedules(data):
         print(f"{name:<20} {losses[0]:>12.6f} {losses[mid_idx]:>12.6f} {losses[-1]:>12.6f} {best:>12.6f}")
 ```
 
-### Step 5: LR Too High vs Too Low
+### 步骤5: LR过高对低
 
-演示三种失败模式：过高（发散）、过低（爬取）和刚好合适。
-<<<
+展示三个失败模式:过高 (分离),过低 (爬行),正确.
 
 ```python
 def lr_sensitivity(data):
@@ -506,10 +358,9 @@ def lr_sensitivity(data):
         print(f"  {lr:>10.4f} {start:>12.6f} {end_str:>12} {status:>15}")
 ```
 
-## 使用它
-<<<
+## 用它
 
-PyTorch provides schedulers in `torch.optim.lr_scheduler`:
+皮托尔奇提供时间表`torch.optim.lr_scheduler`其他:
 
 ```python
 import torch
@@ -526,7 +377,7 @@ for step in range(1000):
     scheduler.step()
 ```
 
-For warmup + cosine, use a lambda scheduler or the `get_cosine_schedule_with_warmup` from HuggingFace:
+对于加热+可西斯,使用一个Lambda调度器或`get_cosine_schedule_with_warmup`收起脸:
 
 ```python
 from transformers import get_cosine_schedule_with_warmup
@@ -538,44 +389,26 @@ scheduler = get_cosine_schedule_with_warmup(
 )
 ```
 
-The HuggingFace function is what most Llama and GPT fine-tuning scripts use. When in doubt, use warmup + cosine with warmup = 3-5% of total steps. It works for almost everything.
+拥抱面部功能是大多数Llama和GPT细调脚本所使用的.在怀疑时,使用加热+加热的可西因 = 总步骤的 3-5%.它几乎适用于所有事情.
 
-## Ship It
+## 运送它
 
-This lesson produces:
-- `outputs/prompt-lr-schedule-advisor.md` -- a prompt that recommends the right learning rate schedule and hyperparameters for your training setup
+这一课产生了:
+- `outputs/prompt-lr-schedule-advisor.md`-- 提示建议您的训练设置的适当学习速度时间表和超参数
 
-## 练习
+## 运动
 
-<<<
+1. 实现指数分解:lr(t) =lr_0 *gamma^t,gamma=0.999.
 
-1. 实现指数衰减：lr(t) = lr_0 * gamma^t，其中 gamma = 0.999。与 circle 数据集上的余弦退火进行比较。
-<<<
+2. 执行学习率范围测试 (Leslie Smith):训练几百步,同时从1e-7升至1. 插图损失与 LR. 最佳最大LR是损失开始增加之前.
 
-2. 实现学习率范围测试（Leslie Smith）：训练几百步，同时以指数级从 1e-7 递增到 1 的学习率。绘制 loss 与 LR 的曲线。最优的 max LR 位于损失开始上升之前的位置。
+3. 训练用加热+,但变化加热时间:0%,1%,5%,10%,20%的总步骤.找到训练最稳定的甜点.
 
-<<<START>>>
-3. 使用 warmup + cosine 训练，但调整 warmup 长度：占总 step 的 0%、1%、5%、10%、20%。找到训练最稳定的最佳点。
-<<<
+4. 执行热启动 (SGDR) 的可西因缩:每T步骤都将学习速度重置至lr_max,再衰退.
 
-- No explanation or preamble
+5. 建立一个"日程外科医生",监测训练损失,自动从加热转向位,
 
-Let me translate:
-"4. Implement cosine annealing with warm restarts (SGDR): reset the learning rate to lr_max every T steps and decay again. Compare to standard cosine on a longer training run."
-
-Translation:
-"4. 实现带热重启的余弦退火（SGDR）：每 T 步将学习率重置为 lr_max，然后再次衰减。在更长的训练过程中与标准余弦进行比较。"
-
-This looks good. Let me keep technical terms as is. "cosine annealing with warm restarts" - "余弦退火 with 热重启" - "带热重启的余弦退火". SGDR kept. lr_max kept. T kept.
-
-
-<<<START>>>
-4. 实现带热重启的余弦退火（SGDR）：每 T 步将学习率重置为 lr_max，然后再次衰减。在更长的训练过程中与标准余弦进行比较。
-<<<
-
-5. Build a "schedule surgeon" that monitors training loss and automatically switches from warmup to cosine when the loss stabilizes, and reduces lr if the loss plateaus for too long.
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -590,9 +423,9 @@ This looks good. Let me keep technical terms as is. "cosine annealing with warm 
 | Eta min | "The floor for the LR" | The minimum learning rate that the schedule decays to |
 | Peak learning rate | "The maximum LR" | The highest LR reached during training, typically after warmup |
 
-## Further Reading
+## 进一步阅读
 
-- Loshchilov & Hutter, "SGDR: Stochastic Gradient Descent with Warm Restarts" (2017) -- introduced cosine annealing and warm restarts
-- Smith, "Super-Convergence: Very Fast Training of Neural Networks Using Large Learning Rates" (2018) -- the 1cycle policy paper
-- Touvron et al., "Llama 2: Open Foundation and Fine-Tuned Chat Models" (2023) -- documents the warmup + cosine schedule used at scale
-- Goyal et al., "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour" (2017) -- linear scaling rule and warmup for large batch training
+- 洛希洛夫和哈特, "SGDR:随着温暖的恢复而降低的斯托哈斯斯基梯度" (2017) -- 引入了缩和温暖的重新启动
+- 史密斯, "超级融合:使用较高学习率的神经网络非常快速培训" (2018) -- 1周期政策论文
+- 图弗龙等人",Llama 2:开放基础和精细调节的聊天模式" (2023) --记录了在规模上使用的加热+可西因时间表
+- 戈伊尔等人",精确,大型小型批次SGD:训练1小时中的图像网" (2017) --线性扩展规则和大型批次训练的加热

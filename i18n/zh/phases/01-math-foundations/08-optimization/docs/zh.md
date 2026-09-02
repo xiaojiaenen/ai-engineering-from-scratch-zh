@@ -1,209 +1,209 @@
 # 优化
 
-> 训练神经网络，无非就是找到山谷的最低点。
+> 训练神经网络,不过是发现谷底.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** Phase 1，第 04-05 课（导数、梯度）
-**时间：** 约 75 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Phase 1, Lessons 04-05 (Derivatives, Gradients)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 从零实现基本的梯度下降、带动量的 SGD 和 Adam 优化器
-- 在 Rosenbrock 函数上对比不同优化器的收敛效果，并解释 Adam 如何实现自适应每权重学习率
-- 区分凸与非凸损失地形，并解释高维空间中鞍点的作用
-- 配置学习率调度策略（步进衰减、余弦退火、预热），提升训练稳定性
+- 实现尼拉梯度下降,SGD与动力,亚当从零开始
+- 根据罗森布洛克函数进行优化器融合比较,并解释为什么亚当适应按体重学习率
+- 区分形和非形的损失景观,并解释座点在高尺寸中的作用
+- 配置学习速度时间表 (步骤衰退,阴茎化,升温) 确保训练稳定
 
-## 问题所在
+## 问题
 
-你有一个损失函数，它告诉你模型的预测有多错误。你也有梯度，它们指向使损失增大的方向。现在你需要一个策略来沿下坡方向行进。
+你有一个损失函数. 它告诉你你的模型是多么错误. 你有梯度. 它告诉你哪个方向使损失变得更糟.
 
-最直接的方法是：沿着梯度的反方向移动，步长乘以一个称为学习率的数值。重复此过程。这就是梯度下降，它可以工作。但"可以工作"是有前提条件的。学习率太大，你会直接冲过整个山谷，在两壁之间来回弹跳。学习率太小，你要花几千步才能缓慢爬行到答案附近。遇到鞍点时，你可能停止移动，尽管你还没有找到最小值。
+简单的方法是: 移动向梯度相反. 通过一些数字来衡量步骤,称为学习率. 复制. 这就是梯度下降,它有效. 但"工作"有警告. 太高的学习速度,你会完全超越谷口, 你会走上千里不必要的步骤, 虽然你没有找到最低点,但你就停止了.
 
-深度学习中的每个优化器都是对同一个问题的回答：你如何更快、更可靠地到达山谷底部？
+每个深度学习优化者都能回答同一个问题:如何更快,更可靠地进入谷底?
 
-## 概念解析
+## 概念
 
-### 优化的含义
+### 优化意味着什么
 
-优化是寻找使函数最小化（或最大化）的输入值。在机器学习中，函数是损失。输入是模型的权重。训练就是优化。
+优化是找到最小化 (或最大化) 函数的输入值.在机器学习中,函数是损失.输入是模型的权重.培训是优化.
 
 ```
-minimize L(w) 其中：
-  L = 损失函数
-  w = 模型权重（可能有数百万个参数）
+minimize L(w) where:
+  L = loss function
+  w = model weights (could be millions of parameters)
 ```
 
-### 梯度下降（基础版）
+### 渐进性下降 (瓦尼拉)
 
-最简单的优化器。计算损失关于每个权重的梯度。将每个权重沿其梯度的反方向移动。步长乘以学习率。
+简单的优化器.计算损失的梯度与每个重量相比. 移动每个重量在其梯度的相反方向. 根据学习速度测量步骤.
 
 ```
 w = w - lr * gradient
 ```
 
-整个算法就这一行。
+这就是整个算法,一个行.
 
 ```mermaid
 graph TD
-    A["* 起点（高损失）"] --> B["沿梯度方向下坡"]
-    B --> C["接近最小值"]
-    C --> D["o 最小值（低损失）"]
+    A["* Starting point (high loss)"] --> B["Moving downhill along gradient"]
+    B --> C["Approaching minimum"]
+    C --> D["o Minimum (low loss)"]
 ```
 
-### 学习率：最重要的超参数
+### 学习速度:最重要的超值
 
-学习率控制步长大小。它决定了收敛的所有方面。
+学习速度控制了步骤的尺寸. 它决定了所有关于融合的东西.
 
 ```mermaid
 graph LR
-    subgraph 太大["太大 (lr = 1.0)"]
-        A1["步骤 1"] -->|过冲| A2["步骤 2"]
-        A2 -->|过冲| A3["步骤 3"]
-        A3 -->|发散| A4["..."]
+    subgraph TooLarge["Too Large (lr = 1.0)"]
+        A1["Step 1"] -->|overshoot| A2["Step 2"]
+        A2 -->|overshoot| A3["Step 3"]
+        A3 -->|diverging| A4["..."]
     end
-    subgraph 太小["太小 (lr = 0.0001)"]
-        B1["步骤 1"] -->|微小步长| B2["步骤 2"]
-        B2 -->|微小步长| B3["步骤 3"]
-        B3 -->|10,000 步后| B4["最小值"]
+    subgraph TooSmall["Too Small (lr = 0.0001)"]
+        B1["Step 1"] -->|tiny step| B2["Step 2"]
+        B2 -->|tiny step| B3["Step 3"]
+        B3 -->|10,000 steps later| B4["Minimum"]
     end
-    subgraph 刚好["刚好 (lr = 0.01)"]
-        C1["起点"] --> C2["..."] --> C3["约 100 步后收敛"]
+    subgraph JustRight["Just Right (lr = 0.01)"]
+        C1["Start"] --> C2["..."] --> C3["Converged in ~100 steps"]
     end
 ```
 
-没有公式可以确定正确的学习率。你需要通过实验来寻找。常见的起点值：Adam 用 0.001，带动量的 SGD 用 0.01。
+没有一个公式来确定正确的学习率. 实验可以找到它. 共同的起点:亚当的0.001 ,SGD的0.01
 
-### SGD、批量与迷你批量
+### 清算量与批量对比小批量
 
-基础梯度下降在每次更新前在整个数据集上计算梯度。这称为批量梯度下降。它稳定但慢。
+基梯度下降在采取一个步骤之前计算整个数据集的梯度.这被称为批次梯度下降.它是稳定的,但缓慢的.
 
-随机梯度下降（SGD）在一个随机样本上计算梯度后立即更新。它有噪声但快。
+梯降低 (SGD) 计算一个随机样本的梯度,并立即步骤.
 
-迷你批量梯度下降折中两者的特点。在小型批次（32、64、128、256 个样本）上计算梯度，然后更新。这才是大家实际使用的方法。
+微批次梯度下降将差异分开.计算梯度在一个小批次 (32, 64, 128, 256 个样本),然后步骤.这是每个人都实际使用的.
 
-| 变体 | 批量大小 | 梯度质量 | 每步速度 | 噪声 |
-|------|---------|---------|---------|------|
-| 批量 GD | 整个数据集 | 精确 | 慢 | 无 |
-| SGD | 1 个样本 | 噪声很大 | 快 | 高 |
-| 迷你批量 | 32-256 | 较好的估计 | 平衡 | 中等 |
+| Variant | Batch size | Gradient quality | Speed per step | Noise |
+|---------|-----------|-----------------|---------------|-------|
+| Batch GD | Entire dataset | Exact | Slow | None |
+| SGD | 1 sample | Very noisy | Fast | High |
+| Mini-batch | 32-256 | Good estimate | Balanced | Moderate |
 
-SGD 和迷你批量中的噪声不是 bug。它有助于逃离浅层局部最小值和鞍点。
+噪音并不是一个错误,它可以避免低层的局部最小和车点.
 
-### 动量：下坡滚动的球
+### 动力:球滚下坡
 
-基础梯度下降只看向当前梯度。如果梯度方向来回震荡（在狭窄山谷中很常见），进度会很慢。动量通过将过去的梯度累积到速度项中来解决这个问题。
+尼拉梯度下降只看着当前梯度.如果梯度扎 (在狭窄的山谷中很常见),进展是缓慢的.动力通过积累过去梯度到速度术语来解决这一问题.
 
 ```
 v = beta * v + gradient
 w = w - lr * v
 ```
 
-类比：下坡滚动的球。它不会在每个颠簸处停下来重新启动。它在一致的方向上积累速度，并减弱振荡。
+类似:一个滚滚下坡.它不会在每一次碰撞中停止或重新启动.它在一致的方向上增强速度,减缓振荡.
 
 ```mermaid
 graph TD
-    subgraph 无动量["无动量（锯齿状，慢）"]
-        W1["起点"] -->|左| W2[" "]
-        W2 -->|右| W3[" "]
-        W3 -->|左| W4[" "]
-        W4 -->|右| W5[" "]
-        W5 -->|左| W6[" "]
-        W6 --> W7["最小值"]
+    subgraph Without["Without Momentum (zigzag, slow)"]
+        W1["Start"] -->|left| W2[" "]
+        W2 -->|right| W3[" "]
+        W3 -->|left| W4[" "]
+        W4 -->|right| W5[" "]
+        W5 -->|left| W6[" "]
+        W6 --> W7["Minimum"]
     end
-    subgraph 有动量["有动量（平滑，快）"]
-        M1["起点"] --> M2[" "] --> M3[" "] --> M4["最小值"]
+    subgraph With["With Momentum (smooth, fast)"]
+        M1["Start"] --> M2[" "] --> M3[" "] --> M4["Minimum"]
     end
 ```
 
-`beta`（通常为 0.9）控制保留多少历史信息。更高的 beta 意味着更多动量、更平滑的路径，但对方向变化的响应更慢。
+`beta`对于一个更高的beta 版本,意味着更多的动力,更平滑的路径,但对方向变化的反应更慢.
 
-### Adam：自适应学习率
+### 亚当:适应性学习率
 
-不同的权重需要不同的学习率。很少获得大梯度的权重，在终于获得大梯度时应走大步。经常获得巨大梯度的权重应走小步。
+对于不同体重,学习速度不同.一个很少获得高梯度的体重,最终应该采取更大的步骤.一个不断获得巨大的梯度的体重,应该采取更小的步骤.
 
-Adam（自适应矩估计）为每个权重跟踪两件事：
+根据体重的数据,
 
-1. 一阶矩（m）：梯度的指数移动平均（类似于动量）
-2. 二阶矩（v）：梯度平方的指数移动平均（梯度幅度）
+1. 第一个时刻 (m):渐变的运行平均值 (如动力)
+2. 第二时刻 (v):正方梯度的运行平均 (梯度大小)
 
 ```
 m = beta1 * m + (1 - beta1) * gradient
 v = beta2 * v + (1 - beta2) * gradient^2
 
-m_hat = m / (1 - beta1^t)    偏差修正
-v_hat = v / (1 - beta2^t)    偏差修正
+m_hat = m / (1 - beta1^t)    bias correction
+v_hat = v / (1 - beta2^t)    bias correction
 
 w = w - lr * m_hat / (sqrt(v_hat) + epsilon)
 ```
 
-除以 `sqrt(v_hat)` 是关键洞察。梯度大的权重被一个大数除（有效步长小）。梯度小的权重被一个小数除（有效步长大）。每个权重都获得自己的自适应学习率。
+通过`sqrt(v_hat)`对于小小的度,每一个度都会得到一个适应性学习率.
 
-默认超参数：`lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8`。这些默认值对大多数问题都有效。
+默认的超参数: `lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8`这些默认设置对大多数问题都很有效.
 
-### 学习率调度
+### 学习率时间表
 
-固定学习率是一种妥协。训练初期，你需要大步快速前进。训练后期，你需要小步在最小值附近精细调整。
+固定学习率是妥协的. 训练初期,你需要大步骤才能快速进步. 训练后期,你需要小步骤才能达到最低水平.
 
-常见调度策略：
+常见时间表:
 
-| 调度 | 公式 | 适用场景 |
-|------|------|---------|
-| 步进衰减 | lr = lr * factor 每 N 个 epoch | 简单，手动控制 |
-| 指数衰减 | lr = lr_0 * decay^t | 平滑衰减 |
-| 余弦退火 | lr = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(pi * t / T)) | Transformer、现代训练 |
-| 预热 + 衰减 | 线性上升，然后衰减 | 大模型，防止早期不稳定 |
+| Schedule | Formula | Use case |
+|----------|---------|----------|
+| Step decay | lr = lr * factor every N epochs | Simple, manual control |
+| Exponential decay | lr = lr_0 * decay^t | Smooth reduction |
+| Cosine annealing | lr = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(pi * t / T)) | Transformers, modern training |
+| Warmup + decay | Linear ramp up, then decay | Large models, prevents early instability |
 
-### 凸与非凸
+### 形与非形
 
-凸函数只有一个最小值。梯度下降总能找到它。像 `f(x) = x^2` 这样的二次函数是凸的。
+曲函数有一个最小值.渐进式下降总是找到它.`f(x) = x^2`形的.
 
-神经网络的损失函数是非凸的。它们有许多局部最小值、鞍点和平坦区域。
+网络损失功能是非形的.它们有许多本地最小值,车点和平面区域.
 
 ```mermaid
 graph LR
-    subgraph 凸["凸：一个山谷，一个答案"]
+    subgraph Convex["Convex: One valley, one answer"]
         direction TB
-        CV1["高损失"] --> CV2["全局最小值"]
+        CV1["High loss"] --> CV2["Global minimum"]
     end
-    subgraph 非凸["非凸：多个山谷，鞍点"]
+    subgraph NonConvex["Non-convex: Multiple valleys, saddle points"]
         direction TB
-        NC1["起点"] --> NC2["局部最小值"]
-        NC1 --> NC3["鞍点"]
-        NC1 --> NC4["全局最小值"]
+        NC1["Start"] --> NC2["Local minimum"]
+        NC1 --> NC3["Saddle point"]
+        NC1 --> NC4["Global minimum"]
     end
 ```
 
-在实践中，高维神经网络中的局部最小值很少是个问题。大多数局部最小值的损失值接近全局最小值。鞍点（某些方向平坦，其他方向弯曲）才是真正的障碍。动量和迷你批量的噪声有助于逃离它们。
+在实践中,高维度神经网络中的本地最小极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极度极
 
-### 损失地形可视化
+### 失景视觉化
 
-损失是所有权重的函数。对于拥有 100 万个权重的模型，损失地形存在于 1000001 维空间中。我们通过权重空间中选择两个随机方向，并沿这些方向绘制损失，生成 2D 表面来进行可视化。
+损失是所有权重的函数.对于一个100万权重的模型来说,损失景观生活在1000,001维空间中.我们通过在权重空间中选择两个随机方向并沿着这些方向绘制损失,产生2维表面来可视化它.
 
 ```mermaid
 graph TD
-    HL["高损失区域"] --> SP["鞍点"]
-    HL --> LM["局部最小值"]
+    HL["High loss region"] --> SP["Saddle point"]
+    HL --> LM["Local minimum"]
     SP --> LM
-    SP --> GM["全局最小值"]
-    LM -.->|"浅屏障"| GM
+    SP --> GM["Global minimum"]
+    LM -.->|"shallow barrier"| GM
     style HL fill:#ff6666,color:#000
     style SP fill:#ffcc66,color:#000
     style LM fill:#66ccff,color:#000
     style GM fill:#66ff66,color:#000
 ```
 
-尖锐的最小值泛化能力差。平坦的最小值泛化能力强。这是带动量的 SGD 在最终测试准确率上经常优于 Adam 的原因之一：其噪声阻止陷入尖锐最小值。
+的最小值一般化不好. 的最小值一般化不好. 这也是一个原因,因为SGD的动力通常在最终测试准确性上超过亚当:它的噪音防止其定位在的最小值.
 
 ```figure
 gradient-descent
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：定义测试函数
+### 步骤1:定义测试函数
 
-Rosenbrock 函数是经典的优化基准测试。它的最小值位于 (1, 1)，在一个狭窄的弯曲山谷中，容易被发现但难以追踪。
+罗森布洛克函数是经典的优化基准.其最小值在 (1, 1) 处于一个狭窄的曲线谷中,很容易找到,但很难跟踪.
 
 ```
 f(x, y) = (1 - x)^2 + 100 * (y - x^2)^2
@@ -221,7 +221,7 @@ def rosenbrock_gradient(params):
     return [df_dx, df_dy]
 ```
 
-### 步骤 2：基础梯度下降
+### 步骤2:瓦尼拉梯度下降
 
 ```python
 class GradientDescent:
@@ -232,7 +232,7 @@ class GradientDescent:
         return [p - self.lr * g for p, g in zip(params, grads)]
 ```
 
-### 步骤 3：带动量的 SGD
+### 步骤3:SGD与动力
 
 ```python
 class SGDMomentum:
@@ -251,7 +251,7 @@ class SGDMomentum:
         return [p - self.lr * v for p, v in zip(params, self.velocity)]
 ```
 
-### 步骤 4：Adam
+### 第四步:亚当
 
 ```python
 class Adam:
@@ -289,7 +289,7 @@ class Adam:
         ]
 ```
 
-### 步骤 5：运行并对比
+### 步骤5:运行并比较
 
 ```python
 def optimize(optimizer, func, grad_func, start, steps=5000):
@@ -313,11 +313,11 @@ for name, history in [("GD", gd_history), ("SGD+M", sgd_history), ("Adam", adam_
     print(f"{name:6s} -> x={final[0]:.6f}, y={final[1]:.6f}, loss={loss:.8f}")
 ```
 
-预期输出：Adam 收敛最快。带动量的 SGD 走更平滑的路径。基础 GD 沿狭窄山谷缓慢前进。
+预期输出:亚当走向最快.SGD带动量遵循更平滑的路径.尼拉GD沿狭窄的谷道慢慢进步.
 
-## 实际应用
+## 用它
 
-在实践中，使用 PyTorch 或 JAX 的优化器。它们处理参数组、权重衰减、梯度裁剪和 GPU 加速。
+在实践中,使用PyTorch或JAX优化器.它们处理参数组,权重衰减,梯度剪辑和GPU加速.
 
 ```python
 import torch
@@ -331,50 +331,50 @@ adamw = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=0.01)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(adam, T_max=100)
 ```
 
-经验法则：
+基本规则:
 
-- 从 Adam 开始（lr=0.001）。它对大多数问题无需调参即可工作。
-- 当需要最佳最终准确率且能承担更多调参时，切换到带动量的 SGD（lr=0.01，momentum=0.9）。
-- 对 Transformer 使用 AdamW（带解耦权重衰减的 Adam）。
-- 对超过几个 epoch 的训练始终使用学习率调度。
-- 如果训练不稳定，降低学习率。如果训练太慢，提高学习率。
+- 首先是亚当 (lr=0.001). 它可以解决大多数问题,
+- 转换到SGD时的动力 (lr=0.01,动力=0.9) 当你需要最好的最终精度,并且可以承担更多的调整.
+- 使用AdamW (Adam与脱重量衰减) 为变压器.
+- 训练时间长于几个时期,总是使用学习率时间表.
+- 如果训练不稳定,请减少学习速度.
 
-## 交付物
+## 运送它
 
-本课生成一个用于选择合适优化器的提示词，见 `outputs/prompt-optimizer-guide.md`。
+这一课提供了选择合适优化器的提示.`outputs/prompt-optimizer-guide.md`现在,我们要去.
 
-这里构建的优化器类将在 Phase 3 中从零训练神经网络时再次出现。
+在第三阶段,我们将一个神经网络从零开始训练.
 
-## 练习
+## 运动
 
-1. **学习率扫描。** 在 Rosenbrock 函数上使用学习率 [0.0001, 0.0005, 0.001, 0.005, 0.01] 运行基础梯度下降。对每个学习率打印 5000 步后的最终损失，或绘制图表。找出仍能收敛的最大学习率。
+1. **Learning rate sweep.**运行基梯度下降在Rosenbrock函数上,以学习率 [0.0001, 0.0005, 0.001, 0.005, 0.01].每一步的5000步后绘制或打印最终损失.找到最大的学习率,仍然相近.
 
-2. **动量对比。** 在 Rosenbrock 函数上使用动量值 [0.0, 0.5, 0.9, 0.99] 运行带动量的 SGD。跟踪每一步的损失。哪个动量值收敛最快？哪个过冲？
+2. **Momentum comparison.**运行SGD在Rosenbrock函数上运行动力值 [0.0,0.5,0.9,0.99]. 随着每一步追踪损失.哪个动力值最快收缩?哪个超行?
 
-3. **逃离鞍点。** 定义函数 `f(x, y) = x^2 - y^2`（在原点处有一个鞍点）。从 (0.01, 0.01) 开始。比较基础 GD、带动量的 SGD 和 Adam 的行为。哪个能逃离鞍点？
+3. **Saddle point escape.**定义函数`f(x, y) = x^2 - y^2`开始于0.01,0.01. 比较尼拉GD,SGD与动力以及亚当的行为.哪个逃离点?
 
-4. **实现学习率衰减。** 给 GradientDescent 类添加指数衰减调度：`lr = lr_0 * 0.999^step`。在 Rosenbrock 函数上对比有无衰减的收敛效果。
+4. **Implement learning rate decay.**添加一个指数式衰变时间表到 GradientDescent 类:`lr = lr_0 * 0.999^step`根据罗森布洛克函数的与不衰变相似性.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| 梯度下降 | "沿下坡走" | 通过减去学习率缩放的梯度来更新权重。最基础的优化器。 |
-| 学习率 | "步长" | 一个标量，控制每次更新移动多远的权重。太大导致发散。太小浪费计算。 |
-| 动量 | "继续滚动" | 将过去梯度累积到速度向量中。减弱振荡并加速沿一致方向的移动。 |
-| SGD | "随机采样" | 随机梯度下降。在随机子集而非整个数据集上计算梯度。实践中几乎总是指迷你批量 SGD。 |
-| 迷你批量 | "一批数据" | 用于估计梯度的训练数据小子集（32-256 个样本）。平衡速度与梯度准确性。 |
-| Adam | "默认优化器" | 自适应矩估计。跟踪每个权重的梯度和梯度平方的移动平均，给每个权重独立的学习率。 |
-| 偏差修正 | "修复冷启动" | Adam 的一阶和二阶矩初始化为零。偏差修正通过除以 (1 - beta^t) 补偿早期步骤。 |
-| 学习率调度 | "随时间变化 lr" | 在训练过程中调整学习率的函数。前期大步，后期小步。 |
-| 凸函数 | "一个山谷" | 任何局部最小值都是全局最小值的函数。梯度下降总能找到它。神经网络损失不是凸的。 |
-| 鞍点 | "平坦但非最小" | 梯度为零，但在某些方向是最小值、其他方向是最大值的点。在高维空间中很常见。 |
-| 损失地形 | "地形" | 在权重空间上绘制的损失函数。通过沿两个随机方向切片进行可视化。 |
-| 收敛 | "到达目的地" | 优化器已达到进一步步骤不再显著降低损失的点。 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Gradient descent | "Go downhill" | Update weights by subtracting the gradient scaled by the learning rate. The most basic optimizer. |
+| Learning rate | "Step size" | A scalar that controls how far each update moves the weights. Too large causes divergence. Too small wastes compute. |
+| Momentum | "Keep rolling" | Accumulate past gradients into a velocity vector. Dampens oscillations and accelerates movement through consistent directions. |
+| SGD | "Random sampling" | Stochastic gradient descent. Compute gradient on a random subset instead of the full dataset. Almost always means mini-batch SGD in practice. |
+| Mini-batch | "A chunk of data" | A small subset of training data (32-256 samples) used to estimate the gradient. Balances speed and gradient accuracy. |
+| Adam | "The default optimizer" | Adaptive Moment Estimation. Tracks per-weight running averages of gradients and squared gradients to give each weight its own learning rate. |
+| Bias correction | "Fix the cold start" | Adam's first and second moments are initialized to zero. Bias correction divides by (1 - beta^t) to compensate during early steps. |
+| Learning rate schedule | "Change lr over time" | A function that adjusts the learning rate during training. Large steps early, small steps late. |
+| Convex function | "One valley" | A function where any local minimum is the global minimum. Gradient descent always finds it. Neural network losses are not convex. |
+| Saddle point | "Flat but not a minimum" | A point where the gradient is zero but it is a minimum in some directions and a maximum in others. Common in high dimensions. |
+| Loss landscape | "The terrain" | The loss function plotted over weight space. Visualized by slicing along two random directions. |
+| Convergence | "Getting there" | The optimizer has reached a point where further steps do not meaningfully reduce the loss. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Sebastian Ruder: 梯度下降优化算法概览](https://ruder.io/optimizing-gradient-descent/) - 所有主要优化器的综合综述
-- [为什么动量真的有效（Distill）](https://distill.pub/2017/momentum/) - 动量动力学的交互式可视化
-- [Adam: 随机优化方法（Kingma & Ba，2014）](https://arxiv.org/abs/1412.6980) - 原始 Adam 论文，易读且简短
-- [神经网络损失地形可视化（Li 等，2018）](https://arxiv.org/abs/1712.09913) - 展示尖锐 vs 平坦最小值的论文
+- [Sebastian Ruder: An overview of gradient descent optimization algorithms](https://ruder.io/optimizing-gradient-descent/)- 对所有主要优化者进行全面调查
+- [Why Momentum Really Works (Distill)](https://distill.pub/2017/momentum/)- 动力动态的互动可视化
+- [Adam: A Method for Stochastic Optimization (Kingma & Ba, 2014)](https://arxiv.org/abs/1412.6980)- 原始的亚当文件,可读且短
+- [Visualizing the Loss Landscape of Neural Nets (Li et al., 2018)](https://arxiv.org/abs/1712.09913)- 报纸显示了和平的最低水平

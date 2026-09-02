@@ -1,135 +1,135 @@
-# A/B 测试 LLM 特性 — GrowthBook、Statsig 与"感觉良好"陷阱
+#  增长书,Statsig和Vibes问题
 
-> 传统 A/B 测试并非为确定性较低的 LLM 而设计。关键区别：评估（evals）回答"模型能否完成任务？"A/B 测试回答"用户是否在意？"两者缺一不可；仅凭"感觉良好"就上线的时代已经结束。2026 年需要测试什么：提示工程（措辞）、模型选择（GPT-4 vs GPT-3.5 vs 开源模型；精度 vs 成本 vs 延迟）、生成参数（temperature、top-p）。真实案例：聊天机器人奖励模型变体带来 +70% 对话长度和 +30% 留存率；Nextdoor AI 标题实验在奖励函数优化后带来 +1% CTR；Khan Academy Khanmigo 在延迟与数学精度之间迭代优化。平台对比：**Statsig**（2025 年 9 月被 OpenAI 以 11 亿美元收购）— 序贯测试、CUPED、一站式方案。**GrowthBook** — 开源、仓库原生、支持贝叶斯+频率学派+序贯引擎、CUPED、SRM 检查、Benjamini-Hochberg + Bonferroni 校正。根据你的仓库 SQL 偏好以及组织对"被 OpenAI 收购"的态度来选择。
+> 传统的A/B测试并没有为非确定性 LLM而建立. 重要区别:评估答案是"模型能做好工作吗?"A/B测试答案是"用户是否关心?" 2026年要测试什么:快速工程 (表达式),模型选择 (GPT-4 vs GPT-3.5 vs OSS;准确性 vs 成本 vs 延迟),生成参数 (温度,顶级). 实例:聊天机器人奖励模型变体提供了+70%的对话长度和+30%的保留;接下来AI主题线实验提供了+1%的CTR后奖励功能的完善;Khan Academy Khanmigo在延迟与数学准确性轴上进行了代. 平台分开:**Statsig**测试序列,CUPED,全共一. **GrowthBook**开源,仓库本土,贝叶斯式+频率化+序列引擎,CUPED,SRM检查,Benjamin-Hochberg+Bonferroni修正.您根据仓库SQL偏好选择,以及"OpenAI收购"是否对您的组织重要.
 
-**类型：** 学习
-**语言：** Python（标准库，序贯测试模拟器示例）
-**前置知识：** Phase 17 · 13（可观测性）、Phase 17 · 20（渐进式部署）
-**时间：** 约 60 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, toy sequential test simulator)
+**Prerequisites:** Phase 17 · 13 (Observability), Phase 17 · 20 (Progressive Deployment)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 区分评估（evals，"模型能否完成任务"）与 A/B 测试（"用户是否在意"）
-- 列举三个可测试维度（提示、模型、参数）并为每个选择指标
-- 解释 CUPED、序贯测试和 Benjamini-Hochberg 多重比较校正
-- 根据仓库 SQL 偏好和企业对收购的态度选择 Statsig 或 GrowthBook
+- 区分评估 ("模型能做好工作吗") 和A/B测试 ("用户关心").
+- 列出三个可测试轴 (提示,模型,参数) 并为每个轴选择指标.
+- 解释CUPED,序列测试和Benin-Hochberg多次比较纠正.
+- 根据库存SQL姿势和企业收购态度,选择Statsig或 GrowthBook.
 
-## 问题所在
+## 问题
 
-你手工调优了系统提示词，感觉更好了，然后上线了。转化率的变化只是噪声。你责怪指标。或者你上线了新模型但转化率没动——是模型退化还是变化太小无法检测？你不知道，因为你没有经过 A/B 测试就上线了。
+你手动调整了系统提示.它感觉更好.你运送它.转换变化是通过噪音.你责怪的指标.或者你运送一个新模型,转换没有移动?
 
-评估回答模型能否在标注数据集上完成任务。它们不回答用户是否更喜欢输出。只有受控的在线实验才能回答这个问题，而且实验必须具有足够的统计功效、控制不确定性因素，并校正多重比较。
+标准答案是模型是否可以在标记的集合上完成任务.它们没有回答用户是否更喜欢输出.只有一个受控的在线实验才能回答这个问题,只有实验有足够的权力,控制非确定性,并对多个比较进行纠正.
 
-## 核心概念
+## 概念
 
-### 评估 vs A/B 测试
+### 平均值与A/B测试
 
-**评估（Evals）** — 离线、标注数据集、评判者（评分标准、LLM 作为评判者或人类）。回答："输出在这个固定分布上是否正确/有用/安全？"
+**Evals**离线,标签集,法官 (标签或法官或人). 回答:"这个固定分布的输出是否正确/有用/安全?"
 
-**A/B 测试** — 在线、真实用户、随机化。回答："新变体是否推动了用户层面的关键指标？"
+**A/B test**在线,现场用户,随机. 回答:"新变体是否移动了重要的是用户水平的指标?"
 
-两者都需要。评估在暴露前捕获回归问题；A/B 测试在上线后确认产品影响。
+既需要,Evals在暴露前捕获回归;A/B后确认产品影响.
 
 ### 测试什么
 
-1. **提示工程** — 措辞、系统提示结构、示例。指标：任务成功率、用户留存率、每次请求成本。
-2. **模型选择** — GPT-4 vs GPT-3.5-Turbo vs Llama-OSS。指标：准确率（任务）+ 每次请求成本 + P99 延迟。多目标优化。
-3. **生成参数** — temperature、top-p、max_tokens。指标：任务特定指标（输出多样性 vs 确定性）。
+1. **Prompt engineering**语法,系统提示结构,例子. 计量:任务成功,用户保留,成本/请求.
+2. **Model selection** GPT-4 vs GPT-3.5-Turbo vs Llama-OSS. 计量:准确性 (任务) +成本/请求 + 延迟 P99. 多目标.
+3. **Generation parameters**温度,顶部p,max_tokens. 计量:任务特定 (输出多样性与确定性).
 
-### CUPED — 方差缩减
+###         
 
-Controlled Experiments Using Pre-Experiment Data（使用实验前数据的对照实验）。在比较实验期数据前先对预实验期方差进行回归消除。典型方差缩减幅度：30%-70%。有效样本量免费提升。
+试验前数据. 在比较后期之前,退出前期差异.典型差异减少: 30-70%.有效的样本大小免费增加.
 
-实现方式：Statsig 和 GrowthBook 均已支持。
+实施: Statsig 和 GrowthBook 两者都实施.
 
-### 序贯测试
+### 序列测试
 
-经典 A/B 测试假设固定样本量。序贯测试（"多次观察决策"）在重复查看时控制假阳性率。始终有效的序贯程序（mSPRT、Howard 置信序列）允许你在明显胜出时提前停止。
+经典A/B假设样本大小是固定的. 序列测试 ("望和决定") 在重复的看法下控制虚假阳性率. 始终有效的序列程序 (mSPRT,霍华德的信心序列) 让你早点停止清晰的获胜者.
 
-### 多重比较校正
+### 复杂比较纠正
 
-同时进行 20 次 95% 置信度的 A/B 测试，理论上会因随机性产生一次假阳性。Bonferroni 校正收紧每次测试的 α；Benjamini-Hochberg 控制错误发现率。GrowthBook 均实现了这两种方法。
+运行20次A/B测试, 95%的信心,随机产生一个假阳性. 波恩弗罗尼纠正每次测试加紧 α; 布尼亚米尼-霍奇伯格控制了假发现率. 增长书实现了两者.
 
-### SRM — 样本比例不匹配
+###  SRM 样本比率不匹配
 
-分配哈希将用户随机分配到各变体。如果 50/50 的分组实际呈现 47/53，说明有问题——SRM 检查会标记它。两个平台均支持此功能。
+分配哈希将用户随机分为变体.如果50/50分分为47/53,则有东西被打破.
 
-### Statsig vs GrowthBook
+### 经济与增长
 
-**Statsig：**
-- 2025 年 9 月被 OpenAI 以 11 亿美元收购。托管 SaaS 服务。
-- 支持序贯测试、CUPED、独立人群。
-- 一站式方案：功能开关 + 实验 + 可观测性。
-- 最适合：希望获得捆绑产品、不关心 OpenAI 归属的团队。
+**Statsig**其他:
+- 收购于OpenAI为1.1亿美元 (2025年9月). 主机,SaaS.
+- 测试,CUPED,持续的群体.
+- 一个全合:特征标志+实验+可观测性.
+- 团队已经想要一个捆绑的产品, 不关心OpenAI的所有权.
 
-**GrowthBook：**
-- 开源（MIT 协议）；仓库原生（直接从 Snowflake/BigQuery/Redshift 读取数据）。
-- 多种引擎：贝叶斯、频率学派、序贯。
-- 支持 CUPED、SRM、Bonferroni、BH 校正。
-- 可自托管或托管云。
-- 最适合：使用仓库 SQL 的团队、数据团队控制指标层、希望使用开源方案。
+**GrowthBook**其他:
+- 开源 (MIT);仓库本土 (直接从Snowflake/BigQuery/Redshift中读取).
+- 机器的数量:贝叶斯式,频率式,序列式.
+- ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.
+- 提供自主托管或管理云.
+- 数据团队控制了测量层,想要OSS.
 
-### 不确定性增加功效计算的复杂度
+### 不确定性使权力复杂
 
-同一提示会产生不同输出。传统功效计算假设 IID（独立同分布）观测。在 LLM 不确定性下，有效样本量低于名义样本量。将所需样本量乘以约 1.3-1.5 倍作为安全边际。
+根据标准,在测试中,测试结果的结果是不同的. 传统的功率计算假设是IID观测. 在LLM非确定性学中,有效样本大小低于名义. 乘以安全边缘的1.3-1.5x所需的样本大小.
 
-### 真实案例结果
+### 实际案件结果
 
-- 聊天机器人奖励模型变体：+70% 对话长度，+30% 留存率。
-- Nextdoor 标题：奖励函数优化后 +1% CTR。
-- Khan Academy Khanmigo：在延迟与数学精度之间迭代权衡。
+- 聊天机器人奖励模式变异: +70%的对话长度,+30%的保留.
+- 接下来的主题线: 奖励函数完善后的+1%的CTR.
+- 学院:反复延迟与数学准确度交易.
 
-### 反模式：凭"感觉良好"上线
+### 反模式:在振动上运输
 
-每位资深工程师都能举出一个因"感觉更好"而上线、却没有经过 A/B 测试的功能。其中大多数最终导致产品指标下降，而团队数个月后才意识到。A/B 测试是强制性的把关机制。
+任何高级工程师都能命名出出货的功能,因为"感觉更好",没有A/B. 大多数产品的指标退后,团队几个月没有注意到.A/B是强迫函数.
 
-### 你应该记住的数据
+### 你应该记住的数字
 
-- Statsig 被 OpenAI 收购：11 亿美元，2025 年 9 月。
-- GrowthBook：开源 MIT 协议；贝叶斯 + 频率学派 + 序贯。
-- CUPED 方差缩减：30%-70%。
-- LLM 不确定性 → +30%-50% 样本量缓冲。
+- 美国国家航空公司收购的Statsig:2025年9月11亿美元.
+- 增长书:开源MIT;贝叶斯语+频率主义+序列.
+- 减轻CUPED变异率:30-70%.
+- 专业学历非确定性 → +30-50%的样本尺寸缓冲.
 
 ```figure
 mx-sequential-test
 ```
 
-## 动手实践
+## 用它
 
-`code/main.py` 模拟序贯 A/B 测试，包含固定边界和序贯边界。展示序贯测试如何允许提前停止。
+`code/main.py`模拟一个连续A/B测试,有固定和连续边界.
 
-## 上线交付
+## 运送它
 
-本课将生成 `outputs/skill-ab-plan.md`。给定功能变更、工作负载、基线值，选择平台、设置门禁、确定样本量。
+这一课产生了`outputs/skill-ab-plan.md`鉴于功能变化,工作量,基线,平台选择,门口,样本大小.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。对于预期 5% 提升、基线 3% 转化率，80% 功效需要多少样本量？
-2. 为受医疗监管的本地部署客户选择 Statsig 或 GrowthBook。
-3. 设计一个 A/B 测试，比较 GPT-4 vs GPT-3.5 在"每次解决工单的成本"上的表现。主要指标、守卫指标、次要指标分别是什么？
-4. 你的金丝雀发布通过了但 A/B 测试显示 -1.2% 转化率。是否上线？写出升级标准。
-5. 对预实验期方差占实验期 60% 的情况应用 CUPED。计算有效样本量的提升幅度。
+1. 跑步`code/main.py`预计5%升降,基线转换3%的样本大小为80%功率?
+2. 选择Statsig或 GrowthBook,以供医疗保健监管的本地客户.
+3. 设计一个A/B测试GPT-4与GPT-3.5的价格.
+4. 你的鱼通过了,但A/B显示了 -1.2%的转换.你发货吗?写下升级标准.
+5. 应对前期使用CUPED,以60%的差距.计算有效样本大小增长.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|---------|
-| 评估（Eval） | "离线测试" | 基于标注数据集的模型能力评估 |
-| A/B 测试 | "实验" | 在真实用户上的在线随机化对比 |
-| CUPED | "方差缩减" | 对预实验期数据进行回归以降低方差 |
-| 序贯测试 | "可提前查看的测试" | 始终有效的程序，允许提前停止 |
-| 多重比较 | "家族误差" | 多次运行测试会膨胀假阳性率 |
-| Bonferroni | "严格校正" | 将 α 除以测试次数 |
-| Benjamini-Hochberg | "BH FDR" | 错误发现率控制，不如 Bonferroni 保守 |
-| SRM | "糟糕的分组" | 样本比例不匹配；分配逻辑存在 bug |
-| Statsig | "OpenAI 旗下产品" | 商业一站式方案，2025 年被收购 |
-| GrowthBook | "开源那个" | MIT 协议的仓库原生平台 |
-| mSPRT | "序贯概率比检验" | 经典序贯程序 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Eval | "offline test" | Labeled-set evaluation of model capability |
+| A/B test | "experiment" | Live randomized comparison on users |
+| CUPED | "variance reduction" | Pre-period regression to reduce variance |
+| Sequential test | "peek-ok test" | Always-valid procedure allowing early stop |
+| Multiple comparison | "the family error" | Running many tests inflates false positives |
+| Bonferroni | "tight correction" | Divide α by number of tests |
+| Benjamini-Hochberg | "BH FDR" | False-discovery-rate control, less conservative |
+| SRM | "bad split" | Sample ratio mismatch; assignment bug |
+| Statsig | "OpenAI owned" | Commercial all-in-one, acquired 2025 |
+| GrowthBook | "the OSS one" | MIT warehouse-native platform |
+| mSPRT | "sequential probability ratio test" | Classical sequential procedure |
 
-## 延伸阅读
+## 进一步阅读
 
-- [GrowthBook — 如何对 AI 进行 A/B 测试](https://blog.growthbook.io/how-to-a-b-test-ai-a-practical-guide/)
-- [Statsig — 超越提示：数据驱动的 LLM 优化](https://www.statsig.com/blog/llm-optimization-online-experimentation)
-- [Statsig vs GrowthBook 对比](https://www.statsig.com/perspectives/ab-testing-feature-flags-comparison-tools)
-- [Deng 等人 — CUPED](https://www.exp-platform.com/Documents/2013-02-CUPED-ImprovingSensitivityOfControlledExperiments.pdf)
-- [Howard — 置信序列](https://arxiv.org/abs/1810.08240)
+- [GrowthBook — How to A/B Test AI](https://blog.growthbook.io/how-to-a-b-test-ai-a-practical-guide/)
+- [Statsig — Beyond Prompts: Data-Driven LLM Optimization](https://www.statsig.com/blog/llm-optimization-online-experimentation)
+- [Statsig vs GrowthBook comparison](https://www.statsig.com/perspectives/ab-testing-feature-flags-comparison-tools)
+- [Deng et al. — CUPED](https://www.exp-platform.com/Documents/2013-02-CUPED-ImprovingSensitivityOfControlledExperiments.pdf)
+- [Howard — Confidence Sequences](https://arxiv.org/abs/1810.08240)

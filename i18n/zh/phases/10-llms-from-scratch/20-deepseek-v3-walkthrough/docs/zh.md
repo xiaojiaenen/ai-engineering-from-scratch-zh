@@ -1,36 +1,36 @@
-# DeepSeek-V3 架构详解
+# 深度搜索V3架构通行
 
-> 第10阶段 · 第14课讲解了每个开源模型都在调节的六个架构旋钮。DeepSeek-V3（2024年12月发布，共671B参数，37B活跃）将所有六个旋钮全部调转，并额外增加了四个：多头潜在注意力（MLA）、无辅助损失的负载均衡、多令牌预测（MTP）和DualPipe训练。本课自顶向下阅读DeepSeek-V3的架构，并从公开配置中推导每一个参数量。学完后你可以解释为什么671B/37B的比例是正确的选择，以及为什么MLA+MoE的组合在前沿性能上优于单独使用任一方案。
+> 阶段10 · 第14课每一个开放模型都会转动的六个建筑. 探V3 (12月2024年,共671B参数,37B活跃) 将所有六个变动增加了四个:多头潜伏注意力,辅助无损负载平衡,多 टोकन预测和双管训练. 这一课程将DeepSeek-V3的架构从上到下,并从发布的配置中取出每个参数数数. 截至最后,你就可以解释为什么671B/37B比率是合适的投注,
 
-**类型：** 学习
-**语言：** Python（标准库，参数计算器）
-**前置知识：** 第10阶段 · 14（开源模型详解）、第10阶段 · 17（NSA）、第10阶段 · 18（MTP）、第10阶段 · 19（DualPipe）
-**预计时长：** ~75分钟
+**Type:** Learn
+**Languages:** Python (stdlib, parameter calculator)
+**Prerequisites:** Phase 10 · 14 (open-model walkthroughs), Phase 10 · 17 (NSA), Phase 10 · 18 (MTP), Phase 10 · 19 (DualPipe)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 自顶向下阅读DeepSeek-V3的配置，并用GPT-2的六个旋钮加上四个DeepSeek特有扩展来解释每个字段。
-- 推导总参数量（671B）、活跃参数量（37B）以及各自包含的组件。
-- 计算MLA在128k上下文时的KV缓存占用，并与同等活跃参数规模下使用GQA的稠密模型进行对比。
-- 说出四个DeepSeek特有创新（MLA、MTP、无辅助损失路由、DualPipe），并指明每个创新针对架构/训练栈的哪一部分。
+- 阅读DeepSeek-V3配置的顶部到底,并用六个GPT-2按和四个DeepSeek特定的添加来解释每个字段.
+- 导出总参数数 (671B),活参数数 (37B) 和每个参数的贡献组件.
+- 在128k文本中计算MLA的KV缓存足迹,并与GQA的相同活性参数密集型模型进行比较.
+- 说明DeepSeek特定的四项创新 (MLA,MTP,辅助无损路由,DualPipe) 以及每个目标的建筑/培训堆的一部分名称.
 
-## 问题背景
+## 问题
 
-DeepSeek-V3是首个架构与Llama系列存在实质性差异的前沿开源模型。Llama 3 405B是"六个旋钮全开的GPT-2"，而DeepSeek-V3是在这六个旋钮之外又加了四个。阅读Llama 3配置只是热身，而DeepSeek配置的深层结构——注意力块的形状、路由逻辑、训练目标——都有足够大的差异，需要单独的详解。
+果V3是第一个开放的边界模型,其架构与拉马家族有意义地不同. 拉马3405B是"GPT-2有六个旋转. "深度搜索V3是GPT-2有六个旋转加上四个. 阅读Llama 3配置是阅读DeepSeek配置的热点,但深层结构,注意力区块的形状,路由逻辑,训练时间目标,
 
-学习的回报：DeepSeek-V3的开源权重发布重新定义了开源模型中"前沿能力"的含义。这个架构是许多2026年训练跑正在复制的蓝图。理解它是任何涉及前沿LLM训练或推理角色的基本门槛。
+学习的回报:DeepSeek-V3的开放权重版本改变了"边界能力"在开放模型中意味着什么. 架构是许多2026年培训运行所复制的蓝图.理解它是任何涉及边界LLM培训或推断的角色的桌子.
 
-## 核心概念
+## 概念
 
-### 再次确认不变的核心
+### 变化不变的核心,再次
 
-DeepSeek-V3仍然是自回归模型。它仍然堆叠解码器块。每个块仍然包含注意力+MLP+两个RMSNorm。它仍然在MLP中使用SwiGLU。仍然使用RoPE。预归一化（Pre-norm）。权重共享的嵌入层。与所有Llama或Mistral模型的基线相同。
+果版V3仍然是自动降级的.它仍然堆叠解码区块.每个区块仍然有注意力加上MLP加上两个RMSNorms.它仍然使用SwiGLU在MLP中.它仍然使用RoPE.预规.重量绑定嵌入式.与每个Llama或Mistral相同的基线.
 
-### 变化点：用MLA替代GQA
+### 转变:MLA而不是GQA
 
-从第10阶段·14你已了解GQA通过让Q头组共享K和V来压缩KV缓存。多头潜在注意力（MLA）更进一步：K和V被压缩进一个共享的低秩潜在表示（`kv_lora_rank`），然后在计算时按头解压。KV缓存仅存储潜在向量——通常是每层每token 512个浮点数，而非8 x 128 = 1024个浮点数。
+从10 · 14阶段开始,你知道GQA通过将K和V分为Q头群的KV缓存缩小了.多头隐形注意力 (MLA) 进一步了:K和V被压缩成共享的低级隐形表示 (the `kv_lora_rank`存储器只存储隐藏的,通常每层每代币512个浮动,而不是8 x 128 = 1024个浮动.
 
-在128k上下文下，使用MLA的DeepSeek-V3（每token每层一个共享潜在`c^{KV}`；K和V均由该潜在通过上投影派生，且可吸收进后续矩阵乘法）：
+在128k背景下, DeepSeek-V3与MLA (一个共享的隐藏`c^{KV}`通过可吸收到后续的子中的上升投影,K和V都来自此隐藏的:
 
 ```
 kv_cache = num_layers * kv_lora_rank * max_seq_len * bytes_per_element
@@ -38,158 +38,158 @@ kv_cache = num_layers * kv_lora_rank * max_seq_len * bytes_per_element
          = 7.6 GB
 ```
 
-一个假设的GQA基线（Llama 3 70B形状，8个KV头，头维度128）需要支付：
+假设GQA基线 (Llama 3 70B形状,8KV头,头128) 将支付:
 
 ```
 kv_cache = 2 * 61 * 8 * 128 * 131072 * 2
          = 30.5 GB
 ```
 
-在128k上下文下，MLA比Llama-3-70B风格的GQA缓存小4倍。
+在128k文本上,MLA比Llama-3-70B类型的GQA缓存小4倍.
 
-权衡：MLA在每次注意力计算时为每个头增加一步解压操作。与节省的带宽相比，额外计算量很小。对长上下文推理整体是收益。
+折扣:MLA每一个注意力计算 (每一个人) 增加一个减压步骤.额外的计算与节省的带宽相比较小.长文本推断的净胜利.
 
-### 路由：无辅助损失的负载均衡
+### 路由:无损辅助负载平衡
 
-MoE路由器决定哪些top-k专家处理每个token。朴素的路由器会将过多工作集中在少数专家上，导致其他专家闲置。标准解决方案是添加一个惩罚负载不均衡的辅助损失项。这有效但会轻微降低主任务性能。
+导路器决定哪些顶级专家处理每个代币.一个天真的路由器集中太多的工作在少数专家上,让其他人置.标准解决方案:添加辅助损失术语,惩罚负载不平衡.这有效,但略有降低了主任务性能.
 
-DeepSeek-V3引入了无辅助损失方案。在每个专家的router logits上添加偏置项，并在训练期间按简单规则调整：若专家`e`过载则减小`bias_e`；若欠载则增大。无需额外损失项。训练保持干净，专家负载保持平衡。
+通过简单的规则,将每个专家的偏见条款添加到路由器的记录中,`e`度下降`bias_e`训练保持干净,专家负载保持平衡.
 
-对主损失的影响：无可测量影响。对MoE架构的影响：更干净，无需调优辅助损失超参数。
+影响主要损失:没有可测量. 对MoE架构的影响:清洁,没有辅助损失超参数调节.
 
-### MTP：更密集的训练 + 免费草稿
+### 密集训练+免费训练
 
-从第10阶段·18你已了解DeepSeek-V3添加了D=1个MTP模块，用于预测两个位置之后的token。在推理时，训练好的模块被重新用作投机解码的草稿生成器，接受率超过80%。在训练时，每个隐藏状态对D+1=2个目标进行监督，提供更密集的信号。
+从10 · 18阶段,你知道DeepSeek-V3添加了D=1 MTP模块,预测代币前面的两个位置.在推断时,训练模块被重定为一个投机式解码草案,接受80%以上.在训练时,每个隐藏状态都在D+1 = 2目标上监督,提供更密集的信号.
 
-参数量：在主模型671B之上额外增加14B。开销：2.1%。
+参数:671B主机上14B. 总费:2.1%.
 
-### 训练：DualPipe
+### 训练:双管
 
-从第10阶段·19你已了解DualPipe是一种双向流水线，通过将前向和后向块与跨节点all-to-all通信重叠来提升效率。在DeepSeek-V3的2048块H800规模下，它回收了约24.5万GPU小时——这些时间如果用1F1B会因流水线气泡而浪费。
+从10期 19期你知道DualPipe是一个双向管道,它覆盖前后的块,与跨节点通讯.在DeepSeek-V3的2,048-H800尺度上,它恢复了1F1B将失去的约245kGPU小时.
 
-### 配置逐项解析
+### 配置,个别的领域
 
-以下是DeepSeek-V3的配置（简化版）：
+这里是 DeepSeek-V3 配置 (简单):
 
 ```
 hidden_size: 7168
-intermediate_size: 18432   （稠密MLP隐藏维度，用于前几层）
-moe_intermediate_size: 2048 （专家MLP隐藏维度）
+intermediate_size: 18432   (dense MLP hidden size, used on first few layers)
+moe_intermediate_size: 2048 (expert MLP hidden size)
 num_hidden_layers: 61
-first_k_dense_layers: 3    （前3层使用稠密MLP）
+first_k_dense_layers: 3    (first 3 layers use dense MLP)
 num_attention_heads: 128
-num_key_value_heads: 128   （在MLA下形式上与num_heads相等，
-                           真正的压缩在kv_lora_rank中）
-kv_lora_rank: 512          （MLA潜在维度）
-num_experts: 256            （每块的MoE专家数量）
-num_experts_per_tok: 8      （top-8路由）
-shared_experts: 1           （每块始终运行的共享专家）
+num_key_value_heads: 128   (formally equal to num_heads under MLA, but
+                           the real compression is in kv_lora_rank)
+kv_lora_rank: 512          (MLA latent dimension)
+num_experts: 256            (MoE expert count per block)
+num_experts_per_tok: 8      (top-8 routing)
+shared_experts: 1           (always-on shared expert per block)
 max_position_embeddings: 163840
 rope_theta: 10000.0
 vocab_size: 129280
-mtp_module: 1               （深度为1处有1个MTP模块）
+mtp_module: 1               (1 MTP module at depth 1)
 ```
 
-解析：
+分析一下:
 
-- `hidden_size=7168`：嵌入维度。
-- `num_hidden_layers=61`：总块深度。
-- `first_k_dense_layers=3`：前3个块使用尺寸为18432的稠密MLP。剩余58个块使用MoE。
-- `num_attention_heads=128`：128个查询头。
-- `kv_lora_rank=512`：K和V被压缩到此潜在维度，然后按头解压。
-- `num_experts=256, num_experts_per_tok=8`：每个MoE块有256个专家，路由top-8。
-- `shared_experts=1`：在256个路由专家之上，1个始终运行的专家为每个token贡献。可以把它视为确保每个token都能获得可靠输出的"稠密基底"。
-- `moe_intermediate_size=2048`：每个专家的MLP隐藏维度。比稠密MLP更小，因为有256个专家。
+- `hidden_size=7168`嵌入式尺寸
+- `num_hidden_layers=61`积的总深度
+- `first_k_dense_layers=3`其他58个使用 MoE.
+- `num_attention_heads=128`查询标题: 128个.
+- `kv_lora_rank=512`:K和V被压缩到这种隐形尺寸,并被解压缩为每头.
+- `num_experts=256, num_experts_per_tok=8`据悉,每一块中海工程部门都有256名专家,
+- `shared_experts=1`对于每一个代币,除了256个被调整的专家之外,每一个代币都有1个常见专家.
+- `moe_intermediate_size=2048`由于有256个,所以它比密集的MLP更小.
 
-### 参数核算
+### 参数会计
 
-完整计算在`code/main.py`中。关键数字：
+整个计算在`code/main.py`标题:
 
-- 嵌入层：`vocab * hidden = 129280 * 7168 ≈ 0.93B`。
-- 前3个稠密块：带MLA的注意力（每块约144M）+ 稠密MLP（每块约260M）+ 归一化层。总计约1.2B。
-- 58个MoE块：带MLA的注意力（约144M）+ 256个专家（每个30M）+ 1个共享专家（30M）+ 归一化。每块总计约7.95B（含所有专家）。58个MoE块共461B。
-- MTP模块：14B。
+- 嵌入:`vocab * hidden = 129280 * 7168 = ~0.93B`现在,我们要去.
+- 首先有3个密集块:注意力与MLA (每块144M) +密集MLP (每块260M) +标准.约1.2B总量.
+- 58个MoE区块:关注MLA (~144M) +每一个256名专家 (30M) +1个共享专家 (30M) +标准.每块的总数~7.95B,包括所有专家. 58个MoE区块的总数为461B.
+- 电源:14B
 
-总计：核心架构约476B + 14B MTP。与公开的671B数字的差异来自于额外的结构性参数（偏置张量、专家特定组件、共享专家缩放因子等）。计算器复现的数字与公开值相差3-5%，差距来自DeepSeek报告中第2节附录的详细核算。
+大总数:核心架构的476B+14BMTP+明确地发布的671B号码为额外的结构参数 (偏见数,专家特定组件,共享专家规模等).我们在计算器中复制的数字在发布的3-5%内.
 
-每次前向的活跃参数：
+按前进的活跃参数:
 
-- 注意力：每层144M × 61层 = 8.8B（所有层都激活）。
-- MLP活跃：前3层稠密（3 × 260M = 780M），58个MoE层每层活跃部分为8个路由专家 + 1个共享专家 + 路由开销。每层活跃MLP约260M。总计：3 × 260M + 58 × 260M ≈ 15.9B。
-- 嵌入层 + 归一化层：1.2B。
-- 总活跃：核心约26B + 14B MTP（训练时运行但推理时不一定全跑）≈ 37B。
+- 注意:每层144M*61 =8.8B (所有层都燃烧).
+- 活跃的MLP:第3层密度 (3 * 260M = 780M),每层活跃的58个MoE层,有8个路由+1个共享+路由上层.每层活跃的MLP: ~260M.总数: 3 * 260M + 58 * 260M = ~15.9B.
+- 嵌入+规范:1.2B.
+- 总活性:大约26B核心+14BMTP (训练但并不总是推断运行) ≈37B.
 
-### 671B / 37B 比例
+### 平均值
 
-18倍的稀疏比（活跃参数占总参数的5.5%）。DeepSeek-V3是已开源权重的最稀疏的前沿MoE模型。Mixtral 8x7B的比例为13/47（28%），稠密得多。Llama 4 Maverick的比例为17B/400B（4.25%），与之接近。DeepSeek的选择是：在前沿规模下，更多专家配合更低的激活比例，能以更少的活跃FLOP获得更好的质量。
+密度比率为18倍 (活性参数为总量的5.5%).DeepSeek-V3是最稀有的边界MoE模型,它已经运送了开放权重.混合型8x7B在比率为13/47 (28%) 密度更高.Llama 4 Maverick在比率为17B/400B (4.25%) 相当.深度Seek的投注:在边界规模上,较低激活率的更多专家产生更好的质量每活跃-FLOP.
 
-### DeepSeek-V3的定位
+### 探V3坐的地方
 
-| 模型 | 总量 | 活跃 | 比例 | 注意力 | 创新点 |
+| Model | Total | Active | Ratio | Attention | Novel ideas |
 |-------|------|-------|-------|-----------|-------------|
 | Llama 3 70B | 70B | 70B | 100% | GQA 64/8 | — |
 | Llama 4 Maverick | 400B | 17B | 4.25% | GQA | — |
 | Mixtral 8x22B | 141B | 39B | 27% | GQA | — |
-| DeepSeek V3 | 671B | 37B | 5.5% | MLA 512 | MLA + MTP + 无辅助损失 + DualPipe |
-| Qwen 2.5 72B | 72B | 72B | 100% | GQA 64/8 | YaRN扩展 |
+| DeepSeek V3 | 671B | 37B | 5.5% | MLA 512 | MLA + MTP + aux-free + DualPipe |
+| Qwen 2.5 72B | 72B | 72B | 100% | GQA 64/8 | YaRN extension |
 
-### 后续演进：R1、V4
+### 接下来:R1,V4
 
-DeepSeek-R1（2025年）是在V3骨干上进行的推理训练运行。R1使用相同的架构。变化的是后训练配方（在可验证任务上进行大规模强化学习），而非预训练架构。
+根据V3背骨的推理训练,R1使用相同的架构.所改变的是训练后的配方 (可验证任务的大规模RL),而不是训练前的架构.
 
-DeepSeek-V4（若发布）预计将保留MLA + MoE + MTP，并加入DSA（DeepSeek稀疏注意力），作为第10阶段·17中NSA的继任者。传承脉络稳定：架构级创新不断累积，每个版本都会增加额外的旋钮。
+预计DeepSeek-V4 (如果它发货) 将保留MLA + MoE + MTP并添加DSA (DeepSeek Sparse Attention),该系统是NSA的继承者,从10 · 17阶段.
 
 ```figure
 moe-routing
 ```
 
-## 实践应用
+## 用它
 
-`code/main.py`是专为DeepSeek-V3形状定制的参数计算器。运行它，将其输出与论文数字对比，并用于假设变体（256个专家 vs 512个、top-8 vs top-16、MLA rank 512 vs 1024）。
+`code/main.py`运行它,将其输出与纸张的数字进行比较,并使用它在假设变体上 (256 专家对512 ,前8对前16 ,MLA 排名 512对1024).
 
-关注点：
+什么要看:
 
-- 总参数量与公开的671B对比。
-- 活跃参数量与公开的37B对比。
-- 128k上下文下的KV缓存——MLA与GQA的对比。
-- 逐层拆解，查看参数预算实际花在哪里。
+- 总参数数与公布的671B.
+- 活跃参数数与公布的37B.
+-  MLA 与 GQA 的比较.
+- 按层次分类,看看参数预算实际上是什么.
 
-## 交付物
+## 运送它
 
-本课产出`outputs/skill-deepseek-v3-reader.md`。给定DeepSeek系列模型（V3、R1或任何未来变体），它会逐组件读取架构，命名配置的每个字段，按组件推导参数量，并识别该模型使用了四个DeepSeek特有创新中的哪些。
+这一课产生了`outputs/skill-deepseek-v3-reader.md`鉴于DeepSeek家族模型 (V3,R1或任何未来的变体),它产生了组件按组件的架构读取,该模型将配置的每个领域命名,从组件按参数计算中推出,并确定该模型使用的四种DeepSeek特定创新中哪个.
 
-## 练习
+## 运动
 
-1. 运行`code/main.py`。将计算器的总参数估计与公开的671B对比，并找出差异的来源。论文第2节有完整的逐项清单。
+1. 跑步`code/main.py`计算器的总参数估计与已发表的671B相比较,并确定 delta来自哪里.
 
-2. 将配置修改为使用MLA rank 256而非512。计算128k上下文下的KV缓存大小。能节省多少百分比，代价是什么（每头的表达能力）？
+2. 修改配置,以使用MLA级别 256而不是512. 在128k文本中计算出所产生的KV缓存大小.它购买了多少个百分比的减小,每头表达性成本是多少?
 
-3. 将DeepSeek-V3的（256个专家，top-8）路由与假设的（512个专家，top-8）变体对比。总参数增加，活跃参数不变。额外的专家容量理论上能带来什么，推理时成本是什么？
+3. 根据 DeepSeek-V3 的推测,它可以使用一个假设的 (512 专家, 8 专家) 变异.
 
-4. 阅读DeepSeek-V3技术报告（arXiv:2412.19437）的第2.1节关于MLA的内容。用三句话解释为什么K和V的解压矩阵可以"吸收"进后续的矩阵乘法以提升推理效率。
+4. 阅读深度搜索-V3技术报告 (arXiv:2412.19437) 的2.1节. 解释为什么K和V解压矩阵可以"吸收"后续的子中,以推断时间效率.
 
-5. DeepSeek-V3对大多数操作使用FP8训练。计算存储671B权重时FP8相比BF16节省的内存。这与14.8T token的训练预算有何关联？
+5. 根据 DeepSeek-V3 的数据,FP8 训练是最重要的.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|------------------------|
-| MLA | "多头潜在注意力" | 将K和V压缩进共享低秩潜在向量（kv_lora_rank，通常512），按需按头解压；KV缓存仅存储潜在向量 |
-| kv_lora_rank | "MLA压缩维度" | K和V共享潜在向量的大小；DeepSeek-V3使用512 |
-| First k dense layers | "早期层保持稠密" | 前几个MoE模型层跳过MoE路由器，运行稠密MLP以保证稳定性 |
-| num_experts_per_tok | "Top-k路由" | 每个token触发的路由专家数量；DeepSeek-V3使用8 |
-| Shared experts | "始终运行的专家" | 无论路由结果如何都处理每个token的专家；DeepSeek-V3使用1 |
-| Auxiliary-loss-free routing | "偏置调整的负载均衡" | 训练期间调整各专家偏置项以保持专家负载均衡，无需添加损失项 |
-| MTP module | "额外预测头" | 从h^(1)和E(t+1)预测t+2位置的Transformer块；更密集的训练，免费的投机解码草稿 |
-| DualPipe | "双向流水线" | 将前向/后向计算与跨节点all-to-all通信重叠的训练调度方案 |
-| Active parameter ratio | "稀疏度" | active_params / total_params；DeepSeek-V3达到5.5% |
-| FP8 training | "8位训练" | 以FP8进行训练存储和多数计算操作；相比BF16内存减半，质量略有损耗 |
+| MLA | "Multi-Head Latent Attention" | Compress K and V into a shared low-rank latent (kv_lora_rank, typically 512), decompress per head on-the-fly; KV cache stores only the latent |
+| kv_lora_rank | "MLA compression dim" | The size of the shared latent for K and V; DeepSeek-V3 uses 512 |
+| First k dense layers | "Early layers stay dense" | The first few MoE-model layers skip the MoE router and run a dense MLP for stability |
+| num_experts_per_tok | "Top-k routing" | How many routed experts fire per token; DeepSeek-V3 uses 8 |
+| Shared experts | "Always-on experts" | Experts that process every token regardless of routing; DeepSeek-V3 uses 1 |
+| Auxiliary-loss-free routing | "Bias-adjusted load balance" | Per-expert bias terms adjusted during training to keep expert load balanced without adding a loss term |
+| MTP module | "Extra prediction head" | Transformer block predicting t+2 from h^(1) and E(t+1); denser training, free speculative-decoding draft |
+| DualPipe | "Bidirectional pipeline" | Training schedule that overlaps forward/backward compute with cross-node all-to-all |
+| Active parameter ratio | "Sparsity" | active_params / total_params; DeepSeek-V3 hits 5.5% |
+| FP8 training | "8-bit training" | Training storage and many compute ops in FP8; roughly halves memory vs BF16 at a small quality cost |
 
-## 延伸阅读
+## 进一步阅读
 
-- [DeepSeek-AI — DeepSeek-V3技术报告（arXiv:2412.19437）](https://arxiv.org/abs/2412.19437) — 完整的架构、训练和结果文档
-- [DeepSeek-V3模型卡片（Hugging Face）](https://huggingface.co/deepseek-ai/DeepSeek-V3) — 配置文件和部署说明
-- [DeepSeek-V2论文（arXiv:2405.04434）](https://arxiv.org/abs/2405.04434) — 引入MLA的前作
-- [DeepSeek-R1论文（arXiv:2501.12948）](https://arxiv.org/abs/2501.12948) — 基于V3架构的推理训练后继
-- [Native Sparse Attention（arXiv:2502.11089）](https://arxiv.org/abs/2502.11089) — DeepSeek系列注意力的未来方向
-- [DualPipe仓库](https://github.com/deepseek-ai/DualPipe) — 训练调度参考实现
+- [DeepSeek-AI — DeepSeek-V3 Technical Report (arXiv:2412.19437)](https://arxiv.org/abs/2412.19437)完整的建筑,培训和结果文件
+- [DeepSeek-V3 model card on Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V3)配置文件和部署说明
+- [DeepSeek-V2 paper (arXiv:2405.04434)](https://arxiv.org/abs/2405.04434)引入MLA的前任
+- [DeepSeek-R1 paper (arXiv:2501.12948)](https://arxiv.org/abs/2501.12948)V3的架构的推理训练继承者
+- [Native Sparse Attention (arXiv:2502.11089)](https://arxiv.org/abs/2502.11089)深度寻找家庭关注的未来方向
+- [DualPipe repository](https://github.com/deepseek-ai/DualPipe)培训时间表的参考

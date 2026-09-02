@@ -1,59 +1,59 @@
-# 深度 Q 网络 (DQN)
+# 深度Q网络 (DQN)
 
-> 2013年：Mnih 用原始像素训练了一个 Q-learning 网络，在七款 Atari 游戏中击败了所有经典强化学习智能体。2015年：扩展到 49 款游戏，发表在《Nature》，开启了深度强化学习时代。DQN 是 Q-learning 加上三个让函数近似稳定化的技巧。
+> 2013年:Mnih在原始像素上训练了一种Q学习网络,在七款Atari游戏中击败了每一个经典RL代理. 2015年:扩展到49个游戏,发表在Nature上,引发了深度RL时代.DQN是Q学习加上三个技巧,使函数近似稳定.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** 第 3 阶段 · 第 03 课（反向传播），第 9 阶段 · 第 04 课（Q-learning，SARSA）
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 3 · 03 (Backpropagation), Phase 9 · 04 (Q-learning, SARSA)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-表格 Q-learning 需要为每个 (状态，动作) 对保存单独的 Q 值。棋盘有约 10⁴³ 个状态。一帧 Atari 画面是 210×160×3 = 100,800 个特征。表格型 RL 在几千个状态时就崩溃了，更不用说数十亿的状态。
+图表 Q-学习需要每个 (状态,行动) 双的单独Q-值.棋牌板上有1043个状态.阿塔利框架为210×160×3 =100800个特征.图表 RL在数千个状态中死亡,更不用说数十亿.
 
- hindsight 看来显而易见的解决方案：用神经网络 `Q(s, a; θ)` 替换 Q 表。但这显而近之的方案花了数十年才被实现。与 Q-learning 结合的朴素函数近似会在"致命三角"（deadly triad）下发散——函数近似 + 自举（bootstrapping）+ 离策略（off-policy）学习。Mnih 等人（2013，2015）确定了三个工程技巧来稳定训练：
+后面看来,解决方案很明显:用神经网络取代Q表,`Q(s, a; θ)`,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-1. **经验回放** 解相关转移样本。
-2. **目标网络** 冻结自举目标。
-3. **奖励裁剪** 归一化梯度量级。
+1. **Experience replay**调整过渡.
+2. **Target network**结了启动线的目标.
+3. **Reward clipping**它们的度大小是正常化的.
 
-在 Atari 上使用 DQN 是第一次：同一个架构、同一组超参，就能从原始像素解决数十个控制问题。此后所有的"深度强化学习"算法——DDQN、Rainbow、Dueling、Distributional、R2D2、Agent57——都是基于这三个技巧堆叠而来。
+亚塔利的DQN是唯一一个架构的首次,一个单一的超参数组解决了数十个控制问题.从 DDQN,彩虹,双斗,分销,R2D2,Agent57 以来构建的所有"深度RL"都堆叠在这个三招基础上.
 
-## 核心概念
+## 概念
 
-![DQN 训练循环：环境、经验回放缓冲区、在线网络、目标网络、Bellman TD 损失](../assets/dqn.svg)
+![DQN training loop: env, replay buffer, online net, target net, Bellman TD loss](../assets/dqn.svg)
 
-**目标函数。** DQN 最小化神经 Q 函数的一步 TD 损失：
+**The objective.**通过 DQN 降低神经 Q 函数的单步 TD 损失:
 
 `L(θ) = E_{(s,a,r,s')~D} [ (r + γ max_{a'} Q(s', a'; θ^-) - Q(s, a; θ))² ]`
 
-`θ` = 在线网络，每一步通过梯度下降更新。`θ^-` = 目标网络，定期从 `θ` 复制（大约每 10,000 步）。`D` = 过去转移的经验回放缓冲区。
+`θ`网络,每一步都会随着梯度下降更新.`θ^-`网址: 网址: 网址: 网址: 网址:`θ`它们的位置是很小的.`D`= 过去的过渡的重播缓冲器.
 
-**三个技巧，按重要性排序：**
+**The three tricks, in order of importance:**
 
-**经验回放。** 一个包含 `~10⁶` 条转移的环形缓冲区。每个训练步骤均匀随机采样一个小批量。这打破了时间相关性（连续帧几乎相同），让网络能多次从稀有的高奖励转移中学习，并解相关连续的梯度更新。没有它，在线 TD 配合神经网络在 Atari 上会发散。
+**Experience replay.**的环保器`~10⁶`通过此,网络可以从罕见的有益转型中学习,并将连续的梯度更新进行调整.没有它,在政策上,TD与神经网络分离在Atari上.
 
-**目标网络。** 在 Bellman 方程两侧使用同一个网络 `Q(·; θ)` 会导致目标函数每次更新都在移动——"追赶自己的尾巴"。解决方案：保留第二个网络 `Q(·; θ^-)`，权重冻结。每 `C` 步，将 `θ` 复制到 `θ^-`。这让回归目标在数千步梯度更新期间保持稳定。软更新 `θ^- ← τ θ + (1-τ) θ^-`（在 DDPG、SAC 中使用）是更平滑的变体。
+**Target network.**通过同一个网络`Q(·; θ)`通过Bellman方程的两侧,目标每次更新都会移动 "追逐自己的尾巴".`Q(·; θ^-)`结的重量.`C`步骤,复制`θ → θ^-`这使得反归目标稳定,`θ^- ← τ θ + (1-τ) θ^-`(用于DDPG,SAC) 是一个更平滑的变体.
 
-**奖励裁剪。** Atari 奖励幅度从 1 到 1000+ 不等。裁剪到 `{-1, 0, +1}` 防止任何单局游戏主导梯度。当奖励量级重要时这会出错；但在 Atari 中只需关注符号即可。
+**Reward clipping.**亚塔利奖励大小从1到1000+之间.`{-1, 0, +1}`错误的是奖励大小重要,但Atari只需要签字.
 
-**Double DQN。** Hasselt（2016）解决了最大化偏差：使用在线网络*选择*动作，使用目标网络*评估*它。
+**Double DQN.**哈塞尔特 (2016) 修复了最大化偏见:使用在线网络来*选择*行动,目标网络来*评估*它.
 
 `target = r + γ Q(s', argmax_{a'} Q(s', a'; θ); θ^-)`
 
-可无缝替换，效果 consistently 更好。默认使用它。
+随时更好,默认使用.
 
-**其他改进（Rainbow，2017）：** 优先回放（更频繁采样高 TD 误差转移）、Dueling 架构（分离 `V(s)` 和优势头）、噪声网络（学习式探索）、n 步回报、分布 Q（C51/QR-DQN）、多步自举。每项增加几个百分点；收益大致可叠加。
+**Other improvements (Rainbow, 2017):**优先重播 (样本高TD错误过渡更多),对决架构 (分开 `V(s)`它们的数量和优势是多少? 它们的数量和优势是多少?
 
 ```figure
 f3-dqn-stability
 ```
 
-## 动手实现
+## 建立它
 
-这里的代码仅用标准库，无 numpy——我们在一个小型连续 GridWorld 上使用手工实现的单层 MLP，所以每个训练步骤仅需数微秒。该算法与大规模 Atari DQN 完全一致。
+我们使用一个手动滚动的单层隐藏MLP在一个微小的连续 GridWorld,所以每个训练步骤运行在微秒.算法是相同的阿塔利DQN规模.
 
-### 步骤 1：经验回放缓冲区
+### 步骤1:重播缓冲器
 
 ```python
 class ReplayBuffer:
@@ -68,9 +68,9 @@ class ReplayBuffer:
         return rng.sample(self.buf, batch)
 ```
 
-Atari 使用约 50,000 容量；我们的小型环境 5,000 就足够。
+对于阿塔利的容量大约为5万,
 
-### 步骤 2：小型 Q 网络（手工 MLP）
+### 步骤2:一个小的Q网络 (手动MLP)
 
 ```python
 class QNet:
@@ -85,9 +85,9 @@ class QNet:
         return q, h
 ```
 
-前向传播：线性层 → ReLU → 线性层。这就是整个网络。
+线性 → 线性 → 线性.
 
-### 步骤 3：DQN 更新
+### 步骤3:DQN更新
 
 ```python
 def train_step(online, target, batch, gamma, lr):
@@ -104,11 +104,11 @@ def train_step(online, target, batch, gamma, lr):
     apply_sgd(online, grads, lr / len(batch))
 ```
 
-结构与第 04 课的 Q-learning 相同，有两个区别：(a) 我们对可微的 `Q(·; θ)` 进行反向传播，而不是索引表格；(b) 目标使用 `Q(·; θ^-)`。
+形状是从04课程中学习Q,有两个区别:`Q(·; θ)`目标使用的方法`Q(·; θ^-)`现在,我们要去.
 
-### 步骤 4：外层循环
+### 步骤4:外环
 
-每个episode中，对 `Q(·; θ)` 执行 ε-贪婪行动，将转移推入缓冲区，采样小批量，执行一步梯度下降，定期同步 `θ^- ← θ`。模式如下：
+对于每一集,都做一个贪的行为.`Q(·; θ)`按,按,按,按,按,按,按,按.`θ^- ← θ`模式:
 
 ```python
 for episode in range(N):
@@ -124,85 +124,85 @@ for episode in range(N):
         s = s_next
 ```
 
-在我们的小型 GridWorld（16维 one-hot 状态）上，智能体大约在 500 个 episode 内学会近乎最优的策略。在 Atari 上，将此扩展到 2 亿帧并添加 CNN 特征提取器。
+在我们的小小的GridWorld中,有16维的单热状态,代理在500集中学习了近乎最佳的政策.在Atari上,将这扩大到200万个框架,并添加一个CNN特色提取器.
 
-## 常见陷阱
+## 陷
 
-- **致命三角。** 函数近似 + 离策略 + 自举可能导致发散。DQN 通过目标网络 + 回放来缓解；不要移除其中任何一个。
-- **探索。** ε 必须衰减，通常在前 ~10% 的训练中从 1.0 降到 0.01。如果早期探索不足，Q 网络会收敛到局部最优。
-- **高估。** 对噪声 Q 取 `max` 会产生向上的偏差。在生产环境中始终使用 Double DQN。
-- **奖励量级。** 裁剪或归一化奖励；梯度量级与奖励量级成正比。
-- **回放缓冲区冷启动。** 缓冲区拥有几千条转移之前不要开始训练。早期在约 20 个样本上的梯度容易过拟合。
-- **目标同步频率。** 太频繁 ≈ 没有目标网络；太稀疏 ≈ 目标过时。Atari DQN 使用 10,000 步环境交互。经验法则：每隔训练总时长的约 1/100 同步一次。
-- **观测预处理。** Atari DQN 堆叠 4 帧使状态满足马尔可夫性。任何包含速度信息的.env 需要帧堆叠或循环状态。
+- **Deadly triad.**函数近似+非政策+启动可能会分歧.DQN通过目标网+重播减轻;不要删除任何一个.
+- **Exploration.**由于网的度较高,而网的度较高,所以网的度较高.
+- **Overestimation.** `max`总是使用双DQN在生产中.
+- **Reward scale.**剪辑或正常化奖励;梯度大小与奖励大小相对.
+- **Replay buffer coldstart.**在缓冲器有几千次过渡之前不要训练.
+- **Target sync frequency.**太频繁 ≈ 没有目标网;太少 ≈ 过时目标. 雅塔利 DQN 使用10,000个env步骤. 指规则:每1/100个训练视野同步.
+- **Observation preprocessing.**任何具有速度信息的环境都需要框架堆或复发状态.
 
-## 使用场景
+## 用它
 
-2026 年，DQN 不再是 SOTA，但仍然是离策略算法的参考实现：
+在2026年,DQN很少是最先进的,但仍然是参考的非政策算法:
 
-| 任务 | 首选方法 | 为什么不选 DQN？ |
+| Task | Method of choice | Why not DQN? |
 |------|------------------|--------------|
-| 离散动作 Atari 类 | Rainbow DQN 或 Muesli | 同一框架，更多技巧。 |
-| 连续控制 | SAC / TD3（第 9 阶段 · 第 07 课） | DQN 没有策略网络。 |
-| 在线策略 / 高吞吐 | PPO（第 9 阶段 · 第 08 课） | 无需经验回放；更容易扩展。 |
-| 离线 RL | CQL / IQL / Decision Transformer | 保守 Q 目标，无自举爆炸。 |
-| 大型离散动作空间（推荐系统） | 带动作嵌入的 DQN，或 IMPALA | 可行；装饰更重要。 |
-| LLM RL | PPO / GRPO | 序列级，非步级；损失不同。 |
+| Discrete-action Atari-like | Rainbow DQN or Muesli | Same framework, more tricks. |
+| Continuous control | SAC / TD3 (Phase 9 · 07) | DQN has no policy network. |
+| On-policy / high-throughput | PPO (Phase 9 · 08) | No replay buffer; easier to scale. |
+| Offline RL | CQL / IQL / Decision Transformer | Conservative Q targets, no bootstrapping blowups. |
+| Large discrete action spaces (recommender) | DQN with action embedding, or IMPALA | Fine; decoration matters. |
+| LLM RL | PPO / GRPO | Sequence-level, not step-level; different loss. |
 
-这些原则仍然适用。回放和目标网络出现在 SAC、TD3、DDPG、SAC-X、AlphaZero 的自我对弈缓冲区以及所有离线 RL 方法中。奖励裁剪演变为 PPO 中的优势归一化。这个架构是蓝图。
+课程仍然在进行.重播和目标网络出现在SAC,TD3,DDPG,SAC-X,AlphaZero的自动播放缓冲器和每个离线RL方法中.奖励剪辑作为PPO中的优势正常化继续存在.架构是蓝图.
 
-## 交付物
+## 运送它
 
-保存为 `outputs/skill-dqn-trainer.md`：
+保存如`outputs/skill-dqn-trainer.md`其他:
 
 ```markdown
 ---
 name: dqn-trainer
-description: 为离散动作强化学习任务生成 DQN 训练配置（缓冲区、目标同步、ε 调度、奖励裁剪）。
+description: Produce a DQN training config (buffer, target sync, ε schedule, reward clipping) for a discrete-action RL task.
 version: 1.0.0
 phase: 9
 lesson: 5
 tags: [rl, dqn, deep-rl]
 ---
 
-给定一个离散动作环境（观测形状、动作数量、回合长度、奖励量级），输出：
+Given a discrete-action environment (observation shape, action count, horizon, reward scale), output:
 
-1. 网络。架构（MLP / CNN / Transformer）、特征维度、层深。
-2. 经验回放缓冲区。容量、小批量大小、预热大小。
-3. 目标网络。同步策略（每 C 步硬同步或软 τ）。
-4. 探索。ε 起始 / 结束值 / 调度长度。
-5. 损失函数。Huber vs MSE、梯度裁剪值、奖励裁剪规则。
-6. Double DQN。默认开启，除非有明确理由关闭。
+1. Network. Architecture (MLP / CNN / Transformer), feature dim, depth.
+2. Replay buffer. Capacity, minibatch size, warmup size.
+3. Target network. Sync strategy (hard every C steps or soft τ).
+4. Exploration. ε start / end / schedule length.
+5. Loss. Huber vs MSE, gradient clip value, reward clipping rule.
+6. Double DQN. On by default unless explicit reason to disable.
 
-拒绝交付没有目标网络、没有经验回放缓冲区、或 ε 保持为 1 的 DQN。拒绝连续动作任务（转交 SAC / TD3）。标记任何奖励范围超过每步均值 10 倍的情况，提示需要裁剪或尺度归一化。
+Refuse to ship a DQN with no target network, no replay buffer, or ε held at 1. Refuse continuous-action tasks (route to SAC / TD3). Flag any reward range > 10× per-step mean as needing clipping or scale normalization.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 运行 `code/main.py`。绘制每 episode 的回报曲线。运行均值超过 -10 需要多少个 episode？
-2. **中等。** 禁用目标网络（在 Bellman 目标的两侧都使用在线网络）。测量训练不稳定性——回报是否震荡或发散？
-3. **困难。** 添加 Double DQN：使用在线网络选择 `argmax a'`，目标网络评估。在有噪声奖励的 GridWorld 上，对比 1,000 个 episode 后 `Q(s_0, best_a)` 与真实 `V*(s_0)` 的偏差，有无 Double DQN。
+1. **Easy.**跑步`code/main.py`运行平均值超过 -10之前,多少集?
+2. **Medium.**禁用目标网络 (使用网络网络对贝尔曼目标的两侧). 测量训练不稳定性?
+3. **Hard.**添加双DQN:使用网上网来选择`argmax a'`分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,分析,`Q(s_0, best_a)`实际情况`V*(s_0)`在一个杂的奖励格里德世界上,
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|------------------|-----------------------|
-| DQN | "深度 Q 学习" | 带神经网络 Q 函数、经验回放缓冲区和目标网络的 Q 学习。 |
-| 经验回放 | "打乱的转移" | 环形缓冲区，每个梯度步均匀采样；解相关数据。 |
-| 目标网络 | "冻结的自举" | 周期复制用于 Bellman 目标的 Q；稳定训练。 |
-| 致命三角 | "为什么 RL 会发散" | 函数近似 + 自举 + 离策略 = 无收敛保证。 |
-| Double DQN | "解决最大化偏差" | 在线网络选择动作，目标网络评估。 |
-| Dueling DQN | "V 和 A 头" | 分解 Q = V + A - mean(A)；输出相同，梯度流更好。 |
-| Rainbow | "所有技巧的集合" | DDQN + PER + dueling + n 步 + 噪声 + 分布式合二为一。 |
-| PER | "优先回放" | 按 TD 误差量级比例采样转移。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| DQN | "Deep Q-learning" | Q-learning with a neural Q-function, replay buffer, and target network. |
+| Experience replay | "Shuffled transitions" | Ring buffer sampled uniformly each gradient step; decorrelates data. |
+| Target network | "Frozen bootstrap" | Periodic copy of Q used in the Bellman target; stabilizes training. |
+| Deadly triad | "Why RL diverges" | Function approximation + bootstrapping + off-policy = no convergence guarantee. |
+| Double DQN | "Fix for maximization bias" | Online net selects action, target net evaluates it. |
+| Dueling DQN | "V and A heads" | Decompose Q = V + A - mean(A); same output, better gradient flow. |
+| Rainbow | "All the tricks" | DDQN + PER + dueling + n-step + noisy + distributional in one. |
+| PER | "Prioritized Replay" | Sample transitions proportional to TD-error magnitude. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Mnih 等人 (2013)。Playing Atari with Deep Reinforcement Learning](https://arxiv.org/abs/1312.5602) — 开启深度强化学习的 2013 年 NeurIPS 研讨会论文。
-- [Mnih 等人 (2015)。Human-level control through deep reinforcement learning](https://www.nature.com/articles/nature14236) — 《Nature》论文，49 款游戏的 DQN。
-- [Hasselt, Guez, Silver (2016)。Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461) — DDQN。
-- [Wang 等人 (2016)。Dueling Network Architectures](https://arxiv.org/abs/1511.06581) — Dueling DQN。
-- [Hessel 等人 (2018)。Rainbow: Combining Improvements in Deep RL](https://arxiv.org/abs/1710.02298) — 技巧堆叠论文。
-- [OpenAI Spinning Up — DQN](https://spinningup.openai.com/en/latest/algorithms/dqn.html) — 清晰的现代讲解。
-- [Sutton & Barto (2018)。第 9 章 — 带近似的在线策略预测](http://incompleteideas.net/book/RLbook2020.pdf) — 教科书对"致命三角"（函数近似 + 自举 + 离策略）的处理，DQN 的目标网络和回放缓冲区正是为了驯服它而设计。
-- [CleanRL DQN 实现](https://docs.cleanrl.dev/rl-algorithms/dqn/) — 消融研究中使用的参考单文件 DQN；与本课的从零实现版本配合阅读效果更佳。
+- [Mnih et al. (2013). Playing Atari with Deep Reinforcement Learning](https://arxiv.org/abs/1312.5602)2013年"NeurIPS"研讨会论文,
+- [Mnih et al. (2015). Human-level control through deep reinforcement learning](https://www.nature.com/articles/nature14236)"自然"论文,49场DQN.
+- [Hasselt, Guez, Silver (2016). Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461) DDQN
+- [Wang et al. (2016). Dueling Network Architectures](https://arxiv.org/abs/1511.06581)     
+- [Hessel et al. (2018). Rainbow: Combining Improvements in Deep RL](https://arxiv.org/abs/1710.02298)堆的刺纸.
+- [OpenAI Spinning Up — DQN](https://spinningup.openai.com/en/latest/algorithms/dqn.html)清晰的现代化展示.
+- [Sutton & Barto (2018). Ch. 9 — On-policy Prediction with Approximation](http://incompleteideas.net/book/RLbook2020.pdf)教科书处理"致命三位一体" (函数接近+启动+非政策) 目标网络和DQN的重播缓冲器旨在制.
+- [CleanRL DQN implementation](https://docs.cleanrl.dev/rl-algorithms/dqn/)用于除研究的参考单档DQN;好在此课程的从头开始版本旁边阅读.

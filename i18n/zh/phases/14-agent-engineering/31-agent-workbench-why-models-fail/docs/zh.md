@@ -1,231 +1,231 @@
-# Agent 工作台工程：为什么强大的模型仍然会失败
+# 机器人工作台工程:为什么有能力的模型仍然失败
 
-> 一个强大的模型是不够的。可靠的智能体需要一个工作台：指令、状态、范围、反馈、验证、审查和交接。将这些剥离，即使是前沿模型也会产生无法安全交付的成果。
+> 能否使用模型不够.可靠的代理人需要工作台:指令,状态,范围,反,验证,审查和交付.
 
-**类型：** 学习 + 构建
-**语言：** Python (stdlib)
-**前置条件：** Phase 14 · 01 (Agent Loop), Phase 14 · 26 (Failure Modes)
-**时间：** ~45 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 01 (Agent Loop), Phase 14 · 26 (Failure Modes)
+**Time:** ~45 minutes
 
 ## 学习目标
 
-- 将模型能力与执行可靠性区分开来。
-- 说出决定智能体能否交付的七个工作台表面。
-- 在小型仓库任务上，对比仅用提示的运行与使用工作台指导的运行。
-- 生成一份失败模式报告，将每个缺失的表面映射到它导致的症状。
+- 单独的模型能力与执行可靠性.
+- 给出一个代理是否出海的七个工作桌面的名称.
+- 进行一个小的回复任务的即时运行与工作台指导运行.
+- 输出失败模式报告,将每个错过的表面映射到它引起的症状.
 
-## 问题所在
+## 问题
 
-你将一个前沿模型放入一个真实仓库，让它添加输入验证。它打开了四个文件，写出了看似合理的代码，声明成功，然后停止。你运行测试。两个失败了。第三个文件被修改了，但那与验证毫无关系。没有记录智能体做了什么假设、它首先尝试了什么、或者还有什么未完成。
+您将边界模型放入一个真正的备忘录中,并要求它添加输入验证.它打开四个文件,写出可信的代码,声明成功,然后停止.您运行测试.两个失败. 触及第三个文件与验证无关. 没有记录代理假设了什么,它首先尝试了什么,或者剩下什么.
 
-模型在 Python 方面没错。它错在对工作的理解。它不知道什么算完成、它可以写入哪里、哪些测试是权威的、或者下一个会话应该如何继续。
+模型对Python没有错,它对工作有错,它不知道什么被认为是完成的,它被允许写什么,哪些测试是权威的,或者下一个会议应该如何接下来.
 
-这不是模型 bug。这是工作台 bug。围绕智能体的表面缺少将一次性生成转化为可靠、可恢复工程的部分。
+这不是模型错误,而是工作台错误. 代理周围的表面缺少了将一击生成变成可靠的,可重启工程的零件.
 
 ## 概念
 
-工作台是包裹模型在任务期间的运行环境。它有七个表面：
+工作台是模型在任务中包裹的操作环境. 它有七个表面:
 
-| 表面 | 承载内容 | 缺失时的故障 |
+| Surface | What it carries | Failure when missing |
 |---------|-----------------|----------------------|
-| 指令 | 启动规则、禁止操作、完成定义 | 智能体猜测什么是可交付的 |
-| 状态 | 当前任务、已触碰文件、阻塞项、下一步 | 每个会话从零开始 |
-| 范围 | 允许文件、禁止文件、验收标准 | 修改泄漏到无关代码中 |
-| 反馈 | 捕获到循环中的真实命令输出 | 智能体在 400 错误上声明成功 |
-| 验证 | 测试、lint、冒烟运行、范围检查 | "看起来不错"就进入了主分支 |
-| 审查 | 第二个角色进行的第二遍检查 | 建造者批改自己的作业 |
-| 交接 | 改变了什么、为什么、还剩下什么 | 下一个会话重新发现一切 |
+| Instructions | Startup rules, forbidden actions, definition of done | Agent guesses what shipping means |
+| State | Current task, touched files, blockers, next action | Each session restarts from zero |
+| Scope | Allowed files, forbidden files, acceptance criteria | Edits leak into unrelated code |
+| Feedback | Real command output captured into the loop | Agent declares success on a 400 |
+| Verification | Tests, lint, smoke run, scope check | "Looks good" reaches main |
+| Review | A second pass with a different role | Builder marks own homework |
+| Handoff | What changed, why, what is left | Next session re-discovers everything |
 
-工作台独立于模型存在。你可以更换模型而保留这些表面。你不能更换表面而保留可靠性。
+工作台独立于模型.你可以换模型并保留表面.你不能换表面并保持可靠性.
 
 ```mermaid
 flowchart LR
-  Task[任务] --> Scope[范围契约]
-  Scope --> State[仓库记忆]
-  State --> Agent[智能体循环]
-  Agent --> Feedback[运行时反馈]
-  Feedback --> Verify[验证门]
-  Verify --> Review[审查员]
-  Review --> Handoff[交接]
+  Task[Task] --> Scope[Scope Contract]
+  Scope --> State[Repo Memory]
+  State --> Agent[Agent Loop]
+  Agent --> Feedback[Runtime Feedback]
+  Feedback --> Verify[Verification Gate]
+  Verify --> Review[Reviewer]
+  Review --> Handoff[Handoff]
   Handoff --> State
 ```
 
-循环在状态文件上闭合，而不是在聊天记录上。聊天是易失的。仓库是记录系统。
+循环在状态文件上关闭,而不是聊天历史.聊天是不动态的. 备忘录是记录系统.
 
-### 工作台与提示工程
+### 工作台与快速工程
 
-提示告诉模型你想要这回合的结果。工作台告诉模型如何跨回合和跨会话工作。大多数智能体失败故事都是穿着提示工程外衣的工作台失败。
+提示告诉模型你想要什么转换.一个工作台告诉模型如何在转换和跨会议上做工作.大多数代理失败故事是工作台失败穿着提示工程服装.
 
 ### 工作台与框架
 
-框架给你运行时（LangGraph、AutoGen、Agents SDK）。工作台给智能体一个在那个运行时内工作的地方。你需要两者。这个迷你系列专注于后者。
+框架给你一个运行时间 (LangGraph, AutoGen, Agents SDK).一个工作台给代理一个工作的地方在运行时间.你需要两者.这个迷你轨道是关于第二个.
 
-### 从原语推理，而非厂商分类法
+### 从原始的推理,而不是从供应商的分类
 
-目前有很多关于"harness 工程"的写作。Addy Osmani、OpenAI、Anthropic、LangChain、Martin Fowler、MongoDB、HumanLayer、Augment Code、Thoughtworks、walkinglabs awesome 列表，以及 Medium 和 Hacker News 上一篇接一篇的文章都在讨论这个。它们对 harness 的边界、范围内容和应使用的词汇存在分歧。我们不需要选边站。七个表面是一个 UX 层；在每个工作台下面，都有相同的分布式系统原语来支撑任何可靠的后端。
+现在很多关于"带工程"的文章. 艾迪·奥斯曼尼,OpenAI,人类,兰格链,马丁·福勒,蒙古DB,人层,增强代码,思维,行程实验室的惊人的列表, 他们不同意什么是带,什么是范围,以及使用什么词汇. 我们不需要选择一边. 七个表面是UX层; 每个工作台下面都是同一组分布式系统原始的,
 
-暂时去掉 agent 标签。一次 agent 运行是跨越时间、进程和机器的计算。要使其可靠，你需要与任何生产系统相同的基本原语。
+运行代理是跨越时间,过程和机器的计算.为了使其可靠,你需要任何生产系统所需的原始元素.
 
-| 原语 | 是什么 | 对 agent 承载什么 |
+| Primitive | What it is | What it carries for an agent |
 |-----------|------------|------------------------------|
-| 函数 | 类型化处理器。尽量纯净。拥有自己的输入和输出。 | 工具调用、规则检查、验证步骤、模型调用 |
-| 工作者 | 长期运行的进程，拥有函数和生命周期 | 建造者、审查者、验证者、MCP 服务器 |
-| 触发器 | 调用函数的-event 源 | Agent 循环滴答、HTTP 请求、队列消息、cron、文件变更、钩子 |
-| 运行时 | 决定什么在哪里运行、使用什么超时和资源的边界 | Claude Code 的进程、LangGraph 的运行时、工作者容器 |
-| HTTP / RPC | 调用者和工作者之间的传输 | 工具调用协议、MCP 请求、模型 API |
-| 队列 | 触发器和工作者之间的持久缓冲区；背压、重试、幂等性 | 任务板、反馈日志、审查收件箱 |
-| 会话持久化 | 生存于崩溃、重启、模型更换的状态 | `agent_state.json`、检查点、KV 存储、仓库本身 |
-| 授权策略 | 谁能调用哪个函数、带什么范围 | 允许/禁止文件、审批边界、MCP 能力列表 |
+| Function | Typed handler. Pure where possible. Owns its inputs and outputs. | A tool call, a rule check, a verification step, a model invocation |
+| Worker | Long-lived process that owns one or more functions and a lifecycle | The builder, the reviewer, the verifier, an MCP server |
+| Trigger | Event source that invokes a function | Agent loop tick, HTTP request, queue message, cron, file change, hook |
+| Runtime | The boundary that decides what runs where, with what timeouts and resources | Claude Code's process, LangGraph's runtime, a worker container |
+| HTTP / RPC | The wire between caller and worker | Tool-call protocol, MCP request, model API |
+| Queue | Durable buffer between trigger and worker; back-pressure, retry, idempotency | The task board, the feedback log, the review inbox |
+| Session persistence | State that survives crashes, restarts, model swaps | `agent_state.json`, checkpoints, KV stores, the repo itself |
+| Authorization policy | Who can call what function with which scope | Allowed/forbidden files, approval boundaries, MCP capability lists |
 
-现在将七个工作台表面对映到这些原语。
+现在将七个工作桌面地图绘制在这些原始的表面上.
 
-- **指令** — 策略 + 函数元数据。规则是检查（函数）。路由器（`AGENTS.md`）是附加到运行时启动的策略。
-- **状态** — 会话持久化。运行时每一步读取的键值存储。文件、KV 或 DB；持久化语义重要，存储后端不重要。
-- **范围** — 按任务划分的授权策略。允许/禁止的 glob 是 ACL。需要审批的是权限格。
-- **反馈** — 写入队列的调用日志。每次 shell 调用都是一条记录，持久化、可重放。
-- **验证** — 一个函数。对输入是确定性的。在任务关闭时触发。失败时关闭。
-- **审查** — 一个独立的 worker，对建造者工件有只读权限，对审查报告有只写权限。
-- **交接** — 由会话结束触发器发出的持久记录。下一个会话的启动触发器读取它。
+- **Instructions**政策+函数元数据.规则是检查 (函数).路由器 (`AGENTS.md`) 是运行时间启动的政策.
+- **State** 会议持久性.一个键存储每个步骤都会读取运行时间.文件,KV或DB;持久性语义是重要的,存储后端不是.
+- **Scope**每任务授权政策.允许/禁止的球是ACL.需要的批准是授权网格.
+- **Feedback** 召唤日志写入队列. 每次电话都是记录,持久,可播放.
+- **Verification**函数. 输入的确定性. 任务关闭时触发. 失败关闭.
+- **Review**一个独立的工人,只能阅读建筑物和只能写作审查报告的著作权.
+- **Handoff**由一个会议结束触发器发射的持久记录. 下一个会议的启动触发器读取它.
 
-Agent 循环本身是一个消费事件（用户消息、工具结果、计时器滴答）、调用函数（模型，然后是模型选择的工具）、写入记录（状态、反馈）、发出触发器（验证、审查、交接）的工作者。没有神秘之处；与作业处理器相同的形状。
+代理循环本身是一个消耗事件 (用户消息,工具结果,计时器点击),调用函数 (模型,然后模型选择的工具),编写记录 (状态,反),并发出触发器 (验证,审查,转发).
 
-### 流通中的模式，翻译为原语
+### 流通的模式,转换为原始
 
-每个流行的 harness 模式都归结为八个原语。翻译表。
+每个流行的带纹都缩小到八个原始的.
 
-| 厂商或社区模式 | 它实际上是 |
+| Vendor or community pattern | What it actually is |
 |------------------------------|--------------------|
-| Ralph Loop（Claude Code、Codex、agentic_harness 书）— 当 agent 试图提前停止时，将原始意图重新注入新的上下文窗口 | 一个触发器，将任务重新入队，带有干净的上下文；会话持久化将目标向前传递 |
-| 计划 / 执行 / 验证（PEV） | 三个工作者，每个角色一个，通过状态和阶段间的队列通信 |
-| Harness-compute 分离（OpenAI Agents SDK，2026 年 4 月）— 将控制面与执行面分离 | 重新表述控制面 / 数据面。比 agent 标签早几十年 |
-| Open Agent Passport（OAP，2026 年 3 月）— 在执行前根据声明策略签名和审计每次工具调用 | 一个授权策略，由预动作工作者执行，带有签名审计队列 |
-| 指南和传感器（Birgitta Böckeler / Thoughtworks）— 前馈规则 + 反馈可观测性 | 授权策略 + 验证函数 + 可观测性跟踪 |
-| 渐进式压缩，5 阶段（Claude Code 逆向工程，2026 年 4 月） | 一个状态管理工作者，以 cron 风格运行在会话持久化上，以保持其低于预算 |
-| 钩子 / 中间件（LangChain、Claude Code）— 拦截模型和工具调用 | 触发器 + 函数包装在运行时调用路径周围 |
-| 作为 Markdown 的技能，带渐进式披露（Anthropic、Flue） | 一个函数注册表，其中函数元数据按需加载到上下文中 |
-| 沙箱智能体（Codex、Sandcastle、Vercel Sandbox） | 计算面：一个具有隔离文件系统、网络和生命周期的运行时 |
-| MCP 服务器 | 通过稳定 RPC 暴露函数的工作者，能力列表作为授权 |
+| Ralph Loop (Claude Code, Codex, agentic_harness book) — re-inject original intent into a fresh context window when the agent tries to stop early | A trigger that re-enqueues a task with a clean context; session persistence carries the goal forward |
+| Plan / Execute / Verify (PEV) | Three workers, one per role, communicating via state and a queue between phases |
+| Harness-compute separation (OpenAI Agents SDK, April 2026) — split control plane from execution plane | Restating control-plane / data-plane. Predates the agent label by decades |
+| Open Agent Passport (OAP, March 2026) — sign and audit every tool call against a declarative policy before execution | An authorization policy enforced by a pre-action worker, with a signed audit queue |
+| Guides and Sensors (Birgitta Böckeler / Thoughtworks) — feedforward rules + feedback observability | Authorization policy + verification functions + observability traces |
+| Progressive compaction, 5-stage (Claude Code reverse engineering, April 2026) | A state-management worker that runs cron-like over session persistence to keep it within a budget |
+| Hooks / middleware (LangChain, Claude Code) — intercept model and tool calls | Triggers + functions wrapped around the runtime's invocation path |
+| Skills as Markdown with progressive disclosure (Anthropic, Flue) | A function registry where the function metadata is loaded into context just-in-time |
+| Sandbox agents (Codex, Sandcastle, Vercel Sandbox) | The compute plane: a runtime with isolated filesystem, network, and lifecycle |
+| MCP servers | Workers exposing functions over a stable RPC, with capability lists as authorization |
 
-该表中的每个条目都是 agent 社区发现一个已经在分布式系统中有了名称的原语，并给它起了一个新名字。用于营销的有用标签；作为工程词汇并不有用。
+每个进口都是在该表中,代理社区到达一个原始的分布式系统中已经有一个名字,给它一个新的.有用的标签用于营销;不有用的工程词汇.
 
-### 这些收据实际上说了什么
+### 收据实际上说什么
 
-harness 优于 model 的主张现在有了数字支持。值得了解，因为它们也是对"只需等待更聪明的模型"的唯一诚实反驳。
+现在,这种"超级型号"的说法有很多数字,值得知道,因为它们也是唯一一个诚实的反对"等待更聪明的模型"的论点.
 
-- Terminal Bench 2.0 — 相同模型，harness 变更将编码 agent 从 top 30 之外移至第五名（LangChain，《智能体 harness 解剖》）。
-- Vercel — 删除了 80% 的 agent 工具；成功率从 80% 跃升至 100%（MongoDB）。
-- Harvey — 法律 agent 仅通过 harness 优化就将准确率提高了一倍多（MongoDB）。
-- 88% 的企业 AI agent 项目无法达到生产环境。失败集中在运行时，而非推理（preprints.org，《语言 agent 的 Harness 工程》，2026 年 3 月）。
-- 一项 2025 年跨三个流行开源框架的基准研究报道了约 50% 的任务完成率；长上下文 WebAgent 在长上下文条件下从 40-50% 崩溃到不到 10%，主要来自无限循环和目标丢失（在 2026 年初广泛报道）。
+- 终端台2.0 相同的模型,使用权变化将编码代理从前30名之外移至第五名 (LangChain, *Anatomy of an Agent Harness*).
+- 公司删除了其代理工具的80%;成功率从80%升至100% (MongoDB).
+- 通过仅仅利用利用优化 (MongoDB) 提高了法律代理的准确度.
+- 企业AI代理项目中有88%未能达到生产.失败的原因是运行时间而不是推理 (preprints.org,2026年3月*语言代理商的利用工程).
+- 根据2025年的三个受欢迎的开源框架的基准研究,任务完成率为50%;长文本WebAgent在长文本条件下从40-50%下降到10%以下,主要是由于无限循环和目标损失 (在2026年初的写作中广泛覆盖).
 
-要点不是"harness 永远获胜"。模型会随着时间的推移吸收 harness 技巧。要点是，今天，承重工程是在模型周围，而不是在模型内部，而承载这些负载的原语是任何生产系统一直需要的。
+模型确实随着时间的推移吸收了这种技巧. 结果是,今天,载荷工程是围绕模型而不是内部的,并且承载这种负载的原始品是每个生产系统都需要的.
 
-### 厂商文档不足之处
+### 销售人员的写字停止短暂
 
-这是你不需要客气的部分。
+这就是你不需要对此有礼貌的部分.
 
-- LangChain 的《智能体 harness 解剖》列举了十一个组件 — prompts、tools、hooks、sandboxes、orchestration、memory、skills、subagents，以及一个运行时"哑循环"。它没有命名队列、作为部署单元的工作者、触发器语义、将会话持久化作为单独关注点，或授权策略。它将 harness 视为一个你配置的对象，而非一个你部署的系统。
-- Addy Osmani 的《Agent Harness Engineering》提出了 `Agent = Model + Harness` 的框架和棘轮模式，但没有说明 harness 由什么构成。它读起来像是一种立场，而非规范。
-- Anthropic 和 OpenAI 在表面上最深，但局限于自己的运行时。2026 年 4 月 Agents SDK 中的"harness-compute 分离"公告是第一个明确支持控制面 / 数据面分离的厂商文档。这是一个原语想法，并非新思想。
-- agentic_harness 书将 harness 视为配置对象（Jaymin West 的《Agentic Engineering》，第 6 章），其中最强的一句是"harness 是智能体系统中的主要安全边界"。这只是重新表述的授权策略。
-- Hacker News 帖子不断到达同一地方。2026 年 4 月的帖子《agent harness 应在沙箱之外》论证 harness 应坐在"更像 hypervisor，位于一切之外，基于上下文和用户授权访问"。这再次是作为单独平面的授权策略。
+- 兰格链的*代理的解剖学*列出了十一个组件:提示,工具,,沙盒,配套,内存,技能,子弹和运行时间"循环".它不列表排队,作为部署单位的员工,触发语义,作为单独的关注,或授权政策的会议持久性.它将作为一个你配置的对象,而不是一个你部署的系统.
+- 艾迪·奥斯曼尼的"机器人"工程部`Agent = Model + Harness`没有说一个带是什么. 它读作立场,而不是规范.
+- 亚洲人体和OpenAI在表面上最深入,但保持在自己的运行时间内. 2026年4月的Agents SDK中的"带计算分离"公告是第一个明确支持控制平面/数据平面分离的供应商.这是一个原始的想法,不是新的.
+- 机器人带书将带视为一个配置对象 (Jaymin West的*Agentic Engineering*第6章),其中最强的条款是"机器人系统中的首要安全边界是带".
+- 黑客新闻线程不断到达同一地点. 2026年4月的线程*代理链接属于沙盒外*认为该链接应该像"一个在一切之外的超级监视器,根据环境和用户授权访问".
 
-你不需要不同意这些文章来注意到差距。它们在为已经存在的系统编写 UX 描述。我们在构建系统。当系统构建正确时，七个表面会从原语中涌现。当构建错误时，任何 `AGENTS.md` 的打磨都无法修复缺失的队列。
+它们是写出已经存在的系统的 UX描述.我们正在写出系统.当系统正确构建时,七面都会从原始中掉下来.当它被错误构建时,没有多少`AGENTS.md`抛光解决了缺失的排队.
 
-因此，当你在别处听到"harness 工程"时，翻译为原语。Prompts 和规则是策略和函数。脚手架是运行时。护栏是授权 + 验证。钩子是触发器。记忆是会话持久化。Ralph Loop 是重新入队。Subagents 是工作者。沙箱是计算面。词汇变化；工程不变。工作台是 agent 友好的 UX；harness，在这个能经得起下一次厂商重新框架的意义下，是正确连接的功能、工作者、触发器、运行时、队列、持久化和策略。
+所以,当你听到"带工程"的时候, 转换为原始. 提示和规则是政策和功能. 架是跑步时间. 防护轨道是授权+验证. 子是触发器. 记忆是持续的会议. 拉尔夫环是排队. 们是工人. 沙盒是计算飞机. 词汇库改变,工程学不会. 工作台是面向代理的UX; 带,在下一个供应商重组中存活的意义上, 是功能,工人,触发器,运行时间,排队,坚持和政策正确连接在一起.
 
 ```figure
 wb-seven-surfaces
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 运行一个小型仓库任务两次。首先仅用提示，然后接入七个表面。相同模型，相同任务。脚本计算失败运行中缺失了多少表面，并打印失败模式报告。
+`code/main.py`首先是只作为提示,然后是有线的七个表面.相同的模型,相同的任务.脚本计算失败运行中缺失的表面,然后打印失败模式报告.
 
-仓库任务故意很小：为一个单文件 FastAPI 风格处理器添加输入验证并编写通过测试。
+备忘录任务是小的:将输入验证添加到一个文件 FastAPI 式处理器中,并写一个通过测试.
 
-运行它：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-输出：两个运行的并排日志、总结仅提示运行的 `failure_modes.json`，以及工作台运行的单行结论。
+输出:两次运行的隔离记录,`failure_modes.json`总结了即时运行, 并为工作台运行作出一线判决.
 
-Agent 是一个小型基于规则的存根；重点是表面，而非模型。在本迷你系列的其余部分，你将重建每个表面作为真正可重用的工件。
+经纪人是一个基于规则的小块, 问题是表面, 而不是模型. 在这个迷你轨道的其他部分,
 
-## 使用它
+## 用它
 
-三个地方，工作台表面已经存在于现实中，即使没人这么叫它们：
+现在,三个工作桌面已经存在于自然界,
 
-- **Claude Code、Codex、Cursor。** `AGENTS.md` 和 `CLAUDE.md` 是指令表面。斜杠命令是范围。钩子是验证。
-- **LangGraph、OpenAI Agents SDK。** 检查点和会话存储是状态表面。交接是交接表面。
-- **真实仓库上的 CI。** 测试、lint 和类型检查是验证。PR 模板是交接。CODEOWNERS 是审查。
+- **Claude Code, Codex, Cursor.** `AGENTS.md`其他`CLAUDE.md`命令是范围,子是验证.
+- **LangGraph, OpenAI Agents SDK.**检查点和会议店是州的表面. 交付是交付的表面.
+- **CI on a real repo.**检测,,检查类型是验证.  PR 模板是交付. 编码所有者是审查.
 
-工作台工程是让这些表面变得明确且可重用的纪律，而不是让每个团队各自重新发现它们。
+工作台工程是使这些表面明确和可重复使用的学科,而不是让每个团队重新发现它们.
 
-## 交付
+## 运送它
 
-`outputs/skill-workbench-audit.md` 是一个便携技能，审计现有仓库的七个工作台表面，报告哪些缺失、哪些部分存在、哪些健康。放在任何 agent 设置旁边；它告诉你首先修复什么。
+`outputs/skill-workbench-audit.md`现在,我们可以在一个工作桌上进行检查,检查一个现有 repo 面积和报告,这些报告是缺失的,是部分的,并且是健康的.
 
-## 练习
+## 运动
 
-1. 选择一个你已经运行 agent 的仓库。从 0（缺失）到 2（健康）评分七个表面。你最强的表面是什么？最弱的表面是什么？
-2. 扩展 `main.py`，让仅提示的运行也产生虚假的"成功"声明。验证验证门是否本应捕获它。
-3. 为你的产品添加第八个表面。证明它不会坍缩到现有七个中的任何一个。
-4. 用另一个会幻觉出额外文件写入的存根 agent 重新运行脚本。哪个表面最先捕获它？
-5. 将 Phase 14 · 26 中的五个行业反复出现的失败模式映射到七个表面。每个表面旨在吸收哪种模式？
+1. 选择一个已经运行代理的备忘录,从0 (缺失) 到2 (健康) 评分.你最弱的表面是什么?
+2. 延长时间`main.py`检查验网关会发现它.
+3. 给自己的产品添加一个第八个表面,证明为什么它不会崩到现有的七个.
+4. 通过不同的片代理重新运行脚本,让一个额外的文件写出幻觉.
+5. 从14·26阶段到7个表面上映出五种行业重复故障模式.每个表面都设计成吸收哪种模式?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 它实际意味着 |
+| Term | What people say | What it actually means |
 |------|----------------|------------------------|
-| 工作台 | "设置" | 围绕模型的工程表面，使工作可靠 |
-| 表面 | "一个文档"或"一个脚本" | 智能体每回合读取或写入的命名、机器可读输入 |
-| 记录系统 | "笔记" | 当聊天记录消失时，智能体视为真理的文件 |
-| 完成定义 | "验收" | 一个客观的、文件支持的清单，智能体无法伪造 |
-| 工作台审计 | "仓库就绪检查" | 对七个表面的检查，在工作开始前标记缺失部分 |
+| Workbench | "The setup" | Engineered surfaces around the model that make work reliable |
+| Surface | "A doc" or "a script" | A named, machine-readable input the agent reads or writes every turn |
+| System of record | "The notes" | The file the agent treats as truth when chat history is gone |
+| Definition of done | "Acceptance" | An objective, file-backed checklist the agent cannot fake |
+| Workbench audit | "Repo readiness check" | A pass over the seven surfaces that flags missing pieces before work begins |
 
-## 延伸阅读
+## 进一步阅读
 
-将这些作为数据点阅读，而非权威。每个都是部分分类法。在决定是否采用之前，将每个概念翻译回原语（函数、工作者、触发器、运行时、HTTP/RPC、队列、持久化、策略）。
+读这些作为数据点,而不是权威. 每一个都是部分分类. 在决定是否采用之前,把每个概念都转化为原始 (函数,工作者,触发器,运行时间,HTTP/RPC,排队,持久性,政策).
 
-厂商框架：
+供应商的框架:
 
-- [Addy Osmani, Agent Harness Engineering](https://addyosmani.com/blog/agent-harness-engineering/) — `Agent = Model + Harness` 和棘轮模式；基础设施薄弱
-- [LangChain, The Anatomy of an Agent Harness](https://blog.langchain.com/the-anatomy-of-an-agent-harness/) — 十一个组件：prompts、tools、hooks、orchestration、sandboxes、memory、skills、subagents、runtime；缺少队列、部署、authz
-- [OpenAI, Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/) — Codex 团队对其运行时周围表面的看法
-- [OpenAI, Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/) — agent 循环简化为对函数调用的 `while`
-- [Anthropic, Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) — 特定运行时内的长周期表面
-- [Anthropic, Harness design for long-running application development](https://www.anthropic.com/engineering/harness-design-long-running-apps) — 应用设计笔记
-- [LangChain Deep Agents harness capabilities](https://docs.langchain.com/oss/python/deepagents/harness) — 运行时配置表面
+- [Addy Osmani, Agent Harness Engineering](https://addyosmani.com/blog/agent-harness-engineering/) `Agent = Model + Harness`子的图案;基础设施薄
+- [LangChain, The Anatomy of an Agent Harness](https://blog.langchain.com/the-anatomy-of-an-agent-harness/)十一个组件:提示,工具,子,配乐,沙盒,记忆,技能,子弹,运行时间;遗漏排列,部署, authz
+- [OpenAI, Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/)Codex团队对它们运行时间周围的表面的视角
+- [OpenAI, Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/) 代理循环缩小到一个`while`函数调用
+- [Anthropic, Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)在特定运行时间内长视界表面
+- [Anthropic, Harness design for long-running application development](https://www.anthropic.com/engineering/harness-design-long-running-apps)应用设计说明
+- [LangChain Deep Agents harness capabilities](https://docs.langchain.com/oss/python/deepagents/harness)运行时间配置表面
 
-有可用细节的实践文章：
+实践者用处细节的作品:
 
-- [Martin Fowler / Birgitta Böckeler, Harness engineering for coding agent users](https://martinfowler.com/articles/harness-engineering.html) — 指南（前馈）+ 传感器（反馈）；最清晰的控制论框架
-- [HumanLayer, Skill Issue: Harness Engineering for Coding Agents](https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents) — "这不是模型问题，是配置问题"
-- [MongoDB, The Agent Harness: Why the LLM Is the Smallest Part of Your Agent System](https://www.mongodb.com/company/blog/technical/agent-harness-why-llm-is-smallest-part-of-your-agent-system) — 收据：Vercel 80% 到 100%，Harvey 2 倍准确率，Terminal Bench Top 30 到 Top 5
-- [Augment Code, Harness Engineering for AI Coding Agents](https://www.augmentcode.com/guides/harness-engineering-ai-coding-agents) — 约束优先演练
-- [Sequoia podcast, Harrison Chase on Context Engineering Long-Horizon Agents](https://sequoiacap.com/podcast/context-engineering-our-way-to-long-horizon-agents-langchains-harrison-chase/) — 运行时关注点优于模型关注点
+- [Martin Fowler / Birgitta Böckeler, Harness engineering for coding agent users](https://martinfowler.com/articles/harness-engineering.html)指导 (前进传输) +传感器 (反);最干净的控制理论框架
+- [HumanLayer, Skill Issue: Harness Engineering for Coding Agents](https://www.humanlayer.dev/blog/skill-issue-harness-engineering-for-coding-agents)"这不是模型问题,而是配置问题"
+- [MongoDB, The Agent Harness: Why the LLM Is the Smallest Part of Your Agent System](https://www.mongodb.com/company/blog/technical/agent-harness-why-llm-is-smallest-part-of-your-agent-system)收据:80%至100%的真实性,哈维两倍的准确性,终端位最高30至最高5
+- [Augment Code, Harness Engineering for AI Coding Agents](https://www.augmentcode.com/guides/harness-engineering-ai-coding-agents) 限制-第一步通行
+- [Sequoia podcast, Harrison Chase on Context Engineering Long-Horizon Agents](https://sequoiacap.com/podcast/context-engineering-our-way-to-long-horizon-agents-langchains-harrison-chase/) 运行时间问题与模型问题
 
-书籍、论文和参考实现：
+书籍,论文和参考实施:
 
-- [Jaymin West, Agentic Engineering — Chapter 6: Harnesses](https://www.jayminwest.com/agentic-engineering-book/6-harnesses) — 书籍级处理，将 harness 视为主要安全边界
-- [preprints.org, Harness Engineering for Language Agents (March 2026)](https://www.preprints.org/manuscript/202603.1756) — 学术框架作为控制 / 代理 / 运行时
-- [walkinglabs/awesome-harness-engineering](https://github.com/walkinglabs/awesome-harness-engineering) — 跨上下文、评估、可观测性、编排的策划阅读列表
-- [ai-boost/awesome-harness-engineering](https://github.com/ai-boost/awesome-harness-engineering) — 替代策划列表（工具、评估、记忆、MCP、权限）
-- [andrewgarst/agentic_harness](https://github.com/andrewgarst/agentic_harness) — 生产就绪的参考实现，带有 Redis 支持的记忆和评估套件
-- [HKUDS/OpenHarness](https://github.com/HKUDS/OpenHarness) — 内置个人 agent 的开源 agent harness
+- [Jaymin West, Agentic Engineering — Chapter 6: Harnesses](https://www.jayminwest.com/agentic-engineering-book/6-harnesses) 长度处理,把带作为主要的安全边界
+- [preprints.org, Harness Engineering for Language Agents (March 2026)](https://www.preprints.org/manuscript/202603.1756)作为控制/代理/运行时间的学术框架
+- [walkinglabs/awesome-harness-engineering](https://github.com/walkinglabs/awesome-harness-engineering) 评选文本,评估,可观测性,编排
+- [ai-boost/awesome-harness-engineering](https://github.com/ai-boost/awesome-harness-engineering)替代选定列表 (工具,评估,内存,MCP,权限)
+- [andrewgarst/agentic_harness](https://github.com/andrewgarst/agentic_harness) 随着Redis支持的内存和评估套件的生产准备的参考实现
+- [HKUDS/OpenHarness](https://github.com/HKUDS/OpenHarness) 开放代理带内置个人代理
 
-值得因分歧而非共识阅读的 Hacker News 帖子：
+哈克新闻值得阅读的线程是因为分歧,而不是共识:
 
 - [HN: Effective harnesses for long-running agents](https://news.ycombinator.com/item?id=46081704)
 - [HN: Improving 15 LLMs at Coding in One Afternoon. Only the Harness Changed](https://news.ycombinator.com/item?id=46988596)
-- [HN: The agent harness belongs outside the sandbox](https://news.ycombinator.com/item?id=47990675) — 论证将授权作为单独平面
+- [HN: The agent harness belongs outside the sandbox](https://news.ycombinator.com/item?id=47990675)要求作为单独飞机授权
 
-本课程内部交叉引用：
+在本课程中交叉引用:
 
-- Phase 14 · 23 — OpenTelemetry GenAI 约定：传感器文献指向的可观测性层
-- Phase 14 · 26 — 失败模式目录，七个表面旨在吸收这些模式
-- Phase 14 · 27 — 提示注入防御，位于授权策略原语
-- Phase 14 · 29 — 生产运行时（队列、事件、cron）：本课程中原语在部署中的位置
+- 阶段14 · 23  开放Telemetry GenAI公约:传感器文献指出的可观性层
+- 阶段 14 · 26  失败模式目录七个表面是设计的吸收
+- 阶段14 · 27  直接注射的防御措施,在授权政策原始状态下
+- 阶段14 · 29  制作运行时间 (排列,事件, cron):本课中的原始在部署中生活

@@ -1,37 +1,37 @@
-# Capstone 87 — End-to-End Safety Gate
+#  终端到终端的安全门
 
-> Pre-gen, during-gen, post-gen. Three checkpoints, one verdict, an audit trail per request.
+> 预代,期间代,后代,三个检查站,一个判决,每次请求一个审计轨迹.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Phase 18 safety lessons, Phase 19 Track A lessons 25-29
 **Time:** ~90 min
 
-## Problem
+## 问题
 
-Lessons 82-86 in this track each shipped a single piece: a taxonomy, an input detector, an evaluation framework, an output classifier, a rules engine. A real safety gate has to compose them, run them at the right moment in the request lifecycle, decide what action to take when they disagree, and produce a trace a reviewer can read on Monday morning. The composition is the lesson.
+课程82-86在这个轨道中每个都出货了单一的部分:一个类别,一个输入探测器,一个评估框架,一个输出分类器,一个规则引擎.一个真正的安全门必须编写它们,在请求生命周期中的合适时运行它们,决定在不同意时采取什么行动,并产生一个检查者可以在周一早上阅读的痕迹.
 
-The gate sits at three checkpoints. Pre-gen runs before the model is called: the detector from lesson 83 looks at the prompt and either passes it, blocks it outright (high-confidence attack), or attaches a flag for downstream layers to weigh. During-gen runs as the model emits tokens: a streaming filter buffers chunks and terminates the stream early if a forbidden phrase appears (prefix-injection survives this if the gate only looks post-hoc). Post-gen runs after the model finishes: the classifier router from lesson 85 and the rules engine from lesson 86 inspect the full output, the gate aggregates their verdicts with the pre-gen signal, and the gate applies a final action.
+门位于三个检查站. 在模型被调用之前,预代运行:课第83节的探测器看着提示,或者通过它,直接阻止它 (高安全性攻击),或者将旗附在下游层中进行权重. 流通过器缓冲块,如果出现禁止短语,就会早点结束流 (如果门只看起来是后期,前置注射存活下来). 后代运行模型完成后:从第85课开始的分类器路由器和从第86课开始的规则引擎检查了全部输出,门将他们的判决与前代信号汇集,门执行了最后的行动.
 
-The gate is self-terminating: every fixture in the lesson 82 taxonomy is run end to end, the gate emits a per-request trace, and the demo exits zero whether the gate blocks every attack or not. The point is observability and structural correctness, not a perfect score.
+门是自杀的:课堂82分类中的每一个固定件都会从一边到另一边运行,门发出每次请求的痕迹,演示结果是零的,无论门是否阻止每次攻击.问题是可观察性和结构正确性,而不是完美的分数.
 
-## Concept
+## 概念
 
-Three checkpoints, one decision tree.
+只有一个决定树.
 
 ```mermaid
 flowchart TB
-  IN[用户提示词] --> PG[生成前：检测器]
-  PG -->|高置信度拦截| OUT1[拒绝响应 + 追踪记录]
-  PG --> M[模拟 LLM]
-  M -->|流式输出| DG[生成中：token 过滤器]
-  DG -->|提前终止| OUT2[部分输出 + 追踪记录]
-  DG -->|完整输出| POST[生成后：分类器 + 规则引擎]
-  POST --> AGG[聚合裁决]
-  AGG --> OUT3[最终操作 + 追踪记录]
+  IN[user prompt] --> PG[pre-gen: detector]
+  PG -->|block on high| OUT1[refusal + trace]
+  PG --> M[mock LLM]
+  M -->|stream| DG[during-gen: token filter]
+  DG -->|terminate early| OUT2[partial + trace]
+  DG -->|complete| POST[post-gen: classifier + rules]
+  POST --> AGG[aggregate]
+  AGG --> OUT3[final action + trace]
 ```
 
-The aggregator combines four severity signals: detector confidence (lesson 83), token-filter trigger (boolean), classifier max severity (lesson 85), rules engine max severity (lesson 86). The aggregation function is a deterministic table.
+聚合器组合了四种重度信号:探测器信心 (83课),代币过触发器 (布尔式),分类器最大重度 (85课),规则引擎最大重度 (86课).聚合函数是确定性表.
 
 | Signal state | Action |
 |---|---|
@@ -41,37 +41,37 @@ The aggregator combines four severity signals: detector confidence (lesson 83), 
 | all none + detector confidence < 0.5 | allow |
 | detector confidence 0.5-0.85, no other signal | warn |
 
-Block returns a refusal. Redact ships the classifier-redacted text and applies the rules-engine fixer. Warn ships the original with a soft notice. Allow ships the original. Each request emits a `RequestTrace` with `request_id`, `prompt`, `pre_gen` (detector verdict), `during_gen` (token-filter trigger), `post_gen` (classifier action + rules report), `final_action`, `final_output`, and `latency_ms`.
+区块返回拒绝.编辑将编辑分类器的文本发送,并应用规则引擎修复器. 警告发送原始的软通知. 允许发送原始的. 每个请求发出一个`RequestTrace`随着`request_id`现在`prompt`现在`pre_gen`检测员的判决`during_gen`标的标`post_gen`(分类程序行动+规则报告),`final_action`现在`final_output`其他`latency_ms`现在,我们要去.
 
-The during-gen filter is a streaming abstraction. The mock LLM yields chunks (4 tokens each by default). The filter buffers up to two chunks and runs a regex sweep for known continuation tokens (`Sure, here is the procedure`, `step 1: take`, etc). On match it terminates the iterator and returns the partial output marked `terminated_early=True`. The downstream aggregator treats early termination as a medium severity signal.
+模拟LLM生成块 (每个按默认为4个代币). 过器缓冲到两个块,并对已知延续代币进行regex扫描 (`Sure, here is the procedure`现在`step 1: take`在匹配时,它终止了代器,返回标记的部分输出`terminated_early=True`后游集成器将早期终止视为中度严重信号.
 
-The mock LLM has two behaviors keyed off the prompt: it refuses recognizable attacks (returns `I cannot ...`) and answers benign prompts (returns a generic helpful string). For a small subset of attacks (notably encoding tricks not caught by the input pipeline) it produces a partial harmful continuation that the during-gen filter is supposed to catch. This is intentional. The gate's value is in the layered defense; the demo shows the layers interact correctly.
+假 LLM 具有两个行为,即拒绝识别攻击 (返回)`I cannot ...`) 并且响应良性提示 (返回一个通用有用字符串).对于一个小小的攻击子集 (特别是编码未被输入管道捕获的技巧),它产生了部分有害的延续,该过程中代码过器应该捕获.这是故意的.门的值在层级防御中;演示显示层正确相互作用.
 
 ```figure
 safety-checkpoints
 ```
 
-## Build It
+## 建立它
 
-`code/safety_gate.py` defines the `SafetyGate` class. It imports the detector, classifier router, and rules engine from the prior lessons via relative file paths. `code/mock_llm_stream.py` defines a streaming mock LLM with three scripted personas (clean, attacker-honest, attacker-lazy). `code/main.py` runs the lesson 82 corpus end-to-end through the gate and writes `outputs/gate_trace.json`.
+`code/safety_gate.py`定义了`SafetyGate`通过相对文件路径从前的课程中进口探测器,分类器路由器和规则引擎. `code/mock_llm_stream.py`定义一个流媒体模拟的LLM,有三个脚本人物 (清洁,攻击者诚实,攻击者惰).`code/main.py`通过门口运行第82课程的体积,并写道`outputs/gate_trace.json`现在,我们要去.
 
-The demo runs all 50 taxonomy fixtures plus 10 benign prompts. The trace summary reports: blocks, redacts, warns, allows, early terminations, per-category outcome breakdown, and average latency. The numbers are not the point; the per-request trace is the point.
+演示程序运行了所有50个分类结构和10个良性提示. 后踪总结报告: 阻塞,编辑,警告,允许,提前终止,按类别结果分类,平均延迟. 数字不是点; 按请求的后踪是点.
 
-## Use It
+## 用它
 
-`python3 main.py`. The demo loads everything, runs end-to-end, prints the summary table, and writes the trace artifact. Exit code is zero. The demo is self-terminating in the literal sense: each request runs to completion or early termination and the gate moves to the next.
+`python3 main.py`演示程序将全部内容加载,从端到端运行,打印总结表,并写出后续的文物.出口代码为零.演示程序在字面上是自杀式:每个请求都运行到完成或提前终止,门将转移到下一个.
 
-## Ship It
+## 运送它
 
-`outputs/skill-end-to-end-safety-gate.md` documents the request lifecycle, the aggregation table, and the trace format. The gate's primary deliverable is the trace format and the composition logic, both of which a team can lift into their own backend.
+`outputs/skill-end-to-end-safety-gate.md`文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件文件
 
-## Exercises
+## 运动
 
-1. Add a fifth checkpoint: a `policy-check` that runs against the original system prompt before pre-gen. It must reject prompts targeting a known internal tool name.
-2. Replace the deterministic aggregator with a weighted score: each signal contributes a 0-1 confidence and the gate trips at a threshold. Sweep the threshold and report the precision-recall trade-off on the lesson 82 corpus.
-3. Add an async streaming variant where during-gen runs in a thread; verify the latency impact stays within a 50ms budget.
+1. 添加第五个检查点:`policy-check`必须拒绝针对已知内部工具名称的提示.
+2. 取代确定性聚合器以权重分数:每个信号贡献了0-1的信心,门口在门上.扫描门,并报告精度回忆的交易对课 82 corpus.
+3. 添加在线索中运行的异步流动变体;验证延迟影响在50ms预算内.
 
-## Key Terms
+## 关键词
 
 | Term | Common usage | Precise meaning |
 |---|---|---|
@@ -81,6 +81,6 @@ The demo runs all 50 taxonomy fixtures plus 10 benign prompts. The trace summary
 | post-gen | output check | the classifier router and rules engine running on the completed response |
 | trace | a log line | a structured per-request record with every checkpoint's verdict, the final action, and latency |
 
-## Further Reading
+## 进一步阅读
 
-The five preceding lessons in this track. The gate composes them; it does not add new safety primitives.
+门子构建了它们,它没有添加新的安全原始.

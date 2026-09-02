@@ -1,49 +1,49 @@
-# 从零预训练一个迷你 GPT（124M 参数）
+# 预训练小型GPT (124M参数)
 
-> GPT-2 Small 有 1.24 亿个参数。那是 12 层 transformer、12 个注意力头和 768 维嵌入向量。你可以在几小时内用单张 GPU 从零开始训练它。大多数人从未做过这件事，他们直接使用预训练的检查点。但如果你自己没有训练过一个模型，你就不会真正理解你所构建产品背后的模型内部究竟发生了什么。
+> GPT-2 Small有12400万个参数.这就是12个变压器层,12个注意力头,768维嵌入式.你可以从零开始训练它在几小时内.大多数人从来没有这样做.他们使用预训练的检查站.
 
-**类型：** 构建
-**语言：** Python（使用 numpy）
-**前置知识：** Phase 10，课程 01-03（分词器、构建分词器、数据管道）
-**耗时：** 约 120 分钟
+**Type:** Build
+**Languages:** Python (with numpy)
+**Prerequisites:** Phase 10, Lessons 01-03 (Tokenizers, Building a Tokenizer, Data Pipelines)
+**Time:** ~120 minutes
 
 ## 学习目标
 
-- 从零实现完整的 GPT-2 架构（1.24 亿参数）：token 嵌入、位置嵌入、transformer 块和语言模型头
-- 使用下一个 token 预测和交叉熵损失在文本语料上训练 GPT 模型
-- 实现带温度采样和 top-k/top-p 滤波的自回归文本生成
-- 监控训练损失曲线并验证模型是否学会了连贯的语言模式
+- 从零开始实现完整的GPT-2架构 (124M参数):代币嵌入,定位嵌入,变压器块和语言模型头
+- 通过使用交叉缩损失下一个代码预测来训练GPT模型在文本体内
+- 实现自动降低文字生成,采用温度采样和顶k/topp过
+- 监测训练损失曲线,验证模型学习一致的语言模式
 
-## 问题所在
+## 问题
 
-你知道什么是 transformer。你读过相关图示，你能背诵"attention is all you need"，还能在白板上画出标着"Multi-Head Attention"的方框。
+你知道变压器是什么. 你已经阅读了图表. 你可以说"注意力就是你需要的"并画一个白板上标记的框"多头注意力".
 
-但这并不意味着你理解模型生成文本时究竟发生了什么。
+没有什么意味着你明白模型生成文字时会发生什么.
 
-GPT-2 Small 中有 124,438,272 个参数（含权值绑定）。每一个参数都是通过运行训练循环设置的：前向传播、计算损失、反向传播、更新权重。十二个 transformer 块，每个块十二个注意力头，768 维嵌入空间，50,257 个 token 的词表。每次模型生成一个 token，所有 1.24 亿个参数都参与一次矩阵乘法链，将 token ID 序列转化为下一个 token 的概率分布。
+在GPT-2小 (含重量绑定) 中有124,438,272个参数. 每个都通过运行训练循环来设置:前进通过,计算损失,倒退通过,更新权重. 十二个变压器块. 每街区有12个注意力头. 它们是768维的嵌入空间. 词汇总数为50,257个代币. 每次模型生成代币时,所有1.24亿参数都参与一个单一的矩阵乘法链,该链接采用代币ID的序列,并产生了对下一个代币的概率分布.
 
-如果你从未自己构建过这样的模型，你就是在操作一个黑盒。你可以调用 API，可以微调。但当出现问题时——当模型产生幻觉、重复输出、或拒绝遵循指令时——你没有一个心智模型来理解 *为什么*。
+如果你从未自己构建过这个模型,你就在使用黑盒子.你可以使用API.你可以调整.但是当某种东西发生错误时 - - 当模型幻觉,重复,拒绝遵循指令时 - - 你没有什么心理模型为什么.
 
-本课程从零构建 GPT-2 Small。不用 PyTorch，用 numpy。每一次矩阵乘法都清晰可见，每一个梯度都由你的代码计算。你将亲眼看到 1.24 亿个数字如何协同工作以预测下一个词。
+这一课构建了GPT-2小从零开始.不是在 PyTorch.在 numpy. 每个矩阵乘法都可见. 每个梯度都由你的代码计算.你会看到12400万个数字如何阴谋预测下一个词.
 
-## 概念讲解
+## 概念
 
-### GPT 架构
+### GPT架构
 
-GPT 是一个自回归语言模型。"自回归"意味着它一次生成一个 token，每个 token 都依赖于所有前面的 token。其架构是一叠 transformer 解码器块。
+GPT是一个自动降低语言模型. "自动降低"意味着它一次生成一个代币,每个代币都基于所有之前的代币.
 
-以下是从 token ID 到下一个 token 概率的完整计算图：
+以下是从代币ID到下一个代币概率的完整计算图:
 
-1. Token ID 输入。形状：(batch_size, seq_len)。
-2. Token 嵌入查找。每个 ID 映射到一个 768 维向量。形状：(batch_size, seq_len, 768)。
-3. 位置嵌入查找。每个位置 (0, 1, 2, ...) 映射到一个 768 维向量。相同形状。
-4. 添加 token 嵌入 + 位置嵌入。
-5. 通过 12 个 transformer 块。
-6. 最终层归一化。
-7. 线性投影到词汇表大小。形状：(batch_size, seq_len, vocab_size)。
-8. Softmax 得到概率。
+1. 标签 ID 进入. 形状: (批量大小,seq_len).
+2. 标志嵌入查找.每个ID映射到768维向量. 形状: (批量大小,seq_len,768).
+3. 位置嵌入式查找.每个位置 (0, 1, 2, ...) 映射到768维向量.相同的形状.
+4. 添加代币嵌入 + 位置嵌入.
+5. 通过12个变压器块.
+6. 终极层正常化.
+7. 线性投影到词汇尺寸. 形状: (批量尺寸,seq_len,vocacab_size).
+8. 软max 得到概率.
 
-这就是整个模型。没有卷积，没有循环。只有嵌入、注意力、前馈网络和层归一化堆叠 12 次。
+没有曲,没有重复,只有嵌入,注意力,传输网络,以及层规范堆了12次.
 
 ```mermaid
 graph TD
@@ -71,27 +71,27 @@ graph TD
     style K fill:#1a1a2e,stroke:#51cf66,color:#fff
 ```
 
-### Transformer 块
+### 变压器块
 
-每个块遵循相同的模式。Pre-norm 架构（GPT-2 使用 pre-norm，而非原始 transformer 的 post-norm）：
+12个块中的每块都遵循相同的模式.前标准架构 (GPT-2 使用前标准,而不是后标准像原始变压器):
 
-1. LayerNorm
-2. Multi-Head Self-Attention
-3. 残差连接（将输入加回）
-4. LayerNorm
-5. Feed-Forward Network（MLP）
-6. 残差连接（将输入加回）
+1. 标准层
+2. 多头自律
+3. 剩余连接 (添加输入回)
+4. 标准层
+5. 输送输送网络 (MLP)
+6. 剩余连接 (添加输入回)
 
-残差连接至关重要。没有它们，梯度在反向传播到达第一个块时就已经消失殆尽。有了它们，梯度可以通过"跳过"路径直接从损失流到任意层。这就是为什么你可以堆叠 12、32 甚至 96 个块（据传 GPT-4 使用了 120 个）。
+由于这些变化,在转移过程中,渐变在达到区块1时消失.通过它们,渐变可以直接从损失到任何层通过"跳转"路径流动.这就是为什么你可以堆叠12,32甚至96个区块 (据传GPT-4使用120).
 
-### 注意力：核心机制
+### 注意:核心机制
 
-Self-attention 让每个 token 都能看到所有前面的 token，并决定对每个 token 关注多少。以下是数学原理。
+自我注意让每个代币看看之前的代币,
 
-对于每个 token 位置，从输入中计算三个向量：
-- **Query (Q)**："我在寻找什么？"
-- **Key (K)**："我包含什么？"
-- **Value (V)**："我携带了哪些信息？"
+对于每个代币位置,从输入计算三个向量:
+- **Query (Q)**"我在找什么?"
+- **Key (K)**"我含有什么?"
+- **Value (V)**"我带着什么信息?"
 
 ```
 Q = input @ W_q    (768 -> 768)
@@ -99,14 +99,14 @@ K = input @ W_k    (768 -> 768)
 V = input @ W_v    (768 -> 768)
 
 attention_scores = Q @ K^T / sqrt(d_k)
-attention_scores = mask(attention_scores)   # 因果掩码：未来位置为 -inf
+attention_scores = mask(attention_scores)   # causal mask: -inf for future positions
 attention_weights = softmax(attention_scores)
 output = attention_weights @ V
 ```
 
-因果掩码是使 GPT 自回归的关键。位置 5 可以关注位置 0-5，但不能关注 6、7、8，依此类推。这防止了模型在训练期间通过查看未来 token 来"作弊"。
+原因面具是使GPT具有自动降低性.第5位置可以关注0-5位置,但不能关注6,7,8等.这可以防止模型在训练期间通过观察未来代币"欺骗".
 
-**Multi-head attention** 将 768 维空间拆分为 12 个头，每个头 64 维。每个头学习不同的注意力模式。一个头可能追踪句法关系（主谓一致），另一个可能追踪语义相似性（同义词），再一个可能追踪位置邻近性（相邻词汇）。所有 12 个头的输出被拼接后重新投影回 768 维。
+**Multi-head attention**根据"一头"的定义,一个头可以追踪语法关系 (主体-动词协议).另一个头可以追踪语义相似性 (同义词).另一个头可以追踪位置接近性 (近距离的词).所有12个头的输出都是连锁的,并投射到768个维度.
 
 ```mermaid
 graph LR
@@ -141,25 +141,25 @@ graph LR
     style V fill:#1a1a2e,stroke:#0f3460,color:#fff
 ```
 
-除以 sqrt(d_k)——sqrt(64) = 8——是缩放操作。没有它，高维向量的点积会增长很大，将 softmax 推向梯度几乎为零的区域。这是原始"Attention Is All You Need"论文中的关键洞察之一。
+没有它,点产品会变得更大,使软max 进入渐变率接近零的区域.这是最初的"注意力是你需要的"论文中的关键见解之一.
 
-### KV Cache：为什么推理速度快
+### 基维缓存:为什么推理是快速的
 
-在训练期间，你一次性处理整个序列。在推理期间，你一次生成一个 token。没有优化的情况下，生成第 N 个 token 需要重新计算所有 N-1 个前面 token 的注意力。这对每个生成的 token 是 O(N^2)，对整个长度为 N 的序列是 O(N^3)。
+在训练过程中,你一次处理整个序列.在推断过程中,你一次生成一个代币.没有优化,生成代币N需要重新计算所有N-1前代币的注意力.这就是每生成的代币O(N^2) 或为长度N的序列O(N^3) 总数.
 
-KV Cache 解决了这个问题。计算每个 token 的 K 和 V 后，将它们存储起来。当生成第 N+1 个 token 时，你只需要为新 token 计算 Q，并查表获取所有前面 token 的缓存 K 和 V。这将每个 token 的计算成本从 O(N) 降至 O(1)（针对 K 和 V 的计算）。注意力分数的计算仍然是 O(N)，因为你关注所有前面位置，但你避免了对输入的冗余矩阵乘法。
+凯维缓存解决了这个问题. 计算每个代币的K和V后,存储它们. 在生成代币N+1时,你只需要计算Q为新代币,并从所有之前的代币中查找缓存的K和V. 这将每代币成本从O(N) 降低到O(1) 对于K和V计算. 关注分数计算仍然是O(N) 因为你关注所有前位置,但你避免输入上的冗余矩阵乘法.
 
-对于具有 12 层 12 个头的 GPT-2，KV cache 每个 token 存储 2 (K + V) x 12 层 x 12 个头 x 64 维 = 18,432 个值。对于一个 1024 token 的序列，在 FP32 下大约是 75MB。对于具有 128 层的 Llama 3 405B，单个序列的 KV cache 可以超过 10GB。这就是为什么长上下文推理是内存受限的。
+对于12层和12个头的GPT-2,KV缓存存储2 (K + V) x12层 x12头 x64个值 =每代币的18.432值.对于1024代币序列,这在FP32中约为75MB.对于128层的Llama 3 405B,单个序列的KV缓存存量可以超过10GB.这就是为什么长文本推理是内存绑定的原因.
 
-### Prefill vs Decode：推理的两个阶段
+### 预填与解码:两阶段的推理
 
-当你向 LLM 发送 prompt 时，推理发生在两个截然不同的阶段。
+当你向法学士发送提示时, 推断发生在两个不同的阶段.
 
-**Prefill** 并行处理你的整个 prompt。所有 token 都是已知的，因此模型可以同时为所有位置计算注意力。这个阶段是计算受限的——GPU 以满吞吐量执行矩阵乘法。对于 A100 上的 1000 token prompt，prefill 大约需要 20-50ms。
+**Prefill**处理整个提示符并行.所有代币都已知,所以模型可以同时计算所有位置的注意力.这个阶段是计算的 - - GPU在完成全吞吐量矩阵乘法.对于一个A100上的1000代币提示符,预填需要大约20-50ms.
 
-**Decode** 一次生成一个 token。每个新 token 依赖于所有前面的 token。这个阶段是内存受限的——瓶颈是从 GPU 内存读取模型权重和 KV cache，而非矩阵运算本身。GPU 的计算核心大部分时间空闲，等待内存读取。对于 GPT-2，每个 decode 步骤大约花费相同的时间，无论 matmul 需要多少 FLOPs，因为内存带宽才是约束条件。
+**Decode**发行一个接一个的代币. 每个新的代币都取决于所有以前的代币. 这一阶段是记忆的 - - 瓶是从GPU记忆中读取模型重量和KV缓存,而不是矩阵数学本身.  GPU 的计算核心大部分都在等待内存读数. 对于GPT-2,每一步解码都需要大约同一个时间,不管木需要多少FLOP,因为内存带宽是限制.
 
-这个区别对生产系统很重要。Prefill 吞吐量随 GPU 计算能力扩展（更多 FLOPS = 更快的 prefill）。Decode 吞吐量随内存带宽扩展（更快的内存 = 更快的 decode）。这就是为什么 NVIDIA 的 H100 相比 A100 更注重内存带宽改进——它直接加速了 token 生成。
+这种区别对于生产系统来说很重要.使用GPU计算预填输量 (更多FLOPS =更快的预填).用存储带宽 (更快的存储器 =更快的解码) 解码输量.这就是为什么NVIDIA的H100专注于提升存储带宽比A100 - 它直接加快代币生成.
 
 ```mermaid
 graph LR
@@ -194,37 +194,37 @@ graph LR
 
 ### 训练循环
 
-训练 LLM 就是下一个 token 预测。给定 tokens [0, 1, 2, ..., N-1]，预测 tokens [1, 2, 3, ..., N]。损失函数是模型预测概率分布与实际下一个 token 之间的交叉熵。
+训练一个LLM是下一个代币预测.给定代币 [0, 1, 2, ..., N-1],预测代币 [1, 2, 3, ..., N].损失函数是模型预测概率分布和实际下一个代币之间的交叉透.
 
-一个训练步骤：
+一个训练步骤:
 
-1. **前向传播**：将整个批次通过所有 12 个块。得到每个位置的 logits（softmax 前的分数）。
-2. **计算损失**：logits 与目标 token（输入向右移一位）之间的交叉熵。
-3. **反向传播**：使用反向传播计算所有 1.24 亿参数的梯度。
-4. **优化器步骤**：更新权重。GPT-2 使用 Adam 优化器，带有学习率预热和余弦衰减。
+1. **Forward pass**通过所有12个区块进行分数,每个位置都获得分数 (前软最大分数).
+2. **Compute loss**: 记录和目标代币之间的交叉值 (输入转移到一个位置).
+3. **Backward pass**计算所有124M参数的梯度,使用后延.
+4. **Optimizer step**基普特-2使用亚当学习速度加热和阴茎衰退.
 
-学习率调度比你想象的更重要。GPT-2 在前 2,000 步从 0 预热到峰值学习率，然后按照余弦曲线衰减。以高学习率开始会导致模型发散。保持恒定的高学习率会在训练后期导致震荡。预热后衰减的模式被所有主要 LLM 所使用。
+学习率的时间表比你可能预期的更重要.GPT-2在前2000步的时间里从0升至学习率的最高水平,然后在一个曲线下分解.开始学习率高导致模型的分歧.保持高水平的模式导致后来的训练中振荡.每一个主要的LLM都使用了升温然后衰变模式.
 
-### GPT-2 Small：参数数量
+### 简体中文版-2 小号:数字
 
-| 组件 | 形状 | 参数数量 |
-|------|------|---------|
+| Component | Shape | Parameters |
+|-----------|-------|------------|
 | Token embeddings | (50257, 768) | 38,597,376 |
 | Position embeddings | (1024, 768) | 786,432 |
-| 每块注意力 (W_q, W_k, W_v, W_out) | 4 x (768, 768) | 2,359,296 |
-| 每块 FFN (up + down) | (768, 3072) + (3072, 768) | 4,718,592 |
-| 每块 LayerNorms (2x) | 2 x 768 x 2 | 3,072 |
-| 最终 LayerNorm | 768 x 2 | 1,536 |
-| **每块总计** | | **7,080,960** |
-| **总计（12 个块）** | | **85,054,464 + 39,383,808 = 124,438,272** |
+| Per-block attention (W_q, W_k, W_v, W_out) | 4 x (768, 768) | 2,359,296 |
+| Per-block FFN (up + down) | (768, 3072) + (3072, 768) | 4,718,592 |
+| Per-block LayerNorms (2x) | 2 x 768 x 2 | 3,072 |
+| Final LayerNorm | 768 x 2 | 1,536 |
+| **Total per block** | | **7,080,960** |
+| **Total (12 blocks)** | | **85,054,464 + 39,383,808 = 124,438,272** |
 
-输出投影（logits 头）与 token 嵌入矩阵共享权重。这称为 weight tying——它将参数数量减少了 3800 万，并提升了性能，因为它迫使模型对输入和输出使用相同的表示空间。
+输出投影 (logits头) 与代币嵌入矩阵共享重量. 这称为重量绑定 - 它减少参数数数量38M,提高性能,因为它迫使模型使用相同的表示空间输入和输出.
 
-## 构建它
+## 建立它
 
-### 第 1 步：嵌入层
+### 步骤1: 嵌入层
 
-Token 嵌入将 50,257 个可能的 token 中的每一个映射到 768 维向量。位置嵌入添加了每个 token 在序列中位置的信息。两者相加。
+符号嵌入式将每一个可能的50,257个符号映射到768维向量.位置嵌入式添加有关每个符号在序列中的位置的信息.这两个是相结合的.
 
 ```python
 import numpy as np
@@ -241,11 +241,11 @@ class Embedding:
         return tok_emb + pos_emb
 ```
 
-初始化时使用的 0.02 标准差来自 GPT-2 论文。太大则初始前向传播会产生极端的值，使训练不稳定。太小则所有输入的初始输出几乎相同，使早期的梯度信号失效。
+开始的0.02标准偏差来自GPT-2论文.太大,初步前进通过产生极端值,破坏了训练的稳定性.太小,初始输出几乎是所有输入相同的,使早期梯度信号无用.
 
-### 第 2 步：带因果掩码的 Self-Attention
+### 步骤2: 用因果面具自卫
 
-先从单头注意力开始。因果掩码在 softmax 之前将未来位置设为负无穷，确保每个位置只能关注自身和更早的位置。
+原因面具在软max之前将未来位置设置为负无限,确保每个位置只能关注自己和以前的位置.
 
 ```python
 def attention(Q, K, V, mask=None):
@@ -258,11 +258,11 @@ def attention(Q, K, V, mask=None):
     return weights @ V
 ```
 
-Softmax 实现在指数运算前减去最大值。如果没有这一步，exp(large_number) 会溢出为无穷大。这是一个数值稳定性技巧，不改变输出结果，因为 softmax(x - c) = softmax(x) 对任意常数 c 成立。
+软max实现将最大值减去,然后将其减去.如果没有, exp(large_number) 过度流到无限.这是一个数值稳定技巧,不会改变输出,因为软max(x - c) =软max(x) 对任何常数 c.
 
-### 第 3 步：Multi-Head Attention
+### 步骤3:多头注意力
 
-将 768 维输入拆分为 12 个头，每个头 64 维。每个头独立计算注意力。拼接结果并投影回 768 维。
+根据768维输入的数据,分为12个,每个头有64维度.每个头独立计算注意力.
 
 ```python
 class MultiHeadAttention:
@@ -291,11 +291,11 @@ class MultiHeadAttention:
         return attn_out @ self.W_out
 ```
 
-reshape-transpose-reshape 的变换是多头注意力中最令人困惑的部分。具体过程如下：(batch, seq_len, 768) 张量变为 (batch, seq_len, 12, 64)，然后变为 (batch, 12, seq_len, 64)。现在 12 个头中的每一个都有自己的 (seq_len, 64) 矩阵来执行注意力。注意力完成后，我们逆转这个过程：(batch, 12, seq_len, 64) 变为 (batch, seq_len, 12, 64) 再变为 (batch, seq_len, 768)。
+转型转型转型舞蹈是多头关注最困惑的部分. 这就是发生的事情: (批量,seq_len,768) 数变成 (批量,seq_len,12,64),然后 (批量,12,seq_len,64). 现在,每一个12个头都有一个自己的矩阵 (seq_len, 64) 关注之后,我们逆转了这个过程: (批次,12次,seq_len,64) 变成 (批次,seq_len,12次,64) 变成 (批次,seq_len,768).
 
-### 第 4 步：Transformer 块
+### 步骤4:变压器块
 
-一个完整的 transformer 块：LayerNorm、带残差的 multi-head attention、LayerNorm、带残差的前馈网络。
+一个完整的变压器块:LayerNorm,多头注意力与残余,LayerNorm,向与残余.
 
 ```python
 class LayerNorm:
@@ -319,7 +319,7 @@ class FeedForward:
 
     def forward(self, x):
         h = x @ self.W1 + self.b1
-        h = np.maximum(0, h)  # GELU 近似：为简化使用 ReLU
+        h = np.maximum(0, h)  # GELU approximation: ReLU for simplicity
         return h @ self.W2 + self.b2
 
 
@@ -336,11 +336,11 @@ class TransformerBlock:
         return x
 ```
 
-前馈网络将 768 维输入扩展到 3,072 维（4 倍），应用非线性激活，然后投影回 768 维。这种扩张-收缩模式让模型在每个位置拥有"更宽"的内部表示。GPT-2 使用 GELU 激活函数，但这里我们为了简化使用 ReLU——对于理解架构而言，差异很小。
+传输网络将768维输入扩大到3072维度 (4x),应用非线性,然后将其投射回768. 这种扩展-缩减模式为模型提供了"更广泛"的内部表示,可以在每个位置工作.GPT-2使用GELU激活,但我们在这里使用ReLU为了简单化 - 区别对于理解架构来说是微小的.
 
-### 第 5 步：完整 GPT 模型
+### 步骤5:完整的GPT模型
 
-堆叠 12 个 transformer 块。前端加嵌入层，后端加输出投影。
+堆12个变压器块,在前面添加嵌入层,后面添加输出投影.
 
 ```python
 class MiniGPT:
@@ -382,11 +382,11 @@ class MiniGPT:
         return total
 ```
 
-注意 weight tying：`logits = x @ self.embedding.token_embed.T`。输出投影复用了 token 嵌入矩阵（转置后）。这不仅仅是节省参数的技巧。它意味着模型使用相同的向量空间来理解 token（嵌入）和预测它们（输出）。
+注意重量结合:`logits = x @ self.embedding.token_embed.T`输出投影重复使用代币嵌入矩阵 (转换). 这不仅仅是节省参数的技巧. 这意味着模型使用相同的向量空间来理解代币 (嵌入) 和预测它们 (输出).
 
-### 第 6 步：训练循环
+### 第六步:训练循环
 
-对于 1.24 亿参数的真实训练，你需要 GPU 和 PyTorch。此训练循环在一个纯 numpy 运行的小型模型上演示了这些机制。我们使用一个小型模型（4 层、4 头、128 维）使其可行。
+对于一个真正的训练运行在124M参数,你需要一个GPU和PyTorch.这个训练循环展示了一个小型模型的机械,它运行在纯粹的 numpy.我们使用一个小模型 (4层, 4头, 128 个) 让它可处理.
 
 ```python
 def cross_entropy_loss(logits, targets):
@@ -432,13 +432,13 @@ def train_mini_gpt(text, vocab_size=256, embed_dim=128, num_heads=4,
     return model
 ```
 
-损失初始值接近 ln(vocab_size)——对于 256 token 的字节级词表，即 ln(256) = 5.55。随机模型给每个 token 分配相等的概率。随着训练进行，损失下降，因为模型学会了预测常见模式："th" 跟在 "t" 后面，句号后跟空格，等等。
+随着训练的进步,损失会下降,因为模型学会预测常见模式: "th"后"t",时间后空间等等.
 
-在生产环境中，你会使用 Adam 优化器配合梯度累积、学习率预热和梯度裁剪。前向传播-损失-反向传播-更新的循环是完全相同的，只是优化器更加复杂。
+在生产中,你会使用亚当优化器,加上梯度,学习速度加热,和梯度剪辑.前进-通过-损失-后退更新循环是相同的.优化器更复杂.
 
-### 第 7 步：文本生成
+### 步骤7: 创建文字
 
-生成使用训练好的模型一次预测一个 token。每个预测从输出分布中采样（或取 argmax 贪婪解码）。
+生成使用训练模型以一次预测一个代币.每个预测都是从输出分布中采样 (或贪地用 argmax)
 
 ```python
 def generate(model, prompt_tokens, max_new_tokens=100, temperature=0.8):
@@ -460,17 +460,17 @@ def generate(model, prompt_tokens, max_new_tokens=100, temperature=0.8):
     return tokens
 ```
 
-Temperature 控制随机性。Temperature 1.0 使用原始分布。Temperature 0.5 使其更尖锐（更确定——模型更频繁地选择其最优选）。Temperature 1.5 使其更平坦（更随机——低概率 token 获得更大的机会）。Temperature 0.0 是贪婪解码（总是选择概率最高的 token）。
+温度控制随机性.温度1.0使用原始分布.温度0.5加快它 (更确定性 - 模型更频繁地选择其顶级选择).温度1.5平坦化它 (更随机性 - - 低概率的代币获得更大的机会).温度0.0是贪的解码 (总是选择最高概率的代币).
 
-`tokens[-seq_len:]` 窗口是必要的，因为模型有最大上下文长度（GPT-2 为 1024）。一旦超过，你必须丢弃最老的 token。这就是大家常说的"上下文窗口"。
+其他`tokens[-seq_len:]`窗口是必要的,因为模型的最大文本长度是1024 GPT-2.一旦你超过了它,你必须放弃最古老的代币.这是每个人都谈论的"文本窗口".
 
 ```figure
 sampling-decoder
 ```
 
-## 使用它
+## 用它
 
-### 完整训练与生成演示
+### 完整的培训和演示
 
 ```python
 corpus = """The transformer architecture has revolutionized natural language processing.
@@ -494,42 +494,42 @@ generated_text = bytes(output_tokens).decode("utf-8", errors="replace")
 print(f"\nGenerated: {generated_text}")
 ```
 
-在小语料和小模型上，生成的文本最多只能算半连贯。它会从训练文本中学到一些字节级模式，但无法像 GPT-2 使用 40GB 训练数据和完整 1.24 亿参数架构那样泛化。重点不在于输出质量。重点在于你可以追踪每一步：嵌入查找、注意力计算、前馈变换、logit 投影、softmax 和采样。每个操作都是可见的。
+在一个小模板的小体积上,生成的文本最好是半一致的. 它将从训练文本中学习一些字节级别的模式,但不能将GPT-2的方法概括为40GB的训练数据和完整的124M参数架构. 问题不是输出质量. 问题是,你可以追踪每一步:嵌入搜索,注意力计算, 输送转换, 逻辑投影,软max, 每个操作都可见.
 
-## 交付物
+## 运送它
 
-本课程产出 `outputs/prompt-gpt-architecture-analyzer.md`——一个用于分析任意 GPT 风格模型架构选择点的 prompt。给它一张模型卡或技术报告，它会分解参数分配、注意力设计和扩展决策。
+这一课产生了`outputs/prompt-gpt-architecture-analyzer.md`通过GPT模型的结构选择进行分析,给它提供模型卡或技术报告,
 
-## 练习
+## 运动
 
-1. 将模型修改为 24 层 16 个头（而非 12/12）。计算参数数量。加倍深度与加倍宽度（嵌入维度）相比如何？
+1. 修改模型以使用24层和16个头,而不是12/12. 计算参数. 翻倍深度与翻倍宽度 (嵌入维度) 相比如何?
 
-2. 实现 GELU 激活函数（GELU(x) = x * 0.5 * (1 + erf(x / sqrt(2)))），并替换前馈网络中的 ReLU。分别用两种激活函数训练 500 步并比较最终损失。
+2. 执行GELU激活函数 (GELU(x) = x * 0.5 * (1 + erf(x / sqrt(2)))) 并在输送网络中取代ReLU. 每次激活时进行500步的训练,并比较最终损失.
 
-3. 为生成函数添加 KV cache。在首次前向传播后存储每一层的 K 和 V 张量，并在后续 token 生成中复用它们。测量加速效果：分别用和不用缓存生成 200 个 token，比较实际运行时间。
+3. 添加一个KV缓存到生成函数. 存储K和V缩器在第一次前传后,然后再用于后续代币. 测量加快速度:生成200个代币,无论是没有缓存,并比较墙钟时间.
 
-4. 实现 top-k 采样（仅考虑概率最高的 k 个 token）和 top-p 采样（核采样：考虑累积概率超过 p 的最小 token 集合）。比较 temperature=0.8 下 top-k=50 与 top-p=0.95 的输出质量。
+4. 实施顶级k样本 (只考虑k最有可能的代币) 和顶级p样本 (核心样本:考虑积累概率超过p的最小代币集合). 进行0.8温度的输出质量与顶级k=50相比,顶级p=0.95.
 
-5. 构建训练损失曲线绘图器。训练模型 1000 步并绘制损失 vs 步骤曲线。识别三个阶段：快速初始下降（学习常见字节）、较慢中间阶段（学习字节模式）和平台期（在小语料上过拟合）。这条曲线的形状无论训练的是 128 维模型还是 GPT-4 都是一样的。
+5. 建立训练损失曲线计画器.训练模型1000步,图片损失与步骤.确定三个阶段:快速初始下降 (学习普通字节),慢的中期 (学习字节模式) 和平原 (在小体积上加载).无论您正在训练128维模型还是GPT-4.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Autoregressive | "一次生成一个词" | 每个输出 token 都依赖于所有前面的 token——模型预测 P(token_n \| token_0, ..., token_{n-1}) |
-| Causal mask | "它看不到未来" | 一个上三角的 -inf 值矩阵，防止训练期间关注未来位置 |
-| Multi-head attention | "多种注意力模式" | 将 Q、K、V 拆分为并行头（如 GPT-2 的 12 个头各 64 维），使每个头能学习不同类型的关系 |
-| KV Cache | "为速度而缓存" | 存储来自前面 token 的计算好的 Key 和 Value 张量，避免自回归生成时的冗余计算 |
-| Prefill | "处理 prompt" | 第一个推理阶段，所有 prompt token 并行处理——GPU FLOPS 计算受限 |
-| Decode | "生成 token" | 第二个推理阶段，token 逐个生成——GPU 带宽内存受限 |
-| Weight tying | "共享嵌入" | 对输入 token 嵌入和输出投影头使用同一矩阵——GPT-2 节省 3800 万参数 |
-| Residual connection | "跳跃连接" | 将输入直接加到子层输出（x + sublayer(x)）——在深层网络中启用梯度流动 |
-| Layer normalization | "归一化激活值" | 沿特征维度归一化至均值 0 和方差 1，带有可学习的缩放和偏置参数 |
-| Cross-entropy loss | "预测有多错误" | -log(分配给正确下一个 token 的概率)，对所有位置取平均——标准 LLM 训练目标 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Autoregressive | "It generates one word at a time" | Each output token is conditioned on all previous tokens -- the model predicts P(token_n \| token_0, ..., token_{n-1}) |
+| Causal mask | "It can't see the future" | An upper-triangular matrix of -infinity values that prevents attention to future positions during training |
+| Multi-head attention | "Multiple attention patterns" | Splitting Q, K, V into parallel heads (e.g., 12 heads of 64 dims each for GPT-2) so each head can learn different relationship types |
+| KV Cache | "Caching for speed" | Storing computed Key and Value tensors from previous tokens to avoid redundant computation during autoregressive generation |
+| Prefill | "Processing the prompt" | The first inference phase where all prompt tokens are processed in parallel -- compute-bound on GPU FLOPS |
+| Decode | "Generating tokens" | The second inference phase where tokens are generated one at a time -- memory-bound on GPU bandwidth |
+| Weight tying | "Sharing embeddings" | Using the same matrix for input token embeddings and the output projection head -- saves 38M params in GPT-2 |
+| Residual connection | "Skip connection" | Adding the input directly to the output of a sublayer (x + sublayer(x)) -- enables gradient flow in deep networks |
+| Layer normalization | "Normalizing activations" | Normalizing across the feature dimension to mean 0 and variance 1, with learnable scale and bias parameters |
+| Cross-entropy loss | "How wrong the predictions are" | -log(probability assigned to the correct next token), averaged over all positions -- the standard LLM training objective |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Radford et al., 2019 -- "Language Models are Unsupervised Multitask Learners" (GPT-2)](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) —— 引入 1.24 亿至 15 亿参数家族的 GPT-2 论文
-- [Vaswani et al., 2017 -- "Attention Is All You Need"](https://arxiv.org/abs/1706.03762) —— 原始 transformer 论文，包含缩放点积注意力和多头注意力
-- [Llama 3 Technical Report](https://arxiv.org/abs/2407.21783) —— Meta 如何将 GPT 架构扩展到 405B 参数并使用 16K GPU
-- [Pope et al., 2022 -- "Efficiently Scaling Transformer Inference"](https://arxiv.org/abs/2211.05102) —— 形式化 prefill vs decode 和 KV cache 分析的论文
+- [Radford et al., 2019 -- "Language Models are Unsupervised Multitask Learners" (GPT-2)](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)-- 引入了124M到1.5B参数家族的GPT-2论文
+- [Vaswani et al., 2017 -- "Attention Is All You Need"](https://arxiv.org/abs/1706.03762)-- 原始的变压器纸, 具有扩展的点点产品关注和多头关注
+- [Llama 3 Technical Report](https://arxiv.org/abs/2407.21783)-- 如何Meta将GPT架构扩展到405B参数,使用16K的GPU
+- [Pope et al., 2022 -- "Efficiently Scaling Transformer Inference"](https://arxiv.org/abs/2211.05102)-- 论文正式化了预填与解码和KV缓存分析

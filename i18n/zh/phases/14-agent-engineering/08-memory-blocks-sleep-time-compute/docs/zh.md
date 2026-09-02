@@ -1,134 +1,134 @@
-# 记忆块与睡眠时计算
+# 记忆阻碍和睡眠时间计算
 
-> 模型可直接编辑的离散功能性记忆块，以及一个在主体代理空闲时异步整合记忆的睡眠时代理。这两个想法是让你能将记忆能力扩展到单次对话之外的关键。
+> 模特可以直接编辑的功能性记忆区块,以及一个睡眠时间代理,在主要代理在置时,将记忆稳定成一致.
 
-**类型：** 构建实践
-**语言：** Python (标准库)
-**前置知识：** 第 14 阶段 · 07 (MemGPT)
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 07 (MemGPT)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 说出 Letta 使用的三个记忆层级（核心层、回忆层、归档层）以及各自的作用。
-- 解释记忆块模式：人类块、人格块和作为一等公民类型的用户自定义块。
-- 描述什么是睡眠时计算，为什么它位于关键路径之外，以及为什么它可以运行比主体代理更强的模型。
-- 实现一个脚本化的双代理循环，其中主体代理负责提供回复，睡眠时代理在轮次之间整合记忆块。
+- 列塔使用的三个内存层次 (核心,回忆,存档) 和每个层次的作用.
+- 解释内存区块模式:人区块,人区块和用户定义的区块作为一级打字对象.
+- 描述睡眠时间计算是什么,为什么它不处于关键路径,为什么它可以运行比主要代理更强的模型.
+- 执行一个脚本式的两代理循环,其中一个主要代理提供响应,而一个睡眠时间代理在轮流之间巩固区块.
 
-## 问题所在
+## 问题
 
-MemGPT（第 07 课）解决了虚拟内存控制流的问题。随之涌现出三个生产环境问题：
+解决了虚拟内存控制流程.
 
-1. **延迟。** 每次记忆操作都位于关键路径上。如果代理必须在用户等待时进行修剪、摘要整理或协调，尾部延迟会急剧上升。
-2. **记忆腐烂。** 写入不断累积，相互矛盾的事实仍然存在，检索内容因过时信息而淹没。
-3. **结构丢失。** 扁平的归档存储无法表达"人类块始终在提示词中；人格块始终在提示词中；任务块按会话切换"这样的结构。
+1. **Latency.**如果代理人必须在用户等待时剪切,总结或调整,
+2. **Memory rot.**书籍积累,矛盾的事实仍然存在,检索却沉浸在陈旧的内容中.
+3. **Structure loss.**一个平坦的档案存储器不能表达"人块总是在提示中;人块总是在提示中;任务块每次交换".
 
-Letta（letta.com）是原始 MemGPT 项目在 2024 年采用的平台名称——论文中的模式保留了 MemGPT 这一名称——而 2026 年 Letta V1 重写是一个后续且独立的步骤。记忆块使结构显式化；睡眠时计算将整合操作移出关键路径。
+雷塔 (letta.com) 是原始MemGPT项目在2024年通过的平台名称. 纸质的模式保持了MemGPT名称. 2026年雷塔 V1重写是一个后来的,独立的步骤. 记忆区块使结构明确;睡眠时间计算将整合转移到关键路径.
 
-## 概念解析
+## 概念
 
-### 三层架构
+### 三个层
 
-| 层级 | 作用域 | 存放位置 | 写入者 |
-|------|--------|----------|--------|
-| 核心层 | 始终可见 | 主提示词内部 | 代理工具调用 + 睡眠时重写 |
-| 回忆层 | 对话历史 | 可检索 | 自动轮次日志记录 |
-| 归档层 | 任意事实 | 向量 + KV + 图 | 代理工具调用 + 睡眠时摄取 |
+| Tier | Scope | Where it lives | Written by |
+|------|-------|----------------|------------|
+| Core | Always visible | Inside the main prompt | Agent tool call + sleep-time rewrites |
+| Recall | Conversation history | Retrievable | Automatic turn logging |
+| Archival | Arbitrary facts | Vector + KV + graph | Agent tool call + sleep-time ingest |
 
-核心层即 MemGPT 核心层。回忆层是带有被淘汰尾部条目的对话缓冲区。归档层是外部存储。这种分层清理了 MemGPT 双层架构的过度复用问题。
+核心是MemGPT的核心. 记住是对话缓冲器,它被驱逐出后尾. 档案是外部商店. 分裂清除了MemGPT的两层过载.
 
-### 记忆块
+### 记忆区块
 
-块（Block）是核心层中一个类型化、持久化、可编辑的段落。原始 MemGPT 论文定义了两个块：
+一块是核心层面的打字,持久,可编辑的部分.原始的MemGPT论文定义了两个:
 
-- **人类块（Human block）** — 关于用户的事实（姓名、角色、偏好、目标）。
-- **人格块（Persona block）** — 代理的自我概念（身份、语气、约束）。
+- **Human block**用户的事实 (姓名,角色,偏好,目标).
+- **Persona block**代理人的自我概念 (身份,语调,限制).
 
-Letta 将其扩展为任意用户自定义块：当前目标的 `Task` 块、代码库事实的 `Project` 块、硬性约束的 `Safety` 块。每个块都有 `id`、`label`、`value`、`limit`（字符上限）和 `description`（让模型知道何时编辑它）。
+列塔将其一般化为任意用户定义的区块:`Task`现在的目标是`Project`对于代码基础事实的区块,`Safety`对于硬约束,每个块都有一个`id`现在`label`现在`value`现在`limit`(字符封顶),`description`(所以模型知道何时编辑它).
 
-块通过工具表面进行编辑：
+通过工具表面可编辑块:
 
 - `block_append(label, text)`
 - `block_replace(label, old, new)`
 - `block_read(label)`
-- `block_summarize(label)` — 对接近限额的块进行压缩。
+- `block_summarize(label)`凝结一个接近其极限的块.
 
-### 睡眠时计算
+### 睡眠时间计算
 
-这是 2025 年 Letta 新增的能力：在后台运行第二个代理，脱离关键路径。睡眠时代理处理对话转录文本和代码库上下文，将 `learned_context` 写入共享块，并对归档记录进行整合或使其失效。
+拉特塔的2025年补充:在背景下运行第二个代理,离开关键路径.`learned_context`文件的存储记录,并将其整合或无效.
 
-由此产生的特性：
+产品出炉:
 
-- **无延迟成本。** 主体回复不需要等待记忆操作完成。
-- **允许使用更强的模型。** 睡眠时代理可以是更昂贵、更慢的模型，因为它不受延迟约束。
-- **自然的整合窗口。** 当用户不在等待时，进行去重、摘要整理、使矛盾事实失效。
+- **No latency cost.**基本响应不会等待记忆操作.
+- **Stronger model allowed.**睡眠时间代理可能更昂贵,更慢的模型,因为它没有延迟限制.
+- **Natural consolidation window.**假定,总结,无效,当用户不等待时.
 
-这种模式与人类工作方式一致：你执行任务，你睡一觉让大脑处理，长期记忆在夜间沉淀。
+形状与人类的工作方式相匹配:你完成任务,你睡觉,长期记忆一夜之间就会稳定.
 
-### 原生推理
+### 基于本地的推理
 
-Letta V1（`letta_v1_agent`，2026）弃用了 `send_message`/心跳机制和内联的 `Thought:` token，转而采用原生推理。Responses API（OpenAI）和具有扩展思考能力的 Messages API（Anthropic）将推理输出发送到独立的通道，并在轮次间传递（在生产环境中跨提供商加密传输）。控制循环仍然是 ReAct。思维轨迹是结构化的，而非提示词形状的。
+雷塔 V1 (`letta_v1_agent`美国国家`send_message`心跳和直线`Thought:`答案API (OpenAI) 和信息API (有扩展思维) 在单独的道上发射推理,通过轮流 (在生产中加密的供应商).控制循环仍然是ReAct.思维痕迹是结构性的,不是提示的.
 
-### 此模式的常见错误
+### 在这个模式出现错误的地方
 
-- **块膨胀。** 无限 `block_append` 会很快触及上限。在写入前接入一个块摘要器，当超出阈值时触发。
-- **静默漂移。** 睡眠时代理重写了块，但主体代理从未察觉。对块进行版本控制并在轨迹中暴露差异。
-- **中毒整合。** 睡眠时代理将攻击者可触及的内容处理并写入核心层。第 27 课的安全规则同样适用于睡眠时表面。
+- **Block bloat.**无限`block_append`在写到字幕之前,请在字幕上按一下一个区块总结器.
+- **Silent drift.**睡眠时代代理重写一个区块,而主要代理永远不会注意到.
+- **Poisoned consolidation.**睡眠时间代理将攻击者可以进入的内容处理到核心.
 
 ```figure
 memory-blocks
 ```
 
-## 构建实践
+## 建立它
 
-`code/main.py` 实现了以下内容：
+`code/main.py`执行:
 
-- `Block` — id、label、value、limit、description。
-- `BlockStore` — CRUD 操作 + `near_limit(label)` 辅助函数。
-- 两个脚本化代理 — `PrimaryAgent` 负责提供服务回复，`SleepTimeAgent` 负责在轮次之间进行整合。
-- 一个轨迹，展示一个三轮对话中的块写入，以及一次睡眠时传递过程，包含摘要整理一个块和使一个过时事实失效的操作。
+- `Block` id,标签,值,限制,描述.
+- `BlockStore`   `near_limit(label)`帮助人.
+- 两名经纪人`PrimaryAgent`子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子`SleepTimeAgent`转折之间结合.
+- 显示了与区块的三轮对话,加上一个睡眠时间的传递,
 
-运行方式：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-轨迹展示了分离的效果：主体轮次快速响应并产生原始写入；睡眠时传递则进行压缩和清理。
+转录显示了分开:主要转折速度快,产生原始写作;睡眠通道紧,清洁.
 
-## 实际应用
+## 用它
 
-- **Letta**（letta.com）提供了参考实现。可选择自托管或管理云部署。
-- **Claude Agent SDK 技能**作为块状知识——技能是一个命名的、版本化的、可检索的指令块，代理按需加载。
-- **自定义构建**适用于希望控制存储后端的团队。使用 Letta API 契约以便日后迁移。
+- **Letta**对于参考实现, (letta.com) 提供自主托管或管理云.
+- **Claude Agent SDK skills**作为一个块形知识 一个技能是代理按要求加载的命名,版本,可检索的指令块.
+- **Custom builds**对于想要控制存储后端的团队,使用Letta API合同,以便您稍后迁移.
 
-## 部署交付
+## 运送它
 
-`outputs/skill-memory-blocks.md` 生成一个 Letta 风格的块系统，带有睡眠时挂钩，适用于任何运行时环境，包括安全规则和引用连接。
+`outputs/skill-memory-blocks.md`产生Letta形状的块系统,用于任何运行时间,包括安全规则和引用线.
 
-## 练习
+## 运动
 
-1. 添加一个 `block_summarize` 工具，当 `near_limit` 返回 true 时，用模型生成的摘要替换块值。哪个触发阈值能最小化摘要调用次数和块溢出风险？
-2. 在归档层实现睡眠时去重：两条文本 Token 重叠度 >90% 的记录合并为一条。仅在睡眠时传递中执行，绝不在关键路径上执行。
-3. 对块进行版本控制。每次写入时记录旧值和差异。暴露 `block_history(label)` 供操作者调试"代理为何忘记了 X"的问题。
-4. 将睡眠时代理视为不可信写入者。当它们触及人格块或安全块时，要求在提交前经过第二个代理的审查。
-5. 将示例移植到使用 Letta API（`letta_v1_agent`）。块模式有何变化，原生推理如何改变轨迹形状？
+1. 添加一个`block_summarize`工具,以模型生成的总结取代区块值,`near_limit`什么触发门可以减少总结调用和区块过度?
+2. 实现睡眠时间的减值在档案中:两个文本具有90%以上的标志性重叠的记录,将其崩成一个.
+3. 在每一个写记录上,旧值和差异.`block_history(label)`操作员可以调试"为什么代理忘记X".
+4. 让睡眠时间代理人看作是不值得信赖的作家.
+5. 移植该例子使用Letta API (`letta_v1_agent`区块方案发生了什么变化,原生推理如何改变痕迹形状?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的说法 | 实际含义 |
-|------|---------------|----------|
-| 记忆块 | "可编辑的提示词段落" | 核心记忆中类型化、持久化、LLM 可编辑的段落 |
-| 人类块 | "用户记忆" | 关于用户的事实，固定在核心层 |
-| 人格块 | "代理身份" | 自我概念、语气、约束，固定在核心层 |
-| 睡眠时计算 | "异步记忆工作" | 第二个代理在关键路径之外进行整合 |
-| 核心层 / 回忆层 / 归档层 | "层级" | 三层记忆划分：始终可见 / 对话历史 / 外部存储 |
-| 块上限 | "容量限制" | 每块的字符上限；强制触发摘要整理 |
-| 原生推理 | "思考通道" | 提供商级别的推理输出，而非提示词层面的 `Thought:` |
-| 习得上下文 | "睡眠时输出" | 睡眠时代理写入共享块的事实 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Memory block | "Editable prompt section" | Typed, persistent, LLM-editable segment of core memory |
+| Human block | "User memory" | Facts about the user, pinned in core |
+| Persona block | "Agent identity" | Self-concept, tone, constraints, pinned in core |
+| Sleep-time compute | "Async memory work" | Second agent doing consolidation off the critical path |
+| Core / Recall / Archival | "Tiers" | Three-layer memory split: always-visible / conversation / external |
+| Block limit | "Cap" | Character limit per block; forces summarization |
+| Native reasoning | "Thinking channel" | Provider-level reasoning output, not prompt-level `Thought:` |
+| Learned context | "Sleep output" | Facts the sleep-time agent writes into shared blocks |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Letta，记忆块博客](https://www.letta.com/blog/memory-blocks) — 块模式
-- [Letta，睡眠时计算博客](https://www.letta.com/blog/sleep-time-compute) — 异步整合
-- [Letta，重构代理循环](https://www.letta.com/blog/letta-v1-agent) — 原生推理重写
-- [Packer 等，MemGPT（arXiv:2310.08560）](https://arxiv.org/abs/2310.08560) — 起源论文
+- [Letta, Memory Blocks blog](https://www.letta.com/blog/memory-blocks) 块图案
+- [Letta, Sleep-time Compute blog](https://www.letta.com/blog/sleep-time-compute)同步整合
+- [Letta, Rearchitecting the Agent Loop](https://www.letta.com/blog/letta-v1-agent)原生推理重写
+- [Packer et al., MemGPT (arXiv:2310.08560)](https://arxiv.org/abs/2310.08560)来源

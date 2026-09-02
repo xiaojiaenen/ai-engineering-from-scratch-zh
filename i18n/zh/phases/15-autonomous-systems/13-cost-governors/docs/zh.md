@@ -1,106 +1,106 @@
-# Action Budgets, Iteration Caps, and Cost Governors
+# 行动预算,反复上限和成本管理
 
-> 一个中型电商智能体团队启用了"订单追踪"技能后，月度 LLM 成本从 $1,200 飙升至 $4,800。这不是定价 bug，而是一个找到了新循环并持续在其中消耗资源的智能体。Microsoft 的 Agent Governance Toolkit（2026 年 4 月 2 日）将针对此类问题的防御手段规范化为：每次请求的 `max_tokens`、每个任务的 token 与美元预算、每日/每月上限、迭代上限、分层模型路由、prompt 缓存、上下文窗口压缩、昂贵操作的 HITL 检查点、预算超限时触发 kill switch。Anthropic 的 Claude Code Agent SDK 以不同名称提供了相同的原语。金融速度限制（例如：10 分钟内支出超过 $50 时切断访问）比月度上限更快地捕获循环问题。
+> 平均平均的电子商务代理人每月的LLM成本从$1,200 to $据了解,在微软的代理管理工具包 (2026年4月2日) 中,微软的代理管理工具包编码了对此类类的防御:`max_tokens`根据"每任务代币和美元预算,每天/月限,反复限,级别模型路由,即时缓存,文本窗口,HITL检查点对昂贵的行动,杀死开关在预算违规时.安тропо克的Cloed Code Agent SDK在不同的名称下发送相同的原始化. 财务速度限制 例如在10分钟内切断访问量>50美元 捕获循环比月限更快.
 
-**类型：** Learn
-**语言：** Python（stdlib，分层 cost-governor 模拟器）
-**前置条件：** Phase 15 · 10（权限模式）、Phase 15 · 12（持久化执行）
-**时间：** 约 60 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, layered cost-governor simulator)
+**Prerequisites:** Phase 15 · 10 (Permission modes), Phase 15 · 12 (Durable execution)
+**Time:** ~60 minutes
 
-## The Problem
+## 问题
 
-自主智能体每一步都要花费真金白银。聊天机器人输出错误结果只是一次糟糕的回复；智能体陷入错误循环则是一张账单。业界对这种故障模式的术语是"钱包耗尽"（Denial of Wallet）——智能体不断推理、不断调用工具、不断产生费用，而没有任何机制能阻止它，因为根本就没有设计这样的机制。
+专有代理人每次都花费了真钱.聊天机器人的坏输出是坏答案;代理人的坏循环是账单.业界记录的失败模式的术语是"拒绝钱包"
 
-解决方案不是一个数字，而是一组在不同时间尺度和粒度上的限制栈：每次请求、每个任务、每小时、每天、每月。设计良好的限制栈能在几分钟内捕获失控循环，几小时内捕获缓慢泄漏，一天内捕获糟糕的发布。同样的限制栈能在智能体进行长周期自主运行时始终保持预算可控。
+解决方案不是一个数字.它是一个不同时间尺度和细节性的限制堆:每次请求,每次任务,每小时,每天,每月.一个设计好的堆在几分钟内捕获了逃跑循环,几个小时内缓慢泄漏,并在一天内释放了坏东西.当代理长视线和自主时,同样的堆保持了预算.
 
-这是一堂工程课：数学很简单，真正的难点在于团队的纪律性。下面的限制项列表均命名于 Microsoft Agent Governance Toolkit 或 Anthropic Claude Code Agent SDK 文档中。
+这是一个工程课程:数学是微不足道的,学科是团队失败的地方.下面的限制列表都在微软代理管理工具包或人类克劳德代码代理SDK文件中命名.
 
-## The Concept
+## 概念
 
-### 成本治理限制栈
+### 成本管理者堆
 
-1. **`max_tokens` 每次请求。** 简单直接。防止任何单次调用输出无界补全。
-2. **每个任务的 token 预算。** 在整个运行期间不超过 N 个 token。达到上限后硬停止。
-3. **每个任务的美元预算。** 与 token 预算同理，但以货币计。即 Claude Code 中的 `max_budget_usd`。
-4. **每次工具调用上限。** 最多 N 次 `WebFetch` 调用、N 次 `shell_exec` 调用等。
-5. **迭代上限（`max_turns`）。** 智能体总循环迭代次数；防止无限推理循环。
-6. **每分钟/每小时/每天/每月上限。** 滚动窗口。在不同时间尺度上捕获泄漏。
-7. **金融速度限制。** 例如："若 10 分钟内支出超过 $50，则切断访问。" 在月度上限触发前捕获基于循环的消耗。
-8. **分层模型路由。** 默认使用较小模型；仅当分类器判定任务值得使用时才升级到较大模型。
-9. **Prompt 缓存。** 系统 prompt 和稳定上下文存储在提供商缓存中；重新发送的 token 成本近乎为零。
-10. **上下文窗口压缩。** 通过压缩/摘要将活跃上下文保持在阈值以下；直接降低 token 成本。
-11. **昂贵操作的 HITL 检查点。** 对于已知昂贵的操作（长时间工具调用、大文件下载、高成本模型升级）之前，需要人工确认。
-12. **预算超限时触发 kill switch。** 任何上限触发时会话中止。超限会被记录；需要独立的重启用路径。
+1. **`max_tokens` per request.**简单,防止任何一个电话发出无限的完成.
+2. **Per-task token budget.**在整个运行中,不要超过N代币.
+3. **Per-task dollar budget.**像代币一样,但用货币.`max_budget_usd`在"克劳德代码"中.
+4. **Per-tool call cap.**超过N`WebFetch`电话,N`shell_exec`电话等等
+5. **Iteration cap (`max_turns`).**总代理循环反复;防止无限的推理循环.
+6. **Per-minute / per-hour / per-day / per-month cap.**窗,在不同的时间尺度上发现泄漏.
+7. **Financial velocity limit.**举个例子,如果10分钟内支出超过50美元, 切断访问.
+8. **Tiered model routing.**默认的较小模型;只有当分类器判断任务授权时,升级到更大的模型.
+9. **Prompt caching.**系统快速和稳定的语境存储在供应商缓存中;重发的代币成本接近零.
+10. **Context windowing.**缩小/总结,以保持活跃的背景低于门值;直接降低代币成本.
+11. **HITL checkpoints on expensive actions.**在一个已知昂贵的操作 (长时间的工具调用,大量下载,昂贵的模型升级) 之前,需要人体的触摸.
+12. **Kill switch on budget breach.**任何封顶火灾时会停止会议.封顶记录,需要单独的重新启用路径.
 
-### 为什么需要栈而不只是一个上限
+### 为什么堆,没有一个帽子
 
-单一月度上限只能在钱包被耗尽之后才捕获失控智能体。单一每次请求上限在会话层面则毫无作用。不同的故障模式需要不同的时间尺度：
+单个月限只能在钱包消失后捕获逃跑代理.每次请求的单个限量在会议水平上捕获什么都不了.不同故障模式需要不同的时间尺度:
 
-- **失控循环**（智能体卡在 5 秒重试中）：由速度限制捕获。
-- **缓慢泄漏**（智能体每任务执行约 2 倍预期工作量）：由每日上限捕获。
-- **糟糕的发布**（新版本使用 5 倍 token）：由周/月度上限捕获。
-- **正常需求激增**（真实需求，非 bug）：由小时/天级上限配合清晰日志捕获。
+- **Runaway loop**速度限制被捕.
+- **Slow leak**据报道,每天的每天工作量均为2倍.
+- **Bad release**(新版本使用5x代币):按每周/月限被捕.
+- **Legitimate surge**(实际需求,不是错误): 通过清晰的日日日限被捕.
 
-### Harness 预算表面
+### 带预算表面
 
-Claude Code Agent SDK 暴露了（公开文档）：
+克劳德代码代理SDK揭示 (公开文件):
 
-- `max_turns` — 迭代上限。
-- `max_budget_usd` — 美元上限；超限时会话中止。
-- `allowed_tools` / `disallowed_tools` — 工具白名单与黑名单。
-- 工具使用前钩子，用于自定义成本核算。
+- `max_turns`    
+- `max_budget_usd`美元上限; 违规的会期堕胎.
+- `allowed_tools`现在,`disallowed_tools`工具和.
+- 在使用工具之前,按定制计算成本的点.
 
-结合权限模式阶梯（Lesson 10）。没有 `max_budget_usd` 的 `autoMode` 会话是无治理的自主性。Anthropic 明确指出 Auto Mode 需要预算控制；分类器与成本是正交的概念。
+结合使用许可模式的梯子 (课10).`autoMode`没有会议`max_budget_usd`无政府自主化. 人类明确地设置自动模式需要预算控制; 类别符是对成本直角的.
 
-### EU AI Act、OWASP Agentic Top 10
+### 欧盟人工智能法,OWASP代理前十名
 
-Microsoft Agent Governance Toolkit 覆盖了 OWASP Agentic Top 10 和 EU AI Act 第 14 条（人类监督）的要求。在欧盟生产环境中，日志记录和上限执行不是可选的。
+微软的代理管理工具包涵盖了OWASP代理排名前十的要求和欧盟人工智能法第14条 (人力监督) 要求.
 
-### 观察到的 $1,200 → $4,800 案例
+### 观察到的$1,200 → $4,800 个案例
 
-Microsoft 文档中的真实案例：一个电商智能体在新增工具后月度成本翻了四倍。该工具允许智能体在每个会话中轮询订单状态。没有循环检测。没有每个工具的上下限。没有周环比增长告警。修复方案是增加每个工具的上下限加上每日增长告警。这是一个模板：每个新工具都是一个潜在的新循环；每个新工具都需要自己的上限和告警。
+微软文件中的真实情况:一个电子商务代理, 工具允许代理在每次会议中进行调查. 没有循环检测. 没有工具帽子. 没有预警,每周增长. 解决方案是每种工具的顶加上每天的增长报警. 这是一个模板:每一个新工具表面都是新的潜在循环;每一个新工具都需要自己的封顶和自己的警报.
 
 ```figure
 cost-governor-stack
 ```
 
-## Use It
+## 用它
 
-`code/main.py` 模拟了有无分层 cost-governor 限制栈的智能体运行。模拟智能体在若干回合后会漂移进轮询循环；分层限制栈会在速度窗口内捕获它，而单一月度上限要数天之后才会触发。
+`code/main.py`模拟的代理在一些转折后漂浮到投票循环中; 层级的堆在速度窗口内抓住它,而单个月的盖顶直到几天后才会发射.
 
-## Ship It
+## 运送它
 
-`outputs/skill-agent-budget-audit.md` 审计拟部署智能体的 cost-governor 限制栈并标记缺失的层级。
+`outputs/skill-agent-budget-audit.md`审计拟定部署代理人的成本管理层,并标记缺失层次.
 
-## Exercises
+## 运动
 
-1. 运行 `code/main.py`。确认在轮询循环轨迹上速度限制在迭代上限之前触发。然后禁用速度限制，测量在迭代上限捕获之前智能体"花费"了多少。
+1. 跑步`code/main.py`现在,禁用速度限制,然后测量代理在代代代 cap 抓住它之前"花多少钱".
 
-2. 为一个浏览器智能体（Lesson 11）设计一套每个工具的上下限。哪个工具需要最严格的限制？哪个工具可以无上限运行而无风险？
+2. 设计一个浏览器代理的工具封顶套件 (教训11).哪个工具需要最紧的封顶?哪个工具可以无限地运行,没有风险?
 
-3. 阅读 Microsoft Agent Governance Toolkit 文档。列出该工具命名中的所有上限类型。将每种类型映射到一个故障模式（失控循环、缓慢泄漏、糟糕发布、需求激增）。
+3. 阅读微软代理管理工具包文件.列出每个封顶类型的工具包名称.将每个工具包地图到故障模式中的一个 (运行循环,缓慢泄漏,错误释放,冲动).
 
-4. 为一个实际任务（例如"对仓库中的 50 个问题进行分类"）估算通宵无人值守运行的成本。将 `max_budget_usd` 设为点估计的 2 倍。论证为何是 2 倍。
+4. 设置   价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格: 价格:`max_budget_usd`根据你的点估计,为 2x 证明了.
 
-5. Claude Code 的 `max_budget_usd` 在会话累计成本超限时触发。设计一个你会在外部强制执行的可补充速度限制。什么会触发切断，重新启用是什么样的？
+5. 克劳德·科德的`max_budget_usd`设计一个补充速度限制,你会执行外部.什么会触发切断,以及重新启动看起来像什么?
 
-## Key Terms
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |---|---|---|
-| Denial of Wallet | "失控账单" | 智能体循环产生支出且无上限能阻止它 |
-| max_tokens | "每次请求上限" | 单次补全大小的天花板 |
-| max_turns | "迭代上限" | 会话中智能体循环迭代的天花板 |
-| max_budget_usd | "美元 kill switch" | 会话成本上限；超限时中止 |
-| Velocity limit | "速率上限" | 短窗口内的支出限制（如 $50 / 10 分钟） |
-| Tiered routing | "先小模型" | 便宜模型默认；仅当分类器判定合理时才升级 |
-| Prompt caching | "缓存的系统 prompt" | 提供商侧缓存使重新发送的 token 成本降至近乎为零 |
-| HITL checkpoint | "人工审批门" | 昂贵操作前需要人工确认 |
+| Denial of Wallet | "Runaway bill" | Agent loop generating spend with no cap to stop it |
+| max_tokens | "Per-request cap" | Ceiling on a single completion's size |
+| max_turns | "Iteration cap" | Ceiling on agent loop iterations in a session |
+| max_budget_usd | "Dollar kill switch" | Session cost cap; aborts on breach |
+| Velocity limit | "Rate cap" | Limit on spend per short window (e.g., $50 / 10 min) |
+| Tiered routing | "Small model first" | Cheap model default; escalate only when classifier warrants |
+| Prompt caching | "Cached system prompt" | Provider-side cache reduces re-send token cost to near zero |
+| HITL checkpoint | "Human approval gate" | Human tap required before expensive action |
 
-## Further Reading
+## 进一步阅读
 
-- [Anthropic Claude Code Agent SDK — agent loop and budgets](https://code.claude.com/docs/en/agent-sdk/agent-loop) — `max_turns`、`max_budget_usd`、工具白名单。
-- [Microsoft Agent Framework — human-in-the-loop and governance](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop) — cost-governor 检查点。
-- [Anthropic — Claude Managed Agents overview](https://platform.claude.com/docs/en/managed-agents/overview) — 提供商侧成本控制。
-- [Anthropic — Prompt caching (Claude API docs)](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) — 缓存机制。
-- [Anthropic — Measuring agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy) — 长周期智能体的成本画像。
+- [Anthropic Claude Code Agent SDK — agent loop and budgets](https://code.claude.com/docs/en/agent-sdk/agent-loop) `max_turns`现在`max_budget_usd`工具的使用者.
+- [Microsoft Agent Framework — human-in-the-loop and governance](https://learn.microsoft.com/en-us/agent-framework/workflows/human-in-the-loop)成本管理员检查站.
+- [Anthropic — Claude Managed Agents overview](https://platform.claude.com/docs/en/managed-agents/overview)供应商成本控制.
+- [Anthropic — Prompt caching (Claude API docs)](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)缓存机械.
+- [Anthropic — Measuring agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy)长视野代理人的成本配置.

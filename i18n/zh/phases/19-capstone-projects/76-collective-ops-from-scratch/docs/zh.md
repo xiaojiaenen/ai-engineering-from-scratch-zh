@@ -1,24 +1,24 @@
-# 从零实现集体操作
+# 从零开始的集体行动
 
-> 支撑分布式训练的四个核心集体操作是 allreduce、broadcast、allgather 和 reduce_scatter。训练框架提供的其他所有原语都是基于这四个操作的封装。在 `multiprocessing.Queue` 网线上构建它们，用参考实现验证正确性，后续的练习就会变成管道搭建工作。
+> 其他原始的培训框架提供了一个包裹. 建立它们一次在一个`multiprocessing.Queue`线,对它们进行检验,然后其余的轨道变成管道.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** 第 19 阶段 C 轨道课程 42-49
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 19 Track C lessons 42-49
+**Time:** ~90 min
 
 ## 学习目标
 
-- 实现两阶段环形 allreduce（reduce-scatter 后接 allgather），并证明每 rank 的通信量为每元素 2(N-1)/N 字节。
-- 基于 `multiprocessing.Queue` 上的点对点发送构建 broadcast、allgather 和 reduce_scatter。
-- 用相同输入的 `torch.distributed` gloo 参考实现验证每个原语。
-- 根据集群形状、延迟下界和带宽上界定义选择环形与树形的理由。
+- 实现环所有减少在两个通过 (减少分散然后全部集合) 并证明每级通信量为2(N-1) /N字节/元素.
+- 建立广播,收集,并减少_散播点到点发送的顶部`multiprocessing.Queue`现在,我们要去.
+- 检查每一个原始的对比`torch.distributed`对于相同输入的参考数据.
+- 保护圆与树的选择,以集群形状,延迟地板和带宽天花板.
 
-## 问题描述
+## 问题
 
-一个简单的 allreduce 对 N 个 rank 的做法是将张量发送 N 次到根节点，再广播 N 次回来。带宽按每 rank O(N) 增长，根节点成为瓶颈，墙钟时间的下界是最慢链路乘以 N。环形 allreduce 将其平铺为 N-1 步，每步处理大小为 T/N 的块，因此每 rank 的字节数降为 2T(N-1)/N，与集群规模无关。树形 allreduce 在小 N 和高延迟链路上表现更好，因为深度是 log2(N) 跳而非 2(N-1)。为集群形状选择不当的拓扑会让最慢的 GPU 决定每一步的时间。
+一个天真的全减值在N数列上将N乘以子发送到根,并将N乘以回传输. 带宽尺寸为O(N) 每级,根成为瓶,墙钟地板是最慢的链接乘以N. 环全缩小到2 ((N-1) 块的尺寸T/N,因此每级字节降至2T ((N-1) /N,不论集群尺寸如何. 树全减小N和高延迟链接中获胜,因为深度是log2(N) 跳转而不是2(N-1). 选择错误的拓形态,最慢的GPU决定了步骤时间.
 
-你在这个轨道中会读到的每个分布式训练框架都依赖这四个原语。PyTorch DDP 用每个参数桶一次 allreduce 来同步梯度。ZeRO 通过 reduce_scatter 分片优化器状态，通过 allgather 广播更新后的参数。FSDP 将整个前向传播转化为 allgather 加 reduce_scatter。流水线并行需要跨阶段组广播激活值。如果你无法实现这四个集合操作，就无法推理训练为何停滞、梯度不匹配为何出现在 rank 3、或交换拓扑时流水线气泡为何翻倍。
+每个分布式训练框架,你会读到这个轨道,都取决于这些四个原始. 鱼DDP同步梯度,每个参数桶都能减少一个. 通过减少_散射,ZERO通过allgather进行更新参数的节目来缩小优化状态. FSDP将全向转换为allgather加减散. 管道并行需要在各阶段组之间进行激活的广播. 如果不能实现四个集体,你不能解释为什么训练停顿,为什么梯度不匹配在3级,或者为什么管道泡翻倍当你交换拓.
 
 ## 概念
 
@@ -34,95 +34,95 @@ flowchart LR
   Q30 --> R0
 ```
 
-### 两阶段环形 allreduce
+### 环全减2次
 
-将张量分为 N 个等长子块，索引 0..N-1。每个 rank 拥有等于其 rank 编号的子块索引。第一阶段 reduce-scatter 执行 N-1 步。在第 s 步，rank r 将子块 (r - s) mod N 发送给 rank (r + 1) mod N，并从 rank (r - 1) mod N 接收子块 (r - s - 1) mod N，将接收到的子块累积到本地副本中。经过 N-1 步后，rank r 持有子块 r 的完整求和结果。第二阶段 allgather 再执行 N-1 步，将完成的子块沿环形旋转，直到每个 rank 都持有所有子块的完整求和。
+按数值为 0..N-1的 N 个等数分. 每个级别都有一个等级的分数指数. 通过1,减少散射,运行N-1步骤. 在步骤s,r级 r将分数 (r - s) 调用 N 调用 (r + 1) 调用 N,并从分数 (r - s - 1) 调用 N 调用 N 调用 (r - 1) 调用 N,并将接收的分数积累到本地副本中. 在N-1步骤之后,r级拥有r部分的全部总数. 通过2,全部集合,再走N-1步骤,然后旋转完成的块环绕,直到每个排列都包含了每个块的全部总和.
 
-| 原语 | 每 rank 字节数 | 步数 | 适用场景 |
+| Primitive | Per-rank bytes | Steps | When to use |
 |-----------|---------------|-------|-------------|
-| 环形 allreduce | 2T(N-1)/N | 2(N-1) | 大 T，同质化宽带集群 |
-| 树形 allreduce | T log2(N) | 2 log2(N) | 小 T 或高延迟链路 |
-| Broadcast | T | log2(N) 树 | 参数初始化、标量配置 |
-| Allgather | T(N-1)/N | N-1 | 分片前向传播、ZeRO 解分片 |
-| Reduce_scatter | T(N-1)/N | N-1 | ZeRO 梯度分片 |
+| Ring allreduce | 2T(N-1)/N | 2(N-1) | Large T, fat-pipe homogeneous cluster |
+| Tree allreduce | T log2(N) | 2 log2(N) | Small T or high-latency links |
+| Broadcast | T | log2(N) tree | Parameter init, scalar config |
+| Allgather | T(N-1)/N | N-1 | Sharded forward, ZeRO unshard |
+| Reduce_scatter | T(N-1)/N | N-1 | ZeRO gradient sharding |
 
-### 用 Queue 网络替代 NCCL
+### 排队网作为NCCL的替代
 
-NCCL 在 PCIe 和 NVLink 上运行，支持硬件卸载的约减操作。在 CPU 上没有这些。每个环形边上的 `multiprocessing.Queue` 提供有序点对点交付，单生产者单消费者。约减在用户空间发生，因此要承担 Python 开销，但总线模式与 NCCL 环形 allreduce 完全相同。在 Queue 版本上推理正确性，集群行为自然成立。
+对于 CPU 来说,你没有这种情况.`multiprocessing.Queue`通过每个环边线,您可以在单个生产商和单个消费者之间进行点到点交付. 减少发生在用户空间中,因此您支付Python的费用,但线程图案与NCCL环全减相同. 原因在排队版本上的正确性和集群行为下面.
 
-### 用 gloo 验证
+### 检查对黑色
 
-每个原语都有单元测试，将在相同张量和相同 world size 上用 gloo 后端初始化的 `torch.distributed` 输出作为参照。如果你的环形 allreduce 与 gloo 的偏差超过 float32 epsilon，测试失败。用参考实现验证是不可妥协的；没有它，原语在真实训练的第 10000 步之前看起来都是正确的。
+每个原始人都会通过一个单位测试来比较其产量`torch.distributed`如果您的环全减差于光超过 float32 epsilon,测试失败.对参考实现进行验证是不可谈判的;如果没有它,原始的看起来是正确的,直到真正的训练运行的10000步.
 
 ```figure
 ci-ring-allreduce
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现：
+`code/main.py`执行:
 
-- `Mesh` 类将 N 个 `multiprocessing.Queue` 实例连接成环形，并按 rank 暴露 `send(dst, tensor)` 和 `recv(src)`。
-- `ring_allreduce(mesh, rank, world_size, tensor)` 执行两阶段算法。
-- `broadcast(mesh, rank, world_size, tensor, src)` 基于对数树实现。
-- `allgather(mesh, rank, world_size, tensor)` 使用 N-1 次旋转。
-- `reduce_scatter(mesh, rank, world_size, tensor)` 作为 allreduce 的第一阶段。
-- `_gloo_reference(op, world_size, tensor)` 用 gloo 后端运行 `torch.distributed` 以进行字节级比较。
+- `Mesh`连接N的类`multiprocessing.Queue`入一个环,并暴露`send(dst, tensor)`其他`recv(src)`根据一个级别.
+- `ring_allreduce(mesh, rank, world_size, tensor)`运行两个通行算法.
+- `broadcast(mesh, rank, world_size, tensor, src)`在一个高数树上.
+- `allgather(mesh, rank, world_size, tensor)`使用N-1旋转.
+- `reduce_scatter(mesh, rank, world_size, tensor)`作为"全减"的第一半.
+- `_gloo_reference(op, world_size, tensor)`通过相同的输入`torch.distributed`对于比较的字节等值,
 
-运行方式：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-输出：每原语的验证表格对比 queue-mesh 与 gloo 输出，后跟每 rank 的字节计数器，证明 2T(N-1)/N 的缩放规律。
+输出:每次初始验证表对排列网和光线输出进行比较,随后是每次位数字节计数,证明2T(N-1) /N扩展.
 
-## 生产环境中的模式
+## 野生生产模式
 
-三个模式让原语足够健壮以投入生产。
+三个模式使原始人硬得足以运输.
 
-**allreduce 前对梯度分桶。** 一个 10 亿参数的模型有数万个梯度张量。每个张量一次 allreduce 会让延迟下界支付 N 次。DDP 将梯度分桶为约 25 MB 的块，每个桶发起一次 allreduce；小张量搭大张量的便车。没有分桶的话，延迟开销会主导每一步。
+**Bucket gradients before allreduce.**一个1B参数模型有数万个梯度子.每子的一个减缓器支付延迟地板N倍.DDP桶梯度成25MB块,并发出一个减缓器;小子在大的后面上.没有减缓延迟的上层主导步骤.
 
-**通信与计算重叠。** 反向传播按逆序逐层计算梯度。一旦最后一层的梯度就绪，立即启动其 allreduce，同时下一层继续计算。PyTorch DDP 通过桶就绪钩子实现这一机制。当网络有冗余时，重叠可使可见通信时间减半。
+**Overlap communication with computation.**后方计算梯度层次按层次按反行顺序.当最后层梯度准备好时,启动其全减,而下层继续计算. PyTorch DDP 用桶式子线程进行计算.网络惰时,重叠将可见的通信时间减少一半.
 
-**根据消息大小而非教条选择环形或树形。** NCCL 自带拓扑检测器，对大于约 1 MB 的消息选择环形，对小于的消息选择树形。临界点是带宽与延迟的权衡：超过 1 MB 时，带宽项 2T(N-1)/N 占主导，环形胜出；低于 1 MB 时，log2(N) 跳数胜出。硬编码单一拓扑会在错误的消息尺寸上损失吞吐。
+**Pick ring or tree by message size, not religion.**NCCL发送一个拓学探测器,它选择了超过1MB的消息的环,下面的树.交叉式是带宽与延迟:在1MB以上,带宽术语2T(N-1) /N占主导地位,并且带赢得;在1MB以下,log2(N) 跳跃数量赢得.硬编码一个拓学成本错误的消息大小的吞吐量.
 
-## 使用它
+## 用它
 
-生产模式：
+生产模式:
 
-- **PyTorch DDP。** 在反向传播后对分桶梯度调用 `dist.all_reduce`。桶大小可调；默认 25 MB 对于 100Gbit 以太网是合理的。
-- **DeepSpeed ZeRO。** 发起 reduce_scatter 以分片梯度，在前向传播前用 allgather 重建完整参数。本课的原语正是 ZeRO 所调用的操作。
-- **FSDP。** 前向传播开始时用 allgather 解分片层，计算后与 reduce_scatter 约减并丢弃未分片数据。相同的原语，不同的调度。
+- **PyTorch DDP.**电话`dist.all_reduce`后向的桶梯度.桶尺寸可以调整;默认25MB对于100Gbit以太网是合理的.
+- **DeepSpeed ZeRO.**课程的原始性是 ZeRO 的呼叫.
+- **FSDP.**进步开始于allgather去解散层次,计算,然后减少到 reduce_scatter,然后丢弃了解散.
 
-## 交付它
+## 运送它
 
-在第 77-81 课中使用 queue-mesh 原语。第 77 课将 allreduce 接入 DDP。第 78 课将 reduce_scatter 接入 ZeRO。第 79 课将 broadcast 接入流水线激活值。第 81 课将四个原语组合为端到端演示。
+在77-81课时使用排列网原始式.77课时,所有线程都减少到DDP.78课时,所有线程都减少到ZeRO.79课时,所有线程都将播放到管道激活中.81课时,所有线程都将被组建成端到端演示.
 
-## 练习
+## 运动
 
-1. 添加树形 allreduce 变体，并根据消息大小在环形和树形之间切换。测量临界点。
-2. 添加 `recv_timeout_ms`，使卡住的 rank 抛出截止时间错误而不是永远挂起。
-3. 用 TCP 套接字替换 `multiprocessing.Queue` 实现四个原语。相同的测试，真实的传输。
-4. 添加带宽计量钩子，使每 rank 字节计数器记录到 JSONL。
-5. 在 4 个 rank 上比较环形与树形在 1KB、1MB、16MB 张量上的墙钟时间。用实验数据论证临界点。
+1. 根据消息大小,将树变量减小,然后按环和树变换.
+2. 添加一个`recv_timeout_ms`置的排名会出现截止日期错误,而不是永远挂在.
+3. 取代`multiprocessing.Queue`测试的结果是相同的,真实线.
+4. 添加一个带宽仪器,以使每位字节计数记录到JSONL.
+5. 对于1KB,1MB,16MB的子,比较环与树的墙钟时间4行.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|------------------------|
-| Allreduce | "跨 rank 求和" | 调用结束后每个 rank 持有相同的约减张量 |
-| 环形 | "快速拓扑" | 大小为 T/N 的 N-1 个子块沿环流转两轮 |
-| 树形 | "对数拓扑" | 约减沿二叉树进行；深度为 log2(N) 跳 |
-| Allgather | "拼接分片" | 每个 rank 最终持有所有其他 rank 的分片 |
-| Reduce_scatter | "分割求和" | 每个 rank 最终只持有其中一个子块的求和 |
-| Bucket | "融合小张量" | 将 N 次小 allreduce 合并为一次大 allreduce |
+| Allreduce | "Sum across ranks" | After the call every rank holds the same reduced tensor |
+| Ring | "The fast topology" | N-1 chunks of size T/N flow around the cycle twice |
+| Tree | "The log topology" | Reduction follows a binary tree; depth is log2(N) hops |
+| Allgather | "Concatenate shards" | Every rank ends with every other rank's shard |
+| Reduce_scatter | "Split the sum" | Each rank ends with the sum of one chunk only |
+| Bucket | "Fuse small tensors" | Coalesce N small allreduces into one large one |
 
-## 延伸阅读
+## 进一步阅读
 
-- [PyTorch Distributed: NCCL 集体操作](https://pytorch.org/docs/stable/distributed.html#collective-functions)
-- [Horovod 环形 allreduce 论文](https://arxiv.org/abs/1802.05799)
-- [NCCL 拓扑与算法选择](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/index.html)
-- [Patarasuk 和 Yuan，带宽最优的 allreduce 算法](https://www.cs.fsu.edu/~xyuan/paper/09jpdc.pdf)
-- 第 10 阶段 第 05 课 - 分布式训练概述
-- 第 19 阶段 第 77 课 - 基于这些原语搭建 DDP
+- [PyTorch Distributed: NCCL collectives](https://pytorch.org/docs/stable/distributed.html#collective-functions)
+- [Horovod ring allreduce paper](https://arxiv.org/abs/1802.05799)
+- [NCCL topology and algorithm selection](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/index.html)
+- [Patarasuk and Yuan, Bandwidth optimal allreduce algorithms](https://www.cs.fsu.edu/~xyuan/paper/09jpdc.pdf)
+- 第十阶段05课 - 分布培训概述
+- 第19阶段 第77课 - - DDP线上这些原始

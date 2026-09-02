@@ -1,98 +1,98 @@
-# 编写保留判断力的规格说明
+# 写出保存判断的具体说明
 
-> 有用的规格说明固定了不变量和证据，同时为可逆的实现选择留出空间。它是决策边界，而非剧本。
+> 有用的规格可以修复变量和证据,同时让可逆的实施选择保持开放.
 
-**类型：** 学习 + 构建
-**语言：** Python（标准库）
-**前置条件：** 第 14 阶段第 50 课
-**时间：** 约 75 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 lesson 50
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 区分目标、不变量、示例、非目标和证明。
-- 将决策标记为锁定、约束或委托。
-- 在成本低且可逆的选择处保留代理的判断力。
-- 在涉及后果或公开行为变化的地方要求人工检查点。
+- 单独的结果,不变量,例子,非目标和证据.
+- 标记决定为被锁定,限制或委托.
+- 保持代理判断力,在选择便宜和可逆的情况下.
+- 要求人检查点,
 
-## 两个极端误区
+## 两种极端的恶性
 
-规格过于简单，是要求代理猜测系统；规格过于详细，是要求它抄录可能本身就有问题的设计。
+过度指定任务要求代理猜测系统,过度指定任务要求它转载可能已经错误的设计.
 
-有用的中间地带是一份可执行的契约：
+有效的中位是可执行的合同:
 
-| 表面 | 用途 |
+| Surface | Purpose |
 |---|---|
-| 目标 | 可观察的结果 |
-| 不变量 | 必须始终成立的条件 |
-| 示例 | 揭示意图的具体案例 |
-| 非目标 | 明确排除的相邻行为 |
-| 决策策略 | 哪些选择是锁定、约束还是委托的 |
-| 证明 | 完成前所需的证据 |
+| Outcome | The observable result |
+| Invariants | Conditions that must always remain true |
+| Examples | Concrete cases that reveal intent |
+| Non-goals | Adjacent behavior intentionally excluded |
+| Decision policy | Which choices are locked, bounded, or delegated |
+| Proof | Evidence required before completion |
 
-## 三种决策模式
+## 三种决策方式
 
-- **锁定（Locked）：** 代理不得自行选择。用于公开兼容性、权威、安全、不可逆成本或产品承诺。
-- **约束（Bounded）：** 代理可在明确限制内选择。用于搜索预算、重试次数、允许的依赖项或已知接口族。
-- **委托（Delegated）：** 代理拥有该选择权，并需解释其理由。用于局部结构、命名、可逆重构和实现细节。
+- **Locked:**代理人不得选择使用,用于公共兼容性,权威性,安全性,不可逆转的成本或产品承诺.
+- **Bounded:**代理可以在明确的限制内选择.用于搜索预算,重复计算,允许的依赖性或已知界面家族.
+- **Delegated:**经理拥有选择,必须解释它. 用于本地结构,名称,可逆的回变器和实施细节.
 
 ```mermaid
 flowchart LR
-  D[决策] --> C{后果与可逆性}
-  C -->|高后果| L[锁定]
-  C -->|已知安全范围| B[约束]
-  C -->|成本低且可逆| A[委托]
-  L --> H[人工检查点]
-  B --> P[代理在限制内提议]
-  A --> I[代理实现并提供证明]
+  D[Decision] --> C{Consequence and reversibility}
+  C -->|High consequence| L[Locked]
+  C -->|Known safe range| B[Bounded]
+  C -->|Cheap and reversible| A[Delegated]
+  L --> H[Human checkpoint]
+  B --> P[Agent proposes within limits]
+  A --> I[Agent implements and proves]
 ```
 
-## 通过示例定义行为
+## 通过例子说明行为
 
-示例比形容词更能压缩意图。"有用""稳健""生产就绪"都不是可执行的标准。一组正常情况、边界情况、失败情况和禁止情况的示例，可以为构建者和验证者提供具体依据。
+  强,  生产准备的是无法执行的.一个小组的正常,边缘,失败和禁止的例子给了构建者和验证者都具备了具体的东西.
 
-示例不能替代不变量。一个通过的案例无法证明普遍的规则。
+没有任何例子可以取代不变的元素.
 
-## 证明必须匹配声明
+## 证据必须与说法相匹配
 
-- 单元测试证明局部函数契约。
-- 线路测试证明序列化和传输行为。
-- 浏览器旅程证明接口路径。
-- 回放集证明在代表性案例上的行为。
-- 审计日志证明权威边界得到遵守。
+- 一个单位测试证明了本地函数合同.
+- 电线测试证明了序列化和运输行为.
+- 浏览器的旅行证明了接口路径.
+- 复制集证明了对代表性案件的行为.
+- 审计日志证明了权限限制.
 
-不要以低层的证据作为高层声明的证明。
+应不要接受低层作为高层的证据.
 
-## 刻意保留未知项
+## 故意保存未知的东西
 
-规格说明可以写道："实现可以选择任何在时间预算内返回的只读数据源。"这不是模糊，而是一个带有边界和证明要求的有意委托决策。
+具体说明可以说: 执行程序可以选择任何在预算内返回的只可读的来源.
 
-当证据发生变化时，规格说明应随之演进。保留锁定和约束选择背后的原因，以便后续团队无需考古即可对其进行修订。
+根据证据的变化,规格应不断变化. 保持锁定和限制的选择背后的原因,以便后来的团队可以在没有考古学的情况下修改它们.
 
-## 动手实现
+## 建立它
 
-本实验验证每一个契约表面、检查决策模式，并写入 `outputs/executable-specification.json`。
+实验室验证了每一个合同表面,检查了决策模式,`outputs/executable-specification.json`现在,我们要去.
 
 ```bash
 python3 code/main.py
 python3 -m unittest discover code/tests -v
 ```
 
-将"生产写入"这一决策从锁定改为委托。解释为何 Schema 接受该值，但产品风险不允许。
+移动生产写决策从锁定到委托.解释为什么方案接受值,而产品风险不接受.
 
-## 练习
+## 运动
 
-1. 将一个 backlog 工单转化为六个规格说明表面。
-2. 将三条实现指令替换为一条不变量和两个示例。
-3. 标记每一个决策，并为每个锁定或约束选择提供理由。
-4. 为每一条不变量添加证明凭证。
-5. 移除一条既无证据又无风险依据的约束。
+1. 转换一个后期票到六个规格表面.
+2. 取代三个执行说明一个不变和两个例子.
+3. 记住每一个决定,并证明每个被锁定或限制的选择是正确的.
+4. 添加每一个不变的证明收据.
+5. 消除没有证据或风险合理性的限制.
 
-## 延伸阅读
+## 进一步阅读
 
-- [Nuseibeh 和 Easterbrook，《Requirements Engineering: A Roadmap》](https://www.cs.toronto.edu/~sme/papers/2000/ICSE2000.pdf)，探讨目标、精确规格、验证、协议和演进之间的关系。
-- [Zave 和 Jackson，《Four Dark Corners of Requirements Engineering》](https://doi.org/10.1145/267895.267896)，区分环境假设、需求和规格说明。
-- [Gotel 和 Finkelstein，《An Analysis of the Requirements Traceability Problem》](https://doi.org/10.1109/ICRE.1994.292398)，保留需求存在的原因及其来源。
+- [Nuseibeh and Easterbrook, Requirements Engineering: A Roadmap](https://www.cs.toronto.edu/~sme/papers/2000/ICSE2000.pdf)对于目标,精确规格,验证,一致性和进化之间的关系.
+- [Zave and Jackson, Four Dark Corners of Requirements Engineering](https://doi.org/10.1145/267895.267896)对于环境假设,要求和规格的分离.
+- [Gotel and Finkelstein, An Analysis of the Requirements Traceability Problem](https://doi.org/10.1109/ICRE.1994.292398)为了保护要求的存在和来源.
 
-## 保留内容
+## 你留下什么
 
-保留 `outputs/executable-specification.json`。它将成为编码代理和人类评审者共享的契约。
+保持`outputs/executable-specification.json`编码代理人和人类审查员的合同.

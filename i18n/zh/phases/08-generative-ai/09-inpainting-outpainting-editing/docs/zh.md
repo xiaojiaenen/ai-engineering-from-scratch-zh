@@ -1,69 +1,69 @@
-# 图像修补、扩展与编辑
+# 涂料,外涂料和图像编辑
 
-> 文生图创造新内容。修补负责修复旧内容。在生产环境中，70% 的可计费图像工作都是编辑——替换背景、去除标志、扩展画布、重绘手指。修补正是扩散模型发挥价值的地方。
+> 文字到图像创造了新的东西.涂料修复了旧的东西.在生产中,70%的可收费图像工作是编辑.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** Phase 8 · 07（潜空间扩散），Phase 8 · 08（ControlNet & LoRA）
-**预计时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 8 · 07 (Latent Diffusion), Phase 8 · 08 (ControlNet & LoRA)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-客户发来一张完美的产品照片，但背景里有个干扰视线的标牌。你想擦除这个标牌，同时保持画面其余部分像素级一致。你不能从头运行文生图——结果会有不同的颜色、光影和产品角度。你想要重新生成的是*仅掩码区域*，且生成过程需尊重周围上下文。
+客户端发送一个完美的产品照片,背景上有一个分散注意力的标志.你想删除标志,让其他的所有内容都像素相同.你不能从零开始运行文字到图像.结果将会有不同的颜色,不同的照明,不同的产品角度.你想再生 *只有*面具区域,你希望再生尊重周围的环境.
 
-这就是修补（Inpainting）。其变体包括：
+这就是涂料.
 
-- **修补（Inpainting）**。在掩码区域内重新生成，保留掩码外像素。
-- **扩展（Outpainting）**。在掩码区域外（或画布之外）重新生成，保留掩码内部分。
-- **图像编辑（Image editing）**。重新生成整张图像，但保持与原始图像语义或结构上的一致（SDEdit、InstructPix2Pix）。
+- **Inpainting.**罩内再生, 保持像素外.
+- **Outpainting.**罩外面 (或外面) 再生,保持内部.
+- **Image editing.**恢复整个图像,但保持对原始的语义或结构性忠诚度 (SDEdit,InstructPix2Pix).
 
-2026 年的每一个扩散管线都内置了修补模式。Flux.1-Fill、Stable Diffusion Inpaint、SDXL-Inpaint、DALL-E 3 Edit。它们的工作原理相同。
+它们使用了相同的原理, 它们使用了相同的原理, 它们使用了相同的方法,
 
-## 核心概念
+## 概念
 
-![修补：具备上下文感知与保留机制的掩码感知去噪](../assets/inpainting.svg)
+![Inpainting: mask-aware denoising with context-preserving reinjection](../assets/inpainting.svg)
 
-### 朴素方案（以及为何它是错的）
+### 简单的做法 (以及为什么它是错误的)
 
-对标准文生图施加掩码。在每个采样步中，用正向扩散后的干净图像替换噪声潜变量中非掩码区域的值。这种方法……效果很差。边界伪影会渗入画面，因为模型对掩码区域内部的内容毫无信息。
+通过面具运行标准的文字到图像. 在每一步采样时,用前方传播的清洁图像取代无面膜的噪音隐藏区域. 它运行不好. 边界的文物流血,因为模型没有有关在面膜区域的信息.
 
-### 标准的修补模型
+### 适当的涂料模型
 
-训练一个修改过的 U-Net，使其输入通道数变为 9 而非 4：
+运行改造的U-网, 采用9个输入频道, 而不是4个:
 
 ```
 input = concat([ noisy_latent (4ch), encoded_image (4ch), mask (1ch) ], dim=channel)
 ```
 
-额外的通道是 VAE 编码源图像的副本与单通道掩码。训练时，随机掩码图像区域，并训练模型仅对掩码区域进行去噪，同时为非掩码区域提供干净的 conditioning 信号。推理时，模型能够“看到”掩码区域周围的上下文，从而生成连贯的补全结果。
+另外,这些频道是VAE编码的源图像的副本,加上一个单频道面具.在训练时,你随机地掩盖图像的区域,并训练模型只表示面具区域,而未掩盖的区域则作为清洁的条件信号.在推断时,模型可以"看到"周围面具区域的内容并产生一致的完成.
 
-SD-Inpaint、SDXL-Inpaint、Flux-Fill 均采用这种 9 通道（或等效）输入。对应 Diffusers 库中的 `StableDiffusionInpaintPipeline` 与 `FluxFillPipeline`。
+它们都使用9通道 (或模拟) 输入.`StableDiffusionInpaintPipeline`现在`FluxFillPipeline`现在,我们要去.
 
-### SDEdit（Meng 等，2022）—— 免训练编辑
+### 免费编辑
 
-向源图像加噪至某一中间步 `t`，随后使用新提示词从 `t` 反向运行至 0。无需重新训练。起始 `t` 的选择在保真度与创作自由度之间权衡：
+添加噪音到源图片中等程度`t`然后从 `t`没有再训练,选择开始`t`为了创造自由而交易忠诚:
 
-- `t/T = 0.3` → 与源图几乎一致，仅做小幅风格调整
-- `t/T = 0.6` → 中度编辑，保留粗略结构
-- `t/T = 0.9` → 接近纯噪声起始，基本不保留源图内容
+- `t/T = 0.3`→几乎与源头相同,小的风格变化
+- `t/T = 0.6`→ 修改量度较小,保持粗的结构
+- `t/T = 0.9`→ 由于近噪音,最小的源源保存
 
-### InstructPix2Pix（Brooks 等，2023）
+### 导读Pix2Pix (布鲁克斯等, 2023)
 
-在 `(input_image, instruction, output_image)` 三元组上微调扩散模型。推理时，同时以输入图像和文本指令（如“改成日落”、“加一条龙”）作为条件。需设置两组 CFG 比例：图像比例与文本比例。
+调整一个扩散模型`(input_image, instruction, output_image)`在推断时,对输入图像和文本指令进行条件 ("让它落日"",添加龙").两个CFG尺度:图像尺度和文本尺度.
 
-### RePaint（Lugmayr 等，2022）
+### 复刻 (Lugmayr等, 2022)
 
-保留标准无条件扩散模型。在每个反向步中重采样——偶尔跳回更嘈杂的状态并重新生成。可避免边界伪影。适用于没有训练好修补模型的场景。
+保持标准无条件扩散模型.在每一步反转时,再样本偶尔跳回更的状态,再生.避免边界文物.当你没有训练有素的涂料模型时使用.
 
 ```figure
 inpaint-mask-reinject
 ```
 
-## 动手构建
+## 建立它
 
-`code/main.py` 在 5 维数据上实现了一个玩具级的一维修补方案。我们在 5-D 混合数据上训练 DDPM，每个样本由来自两个聚类之一的 5 个浮点数组成。推理时，我们“掩码”5 个维度中的 2 个，在每一步注入未掩码的三个维度的正向加噪版本，仅重新生成掩码维度。
+`code/main.py`在5维数据上,我们将一个DDPM训练在5维混合数据上,每个样本是5个浮动从两个集群中的一个.在推断时,我们"掩盖"5个维度中的2个,每一步都注射了无声前进的无声三个,并只再生了掩盖的维度.
 
-### 步骤 1：5-D DDPM 数据
+### 步骤1:5-DDPM数据
 
 ```python
 def sample_data(rng):
@@ -72,89 +72,89 @@ def sample_data(rng):
     return [c + rng.gauss(0, 0.2) for c in center], cluster
 ```
 
-### 步骤 2：在所有 5 个维度上训练去噪器
+### 步骤2:在所有5个线上进行列车断
 
-标准 DDPM。网络对 5-D 噪声输入输出 5-D 噪声预测。
+标准的DDPM. 网输出预测5D噪音输入5D噪音输入.
 
-### 步骤 3：推理时的掩码感知反向过程
+### 步骤3:在推断时,面具意识的反向
 
 ```python
 def inpaint_step(x_t, mask, clean_image, alpha_bars, t, rng):
-    # 用干净源图像最新加噪的版本替换非掩码维度
+    # replace unmasked dims with a freshly noised version of the clean source
     a_bar = alpha_bars[t]
     for i in range(len(x_t)):
         if not mask[i]:
             x_t[i] = math.sqrt(a_bar) * clean_image[i] + math.sqrt(1 - a_bar) * rng.gauss(0, 1)
-    # ...然后对 x_t 执行常规反向步
+    # ...then run the normal reverse step on x_t
 ```
 
-这就是朴素方案，它在玩具级 1-D 数据上可行。真实图像修补采用 9 通道输入，因为纹理连贯性更为重要。
+实际的图像涂料使用9通道输入,因为纹理一致性更重要.
 
-### 步骤 4：扩展（Outpainting）
+### 步骤4:外涂
 
-扩展是掩码反转的修补：掩码新创建的区域（原本不存在的画布），其余部分保留原图。训练目标完全相同。
+涂料是涂料面具倒:掩盖新的 (以前没有) 布,填补其余的原始.相同的训练目标.
 
-## 常见陷阱
+## 陷
 
-- **接缝（Seams）。** 朴素方案会留下可见边界，因为梯度信息无法跨掩码流动。解决方法：将掩码膨胀 8-16 像素，或使用标准修补模型。
-- **掩码泄漏。** 若条件图像的非掩码区域质量低或含噪，会污染掩码内的生成结果。适当去噪或轻微模糊即可。
-- **CFG 与掩码尺寸相互作用。** 小掩码配高 CFG = 补丁饱和过曝。小幅编辑请降低 CFG。
-- **SDEdit 保真度断崖。** 从 `t/T = 0.5` 提高到 `t/T = 0.6` 可能导致主体身份丢失。建议网格搜索并保存检查点。
-- **提示词不匹配。** 提示词应描述*整张*图像，而非仅新内容。应为“一只猫坐在椅子上”，而非“一只猫”。
+- **Seams.**简单的方法会留下可见的边界,因为梯度信息不会通过面具流动.
+- **Mask leakage.**如果调整图像的未蒙面区域质量低或噪音,它会污染面具内部的产物.
+- **CFG interacts with mask size.**低调度,低调度,低调度,低调度.
+- **SDEdit fidelity cliff.**开始的`t/T = 0.5`为了`t/T = 0.6`检查和检查点.
+- **Prompt mismatch.**提示应该描述整个图像,而不仅仅是新内容.
 
-## 使用指南
+## 用它
 
-| 任务 | 管线方案 |
+| Task | Pipeline |
 |------|----------|
-| 移除物体，小掩码 | SD-Inpaint 或 Flux-Fill，标准提示词 |
-| 替换天空 | SD-Inpaint + “blue sky at sunset” |
-| 扩展画布 | SDXL outpaint 模式（8px 羽化）或带 outpaint mask 的 Flux-Fill |
-| 重绘手部/面部 | SD-Inpaint 配合重新描述主体的提示词 + ControlNet-Openpose |
-| 更改单区域风格 | 对掩码区域使用 `t/T=0.5` 的 SDEdit |
-| “变成日落” | InstructPix2Pix 或 Flux-Kontext |
-| 背景替换 | SAM 掩码 → SD-Inpaint |
-| 超高分辨率保真 | Flux-Fill 或 GPT-Image（托管服务）处理最复杂案例 |
+| Remove object, small mask | SD-Inpaint or Flux-Fill, standard prompt |
+| Replace sky | SD-Inpaint + "blue sky at sunset" |
+| Extend canvas | SDXL outpaint mode (8px feather) or Flux-Fill with outpaint mask |
+| Regenerate hand / face | SD-Inpaint with prompt re-describing the subject + ControlNet-Openpose |
+| Change style of one region | SDEdit at `t/T=0.5` on masked region |
+| "Make it sunset" | InstructPix2Pix or Flux-Kontext |
+| Background replacement | SAM mask → SD-Inpaint |
+| Ultra-high-fidelity | Flux-Fill or GPT-Image (hosted) for hardest cases |
 
-SAM（Meta 的 Segment Anything，2023）+ 扩散修补构成了 2026 年主流的背景移除管线。SAM 2（2024）支持视频处理。
+通过SAM (Meta's Segment Anything, 2023) + 扩散油漆,将2026年的背景删除管道进行.SAM 2 (2024) 在视频上工作.
 
-## 交付规范
+## 运送它
 
-保存至 `outputs/skill-editing-pipeline.md`。该技能接收原图 + 编辑描述 + 可选掩码（或 SAM 提示词），输出：掩码生成方案、基础模型、CFG 比例（图像 + 文本）、SDEdit-t 或修补模式，以及 QA 检查清单。
+保存`outputs/skill-editing-pipeline.md`技能采用原始图像+编辑描述+可选面具 (或 SAM提示) 输出:面具生成方法,基模型,CFG尺度 (图像+文本),SDEdit-t或涂料模式,以及QA检查清单.
 
-## 练习
+## 运动
 
-1. **简单。** 在 `code/main.py` 中，将掩码维度比例从 0.2 调整至 0.8。在何种比例下，修补质量（掩码维度的残差）与无条件生成相当？
-2. **中等。** 实现 RePaint：每第 10 个反向步跳回 5 步（加噪）并重新去噪。测量其是否能减少掩码边缘的边界残差。
-3. **困难。** 使用 Hugging Face diffusers 对比：SD 1.5 Inpaint + ControlNet-Openpose 与 Flux.1-Fill 在 20 个面部重绘任务上的表现。分别评估姿态一致性评分与身份保留评分。
+1. **Easy.**在`code/main.py`面膜的尺寸分数从0.2到0.8之间.
+2. **Medium.**执行重涂:每次10次倒车步骤,跳回5步 (添加噪音) 并重新表现.测量它是否减少了面具边缘的边界残留.
+3. **Hard.**使用拥抱面部扩散器进行比较:SD 1.5 涂料 + 控制网-开放面部 vs 流动.1- 填写20个面部再生任务. 分别进行遵守和身份保护.
 
-## 关键术语
+## 关键词
 
-| 术语 | 通常的说法 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| Inpainting | “填洞” | 在掩码内重新生成，保留掩码外像素。 |
-| Outpainting | “扩展画布” | 在画布外重新生成，保留掩码内部分。 |
-| 9-channel U-Net | “标准修补模型” | 以 `noisy \| encoded-source \| mask` 为输入的 U-Net。 |
-| SDEdit | “带噪声等级的图生图” | 加噪至时间 `t`，用新提示词去噪。 |
-| InstructPix2Pix | “纯文本指令编辑” | 在 (图像, 指令, 输出) 三元组上微调的扩散模型。 |
-| RePaint | “无需重新训练” | 反向过程中定期重加噪以降低接缝。 |
-| SAM | “Segment Anything” | 通过点击或框选生成掩码的工具；常与修补配合使用。 |
-| Flux-Kontext | “带上下文的编辑” | Flux 变体，接受参考图像 + 指令以进行编辑。 |
+| Inpainting | "Fill the hole" | Regenerate inside a mask; keep outside pixels. |
+| Outpainting | "Extend the canvas" | Regenerate outside the canvas; keep inside. |
+| 9-channel U-Net | "Proper inpainting model" | U-Net with `noisy \| encoded-source \| mask` as input. |
+| SDEdit | "Img2img with noise level" | Noise to time `t`, denoise with new prompt. |
+| InstructPix2Pix | "Text-only edits" | Fine-tuned diffusion on (image, instruction, output) triples. |
+| RePaint | "No retraining" | Re-noise periodically during reverse to reduce seams. |
+| SAM | "Segment Anything" | Mask generator by clicks or boxes; pairs with inpaint. |
+| Flux-Kontext | "Edit with context" | Flux variant that accepts a reference image + instruction for edits. |
 
-## 生产环境注意：编辑管线对延迟敏感
+## 制作说明:编辑管道对延迟敏感
 
-编辑图像的用户期望端到端响应在 5 秒以内。在 L4 上，1024² 分辨率下运行 30 步 SDXL-Inpaint 需 3-4 秒，加上 SAM 掩码生成（约 200 ms）和 VAE 编解码（合计约 500 ms）。在生产环境中，这属于 TTFT（首 Token 延迟）瓶颈而非吞吐量瓶颈——批大小设为 1，低并发，并最小化每个阶段：
+编辑图像的用户预计将在5秒内进行回路.在10242时进行30步的SDXL-Inpaint是L4上3-4秒,加上SAM面具生成 (~200ms) 和VAE编码/解码 (~500ms组合).在生产框架中,这是TTFT绑定而不是吞吐量绑定的批量1,低同步性,尽量减少每个阶段:
 
-- **SAM-H 是耗时瓶颈。** 1024² 下 SAM-H 约 200 ms；SAM-ViT-B 约 40 ms，画质损失极小。SAM 2（视频版）会增加时间维度开销；单图编辑请勿使用它。
-- **尽可能跳过编码。** `pipe.image_processor.preprocess(img)` 将图像编码为潜变量。若你已有上一轮生成的潜变量（迭代编辑 UI 中的典型场景），直接通过 `latents=...` 传入以跳过一次 VAE 编码。
-- **掩码膨胀同样影响吞吐量。** 小掩码意味着 U-Net 前向计算的大部分被浪费（非掩码像素无论如何都会被钳制）。`diffusers` 的 `StableDiffusionInpaintPipeline` 始终运行完整 U-Net；只有 9 通道标准修补变体能利用掩码计算优化。
-- **Flux-Kontext 是 2025 年的答案。** 对 `(source_image, instruction)` 单次前向通过——无需独立掩码，无需 SDEdit 噪声扫描。在 H100 上仅需约 1.5 秒即可输出一张编辑图。架构启示：合并管线阶段。
+- **SAM-H is the slow one.**在10242时,SAM-H是~200ms;在SAM-ViT-B时,SAM-H是~40ms,质量损失较小.SAM 2 (视频) 增加了时间的上空费用;不要用于单次图像编辑.
+- **Skip the encode when possible.** `pipe.image_processor.preprocess(img)`如果您有以前的 latenc (典型的反复编辑 UI),直接通过 `latents=...`跳过一个VAE编码.
+- **Mask dilation matters for throughput too.**面具的小部分意味着大部分U-Net前进通行都是浪费的 (不面具的像素无论如何都被紧).`diffusers` `StableDiffusionInpaintPipeline`运行全 U-Net不管;只有9通道正确涂料的变体利用隐蔽计算.
+- **Flux-Kontext is the 2025 answer.**单一前进过渡`(source_image, instruction)`没有单独的面具,没有SDEdit噪声扫描. 在H100上,它在1.5秒内发出编辑.建筑课:崩阶段.
 
-## 延伸阅读
+## 进一步阅读
 
-- [Lugmayr et al. (2022). RePaint: Inpainting using Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2201.09865) — 免训练的图像修补。
-- [Meng et al. (2022). SDEdit: Guided Image Synthesis and Editing with Stochastic Differential Equations](https://arxiv.org/abs/2108.01073) — SDEdit 方法。
-- [Brooks, Holynski, Efros (2023). InstructPix2Pix](https://arxiv.org/abs/2211.09800) — 文本指令驱动的图像编辑。
-- [Kirillov et al. (2023). Segment Anything](https://arxiv.org/abs/2304.02643) — SAM，掩码生成源头。
-- [Ravi et al. (2024). SAM 2: Segment Anything in Images and Videos](https://arxiv.org/abs/2408.00714) — 视频版 SAM。
-- [Hertz et al. (2022). Prompt-to-Prompt Image Editing with Cross-Attention Control](https://arxiv.org/abs/2208.01626) — 注意力层级编辑。
-- [Black Forest Labs (2024). Flux.1-Fill and Flux.1-Kontext](https://blackforestlabs.ai/flux-1-tools/) — 2024 年工具集。
+- [Lugmayr et al. (2022). RePaint: Inpainting using Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2201.09865)无培训的涂料.
+- [Meng et al. (2022). SDEdit: Guided Image Synthesis and Editing with Stochastic Differential Equations](https://arxiv.org/abs/2108.01073) 死亡
+- [Brooks, Holynski, Efros (2023). InstructPix2Pix](https://arxiv.org/abs/2211.09800)编辑文本说明.
+- [Kirillov et al. (2023). Segment Anything](https://arxiv.org/abs/2304.02643)SAM,面具来源.
+- [Ravi et al. (2024). SAM 2: Segment Anything in Images and Videos](https://arxiv.org/abs/2408.00714)视频 SAM.
+- [Hertz et al. (2022). Prompt-to-Prompt Image Editing with Cross-Attention Control](https://arxiv.org/abs/2208.01626)注意力级编辑.
+- [Black Forest Labs (2024). Flux.1-Fill and Flux.1-Kontext](https://blackforestlabs.ai/flux-1-tools/) 2024 年工具

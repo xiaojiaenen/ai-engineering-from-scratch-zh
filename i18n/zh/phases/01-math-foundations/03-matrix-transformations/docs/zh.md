@@ -1,62 +1,62 @@
-# 矩阵变换
+# 矩阵变化
 
-> 矩阵是一台重塑空间的机器。了解它对每个点做了什么，你就理解了整个变换。
+> 矩阵是一个重新塑造空间的机器. 了解它对每个点做什么,你就会理解整个转变.
 
-**类型：** 实践
-**语言：** Python, Julia
-**前置知识：** 第一阶段，课程01-02（线性代数直觉、向量与矩阵运算）
-**时间：** 约75分钟
+**Type:** Build
+**Languages:** Python, Julia
+**Prerequisites:** Phase 1, Lessons 01-02 (Linear Algebra Intuition, Vectors & Matrices Operations)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 构造旋转、缩放、切变和反射矩阵，并将它们应用到2D和3D点
-- 通过矩阵乘法组合多个变换，并验证顺序的重要性
-- 从特征方程计算2x2矩阵的特征值和特征向量
-- 解释为什么特征值决定PCA方向、RNN稳定性和谱聚类行为
+- 构建旋转,扩展,切割和反射矩阵,并将它们应用于2D和3D点
+- 通过矩阵乘法编写多个转换,并验证顺序是否重要
+- 从特征方程计算2x2矩阵的自值和自向量
+- 解释为什么自值决定PCA方向,RNN稳定性和光谱集群行为
 
-## 问题所在
+## 问题
 
-你读到PCA时看到"求协方差矩阵的特征向量"。你读到模型稳定性时看到"检查所有特征值的模是否小于1"。你读到数据增强时看到"应用随机旋转"。在你理解矩阵在几何上对空间做了什么之前，这一切都不合逻辑。
+你读到PCA,看"求出对差矩阵的自向量".你读到模型稳定性,看"检查所有自值是否小于1."你读到数据增强,看"应用随机旋转".
 
-矩阵不仅仅是数字网格。它们是空间机器。旋转矩阵旋转点，缩放矩阵拉伸它们，切变矩阵倾斜它们。神经网络对数据应用的每一个变换都是这些操作之一或它们的组合。本课让这些操作具体化。
+矩阵不仅仅是数字的网格.它们是空间机器.一个旋转矩阵旋转点.一个扩展矩阵伸缩它们.一个切割矩阵倾斜它们.一个神经网络对数据的每一个转变都是这些操作之一或它们的组成.这个课程使这些操作具体.
 
 ## 概念
 
-### 变换作为矩阵
+### 转变为矩阵
 
-2D中的每个线性变换都可以写成2x2矩阵。矩阵告诉你基向量 [1, 0] 和 [0, 1] 最终去哪里。其他一切随之而来。
+任何2D的线性转换都可以写成2x2矩阵.矩阵告诉你底向量 [1, 0] 和 [0, 1] 最终到底是哪里.其他的一切都会随之而来.
 
 ```mermaid
 graph LR
-    subgraph Before["标准基"]
-        e1["e1 = [1, 0]（沿x轴）"]
-        e2["e2 = [0, 1]（沿y轴）"]
+    subgraph Before["Standard Basis"]
+        e1["e1 = [1, 0] (along x)"]
+        e2["e2 = [0, 1] (along y)"]
     end
-    subgraph Transform["矩阵M"]
-        M["M = 列是新基向量"]
+    subgraph Transform["Matrix M"]
+        M["M = columns are new basis vectors"]
     end
-    subgraph After["变换M之后"]
-        e1p["e1' = 新x基"]
-        e2p["e2' = 新y基"]
+    subgraph After["After Transformation M"]
+        e1p["e1' = new x-basis"]
+        e2p["e2' = new y-basis"]
     end
     e1 --> M --> e1p
     e2 --> M --> e2p
 ```
 
-### 旋转
+### 转动
 
-2D旋转角度theta保持距离和角度不变。它沿圆弧移动每个点。
+通过角度旋转,保持距离和角落完整. 它沿着圆弧移动每个点.
 
 ```mermaid
 graph LR
-    subgraph Before["旋转前"]
+    subgraph Before["Before Rotation"]
         A["A(2, 1)"]
         B["B(0, 2)"]
     end
-    subgraph Rot["旋转45度"]
+    subgraph Rot["Rotate 45 degrees"]
         R["R(θ) = [[cos θ, -sin θ], [sin θ, cos θ]]"]
     end
-    subgraph After["旋转后"]
+    subgraph After["After Rotation"]
         Ap["A'(0.71, 2.12)"]
         Bp["B'(-1.41, 1.41)"]
     end
@@ -64,36 +64,36 @@ graph LR
     B --> R --> Bp
 ```
 
-在3D中，你绕轴旋转。每个轴都有自己的旋转矩阵：
+在3D中,你旋转一个轴,每个轴都有自己的旋转矩阵:
 
 ```
-Rz(theta) = | cos  -sin  0 |     绕z轴旋转
-            | sin   cos  0 |     （x-y平面旋转，z保持不变）
+Rz(theta) = | cos  -sin  0 |     Rotate around z-axis
+            | sin   cos  0 |     (x-y plane spins, z stays)
             |  0     0   1 |
 
-Rx(theta) = | 1   0     0    |   绕x轴旋转
-            | 0  cos  -sin   |   （y-z平面旋转，x保持不变）
+Rx(theta) = | 1   0     0    |   Rotate around x-axis
+            | 0  cos  -sin   |   (y-z plane spins, x stays)
             | 0  sin   cos   |
 
-Ry(theta) = |  cos  0  sin |     绕y轴旋转
-            |   0   1   0  |     （x-z平面旋转，y保持不变）
+Ry(theta) = |  cos  0  sin |     Rotate around y-axis
+            |   0   1   0  |     (x-z plane spins, y stays)
             | -sin  0  cos |
 ```
 
-### 缩放
+### 规模化
 
-缩放沿每个轴独立拉伸或压缩。
+尺度延伸或压缩在每个轴线上独立.
 
 ```mermaid
 graph LR
-    subgraph Before["缩放前"]
+    subgraph Before["Before Scaling"]
         A["A(2, 1)"]
         B["B(0, 2)"]
     end
-    subgraph Scale["缩放 sx=2, sy=0.5"]
+    subgraph Scale["Scale sx=2, sy=0.5"]
         S["S = [[2, 0], [0, 0.5]]"]
     end
-    subgraph After["缩放后"]
+    subgraph After["After Scaling"]
         Ap["A'(4, 0.5)"]
         Bp["B'(0, 1)"]
     end
@@ -101,144 +101,144 @@ graph LR
     B --> S --> Bp
 ```
 
-### 切变
+### 切割
 
-切变倾斜一个轴而保持另一个轴固定。它将矩形变为平行四边形。
+切削曲一个轴,同时保持另一个固定. 它将矩形变成平行图.
 
 ```mermaid
 graph LR
-    subgraph Before["切变更前"]
+    subgraph Before["Before Shear"]
         A["A(1, 0)"]
         B["B(0, 1)"]
     end
-    subgraph Shear["x方向切变 k=1"]
+    subgraph Shear["Shear in x, k=1"]
         Sh["Shx = [[1, k], [0, 1]]"]
     end
-    subgraph After["切变后"]
-        Ap["A(1, 0) 不变"]
-        Bp["B'(1, 1) 偏移"]
+    subgraph After["After Shear"]
+        Ap["A(1, 0) unchanged"]
+        Bp["B'(1, 1) shifted"]
     end
     A --> Sh --> Ap
     B --> Sh --> Bp
 ```
 
-切变矩阵：
-- `Shx = [[1, k], [0, 1]]` 沿x轴偏移 k * y
-- `Shy = [[1, 0], [k, 1]]` 沿y轴偏移 k * x
+切割矩阵:
+- `Shx = [[1, k], [0, 1]]`转变 x 乘以 k * y
+- `Shy = [[1, 0], [k, 1]]`转变为 y 乘以 k * x
 
-### 反射
+### 思考
 
-反射沿轴或线镜像点。
+反映反映在轴或线的点.
 
 ```mermaid
 graph LR
-    subgraph Before["反射前"]
+    subgraph Before["Before Reflection"]
         A["A(2, 1)"]
     end
-    subgraph Reflect["沿y轴反射"]
+    subgraph Reflect["Reflect across y-axis"]
         R["[[-1, 0], [0, 1]]"]
     end
-    subgraph After["反射后"]
+    subgraph After["After Reflection"]
         Ap["A'(-2, 1)"]
     end
     A --> R --> Ap
 ```
 
-反射矩阵：
-- 沿y轴反射：`[[-1, 0], [0, 1]]`
-- 沿x轴反射：`[[1, 0], [0, -1]]`
+反映矩阵:
+- 反射在 y 轴上:`[[-1, 0], [0, 1]]`
+- 通过x轴反射:`[[1, 0], [0, -1]]`
 
-### 组合：链式变换
+### 组成:链接转换
 
-应用变换A然后B等同于相乘它们的矩阵：`result = B @ A @ point`。顺序很重要。先旋转再缩放与先缩放再旋转产生不同的结果。
-
-```mermaid
-graph LR
-    subgraph Path1["旋转90度后缩放(2, 0.5)"]
-        P1["(1, 0)"] -->|"旋转90度"| P2["(0, 1)"] -->|"缩放"| P3["(0, 0.5)"]
-    end
-```
-
-组合：`S @ R = [[0, -2], [0.5, 0]]`
+应用转换A然后B是相同的乘以它们的矩阵:`result = B @ A @ point`顺序是重要的. 旋转然后尺度给出不同的结果,
 
 ```mermaid
 graph LR
-    subgraph Path2["缩放(2, 0.5)后旋转90度"]
-        Q1["(1, 0)"] -->|"缩放"| Q2["(2, 0)"] -->|"旋转90度"| Q3["(0, 2)"]
+    subgraph Path1["Rotate 90 then Scale (2, 0.5)"]
+        P1["(1, 0)"] -->|"Rotate 90"| P2["(0, 1)"] -->|"Scale"| P3["(0, 0.5)"]
     end
 ```
 
-组合：`R @ S = [[0, -0.5], [2, 0]]`
+组成:`S @ R = [[0, -2], [0.5, 0]]`
 
-不同的结果。矩阵乘法不满足交换律。
+```mermaid
+graph LR
+    subgraph Path2["Scale (2, 0.5) then Rotate 90"]
+        Q1["(1, 0)"] -->|"Scale"| Q2["(2, 0)"] -->|"Rotate 90"| Q3["(0, 2)"]
+    end
+```
 
-### 特征值和特征向量
+组成:`R @ S = [[0, -0.5], [2, 0]]`
 
-大多数向量在矩阵作用于它们时改变方向。特征向量是特殊的：矩阵只缩放它们，从不旋转它们。缩放因子就是特征值。
+矩阵乘法不是交换式的.
+
+### 自身值和自身向量
+
+矩阵碰到它们时,大多数向量都改变方向.自向量是特殊的:矩阵只会缩小它们,从来没有旋转它们.缩小因素是自值.
 
 ```
 A @ v = lambda * v
 
-v 是特征向量（存活的方向）
-lambda 是特征值（拉伸多少）
+v is the eigenvector (direction that survives)
+lambda is the eigenvalue (how much it stretches)
 
-示例：A = | 2  1 |
-         | 1  2 |
+Example: A = | 2  1 |
+             | 1  2 |
 
-特征向量 [1, 1] 对应特征值3：
-  A @ [1,1] = [3, 3] = 3 * [1, 1]     （同方向，缩放3倍）
+Eigenvector [1, 1] with eigenvalue 3:
+  A @ [1,1] = [3, 3] = 3 * [1, 1]     (same direction, scaled by 3)
 
-特征向量 [1, -1] 对应特征值1：
-  A @ [1,-1] = [1, -1] = 1 * [1, -1]  （同方向，不变）
+Eigenvector [1, -1] with eigenvalue 1:
+  A @ [1,-1] = [1, -1] = 1 * [1, -1]  (same direction, unchanged)
 ```
 
-矩阵沿[1, 1]拉伸空间3倍，保持[1, -1]不变。其他所有方向都是这两个的混合。
+矩阵延伸空间3x沿 [1, 1]并保持[1, -1]不变.其他方向都是这两个混合.
 
-### 特征分解
+### 自身组成
 
-如果矩阵有n个线性无关的特征向量，它可以分解：
+如果矩阵具有 n 线性独立的自向量,则可以分解:
 
 ```
 A = V @ D @ V^(-1)
 
-V = 以特征向量为列的矩阵
-D = 特征值的对角矩阵
-V^(-1) = V的逆
+V = matrix whose columns are eigenvectors
+D = diagonal matrix of eigenvalues
+V^(-1) = inverse of V
 
-这说明：旋转到特征向量坐标系，沿每个轴缩放，再旋转回去。
+This says: rotate into eigenvector coordinates, scale along each axis, rotate back.
 ```
 
-### 为什么特征值重要
+### 为什么自有价值很重要
 
-**PCA。** 协方差矩阵的特征向量是主成分。特征值告诉你每个分量捕获了多少方差。按特征值排序，保留前k个，你就有了降维。
+**PCA.**变量矩阵的自向量是主要组件.自值值告诉你每个组件捕获多少变量.按自值排序,保持顶部k,你有维度减少.
 
-**稳定性。** 在循环网络和动力系统中，模大于1的特征值导致输出爆炸。模小于1的特征值导致它们消失。这就是一句话说出的梯度消失/爆炸问题。
+**Stability.**在复发网络和动态系统中,大小 > 1 的自值导致输出爆炸.大小 < 1 导致它们消失.这是一个句子中所述的消失/爆炸梯度问题.
 
-**谱方法。** 图神经网络使用邻接矩阵的特征值。谱聚类使用拉普拉斯矩阵的特征值。特征向量揭示图的结构。
+**Spectral methods.**图形神经网络使用邻近矩阵的自值.谱系集群使用拉普拉西亚的自值.自向量揭示图形的结构.
 
-### 行列式作为体积缩放因子
+### 定量量缩小因素的定量
 
-变换矩阵的行列式告诉你它缩放面积（2D）或体积（3D）的程度。
+转换矩阵的定量符告诉你它在面积 (2D) 或体积 (3D) 范围内是多少.
 
 ```
-det = 1:   面积保持不变（旋转）
-det = 2:   面积翻倍
-det = 0:   空间塌陷到更低维度（奇异）
-det = -1:  面积保持不变但方向翻转（反射）
+det = 1:   area preserved (rotation)
+det = 2:   area doubled
+det = 0:   space crushed to lower dimension (singular)
+det = -1:  area preserved but orientation flipped (reflection)
 
-| det(旋转) | = 1        （总是）
-| det(缩放 sx, sy) | = sx * sy
-| det(切变) | = 1           （面积保持不变）
-| det(反射) | = -1     （方向翻转）
+| det(Rotation) | = 1        (always)
+| det(Scale sx, sy) | = sx * sy
+| det(Shear) | = 1           (area preserved)
+| det(Reflection) | = -1     (orientation flipped)
 ```
 
 ```figure
 matrix-transform
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤1：从零开始构建变换矩阵（Python）
+### 步骤1:从零开始的转换矩阵 (Python)
 
 ```python
 import math
@@ -289,7 +289,7 @@ reflected = mat_vec_mul(reflection_y(), [2.0, 1.0])
 print(f"Reflect (2,1) across y: ({reflected[0]:.1f}, {reflected[1]:.1f})")
 ```
 
-### 步骤2：变换的组合
+### 转换的组成
 
 ```python
 R = rotation_2d(math.pi / 2)
@@ -307,9 +307,9 @@ print(f"Scale then rotate 90: ({result2[0]:.2f}, {result2[1]:.2f})")
 print(f"Same? {result1 == result2}")
 ```
 
-### 步骤3：从零开始计算特征值（2x2）
+### 步骤3:自动值从零开始 (2x2)
 
-对于2x2矩阵`[[a, b], [c, d]]`，特征值求解特征方程：`lambda^2 - (a+d)*lambda + (ad - bc) = 0`。
+对于2x2矩阵`[[a, b], [c, d]]`个性化方程的自值解法:`lambda^2 - (a+d)*lambda + (ad - bc) = 0`现在,我们要去.
 
 ```python
 def eigenvalues_2x2(matrix):
@@ -354,7 +354,7 @@ for val in vals:
     print(f"    l*v = {[round(x,4) for x in scaled]}")
 ```
 
-### 步骤4：行列式作为体积缩放因子
+### 步骤4:作为体积缩放因素的决定因素
 
 ```python
 def det_2x2(matrix):
@@ -370,9 +370,9 @@ print(f"det(singular)     = {det_2x2(singular):.1f}")
 print("Singular: columns are proportional, space collapses to a line.")
 ```
 
-## 实际应用
+## 用它
 
-NumPy 用优化的例程处理所有这些。
+通过优化程序来处理所有这些.
 
 ```python
 import numpy as np
@@ -411,7 +411,7 @@ print(f"Original:\n{B}")
 print(f"Reconstructed:\n{reconstructed}")
 ```
 
-### 使用NumPy进行3D旋转
+### 通过 NumPy 进行3D旋转
 
 ```python
 def rotation_3d_z(theta):
@@ -431,35 +431,35 @@ print(f"Rotate 90 around z: {np.round(rotated_z, 4)}")
 print(f"Rotate 90 around x: {np.round(rotated_x, 4)}")
 ```
 
-## 交付使用
+## 运送它
 
-本课为PCA（第二阶段）和神经网络权重分析构建了几何基础。这里构建的特征值/特征向量代码正是生产ML系统中驱动降维、谱聚类和稳定性分析的相同算法。
+这一课构建了PCA (第二阶段) 和神经网络权重分析的几何基础.在这里构建的自值/自向量代码是相同的算法,它支持生产ML系统中的维度减少,光谱集群和稳定分析.
 
-## 练习
+## 运动
 
-1. 对单位正方形（角点在[0,0]、[1,0]、[1,1]、[0,1]）应用旋转、缩放和切变。打印每种变换后的角点坐标。验证旋转保持角点之间的距离不变。
+1. 按一个单位方形 (角在 [0,0], [1,0], [1,1], [0,1]) 进行旋转,扩展和切割. 打印每个角的转换角. 检查旋转是否保持角之间的距离.
 
-2. 用手算特征方程求矩阵[[4, 2], [1, 3]]的特征值。然后用你的从零开始的函数和NumPy验证。
+2. 通过使用特征方程手动找到矩阵的自值值.然后用从头开始的函数和NumPy来验证.
 
-3. 创建三个变换的组合（旋转30度、缩放[1.5, 0.8]、切变kx=0.3）并应用到圆周上排列的8个点。打印变换前后的坐标。计算组合矩阵的行列式并验证它等于各单独行列式的乘积。
+3. 创建一个三变的组合 (旋转30度,以 [1.5,0.8] 缩小,切割 kx=0.3) 并将其应用于圆形排列的8个点. 打印前后坐标.计算复合矩阵的确定量,并验证它等于单个确定量的产量.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|------------|----------|
-| Rotation matrix | "旋转物体" | 一个正交矩阵，沿圆弧移动点同时保持距离和角度不变。行列式总是1。 |
-| Scaling matrix | "放大物体" | 一个对角矩阵，沿每个轴独立拉伸或压缩。行列式是缩放因子的乘积。 |
-| Shearing matrix | "倾斜物体" | 一个矩阵，使一个坐标按另一个坐标的固定比例偏移，将矩形变为平行四边形。行列式为1。 |
-| Reflection | "镜像物体" | 一个矩阵，沿轴或平面翻转空间。行列式为-1。 |
-| Composition | "做两件事" | 相乘变换矩阵以链式操作。顺序重要：B @ A表示先应用A，然后B。 |
-| Eigenvector | "特殊方向" | 矩阵只缩放而不旋转的方向。变换的指纹。 |
-| Eigenvalue | "拉伸多少" | 矩阵缩放其特征向量的标量因子。可以为负（翻转）或复数（旋转）。 |
-| Eigendecomposition | "分解矩阵" | 将矩阵写为V @ D @ V^(-1)，将其分离为基本缩放方向和幅度。 |
-| Determinant | "来自矩阵的一个数" | 变换缩放面积（2D）或体积（3D）的因子。零意味着变换不可逆。 |
-| Characteristic equation | "特征值的来源" | det(A - lambda * I) = 0。其根为特征值的多项式。 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Rotation matrix | "Spins things" | An orthogonal matrix that moves points along circular arcs while preserving distances and angles. Determinant is always 1. |
+| Scaling matrix | "Makes things bigger" | A diagonal matrix that stretches or compresses independently along each axis. Determinant is the product of scale factors. |
+| Shearing matrix | "Slants things" | A matrix that shifts one coordinate proportionally to another, turning rectangles into parallelograms. Determinant is 1. |
+| Reflection | "Mirrors things" | A matrix that flips space across an axis or plane. Determinant is -1. |
+| Composition | "Do two things" | Multiplying transformation matrices to chain operations. Order matters: B @ A means apply A first, then B. |
+| Eigenvector | "Special direction" | A direction that the matrix only scales, never rotates. The transformation's fingerprint. |
+| Eigenvalue | "How much it stretches" | The scalar factor by which the matrix scales its eigenvector. Can be negative (flip) or complex (rotation). |
+| Eigendecomposition | "Break the matrix apart" | Writing a matrix as V @ D @ V^(-1), separating it into its fundamental scaling directions and magnitudes. |
+| Determinant | "A single number from a matrix" | The factor by which the transformation scales area (2D) or volume (3D). Zero means the transformation is irreversible. |
+| Characteristic equation | "Where eigenvalues come from" | det(A - lambda * I) = 0. The polynomial whose roots are the eigenvalues. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [3Blue1Brown: Linear Transformations](https://www.3blue1brown.com/lessons/linear-transformations) -- 矩阵如何重塑空间的视觉直觉
-- [3Blue1Brown: Eigenvectors and Eigenvalues](https://www.3blue1brown.com/lessons/eigenvalues) -- 特征向量几何意义的最佳视觉解释
-- [MIT 18.06 Lecture 21: Eigenvalues and Eigenvectors](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/) -- Gilbert Strang的经典论述
+- [3Blue1Brown: Linear Transformations](https://www.3blue1brown.com/lessons/linear-transformations)视觉直觉来了解矩阵如何重塑空间
+- [3Blue1Brown: Eigenvectors and Eigenvalues](https://www.3blue1brown.com/lessons/eigenvalues)它们是对自向量对几何的最佳视觉解释.
+- [MIT 18.06 Lecture 21: Eigenvalues and Eigenvectors](https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/)吉尔伯特·斯特朗的经典治疗方法

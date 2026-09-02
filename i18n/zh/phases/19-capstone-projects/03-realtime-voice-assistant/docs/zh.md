@@ -1,37 +1,37 @@
-# Capstone 03 — 实时语音助手（ASR → LLM → TTS）
+# 卡普斯通03 实时语音助理 (ASR到LLM到TTS)
 
-> 一个体验到位的语音代理需要端到端延迟低于 800ms，知道用户何时停止说话，能处理插话（barge-in），且能调用工具而不停滞音频。Ret、Vapi、LiveKit Agents 和 Pipecat 在 2026 年均达到了这一标准。它们的做法相同：流式 ASR、话轮检测器、流式 LLM 和流式 TTS，全部通过 WebRTC 连接，每一跳都有激进的延迟预算。构建一个，测量 WER 和 MOS 以及误截止率，并在丢包条件下运行它。
+> 听到声音的代理人可以使用800ms以下的端到端延迟,知道你何时停止说话,处理入, 雷特尔,瓦皮,莱维基特代理和皮皮卡特都在2026年进入这个酒吧. 它们用相同的形式进行: 流媒体ASR,转变检测器,流媒体LLM, 建立一个,测量WER和MOS和错误切断率,然后运行在输入输入下.
 
-**类型：** Capstone
-**语言：** Python（代理 + 流水线）、TypeScript（Web 客户端）
-**前置知识：** 第 6 阶段（语音与音频）、第 7 阶段（Transformer）、第 11 阶段（LLM 工程）、第 13 阶段（工具）、第 14 阶段（代理）、第 17 阶段（基础设施）
-**涉及阶段：** P6 · P7 · P11 · P13 · P14 · P17
-**预计时间：** 30 小时
+**Type:** Capstone
+**Languages:** Python (agent + pipeline), TypeScript (web client)
+**Prerequisites:** Phase 6 (speech and audio), Phase 7 (transformers), Phase 11 (LLM engineering), Phase 13 (tools), Phase 14 (agents), Phase 17 (infrastructure)
+**Phases exercised:**子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子
+**Time:** 30 hours
 
 ## 问题
 
-语音是 2025-2026 年发展最快的 AI UX 类别。技术上限每个季度都在下降。OpenAI Realtime API、Gemini 2.5 Live、Cartesia Sonic-2、ElevenLabs Flash v3、LiveKit Agents 1.0 和 Pipecat 0.0.70 都让首音频出延迟低于 800ms 成为可能。标准不仅仅是延迟本身，而是交互体验：不打断用户、不被误打断、能从句子中途的插话中恢复、在对话中途调用工具且不停滞音频、在波动较大的移动网络下稳定运行。
+语音是2025-2026年最快发展的AI UX类别. 技术上限每季度都下降. 开放AI实时API,双子 2.5 现场,卡特西亚索尼克-2,ElevenLabs Flash v3,LiveKit Agents 1.0和皮皮卡特 0.0.70都能实现800ms下载. 酒吧不是一个人的延迟. 互动感觉:不切断用户,不切断,从句子中断中恢复,在谈话中调用工具,
 
-单纯拼接三次 REST 调用无法实现。架构必须是端到端的管道流式处理。构建它之后，各种失败模式就会显现：为电话音频调优的 VAD 却对背景电视声触发、等待标点符号的 turn-detector 却等到天荒地老、TTS 在发出第一帧前先缓冲 400ms。这个 Capstone 的目标是在负载压力下逐个修复这些问题，并发布延迟与质量报告。
+构建它,故障模式就会显现:为背景电视打响电话的音频调节的VAD,一个等待永远不会出现的分分区的轮检测器,一个TTS在发射之前缓冲400ms. 最重要的是在负载下一次修复这些并发布延迟和质量报告.
 
 ## 概念
 
-流水线包含五个流式阶段：**音频输入**（来自浏览器或 PSTN 的 WebRTC）、**ASR**（来自 Deepgram Nova-3 或 faster-whisper 的流式部分转录）、**话轮检测**（VAD + 一个小型话轮检测模型，从部分转录中读取完成线索）、**LLM**（一旦判定话轮完成即开始流式输出 token）、**TTS**（首个 LLM token 出来后约 200ms 内开始流式输出音频）。
+管道有五个流程:**audio in**(WebRTC来自浏览器或PSTN),**ASR**(从 Deepgram Nova-3 或更快的语中流动部分转录),**turn detection**(VAD加上一个小的转变检测器模型,**LLM**(随着轮回完成, 流通令牌),**TTS**(在第一次LLM代币后,在200ms内播放音频).
 
-三个横切关注点。**插话（Barge-in）**：当用户开始说话时代理正在发声，TTS 立即取消，ASR 立刻拾取。**工具调用**：对话中途的函数调用（天气、日历）必须在旁路通道上运行，不能停滞音频；若延迟超过 300ms，代理会预填充一个确认 token（"请稍等…"）。**背压（Backpressure）**：在丢包情况下，部分转录会被缓存，VAD 提高语音门限，代理避免在未确认的消息上叠加声音。
+两者之间存在三种问题.**Barge-in**随着使用者在代理人在说话时,TTS会取消,ASR会立即接听. **Tool use**: 交谈函数中调 (天气,日历) 必须在侧通道上运行,而不阻碍音频;如果延迟超过300ms,代理预先填充确认令牌 ("一秒..."). **Backpressure**:在数据包丢失下,部分转录被保留,VAD提高了语音门门门值,代理人避免在未被承认的消息上说话.
 
-衡量指标是量化的。在 15 dB SNR 的 Hamming VAD 基准测试上 WER 低于 8%。100 次实测通话中首音频出 p50 低于 800ms。误截止率低于 3%。TTS 的 MOS 高于 4.2。单台 g5.xlarge 支持 50 路并发通话。这些数字就是交付物。
+测量是量化.Hamming VAD基准15 dB SNR上的WER低于8%.测量调用100次的第一次音频输出 p50低于800ms.测量调用率低于3%.TTS上的MOS高于4.2.50次.单个g5.xlarge上的50次同步调用.这些数字是可交付的.
 
-## 架构
+## 建筑
 
 ```
-浏览器 / Twilio PSTN
+browser / Twilio PSTN
         |
         v
-   WebRTC / SIP 边缘
+   WebRTC / SIP edge
         |
         v
-  LiveKit Agents 1.0（或 Pipecat 0.0.70）
+  LiveKit Agents 1.0  (or Pipecat 0.0.70)
         |
    +----+--------------+--------------+-----------------+
    |                   |              |                 |
@@ -43,113 +43,113 @@
    |                   |              |
    +--------+----------+--------------+
             v
-        LLM（流式）
+        LLM (streaming)
      GPT-4o-realtime / Gemini 2.5 Flash /
      cascaded Claude Haiku 4.5
             |
             v
-        TTS 流式
+        TTS streaming
      Cartesia Sonic-2 / ElevenLabs Flash v3
             |
             v
-     音频返回主叫方
+     audio back to caller
             |
             v
-   OpenTelemetry voice traces → Langfuse
+   OpenTelemetry voice traces -> Langfuse
 ```
 
-## 技术栈
+## 堆
 
-- 传输层：LiveKit Agents 1.0（WebRTC）加 Twilio PSTN 网关；Pipecat 0.0.70 作为备选框架
-- ASR：Deepgram Nova-3（流式，首部分转录低于 300ms）或自托管 faster-whisper Whisper-v3-turbo
-- VAD：Silero VAD v5 加 LiveKit turn-detector（小型 Transformer，读取部分转录）
-- LLM：OpenAI GPT-4o-realtime（深度集成）、Gemini 2.5 Flash Live，或级联 Claude Haiku 4.5（流式补全，独立音频路径）
-- TTS：Cartesia Sonic-2（首字节最低延迟）、ElevenLabs Flash v3，或自托管开源 Orpheus
-- 工具：FastMCP 旁路通道，支持天气/日历/预约；若工具耗时超过 300ms，代理提前发出填充音
-- 可观测性：OpenTelemetry voice spans，Langfuse voice traces 带音频回放
-- 部署：单台 g5.xlarge（24GB VRAM）用于自托管 Whisper + Orpheus；使用托管 API 以获得最低延迟
+- 运输:LiveKit Agents 1.0 (WebRTC) 加上Twilio PSTN门户;作为替代框架,Pipecat 0.0.70
+- 亚斯拉:深度格式诺瓦-3 (流动,第一个部分次300ms以下) 或更快的语Whisper-v3-turbo自主托管
+- 维亚:Silero VAD v5加上LiveKit转换探测器 (读取部分转录的小型变压器)
+- 专业:OpenAI GPT-4o实时集成,双子 2.5 闪存直播,或化Claude Haiku 4.5 (流媒体完成,独立音频路径)
+- 卡特西亚索尼克-2 (最低的第一字节),ElevenLabs Flash v3,或自主主主机的开源Orpheus
+- 工具:FastMCP侧通道用于天气/日历/预订;如果工具需要300ms以上的时间,代理预发填充器
+- 可观察性:OpenTelemetry语音跨度,Langfuse语音跟音频重播
+- 部署:单个g5.xlarge (24GBVRAM) 用于自主托管的Whisper + Orpheus;托管的API以最低延迟
 
 ```figure
 ce-voice-latency
 ```
 
-## 构建步骤
+## 建立它
 
-1. **WebRTC 会话。** 搭建一个 LiveKit 房间和一个流式传输麦克风音频的 Web 客户端。在服务器上，附加一个加入房间的 agent worker。
+1. **WebRTC session.**在服务器上,连接一个代理工作者,加入房间.
 
-2. **ASR 流式处理。** 将 20ms PCM 帧送入 Deepgram Nova-3（或 GPU 上的 faster-whisper）。订阅部分转录和最终转录，记录每次部分转录的延迟。
+2. **ASR streaming.**输送20ms的PCM框架到Deepgram Nova-3 (或 GPU上更快的语).订阅部分和最终的转录.每部分延迟记录.
 
-3. **VAD 和话轮检测器。** 在帧流上运行 Silero VAD v5。在语音结束事件时，将最新的部分转录送入 LiveKit turn-detector。只有当 VAD 检测到 500ms 静音且 turn-detector 完成度评分 > 0.6 时，才提交"话轮完成"。
+3. **VAD and turn detector.**在语音结束时,将LiveKit转换探测器启动与最新部分转录.只有当VAD说沉默500ms时,只会承诺"完成",转换探测器得分完成>0.6.
 
-4. **LLM 流式输出。** 话轮完成后，以当前对话历史和最终转录发起 LLM 调用，流式输出 token。在第一个 token 时，立即移交给 TTS。
+4. **LLM stream.**在完成时,开始与正在进行的对话加上最终的转录. 流出代币. 在第一个代币,交给TTS.
 
-5. **TTS 流式输出。** Cartesia Sonic-2 流式返回音频块。第一块必须在首个 LLM token 后 200ms 内离开服务器。将块发送到 LiveKit 房间；客户端通过 WebRTC 抖动缓冲区播放。
+5. **TTS stream.**卡特西亚 Sonic-2 将音频块回放.第一块必须在第一个LLM代币200ms内离开服务器. 发送块到LiveKit室;客户端通过WebRTC节缓冲器播放.
 
-6. **插话（Barge-in）。** 当 VAD 检测到 TTS 播放期间用户再次说话时，立即取消 TTS 流，丢弃剩余 LLM 输出，并重新启用 ASR。发布一个 `tts_canceled` span。
+6. **Barge-in.**当VAD在播放TTS时检测到新用户语音时,立即取消TTS流,放弃剩余的LLM输出,重新装备ASR.`tts_canceled`度.
 
-7. **工具旁路通道。** 将天气和日历注册为函数调用工具。调用时并行触发；若在 300ms 内未返回，让 LLM 先输出"请稍等，我查一下…"作为填充；工具返回后继续。
+7. **Tool side channel.**记录天气和日历作为调用函数工具.当调用时,同时打开调用;如果它在300ms内没有解决,请LLM发出"一秒钟,让我检查"作为填充器;一旦工具返回,再恢复.
 
-8. **评估工具。** 录制 100 次通话。计算 WER（对照保留的转录文本）、误截止率（TTS 在用户句子中途被取消）、首音频出 p50、TTS MOS（人工或 NISQA）、以及抖动丢包测试（丢弃 3% 的包）。
+8. **Eval harness.**记录100次电话.计算WER (对待延期转录),错误截止率 (用户在句子中中时取消TTS),首次音频输出p50,TTS MOS (人或NISQA),以及丧测试 (减少3%的包).
 
-9. **负载测试。** 用合成呼叫方驱动单台 g5.xlarge 上的 50 路并发通话。测量持续状态下的首音频出 p95。
+9. **Load test.**通过一个g5.xlarge和合成调用器进行50次同时调用.
 
-## 使用示例
+## 用它
 
 ```
-主叫方："what is the weather in tokyo tomorrow"
+caller: "what is the weather in tokyo tomorrow"
 [asr  ] partial @280ms: "what is the"
 [asr  ] partial @540ms: "what is the weather"
 [turn ] completion score 0.82 at @820ms; commit
 [llm  ] first token @960ms
 [tool ] weather.tokyo tomorrow -> 68/52 partly cloudy @1140ms
 [tts  ] first audio-out @1040ms: "Tokyo tomorrow will be partly cloudy..."
-话轮延迟：1040ms 用户停话 → 音频输出
+turn latency: 1040ms user-stop -> audio-out
 ```
 
-## 交付物
+## 运送它
 
-`outputs/skill-voice-agent.md` 是交付物。针对指定领域（客户支持、日程安排或自助终端），启动一个 LiveKit agent，将 ASR/VAD/LLM/TTS 流水线调优至达标水平。评分标准：
+`outputs/skill-voice-agent.md`由于一个域名 (客户支持,安排或亭子),它会出现一个LiveKit代理,ASR/VAD/LLM/TTS管道调整到测量.
 
-| 权重 | 标准 | 如何衡量 |
-|:---:|---|---|
-| 25 | 端到端延迟 | 100 次录制通话中首音频出 p50 低于 800ms |
-| 20 | 话轮切换质量 | 在 Hamming VAD 基准测试上误截止率低于 3% |
-| 20 | 工具调用正确性 | 对话中途的工具调用返回正确数据且不停滞音频 |
-| 20 | 丢包下的可靠性 | 注入 3% 丢包时 WER 和话轮切换稳定性 |
-| 15 | 评估工具完整性 | 可复现的测量结果附带公开配置 |
+| Weight | Criterion | How it is measured |
+|:-:|---|---|
+| 25 | End-to-end latency | p50 first-audio-out under 800ms across 100 recorded calls |
+| 20 | Turn-taking quality | False-cutoff rate under 3% on the Hamming VAD benchmark |
+| 20 | Tool-use correctness | Mid-conversation tool calls that return the right data without stalling audio |
+| 20 | Reliability under packet loss | WER and turn-taking stability with 3% packet drop injected |
+| 15 | Eval harness completeness | Reproducible measurements with public config |
 | **100** | | |
 
-## 练习
+## 运动
 
-1. 将 Deepgram Nova-3 替换为 g5.xlarge 上的 faster-whisper v3 turbo。测量延迟和 WER 差距。识别 CPU 与 GPU 决策的关键影响点。
+1. 换 Deepgram Nova-3 换g5.xlarge 上的更快的语 v3 轮机. 测量延迟和 WER 差距. 确定CPUvsGPU决策在哪里重要.
 
-2. 增加插话仲裁策略：当用户在工具调用过程中插话时，代理应如何处理？比较三种策略（硬取消、完成工具再停止、排队下一个话轮）。
+2. 加入一个中断-仲裁政策:当用户在工具调用中入时,代理会做什么?比较三个政策 (硬取消,完成工具,然后停止,排队下一轮).
 
-3. 运行对抗性话轮检测测试：给用户在句子中途设置长停顿。调优 VAD 静音阈值和 turn-detector 评分阈值，使误截止率最低，同时不超过 900ms。
+3. 执行反向转换检测器测试:在句子中给用户长时间停顿. 调整VAD沉默门和转换检测器得分门以实现最低的假切断,而不需要超过900ms.
 
-4. 通过 Twilio 将同一代理部署到 PSTN。比较 PSTN 与 WebRTC 的首音频出延迟，解释抖动缓冲区和编解码器差异。
+4. 通过Twilio在PSTN上部署相同的代理.将PSTN首次音频输出与WebRTC进行比较.解释器缓冲器和编码区别.
 
-5. 为非英语语言（日语、西班牙语）添加语音活动检测。测量 Silero VAD v5 的误触发率与特定语言微调模型的对比。
+5. 添加非英语语言 (日本语,西班牙语) 的语音活动检测. 测量Silero VAD v5错误触发率与语言特定的细节调节.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的说法 | 实际含义 |
-|------|----------------|----------|
-| 话轮检测 | "话语结束" | 给定 VAD 静音和部分转录后，判断用户已说完话的分类器 |
-| 插话（Barge-in） | "中断处理" | VAD 检测到用户新语音时，取消正在播放的 TTS |
-| 首音频出 | "延迟" | 从用户停止说话到第一个音频包离开服务器的时间 |
-| VAD | "语音门" | 将音频帧分类为语音或静音的模型；Silero VAD v5 是 2026 年的默认选择 |
-| 抖动缓冲 | "音频平滑" | 客户端缓冲，短暂存储数据包以吸收网络波动 |
-| 填充音（Filler） | "确认 token" | 工具响应慢时，代理发出的短短语以避免沉默 |
-| MOS | "平均意见得分" | 感知语音质量评分；NISQA 是其自动化代理指标 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Turn detection | "End of utterance" | Classifier that, given VAD silence and a partial transcript, decides the user is done speaking |
+| Barge-in | "Interruption handling" | Canceling TTS mid-playback when VAD detects new user speech |
+| First-audio-out | "Latency" | Time from user stops speaking to the first audio packet leaving the server |
+| VAD | "Speech gate" | Model classifying audio frames as speech vs silence; Silero VAD v5 is the 2026 default |
+| Jitter buffer | "Audio smoothing" | Client-side buffer that holds packets briefly to absorb network variance |
+| Filler | "Acknowledgment token" | Short phrase the agent emits to avoid silence when a tool is slow |
+| MOS | "Mean opinion score" | Perceptual speech quality rating; NISQA is the automated proxy |
 
-## 延伸阅读
+## 进一步阅读
 
-- [LiveKit Agents 1.0](https://github.com/livekit/agents) — 参考 WebRTC 代理框架
-- [Pipecat](https://github.com/pipecat-ai/pipecat) — 备选 Python 优先的流式代理框架
-- [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime) — 集成语音模型的参考文档
-- [Deepgram Nova-3 文档](https://developers.deepgram.com/docs) — 流式 ASR 参考
-- [Silero VAD v5](https://github.com/snakers4/silero-vad) — VAD 参考模型
-- [Cartesia Sonic-2](https://docs.cartesia.ai) — 低延迟 TTS 参考
-- [Retell AI 架构](https://docs.retellai.com) — 生产级语音代理架构
-- [Vapi.ai 生产栈](https://docs.vapi.ai) — 另一套生产参考方案
+- [LiveKit Agents 1.0](https://github.com/livekit/agents)参考WebRTC代理框架
+- [Pipecat](https://github.com/pipecat-ai/pipecat)替代Python-第一流媒体代理框架
+- [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime) 关于集成语音模型的参考
+- [Deepgram Nova-3 documentation](https://developers.deepgram.com/docs)流媒体ASR引用
+- [Silero VAD v5](https://github.com/snakers4/silero-vad) VAD 参考模型
+- [Cartesia Sonic-2](https://docs.cartesia.ai)低延迟TTS参考
+- [Retell AI architecture](https://docs.retellai.com)生产语音代理架构
+- [Vapi.ai production stack](https://docs.vapi.ai)替代生产参考

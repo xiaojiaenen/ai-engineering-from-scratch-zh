@@ -1,57 +1,57 @@
-# 实体链接与消歧
+# 实体链接和含义不一致
 
-> NER 找到了"Paris。"实体链接决定：巴黎，法国？帕丽斯·希尔顿？得克萨斯州巴黎？巴黎（特洛伊王子）？如果不做链接，你的知识图谱将始终模糊不清。
+> 没有链接,你的知识图仍然模糊.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 第5阶段 · 06（NER），第5阶段 · 24（共指消解）
-**时间：** 约60分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 5 · 06 (NER), Phase 5 · 24 (Coreference Resolution)
+**Time:** ~60 minutes
 
 ## 问题
 
-一句话写道："Jordan beat the press." 你的 NER 将"Jordan"标记为人物。很好。但**哪一个** Jordan？
+没有人能说,你是个好人,但什么是乔丹?
 
-- 迈克尔·乔丹（篮球）？
-- 迈克尔·B·乔丹（演员）？
-- 迈克尔·I·乔丹（伯克利机器学习教授——是的，这在 ML 论文中确实会混淆）？
-- Jordan（约旦这个国家）？
-- Jordan（希伯来语名字）？
+- 迈克尔·乔丹 (篮球)?
+- 迈克尔·B.乔丹 (演员)?
+- ,在ML论文中,这种混乱是真的吗?
+- 约旦 (这个国家)?
+- 约旦 (希伯来语的姓氏)?
 
-实体链接（EL）将每个指代表达映射到知识库中的唯一条目：Wikidata、Wikipedia、DBpedia 或你的领域知识库。两个子任务：
+实体链接 (EL) 解决每个提及的知识库中的一个独特的输入:维基数据,维基百科,DBpedia或您的域名 KB.两个子任务:
 
-1. **候选生成。** 给定"Jordan"，哪些 KB 条目是合理的？
-2. **消歧。** 给定上下文，哪个候选是正确的？
+1. **Candidate generation.**鉴于"约旦",哪些 KB 条目是可行的?
+2. **Disambiguation.**根据环境,哪个候选人是合适的?
 
-两个步骤都可学习，均有基准测试。整个管道已稳定运行了十年——变化的是消歧器的质量。
+两步都可学习.两步都具有基准值. 合并管道已经稳定了十年.
 
 ## 概念
 
-![实体链接管道：指代表达 → 候选 → 消歧后实体](../assets/entity-linking.svg)
+![Entity linking pipeline: mention → candidates → disambiguated entity](../assets/entity-linking.svg)
 
-**候选生成。** 给定指代表达形式（"Jordan"），在别名索引中查找候选。Wikipedia 别名词典涵盖大多数命名实体："JFK" → John F. Kennedy、Jacqueline Kennedy、JFK 机场、JFK（电影）。典型索引为每个指代表达返回 10-30 个候选。
+**Candidate generation.**鉴于提到的表格 ("约旦"),在一个名指数中查找候选人.维基百科名词典涵盖大多数命名实体:"JFK" →约翰·F.肯尼迪,杰克林·肯尼迪,JFK机场,JFK (电影).典型的索引每次提名返回10-30名候选人.
 
-**消歧：三种方法。**
+**Disambiguation: three approaches.**
 
-1. **先验 + 上下文（Milne & Witten，2008）。** `P(entity | mention) × context-similarity(entity, text)`。效果好、速度快、无需训练。
-2. **基于嵌入（ESS / REL / Blink）。** 编码指代表达 + 上下文。编码每个候选的描述。取最大余弦相似度。2020-2024 年的默认方法。
-3. **生成式（GENRE，2021；基于 LLM，2023+）。** 逐个 token 解码实体的规范名称。约束于有效实体名的 trie 树中，确保输出必然是有效的 KB ID。
+1. **Prior + context (Milne & Witten, 2008).** `P(entity | mention) × context-similarity(entity, text)`工作很好,快,没有训练.
+2. **Embedding-based (ESS / REL / Blink).**编码说明 + 文本.编码每个候选人的描述. 选择最大的代码. 2020-2024 默认.
+3. **Generative (GENRE, 2021; LLM-based, 2023+).**限制在有效实体名称的三组,因此输出可以保证是有效的 KB ID.
 
-**端到端 vs 管道模式。** 现代模型（ELQ、BLINK、ExtEnD、GENRE）一次性完成 NER + 候选生成 + 消歧。生产系统中管道模式仍占主导，因为你可以灵活替换各个组件。
+**End-to-end vs pipeline.**现代型号 (ELQ,BLINK, ExtEnD, GENRE) 在一个通道中运行NER +候选生成 +解读.管道系统仍然占据了生产的地位,因为你可以交换组件.
 
-### 两个评估指标
+### 两项测量
 
-- **指代表达召回率（候选生成）。** 在候选列表中，正确 KB 条目出现的比例。这是整个管道的下限。
-- **消歧准确率 / F1。** 给定正确候选，top-1 预测正确的频率。
+- **Mention recall (candidate gen).**黄金的部分是指在候选人名单中出现正确的 KB 输入.
+- **Disambiguation accuracy / F1.**给出了正确的候选人,前一是正确的.
 
-两个指标都要报告。一个在 80% 候选召回率下达到 99% 消歧准确率的系统，最终管道召回率只有 80%。
+总是报道两者. 在80%的提名程序中, 99%的不确定性是80%的管道.
 
 ```figure
 gx-entity-linking
 ```
 
-## 构建
+## 建立它
 
-### 步骤1：从 Wikipedia 重定向构建别名索引
+### 步骤1:从维基百科转向构建一个别名索引
 
 ```python
 alias_to_entities = {
@@ -61,9 +61,9 @@ alias_to_entities = {
 }
 ```
 
-Wikipedia 别名数据：约 1800 万条（别名，实体）对。从 Wikidata 转储下载。存储为倒排索引。
+维基百科号数据: ~18M (号,实体) 对. 从维基百科号下载. 作为逆向索引存储.
 
-### 步骤2：基于上下文的消歧
+### 步骤2:基于环境的置歧义
 
 ```python
 def disambiguate(mention, context, alias_index, entity_desc):
@@ -81,9 +81,9 @@ def disambiguate(mention, context, alias_index, entity_desc):
     return best, best_score
 ```
 
-Jaccard 重叠只是一个示例。替换为基于嵌入的余弦相似度（见 `code/main.py` step-2 中的 transformer 版本）。
+卡德重叠是一个玩具.`code/main.py`转变器版本的第二步).
 
-### 步骤3：基于嵌入的方法（BLINK 风格）
+### 步骤3:基于嵌入式 (BLINK式)
 
 ```python
 from sentence_transformers import SentenceTransformer
@@ -98,11 +98,11 @@ def embed_entity(entity_id, description):
     return encoder.encode([f"{entity_id}: {description}"], normalize_embeddings=True)[0]
 ```
 
-索引阶段：预先嵌入每个 KB 实体一次。查询阶段：嵌入指代表达 + 上下文一次，与候选池做点积，取最大值。
+在索引时间,嵌入每个 KB 实体一次.在查询时间,嵌入提到 + 文本一次,点-产品与候选人池,选择最大.
 
-### 步骤4：生成式实体链接（概念）
+### 阶段4:生成性实体连接 (概念)
 
-GENRE 逐字符解码实体的 Wikipedia 标题。约束解码（见课程20）确保只有合法标题才能被输出。与 KB 支持的 trie 树紧密集成。现代后继者是 REL-GEN 和基于 LLM 提示的 EL（带结构化输出）。
+GENRE 解码实体的维基百科标题字符字符.限制解码 (见20课) 确保只有有效的标题才能输出.与 KB 支持的试验组紧密集成.现代后代是REL-GEN和LLM 提示的EL,具有结构输出.
 
 ```python
 prompt = f"""Text: {text}
@@ -111,82 +111,82 @@ List the best Wikipedia title for this mention.
 Respond with JSON: {{"title": "..."}}"""
 ```
 
-结合白名单（Outlines `choice`），这是 2026 年最简单的可投产 EL 管道。
+结合白色清单 (概况)`choice`),这是2026年发射最简单的电气管道.
 
-### 步骤5：在 AIDA-CoNLL 上评估
+### 步骤5:对AIDA-CoNLL进行评估
 
-AIDA-CoNLL 是标准 EL 基准：1,393 篇路透社文章、3.4 万条指代表达、Wikipedia 实体。报告 KB 内准确率（`P@1`）和 KB 外 NIL 检测率。
+报告中KB准确性 (`P@1`) 和KB外的NIL检测率.
 
-## 陷阱
+## 陷
 
-- **NIL 处理。** 某些指代表达不在 KB 中（新兴实体、冷门人物）。系统必须预测 NIL，而非猜测错误的实体。需单独评估。
-- **指代表达边界错误。** 上游 NER 漏掉部分 span（"Bank of America" 仅被标记为"Bank"）。EL 召回率下降。
-- **流行度偏差。** 训练过的系统过度预测频繁实体。ML 论文中提及"Michael I. Jordan"时常链接到篮球 Jordan。
-- **跨语言 EL。** 将中文文本中的指代表达映射到英文 Wikipedia 实体。需要多语言编码器或翻译步骤。
-- **KB 陈旧。** 新公司、事件、人物不在去年的 Wikipedia 转储中。生产管道需要刷新循环。
+- **NIL handling.**系统必须预测NIL而不是猜测错误的实体. 单独测量.
+- **Mention boundary errors.**美国银行 (Bank of America) 仅仅是"银行"标记的部分时间.
+- **Popularity bias.**训练有素的系统过度预测常见实体. 在 ML 论文上提到"迈克尔 I. 约旦"通常与篮球 约旦联系在一起.
+- **Cross-lingual EL.**绘图中文提到英语维基百科实体.需要多语言编码器或翻译步骤.
+- **KB staleness.**公司,活动,人才都不在去年的维基百科垃圾中.
 
-## 应用
+## 用它
 
-2026 技术栈：
+现在,我们要做什么?
 
-| 场景 | 推荐方案 |
-|------|----------|
-| 通用英文 + Wikipedia | BLINK 或 REL |
-| 跨语言，KB = Wikipedia | mGENRE |
-| LLM 友好，每日少量指代表达 | 用候选列表提示 Claude/GPT-4 + 约束 JSON |
-| 领域特定 KB（医疗、法律） | 定制 BERT + KB 感知检索 + 在领域 AIDA 风格集上微调 |
-| 极低延迟 | 仅精确匹配先验（Milne-Witten 基线） |
-| 研究 SOTA | GENRE / ExtEnD / 生成式 LLM-EL |
+| Situation | Pick |
+|-----------|------|
+| General-purpose English + Wikipedia | BLINK or REL |
+| Cross-lingual, KB = Wikipedia | mGENRE |
+| LLM-friendly, few mentions/day | Prompt Claude/GPT-4 with candidate list + constrained JSON |
+| Domain-specific KB (medical, legal) | Custom BERT with KB-aware retrieval + fine-tune on domain AIDA-style set |
+| Extremely low-latency | Exact-match prior only (Milne-Witten baseline) |
+| Research SOTA | GENRE / ExtEnD / generative LLM-EL |
 
-2026 年可投产的生产模式：NER → 共指消解 → 对每个指代表达做 EL → 将同一簇折叠为一个规范实体。输出：每份文档中每个实体对应一个 KB ID，而非每个指代表达一个。
+2026年发出的生产模式:每次提到的NER → coref → EL → 集群的崩至每集群的一个定律实体.输出:每一个文件中的实体的 KB id,而不是每一个提到的.
 
-## 交付
+## 运送它
 
-保存为 `outputs/skill-entity-linker.md`：
+保存如`outputs/skill-entity-linker.md`其他:
 
 ```markdown
 ---
 name: entity-linker
-description: 设计实体链接管道——KB、候选生成器、消歧器、评估。
+description: Design an entity linking pipeline — KB, candidate generator, disambiguator, evaluation.
 version: 1.0.0
 phase: 5
 lesson: 25
 tags: [nlp, entity-linking, knowledge-graph]
 ---
 
-根据用例（领域KB、语言、吞吐量、延迟预算）输出：
+Given a use case (domain KB, language, volume, latency budget), output:
 
-1. 知识库。Wikidata / Wikipedia / 定制KB。版本日期。刷新频率。
-2. 候选生成器。别名索引、嵌入或混合方案。目标指代表达召回率 @ K。
-3. 消歧器。先验+上下文、基于嵌入、生成式或LLM提示。
-4. NIL 策略。top分阈值、分类器或显式NIL候选。
-5. 评估。指代表达召回率 @ 30、top-1准确率、保留集的NIL检测F1。
+1. Knowledge base. Wikidata / Wikipedia / custom KB. Version date. Refresh cadence.
+2. Candidate generator. Alias-index, embedding, or hybrid. Target mention recall @ K.
+3. Disambiguator. Prior + context, embedding-based, generative, or LLM-prompted.
+4. NIL strategy. Threshold on top score, classifier, or explicit NIL candidate.
+5. Evaluation. Mention recall @ 30, top-1 accuracy, NIL-detection F1 on held-out set.
 
-拒绝缺少指代表达召回率基线的任何EL管道（不知道候选生成是否找到了正确实体就无法评估消歧器）。拒绝使用LLM提示EL但未约束到有效KB ID的任何管道。标记存在流行度偏差影响少数实体（如同名冲突）且未做领域微调的系统。
+Refuse any EL pipeline without a mention-recall baseline (you cannot evaluate a disambiguator without knowing candidate gen surfaced the right entity). Refuse any pipeline using LLM-prompted EL without constrained output to valid KB ids. Flag systems where popularity bias affects minority entities (e.g. name-clashes) without domain fine-tuning.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 在 `code/main.py` 中实现先验+上下文消歧器，针对10个歧义指代表达（Paris、Jordan、Apple）。人工标注正确实体。测量准确率。
-2. **中等。** 用句子 Transformer 编码50个歧义指代表达。嵌入每个候选的描述。比较基于嵌入的消歧与 Jaccard 上下文重叠。
-3. **困难。** 构建一个1k实体的领域知识库（如公司中员工+产品）。实现 NER + EL 端到端。在100句保留集上测量准确率和召回率。
+1. **Easy.**实现前文+文本分歧符号`code/main.py`标签正确的实体. 测量准确性.
+2. **Medium.**编码50个模糊的提及,用句子变换器. 嵌入每个候选人的描述. 比较基于嵌入的模糊与Jaccard的背景重叠.
+3. **Hard.**建立一个1k实体域 KB (例如您的公司的员工+产品). 实现NER+EL端到端. 测量100个延期的句子的精度和回忆.
 
-## 术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|------------|----------|
-| 实体链接（EL） | 链接到Wikipedia | 将指代表达映射到唯一KB条目。 |
-| 候选生成 | 可能是什么？ | 为指代表达返回一小组合理的KB条目。 |
-| 消歧 | 选正确的一个 | 用上下文给候选打分，选出最优。 |
-| 别名索引 | 查找表 | 从表面形式映射到候选实体。 |
-| NIL | 不在KB中 | 明确预测无匹配KB条目。 |
-| KB | 知识库 | Wikidata、Wikipedia、DBpedia或领域KB。 |
-| AIDA-CoNLL | 基准 | 1,393篇带有金标准实体链接的路透社文章。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| Entity linking (EL) | Link to Wikipedia | Map a mention to a unique KB entry. |
+| Candidate generation | Who could it be? | Return a shortlist of plausible KB entries for a mention. |
+| Disambiguation | Pick the right one | Score candidates using context, pick the winner. |
+| Alias index | The lookup table | Map from surface form → candidate entities. |
+| NIL | Not in KB | Explicit prediction that no KB entry matches. |
+| KB | Knowledge base | Wikidata, Wikipedia, DBpedia, or your domain KB. |
+| AIDA-CoNLL | The benchmark | 1,393 Reuters articles with gold entity links. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Milne, Witten (2008). Learning to Link with Wikipedia](https://www.cs.waikato.ac.nz/~ihw/papers/08-DM-IHW-LearningToLinkWithWikipedia.pdf) — 基础先验+上下文方法。
-- [Wu et al. (2020). Zero-shot Entity Linking with Dense Entity Retrieval (BLINK)](https://arxiv.org/abs/1911.03814) — 基于嵌入的骨干工作。
-- [De Cao et al. (2021). Autoregressive Entity Retrieval (GENRE)](https://arxiv.org/abs/2010.00904) — 带约束解码的生成式 EL。
-- [Hoffart et al. (2011). Robust Disambiguation of Named Entities in Text (AIDA)](https://www.aclweb.org/anthology/D11-1072.pdf) — 基准论文。
-- [REL: An Entity Linker Standing on the Shoulders of Giants (2020)](https://arxiv.org/abs/2006.01969) — 开源生产栈。
+- [Milne, Witten (2008). Learning to Link with Wikipedia](https://www.cs.waikato.ac.nz/~ihw/papers/08-DM-IHW-LearningToLinkWithWikipedia.pdf)基础的前文+文本方法.
+- [Wu et al. (2020). Zero-shot Entity Linking with Dense Entity Retrieval (BLINK)](https://arxiv.org/abs/1911.03814)基于嵌入式工作马.
+- [De Cao et al. (2021). Autoregressive Entity Retrieval (GENRE)](https://arxiv.org/abs/2010.00904)生成式EL,有限制解码.
+- [Hoffart et al. (2011). Robust Disambiguation of Named Entities in Text (AIDA)](https://www.aclweb.org/anthology/D11-1072.pdf)参考文件.
+- [REL: An Entity Linker Standing on the Shoulders of Giants (2020)](https://arxiv.org/abs/2006.01969)开放生产堆.

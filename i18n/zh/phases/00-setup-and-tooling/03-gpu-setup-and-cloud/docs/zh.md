@@ -1,83 +1,83 @@
-# GPU 设置与云端
+#  GPU 设置和云
 
-> 用 CPU 进行学习和实验是完全没问题的。但要真正训练模型，你需要 GPU。
+> 实用训练需要一个GPU.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** Phase 0, Lesson 01
-**时间：** 约 45 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 0, Lesson 01
+**Time:** ~45 minutes
 
 ## 学习目标
 
-- 使用 `nvidia-smi` 和 PyTorch 的 CUDA API 验证本地 GPU 可用性
-- 配置 Google Colab 使用 T4 GPU 进行免费云端实验
-- 对比 CPU 与 GPU 上的矩阵乘法性能，测量加速比
-- 使用 fp16 经验法则估算你的 VRAM 能装下多大的模型
+- 使用 `nvidia-smi`并且PyTorch的CUDAAPI
+- 使用T4GPU配置Google Colab,可进行免费的基于云的实验
+- 测量CPU与GPU的基数乘法,测量加快速度
+- 根据fp16指纹,估计适合VRAM的最大模型
 
 ## 问题
 
-Phase 1-3 的大多数课程在 CPU 上运行都没问题。但一旦开始训练 CNN、Transformer 或 LLM（phase 4+），你就需要 GPU 加速。CPU 上需要 8 小时的训练，在 GPU 上只需 10 分钟。
+在1-3阶段的大部分课程都在CPU上运行得很好.但是一旦你开始训练CNN,变压器或LLM (阶段4+),你需要GPU加速.一个8小时的训练运行在CPU上需要10分钟的GPU.
 
-你有三种选择：本地 GPU、云端 GPU 或 Google Colab（免费）。
+你有三个选择:本地GPU,云GPU或谷歌Collab (免费).
 
 ## 概念
 
 ```
-你的选择：
+Your options:
 
-1. 本地 NVIDIA GPU
-   成本：$0（你已经有了）
-   设置：安装 CUDA + cuDNN
-   最适合：日常使用、大型数据集
+1. Local NVIDIA GPU
+   Cost: $0 (you already have it)
+   Setup: Install CUDA + cuDNN
+   Best for: Regular use, large datasets
 
-2. Google Colab（免费版）
-   成本：$0
-   设置：无需配置
-   最适合：快速实验、家里没有 GPU
+2. Google Colab (free tier)
+   Cost: $0
+   Setup: None
+   Best for: Quick experiments, no GPU at home
 
-3. 云端 GPU（Lambda、RunPod、Vast.ai）
-   成本：$0.20-2.00/小时
-   设置：SSH + 安装
-   最适合：正式训练、大型模型
+3. Cloud GPU (Lambda, RunPod, Vast.ai)
+   Cost: $0.20-2.00/hr
+   Setup: SSH + install
+   Best for: Serious training, large models
 ```
 
 ```figure
 s0-gpu-dispatch
 ```
 
-## 动手实践
+## 建立它
 
-### 方案一：本地 NVIDIA GPU
+### 选择1:本地NVIDIA GPU
 
-检查你是否拥有 GPU：
+检查你是否有:
 
 ```bash
 nvidia-smi
 ```
 
-安装带有 CUDA 支持的 PyTorch：
+安装PyTorch与CUDA:
 
 ```python
 import torch
 
-print(f"CUDA 可用: {torch.cuda.is_available()}")
-print(f"CUDA 版本: {torch.version.cuda}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+print(f"CUDA version: {torch.version.cuda}")
 if torch.cuda.is_available():
     print(f"GPU: {torch.cuda.get_device_name(0)}")
-    print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+    print(f"Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 ```
 
-### 方案二：Google Colab
+### 选择2:谷歌协作
 
-1. 访问 [colab.research.google.com](https://colab.research.google.com)
-2. Runtime（运行时）> Change runtime type（更改运行时类型）> 选择 T4 GPU
-3. 运行 `!nvidia-smi` 验证
+1. 走去[colab.research.google.com](https://colab.research.google.com)
+2. 运行时间 > 改变运行时间类型 > T4 GPU
+3. 跑步`!nvidia-smi`检查
 
-可以将本课程的 notebooks 直接上传到 Colab 运行。
+直接将课程的笔记本上传到科拉布.
 
-### 方案三：云端 GPU
+### 选择3:云GPU
 
-对于 Lambda Labs、RunPod 或 Vast.ai：
+对于Lambda Labs,RunPod或Vast.ai:
 
 ```bash
 ssh user@your-gpu-instance
@@ -86,16 +86,16 @@ pip install torch torchvision torchaudio
 python -c "import torch; print(torch.cuda.get_device_name(0))"
 ```
 
-### 没有 GPU？没关系。
+### 没有GPU?
 
-大多数课程都可以在 CPU 上运行。需要 GPU 的课程会明确标注并提供 Colab 链接。
+需要GPU的人会说,并包括Colab链接.
 
 ```python
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"使用: {device}")
+print(f"Using: {device}")
 ```
 
-## 动手实践：GPU vs CPU 性能对比
+## 构建它:GPU与CPU基准
 
 ```python
 import torch
@@ -121,20 +121,20 @@ if torch.cuda.is_available():
     torch.cuda.synchronize()
     gpu_time = time.time() - start
     print(f"GPU: {gpu_time:.3f}s")
-    print(f"加速比: {cpu_time / gpu_time:.0f}x")
+    print(f"Speedup: {cpu_time / gpu_time:.0f}x")
 ```
 
-## 练习
+## 运动
 
-1. 运行上面的性能对比代码，比较 CPU 与 GPU 的运行时间
-2. 如果你没有 GPU，在 Google Colab 上运行并对比结果
-3. 查看你的 GPU 显存大小，并估算能装下的最大模型（经验法则：fp16 下每个参数占 2 字节）
+1. 运行上述基准,并比较CPU与GPU时间
+2. 如果没有GPU,请在Google Colab上运行,然后比较
+3. 检查您有多少GPU内存,并估计您可以安装的最大模型 (指公规则:fp16的每个参数为2字节)
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|----------|
-| CUDA | "GPU 编程" | NVIDIA 的并行计算平台，让你能在 GPU 上运行代码 |
-| VRAM | "GPU 显存" | GPU 上的视频 RAM，与系统内存独立。限制模型大小。 |
-| fp16 | "半精度" | 16 位浮点数，内存占用仅为 fp32 的一半，精度损失极小 |
-| Tensor Core | "高速矩阵硬件" | 专为矩阵乘法设计的 GPU 核心，比普通核心快 4-8 倍 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| CUDA | "GPU programming" | NVIDIA's parallel computing platform that lets you run code on the GPU |
+| VRAM | "GPU memory" | Video RAM on the GPU, separate from system RAM. Limits model size. |
+| fp16 | "Half precision" | 16-bit floating point, uses half the memory of fp32 with minimal accuracy loss |
+| Tensor Core | "Fast matrix hardware" | Specialized GPU cores for matrix multiplication, 4-8x faster than regular cores |

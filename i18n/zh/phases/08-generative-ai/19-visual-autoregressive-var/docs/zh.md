@@ -1,142 +1,142 @@
-# 视觉自回归建模（VAR）：下一尺度预测
+# 视觉自动降低模型 (VAR):下一个规模预测
 
-> 扩散模型在时间维度上迭代采样（去噪步）。VAR 在尺度维度上迭代采样——它依次预测 1x1 标记、2x2、4x4，直至最终分辨率，每个尺度都以上一尺度为条件。2024 年的论文表明 VAR 符合 GPT 式的缩放定律，并且在相同计算预算下优于 DiT。本课将构建核心机制。
+> 扩散模型以时间的反复样本 (指标步骤). VAR样本以尺度的反复样本 预测1x1代币,然后2x2,然后4x4,直到最终分辨率,每个尺度都与之前的定制. 2024 论文显示VAR与图像生成的GPT式扩展法相匹配,并以相同的计算预算击败DiT.这堂课构建了核心机制.
 
-**类型：** 构建
-**语言：** Python（配合 PyTorch）
-**前置知识：** 第 7 阶段第 03 课（多头注意力）、第 8 阶段第 06 课（DDPM）
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python (with PyTorch)
+**Prerequisites:** Phase 7 Lesson 03 (Multi-Head Attention), Phase 8 Lesson 06 (DDPM)
+**Time:** ~90 minutes
 
-## 问题所在
+## 问题
 
-自回归生成在语言建模中占据主导地位，因为其可预测地扩展：更多计算、更多参数、更低困惑度、更好输出。2024 年之前，图像生成主要有两种自回归尝试：PixelRNN/PixelCNN（逐像素）和 DALL-E 1 / Parti / MuseGAN（在 VQ-VAE 码上逐标记）。
+由于它可以预测的规模,所以自动降级的代代码占据了语言建模的主导地位:更多的计算,更多的参数,较低的困惑,更好的输出.在2024年前,图像生成有两个主要的AR尝试:PixelCNN (像素-比-像素) 和DALL-E 1 / Parti / MuseGAN (VQ-VAE代码上的代码-比-代码).
 
-两者都存在生成顺序问题。像素和标记排列在二维网格上，但自回归模型必须以 1D 光栅顺序访问它们。一个早期的角像素根本无法预知图像最终长什么样。生成质量的扩展效果不如 GPT 处理文本时好，且在匹配计算量时从未达到扩散模型的生成质量。
+两者都患上了生成顺序问题.像素和代币都在2D格格格中排列,但AR模型必须在1D拉斯特顺序中访问它们.早期角像素不知道图像最终会变成什么.生成质量比GPT-on-text更差,并从未达到匹配计算时的扩散模型质量.
 
-VAR 通过改变生成对象来解决生成顺序问题。与其逐一预测空间中的图像标记，VAR 以递增分辨率预测整张图像。步骤 1：预测 1x1 标记（整体图像的"摘要"）。步骤 2：预测 2x2 网格标记（更粗的特征）。步骤 3：预测 4x4 网格。步骤 K：预测最终的 (H/8)x(W/8) 网格。
+维亚解决了生成顺序问题,通过改变正在生成的东西.而不是在空间中预测图像代币一个接一个,维亚预测一个整整整的图像在增加的分辨率.步骤1:预测一个1x1代币 (整体图像"总结").步骤2:预测一个2x2代币格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格格
 
-每个尺度都关注所有先前尺度（在"尺度顺序"上因果相关），并在自身尺度内并行处理。顺序问题消失了：尺度 k 的整张图像在一次 Transformer 前向传播中生成。
+每个尺度都在自己的尺度内照顾所有以前的尺度 (因果而言是"尺度顺序") 和平行.
 
 ## 概念
 
-### 多尺度离散标记器
+### 视频显示器
 
-VAR 需要一个**多尺度离散标记器**。对于图像 x，它生成 progressively 更高分辨率的标记网格序列：
+需要一个**multi-scale discrete tokenizer**对于图像x,它产生了一系列逐渐高分辨率的代币网:
 
 ```
-x -> 编码器 -> 潜在表示 f
-f -> 在 1x1 处标记化：形状为 (1, 1) 的标记网格 z_1
-f -> 在 2x2 处标记化：形状为 (2, 2) 的标记网格 z_2
+x -> encoder -> latent f
+f -> tokenize at 1x1: token grid z_1 of shape (1, 1)
+f -> tokenize at 2x2: token grid z_2 of shape (2, 2)
 ...
-f -> 在 (H/p)x(W/p) 处标记化：形状为 (H/p, W/p) 的标记网格 z_K
+f -> tokenize at (H/p)x(W/p): token grid z_K of shape (H/p, W/p)
 ```
 
-每个 z_k 使用相同的码本（典型大小 4096-16384）。各尺度的标记化并非相互独立——训练目标使得各尺度的残差之和能重建 f：
+每个z_k 使用相同的代码簿 (典型尺寸4096-16384). 每个尺度的代码化不独立.
 
 ```
 f ≈ upsample(embed(z_1), target_size) + ... + upsample(embed(z_K), target_size)
 ```
 
-这是一种**残差 VQ** 变体。尺度 k 捕获了尺度 1..k-1 未能捕捉的内容。解码器对所有尺度嵌入求和并生成图像。
+这是一个**residual VQ**解码器取出所有规模嵌入式的总和,生成图像.
 
-多尺度 VQ 标记器一次性训练完成（类似 VQGAN），然后冻结。所有生成工作由顶部的自回归模型完成。
+许多规模的VQ代码符号器一次训练 (如VQGAN) 然后冷.所有生成工作都由上部的自动降低模型完成.
 
-### 下一尺度预测
+### 下一个规模预测
 
-生成模型是一个 Transformer，它看到所有先前尺度的标记并预测下一尺度的标记。
+生成模型是一个变压器,它可以从所有以前的尺度中看到代币,并预测下一个尺度的代币.
 
-输入序列结构：
+输入序列结构:
 ```
-[START, z_1 标记, z_2 标记, z_3 标记, ..., z_K 标记]
+[START, z_1 tokens, z_2 tokens, z_3 tokens, ..., z_K tokens]
 ```
 
-位置嵌入同时编码尺度索引和尺度内的空间位置。注意力在尺度顺序上因果相关：尺度 k、位置 (i, j) 的标记可以关注尺度 1..k 的所有标记，以及尺度 k 内部按某种顺序排在其前面的标记（VAR 使用固定位置注意力，无尺度内因果关系——尺度内的所有位置并行预测）。
+位置嵌入式将在尺度内编码规模指数和空间位置. 注意是因果的规模顺序:在尺度 k,位置 (i, j) 可以关注所有在尺度 1..k的代币和在尺度 k本身的代币,在任何在尺度内顺序使用的之前 (VAR使用固定位置注意,没有在尺度内因果关系,在尺度内所有的位置都是平行预测的).
 
-训练损失：在每个尺度 k，根据所有先前尺度标记预测标记 z_k。对离散 VQ 码进行交叉熵损失。与 GPT 相同的结构，只是"序列"现在是尺度结构的。
+训练损失:在每个级别 k,预测给所有前级代币的代币 z_k. 离散的VQ代码上的交叉缩损失.除"序列"之外,与GPT相同的结构现在是规模结构化的.
 
-### 生成
+### 世代
 
-在推理时：
+在推断时:
 ```
-生成 z_1 = 从 p(z_1) 采样                    # 1 个标记
-生成 z_2 = 从 p(z_2 | z_1) 采样              # 4 个标记并行
-生成 z_3 = 从 p(z_3 | z_1, z_2) 采样         # 16 个标记并行
+generate z_1 = sample from p(z_1)                    # 1 token
+generate z_2 = sample from p(z_2 | z_1)              # 4 tokens in parallel
+generate z_3 = sample from p(z_3 | z_1, z_2)         # 16 tokens in parallel
 ...
-解码：f = 尺度 1..K 的嵌入与上采样之和
-图像 = VAE 解码器(f)
+decode: f = sum of embed-and-upsample scales 1..K
+image = VAE_decoder(f)
 ```
 
-对于 K = 10 个尺度，生成只需 10 次 Transformer 前向传播。每次传播并行生成整个尺度——尺度内无逐标记自回归。对于 256x256 图像，这大约需要 10 次传播，而 DiT 需要 28-50 次。
+对于K=10尺度,生成是10个变压器前进传递.每个传递均以平行方式产生其整个尺度.对于256x256图像,这大约是10个传递与DiT的28-50相比.
 
-### 为什么下一尺度优于下一标记
+### 为什么下一个规模胜过下一个代币
 
-三个结构性优势：
-1. **由粗到细与自然图像统计相符。** 人类视觉感知和图像数据集都表现出尺度依赖性规律：低频结构稳定且可预测；高频细节条件于低频内容。下一尺度预测利用了这一点。
-2. **尺度内并行生成。** 与 GPT 式标记自回归不同，VAR 一次生成一个尺度的所有标记。有效生成长度为对数尺度而非线性。
-3. **无生成顺序偏差。** 尺度 k 的标记可以看到尺度 k-1 的全部内容；不存在"左侧"或"上方"偏差迫使早期标记在晚期上下文可用之前就做出承诺。
+结构性三大胜利:
+1. **Coarse-to-fine aligns with natural image statistics.**人类视觉感知和图像数据集都表现出依赖规模的规律性:低频结构是稳定的和可预测的;高频细节是依赖于低频内容的.下一个规模预测利用这一点.
+2. **Parallel generation within scale.**与GPT式代币AR不同,VAR在一个步骤中生成所有代币.有效生成长度是日志规模而不是线性.
+3. **No generation order bias.**在规模k的代币看到所有规模k-1;没有"左"或"上"偏见,迫使早期代币在晚上文本之前承诺.
 
-### 缩放定律
+### 规模定位法
 
-Tian 等人证明 VAR 在 ImageNet 上的 FID 遵循幂律缩放曲线——就像 GPT 对困惑度的表现一样。参数或计算量翻倍，误差可靠地减半。这是首个像语言模型那样干净展现此类缩放行为的图像生成模型。结果是 VAR 尺度预测可以从计算量预测，而非针对每种架构的经验猜测。
+等 显示VAR在 ImageNet 上遵循FID的权力法缩小曲线,就像GPT对困难一样. 双倍参数或计算可靠地减半错误. 这也是第一个像生成模型, 像语言模型一样清洁地表现出这种扩展行为. 结果是,VAR尺度预测是可以从计算中预测的,而不是每一个建筑的经验猜测.
 
-### 与扩散的关系
+### 传播与传播的关系
 
-VAR 和扩散共享相同的数据压缩故事：都将生成问题分解为一系列更容易的子问题。
+维AR和扩散都具有相同的数据压缩故事:两者都将生成问题分解为一系列更容易的子问题.
 
-- 扩散：逐步添加噪声，学习撤销一步。
-- VAR：逐步添加分辨率，学习预测下一尺度。
+- 扩散:逐渐增加噪音,学习撤销一步.
+- 逐渐增加分辨率,学习预测下一个尺度.
 
-它们是穿过问题的不同轴。两者都能产生可处理的条件分布。经验上 VAR 在推理时更快（传播次数更少，尺度内全部并行），并在类别条件 ImageNet 上匹配或超越 DiT。文本条件 VAR（VARclip、HART）是一个活跃的研究方向。
+它们通过问题是不同的轴.两者都产生可处理的条件分布.经验上,VAR在推断上更快 (更少的通过,所有都在尺度内平行) 并匹配或超过了DIT在类条件的ImageNet上.文本条件的VAR (VARclip,HART) 是一个活跃的研究方向.
 
 ```figure
 gx-var-next-scale
 ```
 
-## 构建实现
+## 建立它
 
-在 `code/main.py` 中，你将：
-1. 在合成"图像"数据（2D 高斯环）上构建一个小型**多尺度 VQ 标记器**。
-2. 训练一个 **VAR 式 Transformer** 以进行下一尺度预测。
-3. 通过调用 Transformer 4 次（4 个尺度）并解码来采样。
-4. 验证尺度顺序训练使生成在尺度内并行。
+在`code/main.py`你会:
+1. 建造一个小的**multi-scale VQ tokenizer**合成"图像"数据 (2D高斯环).
+2. 列车**VAR-style transformer**预测代币的下一个规模.
+3. 通过4次 (4个尺度) 调用变压器并解码样本.
+4. 检查是否在规模上进行训练,使在规模内产生平行.
 
-这是一个玩具实现。要点是看到尺度结构注意力掩码和尺度内并行生成确实有效。
+目的是看到规模结构化的注意力面具和平行在规模内生成实际工作.
 
-## 交付物
+## 运送它
 
-本课将生成 `outputs/skill-var-tokenizer-designer.md`——一个设计多尺度标记器的技能文档：尺度数量、尺度比例、码本大小、残差共享、解码器架构。
+这一课产生了`outputs/skill-var-tokenizer-designer.md`设计多尺度代币的技能:尺度数量,尺度比率,代码书尺寸,残余共享,解码架构.
 
-## 练习
+## 运动
 
-1. **尺度数量消融实验。** 用 4、6、8、10 个尺度训练 VAR。测量重建质量与自回归传播次数的关系。更多尺度 = 更精细的残差 = 更好的质量但更多传播。
+1. **Scale count ablation.**训练VAR使用4,6,8,10级. 测量重建质量与自行退行过关数量.更多的尺度 =更细的残留物 =更好的质量,但更多的过关.
 
-2. **码本大小。** 用码本大小 512、4096、16384 训练标记器。更大的码本带来更好的重建但更难预测。找到拐点。
+2. **Codebook size.**训练代码符号器,用代码书尺寸5124096,16384更大的代码书可以更好地重建,但更难预测.
 
-3. **尺度内并行验证。** 对于已训练的 VAR，显式测量注意力模式。在尺度 k 内，模型是否关注跨尺度位置但不关注尺度内位置？验证掩码实现。
+3. **Parallel-within-scale check.**对于训练有素的VAR,明确测量注意力模式.在尺度k内,模型是否关注跨尺度位置,但不是内部尺度?验证面具的实现.
 
-4. **VAR 与 DiT 缩放对比。** 对于相同的 ImageNet 类别条件任务，以匹配的参数预算（如 33M、130M、458M）训练 VAR 和 DiT。绘制 FID 与计算量的关系图。VAR 应在每个尺寸上都领先于 DiT——在小规模下复现论文结果。
+4. **VAR vs DiT scaling.**对于相同的ImageNet类条件任务,训练VAR和DiT在匹配的参数预算 (例如33M, 130M, 458M). 剧情FID与计算.VAR应在每个尺寸中拉出DiT前面小规模复制论文的结果.
 
-5. **文本条件。** 通过 adaLN 将 VAR 扩展为接收文本嵌入（CLIP pooled）作为额外条件输入。这是 HART 方案。FID 在文本对齐采样上改善了多少？
+5. **Text conditioning.**扩展VAR以将文本嵌入 (CLIP合并) 作为通过 adaLN 进行额外的调节输入.这是HART的配方.FID在文本一致的采样中有多好?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
-|------|-----------|---------|
-| VAR | "Visual AutoRegressive" | 通过对 VQ 标记金字塔进行下一尺度预测来实现图像生成 |
-| 下一尺度预测 | "先预测粗的，再预测细的" | 模型以递增分辨率尺度预测标记，以所有先前尺度为条件 |
-| 多尺度 VQ 标记器 | "残差 VQ" | 产生 K 个递增分辨率标记网格的 VQ-VAE，解码器对所有尺度求和 |
-| 尺度 k | "金字塔层级 k" | K 个分辨率层级之一，从 k=1 的 1x1 到 k=K 的 (H/p)x(W/p) |
-| 尺度内并行 | "每尺度一次前向传播" | 尺度 k 的所有标记在一次 Transformer 传播中预测，而非自回归 |
-| 跨尺度因果 | "尺度顺序注意力" | 尺度 k 的标记可以关注尺度 1..k 的所有内容，但不能关注尺度 k+1..K |
-| 残差 VQ | "加法标记化" | 每个尺度的标记编码较低尺度留下的残差；解码器对所有尺度嵌入求和 |
-| VAR 缩放定律 | "图像 GPT 缩放" | FID 遵循可预测的计算幂律，类似语言模型的困惑度 |
-| HART | "混合 VAR + 文本" | 文本条件 VAR 变体，结合 MaskGIT 式迭代解码与 VAR 的尺度结构 |
-| 尺度位置嵌入 | "(尺度, 行, 列) 三元组" | 位置编码同时携带尺度索引和尺度内的空间坐标 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| VAR | "Visual AutoRegressive" | Image generation by next-scale prediction over a pyramid of VQ token grids |
+| Next-scale prediction | "Predict coarser, then finer" | The model predicts tokens at increasing resolution scales, conditioning on all previous scales |
+| Multi-scale VQ tokenizer | "Residual VQ" | VQ-VAE that produces K token grids of increasing resolution, with decoder summing all scales |
+| Scale k | "Pyramid level k" | One of K resolution levels, from 1x1 at k=1 up to (H/p)x(W/p) at k=K |
+| Parallel-within-scale | "One forward per scale" | All tokens at scale k are predicted in one transformer pass, not autoregressively |
+| Causal-across-scales | "Scale-ordered attention" | Token at scale k can attend to all of scales 1..k but not scales k+1..K |
+| Residual VQ | "Additive tokenization" | Each scale's tokens encode the residual left by lower scales; decoder sums all scale embeddings |
+| VAR scaling law | "Image GPT scaling" | FID follows a predictable power law in compute, like language models' perplexity |
+| HART | "Hybrid VAR + text" | Text-conditional VAR variant combining MaskGIT-style iterative decoding with VAR's scale structure |
+| Scale position embedding | "(scale, row, col) triple" | Positional encoding carries both the scale index and spatial coordinates within the scale |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Tian 等，2024 ——《视觉自回归建模：通过下一尺度预测的可扩展图像生成》](https://arxiv.org/abs/2404.02905)—— VAR 论文，标准参考文献
-- [Peebles 和 Xie，2022 ——《可扩展的 Transformer 扩散模型》](https://arxiv.org/abs/2212.09748)—— DiT，扩散对比基线
-- [Esser 等，2021 ——《驯服 Transformer 用于高分辨率图像合成》](https://arxiv.org/abs/2012.09841)—— VQGAN，VAR 多尺度标记器所属的标记器家族
-- [van den Oord 等，2017 ——《神经离散表示学习》](https://arxiv.org/abs/1711.00937)—— VQ-VAE，离散图像标记化的基础
-- [Tang 等，2024 ——《HART：高效视觉生成的混合自回归 Transformer》](https://arxiv.org/abs/2410.10812)—— 文本条件 VAR
+- [Tian et al., 2024 — "Visual Autoregressive Modeling: Scalable Image Generation via Next-Scale Prediction"](https://arxiv.org/abs/2404.02905)VAR文件,法典参考
+- [Peebles and Xie, 2022 — "Scalable Diffusion Models with Transformers"](https://arxiv.org/abs/2212.09748)  DiT,扩散比较基线
+- [Esser et al., 2021 — "Taming Transformers for High-Resolution Image Synthesis"](https://arxiv.org/abs/2012.09841)VQGAN,代币家属VAR的多尺度代币器扩展
+- [van den Oord et al., 2017 — "Neural Discrete Representation Learning"](https://arxiv.org/abs/1711.00937)VQ-VAE,是分离图像标记的基础
+- [Tang et al., 2024 — "HART: Efficient Visual Generation with Hybrid Autoregressive Transformer"](https://arxiv.org/abs/2410.10812)文本条件 VAR

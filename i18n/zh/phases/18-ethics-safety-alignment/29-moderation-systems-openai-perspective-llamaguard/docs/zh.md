@@ -1,118 +1,118 @@
-# 审核系统 — OpenAI、Perspective、Llama Guard
+# 适度系统 OpenAI,视角,拉马卫队
 
-> 生产环境中的审核系统实现了第 12-16 课定义的安全策略。OpenAI 审核 API：`omni-moderation-latest`（2024），基于 GPT-4o，可在一次调用中同时分类文本和图片；在多语言测试集上比上一代提升 42%；响应模式返回 13 个布尔类别——骚扰、骚扰/威胁、仇恨、仇恨/威胁、非法、非法/暴力、自残、自残/意图、自残/指导、性相关、性相关/未成年人、暴力、暴力/图形；对大多数开发者免费。分层模式：输入审核（生成前）、输出审核（生成后）、自定义审核（领域规则）。异步并行调用可隐藏延迟；触发标志时返回占位响应。Llama Guard 3/4（第 16 课）：涵盖 14 个 MLCommons 危险类别、代码解释器滥用、支持 8 种语言（v3）、多图片（v4）。Perspective API（Google Jigsaw）：LLM 即审核浪潮之前的毒性评分系统；主要为单维度毒性，附带严重毒性/侮辱/粗话变体；是内容审核研究的基准工具。
+> 产量调节系统将12-16课程中定义的安全政策运行.`omni-moderation-latest`(2024) 基于GPT-4o的版本,在一次通话中分类了文本+图像;多语言测试组比之前版本的版本上比42%更好;响应方案返回了13类的布勒语骚扰,骚扰/威胁,仇恨/威胁,非法,非法/暴力,自伤,自伤/意图,自伤/指示,性,性/未成年人,暴力,暴力/图形;对于大多数开发人员来说是免费的. 层次模式:输入中小 (预生成),输出中小 (后生成),定制中小 (域规则). 异步通话隐藏延迟; 标志上的位置保持者响应. 拉马卫队 3/4 (课时16):14个MLCommons危险,代码解释器滥用,8种语言 (v3),多种图像 (v4). 视角API (Google Jigsaw):在LLC作为调节者波之前的毒性评分;主要是具有严重毒性/侮辱/亵性的单维毒性;对内容调节研究的基准. 值:Azure内容调节器已过期2024年2月,退休2027年2月,被Azure AI内容安全取代.
 
-**类型：** 构建
-**语言：** Python（标准库，三层审核框架）
-**前置条件：** 第 18 阶段 · 第 16 课（Llama Guard / Garak / PyRIT）
-**时间：** 约 60 分钟
+**Type:** Build
+**Languages:** Python (stdlib, three-layer moderation harness)
+**Prerequisites:** Phase 18 · 16 (Llama Guard / Garak / PyRIT)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 描述 OpenAI 审核 API 的类别体系，以及它与 Llama Guard 3 的 MLCommons 体系的差异。
-- 描述三层审核模式（输入、输出、自定义），并指出每种模式的至少一个失败模式。
-- 说明 Perspective API 作为前 LLM 时代基准的地位，以及它为何仍在研究中使用。
-- 陈述 Azure 的弃用时间表。
+- 描述OpenAI调度API的类别类别类别和它与Llama Guard 3的MLCommons集合如何不同.
+- 描述三个调度层模式 (输入,输出,定制) 并列出每个故障模式中的一个.
+- 描述Perspective API作为LLM前的基准,以及为什么它仍然在研究中被使用.
+- 声明Azure的减值时间表.
 
-## 问题所在
+## 问题
 
-第 12-16 课描述了攻击与防御工具。第 29 课涵盖部署中的审核系统，这些系统在用户接触产品的边界上落实防御措施。三层模式是 2026 年的默认配置。
+课程12-16描述了攻击和防御工具.课程29涵盖了部署的调节系统,该系统在用户触摸产品的表面上操作防御.三层模式是2026年默认配置.
 
-## 概念阐述
+## 概念
 
-### OpenAI 审核 API
+### 开放AI调度API
 
-`omni-moderation-latest`（2024）。基于 GPT-4o。单次调用同时分类文本和图片。对大多数开发者免费。
+`omni-moderation-latest`(2024). 基于GPT-4o. 在一个调用中分类文字 +图像.
 
-类别（响应模式中的 13 个布尔值）：
-- 骚扰、骚扰/威胁
-- 仇恨、仇恨/威胁
-- 自残、自残/意图、自残/指导
-- 性相关、性相关/未成年人
-- 暴力、暴力/图形
-- 非法、非法/暴力
+类别 (响应方案中的13个布尔语):
+- 骚扰,骚扰/威胁
+- 仇恨,仇恨/威胁
+- 自我伤害,自我伤害/意图,自我伤害/指示
+- 性,性/未成年人
+- 暴力,暴力/图形
+- 非法,非法/暴力
 
-多模态支持适用于 `violence`、`self-harm` 和 `sexual`，但不包括 `sexual/minors`；其余类别仅支持文本。
+多元支持适用于`violence`现在`self-harm`其他`sexual`但不是`sexual/minors`其他内容仅仅是短信.
 
-在 `code/main.py` 的框架代码中，为教学简洁起见，我们将 `/threatening`、`/intent`、`/instructions` 和 `/graphic` 子类别合并到其上级类别中。生产代码应使用完整的 13 类别模式。
+为了在`code/main.py`我们将崩`/threatening`现在`/intent`现在`/instructions`其他`/graphic`产品代码应使用完整的13类方案.
 
-在多语言测试集上，相比上一代审核端点，性能提升了 42%。提供各类别评分；应用可自行设定阈值。
+对于多语言测试组,比以前的适度终点水平要好42%.
 
-### Llama Guard 3/4
+### 拉玛卫兵 3/4
 
-在第 16 课中介绍。涵盖 14 个 MLCommons 危险类别（组织方式与 OpenAI 的 13 个响应模式布尔值不同）。支持 8 种语言（v3）。Llama Guard 4（2025 年 4 月）原生支持多模态，参数量 12B。
+包含在16课时的14个MLCommons危险类别 (与OpenAI的13个响应方案布鲁尔不同组织).支持8种语言 (v3).Llama Guard 4 (2025年4月) 是原本多模式的,12B.
 
-OpenAI 和 Llama Guard 的类别体系存在重叠但也存在分歧。OpenAI 将"非法内容"作为一个广泛类别；Llama Guard 则将"暴力犯罪"和"非暴力犯罪"分开列出。部署方根据其政策体系适用性进行选择。
+开放AI和拉马卫队的类别重叠,但不同.开放AI将"非法"作为一个广泛的类别;拉马卫队分别将"暴力犯罪"和"非暴力犯罪"分为.部署根据其政策-类别适应性进行选择.
 
-### Perspective API（Google Jigsaw）
+### 视角API (谷歌saw)
 
-毒性评分系统，早于 LLM 即审核浪潮（2020 年之前）。类别：TOXICITY（毒性）、SEVERE_TOXICITY（严重毒性）、INSULT（侮辱）、PROFANITY（粗话）、THREAT（威胁）、IDENTITY_ATTACK（身份攻击）。以 TOXICITY 为主要单维度评分，附带子维度变体。
+毒性评分系统是LLM作为调节者波 (前-2020) 之前的. 分类:毒性,严重毒性,伤害,性,威胁,身份攻击.单维初级分数 (毒性) 含子维变体.
 
-因其 API 稳定、文档齐全且拥有多年校准数据，被广泛用作内容审核研究的基准。对于现代 LLM 相关用例，Llama Guard 或 OpenAI 审核通常是更好的选择。
+广泛应用于内容调节研究基础,因为API是稳定的,记录的,并且具有多年的校准数据.对于现代LLM相邻的使用案例,Llama Guard或OpenAI调节通常更适合.
 
-### 三层模式
+### 三层格式
 
-1. **输入审核**。在生成前对用户提示进行分类。若被标记则拒绝。延迟：一次分类器调用。
-2. **输出审核**。在交付前对模型输出进行分类。若被标记则替换为拒绝响应。延迟：生成完成后进行一次分类器调用。
-3. **自定义审核**。领域特定规则（正则表达式、白名单、业务策略）。在输入或输出层运行。
+1. **Input moderation.**排列用户提示在生成之前. 拒绝如果标记. 延迟:一个分类器调用.
+2. **Output moderation.**输出前将模型输出分类. 如果标记,则取代以拒绝. 延迟:每次生成一次分类器调用.
+3. **Custom moderation.**域名特定规则 (regex, allowlists,商业政策). 运行于输入或输出.
 
-三层在设计上是顺序执行的：输入审核必须在生成完成前执行，输出审核在生成完成后运行。并行性应用于同一层内——对同一段文本并发运行多个分类器（如 OpenAI 审核 + Llama Guard + Perspective）可隐藏单个分类器的延迟。作为可选优化，可在输入审核完成期间显示占位响应（"请稍候，正在检查..."），并延迟 token-1 流式传输。触发标志的行为是可配置的：拒绝、清理、升级至人工审核。
+设计上,三个层次是序列的:输入中小必须在生成之前完成,输出中小必须在生成后完成. 参观在一个层内应用 同时运行多个分类器 (例如,OpenAI调度+拉马卫视+视角) 在同一文本上隐藏每个分类器的延迟. 作为可选的优化,在输入调节完成时,可以显示一个位持有者响应 ("一瞬间,检查...") 并推迟代币-1流. 旗行为可以配置:拒绝,清洁,升级到人类审查.
 
 ### 失败模式
 
-- **仅输入审核**。无法捕获输出幻觉（第 12-14 课的编码攻击可绕过输入分类器）。
-- **仅输出审核**。允许任何输入到达模型；增加成本；向攻击者暴露内部推理。
-- **仅自定义审核**。在各类别间不够稳健；正则表达式脆弱易破。
+- **Input only.**没有捕获输出幻觉 (课 12-14编码攻击绕过输入分类器).
+- **Output only.**允许任何输入到达模型;增加成本;对攻击者进行内部推理.
+- **Custom only.**它们在各类类别中不强,它们很脆弱.
 
-分层是默认方案。多重保障。
+层是默认的,带和悬架.
 
-### Azure 弃用
+### 色减值
 
-Azure Content Moderator：2024 年 2 月弃用，2027 年 2 月退役。由基于 LLM 的 Azure AI Content Safety 取代，并与 Azure OpenAI 集成。迁移是一项 2024-2027 年间针对 Azure 部署的全周期项目。
+亚洲内容调节者:已过期2024年2月,退休2027年2月.被Azure AI内容安全取代,该项目基于LLM,并与Azure OpenAI集成.迁移是2024-2027年Azure部署的现场级项目.
 
-### 在本阶段中的定位
+### 在这个阶段的第18阶段
 
-第 16 课涵盖红队上下文中的审核工具。第 29 课涵盖部署中的审核。第 30 课以当前双重用途能力证据作为收尾。
+第十六课涵盖了红队背景下的调节工具. 第29课涵盖了部署的调节. 第30课以目前的双重用途能力证据结束.
 
 ```figure
 an-moderation-layers
 ```
 
-## 使用方式
+## 用它
 
-`code/main.py` 构建了三层审核框架：输入审核器（关键词 + 类别评分）、输出审核器（对输出应用相同分类器）、自定义审核器（领域规则）。你可以让输入通过各层，观察每层能捕获哪些内容。
+`code/main.py`构建一个三层级的调节器:输入调节器 (关键字 + 类别分数),输出调节器 (输出上的相同分类器),定制调节器 (域规则).您可以通过输入并观察哪个层捕获什么.
 
-## 交付物
+## 运送它
 
-本课产出 `outputs/skill-moderation-stack.md`。给定一个部署场景，它会推荐审核堆栈配置：输入端使用哪个分类器、输出端使用哪个、自定义规则有哪些，以及边缘案例的判定者选择。
+这一课产生了`outputs/skill-moderation-stack.md`根据部署,它建议进行调度堆配置:输入时的分类器,输出时的分类器,定制规则以及边缘情况的判断器.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。让良性、边界和有害输入通过所有三层。报告每类输入在哪一层触发。
+1. 跑步`code/main.py`通过三个层进行良性,边界和有害输入.
 
-2. 扩展框架，在特定类别上加入 Perspective API 风格的毒性评分。将其阈值行为与类别评分进行比较。
+2. 扩展带,以特定类别的PERSPECTIVE-API风格毒性评分.将其门行为与类别评分进行比较.
 
-3. 阅读 OpenAI 审核 API 文档和 Llama Guard 3 类别列表。将每个 OpenAI 类别映射到最接近的 Llama Guard 类别。找出三个无法清晰映射的类别。
+3. 阅读OpenAI调度API文件和Llama Guard 3类别列表.将每个OpenAI类别映射到最近的Llama Guard类别. 确定没有清洁地映射的三个类别.
 
-4. 为代码助手部署（如 GitHub Copilot）设计审核堆栈。识别最相关和最不相关的类别，并提出自定义规则。
+4. 设计一个编码助手部署的调节堆 (例如GitHub Copilot). 确定最和最不相关的类别,并提出定制规则.
 
-5. Azure Content Moderator 将于 2027 年 2 月退役。规划向 Azure AI Content Safety 的迁移。识别迁移过程中风险最高的环节。
+5. 亚洲化工智能内容安全计划迁移. 确定迁移的风险最高元素.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
-|------|------------------------|----------|
-| OpenAI 审核 | "omni-moderation-latest" | 基于 GPT-4o 的 13 类别（文本）分类器，支持部分多模态 |
-| Perspective API | "Google Jigsaw 毒性" | 前 LLM 时代的毒性评分基准 |
-| Llama Guard | "MLCommons 14 类别" | Meta 的危险分类器（v3：8B 文本、8 种语言；v4：12B 多模态） |
-| 输入审核 | "生成前过滤器" | 模型调用前对用户提示的分类器 |
-| 输出审核 | "生成后过滤器" | 交付前对模型输出的分类器 |
-| 自定义审核 | "领域规则" | 部署特定规则（正则、白名单、策略） |
-| 分层审核 | "三层全部启用" | 标准生产部署模式 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| OpenAI Moderation | "omni-moderation-latest" | GPT-4o-based 13-category (text) classifier with partial multimodal support |
+| Perspective API | "Google Jigsaw toxicity" | Pre-LLM-era toxicity scoring baseline |
+| Llama Guard | "MLCommons 14-category" | Meta's hazard classifier (v3: 8B text, 8 langs; v4: 12B multimodal) |
+| Input moderation | "pre-generation filter" | Classifier on user prompt before model call |
+| Output moderation | "post-generation filter" | Classifier on model output before delivery |
+| Custom moderation | "domain rules" | Deployment-specific rules (regex, allowlist, policy) |
+| Layered moderation | "all three layers" | Standard production deployment pattern |
 
-## 延伸阅读
+## 进一步阅读
 
-- [OpenAI 审核 API 文档](https://platform.openai.com/docs/api-reference/moderations) — omni-moderation 端点
-- [Meta PurpleLlama + Llama Guard](https://github.com/meta-llama/PurpleLlama) — Llama Guard 仓库
-- [Google Jigsaw Perspective API](https://perspectiveapi.com/) — 毒性评分
-- [Azure AI Content Safety](https://learn.microsoft.com/en-us/azure/ai-services/content-safety/) — Azure 替代方案
+- [OpenAI Moderation API docs](https://platform.openai.com/docs/api-reference/moderations)全适度终点
+- [Meta PurpleLlama + Llama Guard](https://github.com/meta-llama/PurpleLlama) 拉马卫队的回报
+- [Google Jigsaw Perspective API](https://perspectiveapi.com/)毒性评分
+- [Azure AI Content Safety](https://learn.microsoft.com/en-us/azure/ai-services/content-safety/) Azure 替代

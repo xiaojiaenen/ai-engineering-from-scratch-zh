@@ -1,223 +1,110 @@
-# Weight Initialization and Training Stability
+# 体重初始化和训练稳定性
 
-> 初始化错误，永远无法开始训练。初始化正确，50层就能像3一样顺利训练。
-<<<
+> 开始错误,训练永远不会开始.开始正确,50层训练就像3层一样顺利.
 
 **Type:** Build
 **Languages:** Python
 **Prerequisites:** Lesson 03.04 (Activation Functions), Lesson 03.07 (Regularization)
 **Time:** ~90 minutes
 
-## Learning Objectives
+## 学习目标
 
-- Implement zero, random, Xavier/Glorot, and Kaiming/He initialization strategies and measure their effect on activation magnitudes through 50 layers
-- Derive why Xavier init uses Var(w) = 2/(fan_in + fan_out) and Kaiming uses Var(w) = 2/fan_in
-- Demonstrate the symmetry problem with zero initialization and explain why random scale alone is insufficient
-- Match the correct initialization strategy to the activation function: Xavier for sigmoid/tanh, Kaiming for ReLU/GELU
+- 实现零,随机,Xavier/Glorot和Kaiming/He初始化策略,并通过50层来测量其对激活大小的影响
+- 导出为什么Xavier init使用Var(w) = 2/(fan_in + fan_out) 和Kaiming使用Var(w) = 2/fan_in
+- 证明零初始化对称性问题,并解释为什么随机尺度本身是不够的
+- 匹配正确的初始化策略与激活函数:Xavier为sigmoid/tanh,Kaiming为ReLU/GELU
 
 ## 问题
-<<<
 
->>> 将所有权重初始化为零。什么都学不到。每个神经元计算相同的函数，接收相同的梯度，并以相同的方式进行更新。经过 10000 个 epoch 后，你的 512 神经元隐藏层仍然是同一个神经元的 512 个副本。你为 512 个参数付了钱，却只得到了 1。<<<
+开始所有重量到零.什么都不会学习.每个神经元都计算出相同的函数,得到相同的梯度,并更新相同. 在1万个时代之后,你的512神经元隐藏层仍然是512副本的同一个神经元.你支付了512个参数,得到了1.
 
-把它们的初始值设得太大。激活值在网络中爆炸式扩散。到第 10 层，数值达到 1e15。到第 20 层，它们溢出至无穷。梯度沿着相同的路径反向演进。
-<<<
+激活器在网络中爆炸.在10层时,值达到1e15.在20层时,它们溢出到无限. 梯度以逆行走相同的轨迹.
 
-Initialize them randomly from a standard normal distribution. Works for 3 layers. At 50 layers, the signal collapses to zero or detonates to infinity depending on whether the random scale was slightly too small or slightly too large. The boundary between "works" and "broken" is razor-thin.
+根据随机尺寸的小小或大小,信号的速度会变得无限. "工作"和"破裂"之间的界限是薄薄.
 
-Weight initialization is the most underrated decision in deep learning. Architecture gets papers. Optimizers get blog posts. Initialization gets a footnote. But get it wrong and nothing else matters -- your network is dead before training begins.
+开始重量是深度学习中最低估的决定. 建筑得到论文. 优化者得到博客帖子. 开始得到脚注.
 
 ## 概念
-<<<
 
-### 对称问题
+### 象征问题
 
-Let me translate this text about neural networks.
+一层中的每个神经元都有相同的结构:乘以重量输入,添加偏差,应用激活.如果所有重量从相同的值开始 (零是极端情况),每个神经元计算出相同的输出.在后扩散过程中,每个神经元都会获得相同的梯度.在更新阶段,每个神经元都会变化相同的数量.
 
+你被困了.网络有数百个参数,但它们都在锁步上移动.这称为对称性,随机初始化是破解它的方法.每个神经元在重量空间的不同点开始,所以每个学习不同的特征.
 
-<<<START>>>
-同一层中的每个神经元都具有相同的结构：将输入乘以权重、加上偏置、然后应用激活函数。如果所有权重都从相同的值开始（零是极端情况），那么每个神经元都会计算出相同的输出。在反向传播过程中，每个神经元都会接收到相同的梯度。在更新步骤中，每个神经元都会以相同的量发生变化。
-<<<
+随机性是网络运行的决定.
 
->>>你卡住了。这个网络有数百个参数，但它们全都步调一致地移动。这就是所谓的对称性，而随机初始化是一种暴力打破它的办法。每个神经元都在权重空间的不同起点开始，因此每个都会学到不同的特征。<<<
+### 通过层的变异传播
 
-But "random" is not enough. The *scale* of the randomness determines whether the network trains.
-
-### 穿过各层的方差传播
-<<<
-
-Consider a single layer with fan_in inputs:
+考虑一个单层的风扇_in输入:
 
 ```
 z = w1*x1 + w2*x2 + ... + w_n*x_n
 ```
 
-Technical terms and math like "wi", "Var(w)", "xi", "Var(x)" should not be translated. Let me translate the surrounding text.
-
-"If each weight wi is drawn from a distribution with variance Var(w) and each input xi has variance Var(x), the output variance is:"
-
-Translation:
-"如果每个权重 wi 都服从方差为 Var(w) 的分布，且每个输入 xi 的方差为 Var(x)，则输出方差为："
-
-Let me check - "wi" and "xi" - these are technical/math terms so keep them. "Var(w)" and "Var(x)" - keep them.
-
-"drawn from a distribution" = 服从...分布 / 从...分布中抽取
-"variance" = 方差 (technical term, keep)
-"input" = 输入
-"output variance" = 输出方差
-
-Let me refine:
-"如果每个权重 wi 从方差为 Var(w) 的分布中抽取，且每个输入 xi 的方差为 Var(x)，则输出方差为："
-
-
-<<<START>>>
-如果每个权重 wi 从方差为 Var(w) 的分布中抽取，且每个输入 xi 的方差为 Var(x)，则输出方差为：
-<<<
+如果每一个权力wi从一个变量 Var(w) 的分布中得到,并且每个输入 xi 变量 Var(x),输出变量是:
 
 ```
 Var(z) = fan_in * Var(w) * Var(x)
 ```
 
-如果 Var(w) = 1 且 fan_in = 512，输出方差是输入方差的 512x。经过 10 层后：512^10 = 1.2e27。你的信号已经爆炸了。
-<<<
+如果 Var(w) = 1 和 fan_in = 512,输出变量是输入变量的512x. 10 层后: 512 ^ 10 = 1.2e27.你的信号已经爆炸.
 
-If Var(w) = 0.001, the output variance shrinks by 0.001 * 512 = 0.512 per layer. After 10 layers: 0.512^10 = 0.00013. Your signal has vanished.
+如果 Var(w) = 0.001,输出差异每层缩小0.001 * 512 = 0.512 . 10 层后: 0.512 ^ 10 = 0.00013.你的信号已经消失.
 
-<<<START>>>
-目标：选择 Var(w) 使得 Var(z) = Var(x)。信号幅度在各层之间保持不变。
-<<<
+目标:选择Var(w) 以使Var(z) =Var(x).信号大小在各层保持一致.
 
-- No explanation or preamble
+### 哈维尔/格洛罗初始化
 
-This is a heading about Xavier/Glorot Initialization - a technical term for neural network weight initialization. 
-
-Xavier/Glorot is a name (proper noun), so it should be preserved. Initialization is a technical term.
-
-Let me translate: "### Xavier/Glorot 初始化"
-
-Xavier and Glorot are names of people (Xavier Glorot), so they should stay in original form. "Initialization" could be translated as "初始化" which is a common technical term translation.
-
-The rule says do NOT translate technical terms, but "Initialization" is a common term. Let me think - "Xavier/Glorot Initialization" - Xavier and Glorot are names. The markdown header format should be preserved.
-
-I'll translate "Initialization" as "初始化" since it's a common term that's well-established in Chinese technical literature, but actually the rule says don't translate technical terms. However, this is borderline. Let me keep Xavier/Glorot as names and translate the structure minimally.
-
-Actually, let me reconsider. The instruction says don't translate technical terms. "Initialization" in the context of neural networks is a technical term. But names Xavier/Glorot are also technical. 
-
-I think the safest is to keep Xavier/Glorot as is (names) and translate "Initialization" to "初始化" as it's a natural translation. Many would keep the whole thing but the heading format should be preserved.
-
-Let me go with "### Xavier/Glorot 初始化"
-
-
-<<<START>>>
-### Xavier/Glorot 初始化
-<<<
-
-Let me translate:
-"Glorot and Bengio (2010) derived the solution for sigmoid and tanh activations. To keep variance constant in both the forward and backward pass:"
-
-Translation:
-"Glorot 和 Bengio (2010) 推导出了针对 sigmoid 和 tanh 激活的解。为了在前向传播和反向传播中保持方差恒定："
-
-Technical terms like "sigmoid", "tanh", "forward pass", "backward pass" - these are technical terms. Forward pass and backward pass could be translated as "前向传播" and "反向传播" which are standard Chinese terms. Sigmoid and tanh are activation functions - I should keep them in English as they're technical terms/names.
-
-Let me keep "Glorot and Bengio" - these are proper names (authors), so I'll keep them as is or transliterate. Actually, for citations, keeping the English names is fine.
-
-Let me write the final translation.
-
-
-<<<START>>>
-Glorot 和 Bengio (2010) 推导出了针对 sigmoid 和 tanh 激活的解。为了在前向传播和反向传播中保持方差恒定：
-<<<
+为了保持前进和后退的变异常态:
 
 ```
 Var(w) = 2 / (fan_in + fan_out)
 ```
 
-Let me translate this.
-
-"In practice, weights are drawn from:"
-
-This appears to be a technical/mathematical context about drawing weights from some distribution.
-
-Translation: "在实践中，权重是从...抽取的："
-
-Let me refine: "In practice" = "在实践中" or "实际上"
-"weights are drawn from" = "权重是从……抽取的"
-
-Final: "在实践中，权重是从：抽取的"
-
-Actually, let me keep the colon. The original ends with a colon, suggesting something follows. So: "在实践中，权重从以下抽取："
-
-Hmm, let me think about the flow. "weights are drawn from:" - the colon indicates a list or expression follows.
-
-"在实践中，权重抽取自：" or "在实践中，权重是从以下抽取的："
-
-I'll go with something clean: "实践中，权重从以下抽取："
-
-
-在实践中，权重从以下抽取：
+实际上,重量来自:
 
 ```
 w ~ Uniform(-limit, limit)  where limit = sqrt(6 / (fan_in + fan_out))
 ```
 
-or:
+或:
 
 ```
 w ~ Normal(0, sqrt(2 / (fan_in + fan_out)))
 ```
 
-This works because sigmoid and tanh are roughly linear near zero, where properly initialized activations live. The variance stays stable through dozens of layers.
+这种方法是因为sigmoid和tanh大致是近零的线性,正确启动的激活活活在其中.
 
-"Kaiming/He Initialization" is a technical term. Kaiming initialization is also known as He initialization. This is a specific named initialization technique in deep learning.
+### 卡明/他初始化
 
-Should I translate "Initialization"? The technical term "Kaiming/He Initialization" - Kaiming is a name (He Kaiming), so I shouldn't translate that. The "Initialization" part... hmm, in Chinese ML terminology, "初始化" is the standard translation for initialization.
+实际上,它是因为平均的输入中有一半是零的. 克萨维尔 init 没有考虑到这一点 - 它低估了所需的差异.
 
-Let me translate this heading. The markdown header ### should be preserved.
-
-"### Kaiming/He Initialization" → "### Kaiming/He 初始化"
-
-I'll keep "Kaiming/He" as is (name), and translate "Initialization" to "初始化" which is the standard technical term in Chinese. Actually, the rule says don't translate technical terms. But "Initialization" here - the technical term. Hmm. Let me think about what's most natural.
-
-Actually, the common Chinese term is "Kaiming初始化" or "Kaiming/He 初始化". I'll translate "Initialization" to "初始化" as that's the natural Chinese rendering.
-
-Let me just provide the translation.
-
-
-### Kaiming/He 初始化
-
-ReLU kills half the outputs (everything negative becomes zero). The effective fan_in is halved because on average half the inputs are zeroed. Xavier init doesn't account for this -- it underestimates the variance needed.
-
-He et al. (2015) adjusted the formula:
+他等人 (2015) 调整了公式:
 
 ```
 Var(w) = 2 / fan_in
 ```
 
-<<<START>>>
-权重是从：
-<<<
+权重是从:
 
 ```
 w ~ Normal(0, sqrt(2 / fan_in))
 ```
 
-The factor of 2 compensates for ReLU zeroing half the activations. Without it, the signal shrinks by ~0.5x per layer. With 50 layers: 0.5^50 = 8.8e-16. Kaiming init prevents this.
+由于 ReLU 激活率为0.5x,其信号的速度会减少0.5x. 由于 50 层的数量:0.5^50 =8.8e-16.
 
-<<<START>>>
-### Transformer 初始化
-<<<
+### 变压器启动
 
-GPT-2 introduced a different pattern. Residual connections add the output of each sub-layer to its input:
+其他类型的电源是GPT-2的.
 
 ```
 x = x + sublayer(x)
 ```
 
-每次加法都会增加方差。拥有 N 个残差层时，方差随 N 成比例增长。GPT-2 将残差层的权重按 1/sqrt(2N) 进行缩放，其中 N 为层数。这样可以保持累积信号幅度的稳定。
-<<<
+每次加值增加了变量.在N残留层时,变量与N相对增长.GPT-2将残留层的重量缩小到1/sqrt(2N),其中N是层数.这使得积累的信号大小保持稳定.
 
-Llama 3 (405B parameters, 126 layers) uses a similar scheme. Without this scaling, the residual stream would grow unbounded through 126 layers of attention and feedforward blocks.
+没有这种扩展,剩余流将在126层注意力和输送前进块中无限增长.
 
 ```mermaid
 flowchart TD
@@ -240,7 +127,7 @@ flowchart TD
     end
 ```
 
-### Activation Magnitude Through 50 Layers
+### 通过50层的激活大小
 
 ```mermaid
 graph LR
@@ -257,7 +144,7 @@ graph LR
     end
 ```
 
-### Choosing the Right Init
+### 选择正确的心灵
 
 ```mermaid
 flowchart TD
@@ -278,22 +165,11 @@ flowchart TD
 weight-init-variance
 ```
 
-## Build It
+## 建立它
 
-The fragment is:
-"### Step 1: Initialization Strategies"
+### 步骤1:启动策略
 
-This is a heading. Let me translate it.
-
-"### Step 1: Initialization Strategies" → "### 第一步：初始化策略"
-
-There are no PROTECT tokens here, no code, math, or links.
-
-
-### 第一步：初始化策略
-
-四种初始化权重矩阵的方法。每个函数都返回一个列表的列表（一个二维矩阵），包含 `fan_in` 列和 `fan_out` 行。
-<<<
+重量矩阵初始化四种方法.每个方法都返回了列表 (2D矩阵) 的列表,其中包含粉丝_在列和粉丝_出列.
 
 ```python
 import math
@@ -318,11 +194,9 @@ def kaiming_init(fan_in, fan_out):
     return [[random.gauss(0, std) for _ in range(fan_in)] for _ in range(fan_out)]
 ```
 
-### 步骤 2：激活函数
+### 行动功能
 
-<<<START>>>
-我们需要 sigmoid、tanh 和 ReLU 来测试每种初始化策略及其预期的激活函数。
-<<<
+我们需要sigmoid,tanh,和ReLU,以测试每一个 init战略,
 
 ```python
 def sigmoid(x):
@@ -338,10 +212,9 @@ def relu(x):
     return max(0.0, x)
 ```
 
-### Step 3: Forward Pass Through 50 Layers
+### 步骤3: 往前穿过50层
 
-将随机数据通过深度网络，并测量每一层的平均激活幅度。
-<<<
+通过深度网络传递随机数据,
 
 ```python
 def forward_deep(init_fn, activation_fn, n_layers=50, width=64, n_samples=100):
@@ -372,10 +245,9 @@ def forward_deep(init_fn, activation_fn, n_layers=50, width=64, n_samples=100):
     return layer_magnitudes
 ```
 
-### Step 4: The Experiment
+### 第四步:实验
 
-运行所有组合：零初始化、随机 N(0,1)、随机 N(0,0.01)、Xavier 搭配 sigmoid、Xavier 搭配 tanh、Kaiming 搭配 ReLU。打印关键层的幅值。
-<<<
+运行所有组合:零 init,随机 N(0,1),随机 N(0,0.01),Xavier与 sigmoid,Xavier与 tanh,Kaiming与 ReLU.
 
 ```python
 def run_experiment():
@@ -405,29 +277,9 @@ def run_experiment():
         print(row)
 ```
 
-### Step 5: Symmetry Demonstration
+### 步骤5:对称性示范
 
-5. No explanation or preamble inside tags
-
-Let me translate this. "Show that zero init produces identical neurons."
-
-"zero init" is a technical term (zero initialization), so I should keep it or translate appropriately. "init" is short for initialization. Technical terms shouldn't be translated. Let me translate it as "零初始化" which is the standard Chinese term for zero initialization, but since it's a technical term... Actually, the rule says do not translate technical terms. But this is a general sentence. Let me think.
-
-Actually "zero init" - I could keep it as "零初始化" since that's the Chinese technical term. The instruction says don't translate technical terms, meaning keep them in their original English form often, or keep them as recognized technical terms. Here I'll translate the sentence structure but keep technical terms recognizable.
-
-"Show that zero init produces identical neurons."
-- "Show that" → "证明"
-- "zero init" → "零初始化" (technical term)
-- "produces identical neurons" → "产生相同的神经元"
-
-So: "证明零初始化会产生相同的神经元。"
-
-That seems reasonable. Let me wrap it.
-
-
-<<<START>>>
-证明零初始化会产生相同的神经元。
-<<<
+证明零 init产生相同的神经元.
 
 ```python
 def symmetry_demo():
@@ -449,9 +301,9 @@ def symmetry_demo():
     print(f"  Effective parameters: 1 (not {len(weights) * len(weights[0])})")
 ```
 
-### Step 6: Layer-by-Layer Magnitude Report
+### 步骤 6: 层次大小报告
 
-Print a visual bar chart of activation magnitudes through 50 layers.
+通过50层打印激活大小的视觉条图.
 
 ```python
 def magnitude_report(name, magnitudes):
@@ -468,10 +320,9 @@ def magnitude_report(name, magnitudes):
             print(f"  Layer {i+1:3d}: {bar} ({mag:.6f})")
 ```
 
-## 使用它
-<<<
+## 用它
 
-PyTorch provides these as built-in functions:
+PyTorch 提供了以下功能:
 
 ```python
 import torch
@@ -488,58 +339,28 @@ nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
 nn.init.zeros_(layer.bias)
 ```
 
-When you call `nn.Linear(512, 256)`, PyTorch defaults to Kaiming uniform initialization. That's why most simple networks "just work" -- PyTorch already made the right choice. But when you build custom architectures or go deeper than 20 layers, you need to understand what's happening and potentially override the default.
+当你打电话时`nn.Linear(512, 256)`由于PyTorch 已经做出了正确的选择,但是当你构建定制架构或更深入于20层时,你需要了解发生了什么,并可能取消默认的情况.
 
-对于 Transformer，HuggingFace 模型通常在其 `_init_weights` 方法中处理初始化。GPT-2 的实现将残差投影按 1/sqrt(N) 进行缩放。如果你是从头构建 Transformer，你需要自行添加这一点。
-<<<
+对于变压器,HuggingFace模型通常处理其初始化.`_init_weights`现在,我们需要一个新的方法. GPT-2 的实现量度残余投影的1/sqrt ((N).如果你从零开始建造一个变压器,你需要自己添加这个.
 
-## Ship It
+## 运送它
 
-This lesson produces:
-- `outputs/prompt-init-strategy.md` -- a prompt that diagnoses weight initialization problems and recommends the right strategy
+这一课产生了:
+- `outputs/prompt-init-strategy.md`-- 提示诊断体重初始化问题,并建议正确的策略
 
-## 练习
+## 运动
 
-<<<
+1. 加入LeCun初始化 (Var = 1/fan_in,用于SELU激活).使用LeCun init + tanh进行50层实验,并将其与Xavier + tanh进行比较.
 
-1. Add LeCun initialization (Var = 1/fan_in, designed for SELU activation). Run the 50-layer experiment with LeCun init + tanh and compare to Xavier + tanh.
+2. 执行GPT-2残余扩展:在加入残余流之前,乘以1/sqrt ((2*N) 每层输出量.运行50层,无论是没有扩展,测量残余大小的增长速度.
 
-2. 实现 GPT-2 残差缩放：在向残差流添加之前，将每一层的输出乘以 1/sqrt(2*N)。分别在有缩放和无缩放两种情况下运行 50 层，测量残差规模增长多快。
-<<<
+3. 创建一个"init健康检查"函数,它取网络层尺寸和激活类型,然后建议正确的初始化,并警告如果当前的 init会导致问题.
 
-Let me translate this.
+4. 运行实验用fan_in = 16 vs fan_in = 1024. 克萨维尔和凯明适应fan_in,但随机 init没有. 显示"工作"和"断裂"之间的差距如何随着更大的层次扩大.
 
+5. 实现直角初始化 (生成一个随机矩阵,计算其SVD,使用直角矩阵U).比较ReLU网络的Kaiming50层.
 
-3. 创建一个"初始化健康检查"函数，接收网络的层维度与激活类型，然后推荐正确的初始化方法，并在当前初始化会导致问题时发出警告。
-
-- No explanation or preamble
-
-Technical terms to keep: fan_in, Xavier, Kaiming, init (initialization), "works", "breaks"
-
-Let me translate this into Simplified Chinese while keeping the technical terms.
-
-"4. Run the experiment with fan_in = 16 vs fan_in = 1024. Xavier and Kaiming adapt to fan_in, but random init doesn't. Show how the gap between "works" and "breaks" widens with larger layers."
-
-Translation:
-"4. 用 fan_in = 16 和 fan_in = 1024 分别运行实验。Xavier 和 Kaiming 会适应 fan_in，但随机 init 不会。展示随着层变大，"works" 和 "breaks" 之间的差距如何扩大。"
-
-Let me refine this:
-- "Run the experiment" → "运行实验"
-- "with fan_in = 16 vs fan_in = 1024" → "用 fan_in = 16 对 fan_in = 1024" or "在 fan_in = 16 和 fan_in = 1024 两种情况下"
-- "Xavier and Kaiming adapt to fan_in" → "Xavier 和 Kaiming 会适应 fan_in"
-- "but random init doesn't" → "但随机 init 不会"
-- "Show how the gap between "works" and "breaks" widens with larger layers" → "展示随着层变大，"works" 和 "breaks" 之间的差距如何扩大"
-
-Final translation looks good.
-
-
-4. 在 fan_in = 16 和 fan_in = 1024 两种情况下分别运行实验。Xavier 和 Kaiming 会自适应 fan_in，但随机 init 不会。展示随着层变大，"works" 与 "breaks" 之间的差距如何扩大。
-
-<<<START>>>
-5. 实现正交初始化（生成一个随机矩阵，计算其 SVD，使用正交矩阵 U）。与 50 层 ReLU 网络的 Kaiming 初始化进行比较。
-<<<
-
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|----------------|----------------------|
@@ -554,10 +375,9 @@ Final translation looks good.
 | Dead network | "Nothing trains" | A network where poor initialization causes all gradients to be zero or all activations to saturate |
 | Exploding activations | "Values go to infinity" | When weight variance is too high, causing activation magnitudes to grow exponentially through layers |
 
-## Further Reading
+## 进一步阅读
 
-- Glorot & Bengio，"Understanding the difficulty of training deep feedforward neural networks"（2010）—— 带有方差分析的原始 Xavier 初始化论文
-- He et al.，"Delving Deep into Rectifiers"（2015）—— 引入了面向 ReLU 网络的 Kaiming 初始化
-- Radford et al.，"Language Models are Unsupervised Multitask Learners"（2019）—— 带有残差缩放初始化的 GPT-2 论文
-- Mishkin & Matas，"All You Need is a Good Init"（2016）—— 逐层序列单位方差初始化，一种基于经验而非解析公式的替代方案
-<<<
+- 格洛罗特和Bengio, "理解训练深度传输神经网络的难度" (2010) -- 哈维埃初始化论文与变异分析
+- 他等, "深入调整器" (2015) -- 引入了ReLU网络的凯明初始化
+- 拉德福德等人",语言模型是无监督多任务学习者" (2019) -- GPT-2 论文,其余规模化初始化
+- 密希金和马塔斯,"你需要的只是一个好的初步" (2016) - - 层次单元变异初始化,对分析公式的实验性替代

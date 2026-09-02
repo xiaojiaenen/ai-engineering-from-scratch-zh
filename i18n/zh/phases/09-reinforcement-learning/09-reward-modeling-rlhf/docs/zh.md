@@ -1,68 +1,68 @@
-# 奖励建模与 RLHF
+# 奖励模型和RLHF
 
-> 人类无法为"良好的助手回复"编写奖励函数，但可以对两个回复进行比较并挑选出更好的那个。基于这些比较训练一个奖励模型，然后用强化学习 (RL) 对该语言模型进行优化。Christian 2017。InstructGPT 2022。这是将 GPT-3 转变为 ChatGPT 的配方。到了 2026 年，它大部分已被 DPO 取代——但心智模型依然成立。
+> 人类不能写一个奖励函数"好助手响应",但他们可以比较两个响应,选择更好的. 适应一个奖励模型,然后 RL语言模型对比它. 基督徒 2017. 指示GPT 2022. 食谱使GPT-3变成ChatGPT. 2026年它主要被DPO 取代,但心理模型仍然存在.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 阶段 5 · 05（情感分析）、阶段 9 · 08（PPO）
-**时间：** 约 45 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 5 · 05 (Sentiment), Phase 9 · 08 (PPO)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-你用下一个 token 预测的目标训练了一个语言模型。它能写出语法正确的英文。但它也会撒谎、啰嗦，而且拒绝拒绝。你无法通过更多的预训练来解决这个问题——网络文本本身就是问题所在，而非解药。
+你训练了一个语言模型,以下一个代币预测目标.它写着语法英语.它也说谎,乱,拒绝拒绝.你不能通过更多的预训来解决这个问题.
 
-你想要一个*标量奖励*，它能告诉你"对于指令 X，回复 A 比回复 B 更好"。手工编写这个奖励函数是不可能的。"有用性"并非 token 上的闭式表达式。但人类可以对两个输出进行比较并标记偏好。这在规模上收集成本很低。
+您想要一个*scalar reward*,上面写着"A的反应比对 X的反应更好".写出奖励函数是不可能的."Helpfulness"不是一个封闭形式的表达式.但人类可以比较两个输出并标记一个偏好.
 
-RLHF（Christiano 等人 2017；Ouyang 等人 2022）将偏好转换为奖励模型，然后通过 PPO 针对该奖励对 LM 进行优化。分为三个步骤：SFT → RM → PPO。这是打造 ChatGPT、Claude、Gemini 以及 2023–2025 年所有对齐 LLM 的配方。
+根据RLHF (Christiano et al. 2017; Ouyang et al. 2022) 将偏好转换为奖励模型,然后通过PPO来优化LM对付该奖励.在三个步骤中:SFT → RM → PPO.这是ChatGPT,Claude,Gemini和其他所有符合LLM在 20232025的配方.
 
-到了 2026 年，PPO 步骤大部分已被 DPO（阶段 10 · 08）取代，因为它更便宜且在对齐调优方面几乎同样有效。但*奖励模型*这一环节仍然是每个 Best-of-N 采样器、每个基于可验证奖励的 RL 管道以及每个使用过程奖励模型的推理模型的基础。理解 RLHF 就理解了整个对齐栈。
+2026年,PPO步骤主要被DPO (Phase 10 · 08) 取代,因为它更便宜,几乎对对对齐调整效果很好.但*奖励模型*仍然是每个Best-of-N样本,每个RL-from-verifiable-rewards管道的基础,以及使用过程奖励模型的每个推理模型的基础.了解RLHF,你将理解整个对齐堆.
 
 ## 概念
 
-![三阶段 RLHF：SFT、基于成对偏好的奖励模型训练、带 KL 惩罚的 PPO](../assets/rlhf.svg)
+![Three-stage RLHF: SFT, RM training on pairwise prefs, PPO with KL penalty](../assets/rlhf.svg)
 
-**阶段 1：监督微调 (SFT)。** 从一个预训练的基础模型开始。在目标行为的人类示范数据（指令遵循回复、有帮助的回复等）上进行微调。结果得到一个模型 `π_SFT`，它*偏向良好行为*，但仍然具有无界的动作空间。
+**Stage 1: Supervised Fine-Tuning (SFT).**开始从预训练的基础模型. 精细调理人类写的目标行为示范 (遵循指示的反应,有用的答案等). 结果:一个模型 `π_SFT`虽然它是对良好的行为有偏见的,但仍然具有无限的行动空间.
 
-**阶段 2：奖励模型训练。**
+**Stage 2: Reward Model training.**
 
-- 收集针对提示 `x` 的回复对 `(y_+, y_-)`，由人类标记为"y_+ 优于 y_-。"
-- 训练一个奖励模型 `R_φ(x, y)` 以给 `y_+` 分配更高的分数。
-- 损失函数：**Bradley-Terry 成对逻辑回归**：
+- 收集对答案`(y_+, y_-)`为了得到提示`x`标记为"y_+ 优先于y_-."
+- 培养一个奖励模式`R_φ(x, y)`给更高的分数`y_+`现在,我们要去.
+- 损失:**Bradley-Terry pairwise logistic**其他:
 
   `L(φ) = -E[ log σ(R_φ(x, y_+) - R_φ(x, y_-)) ]`
 
-  σ 是 sigmoid 函数。奖励差异隐含了偏好的对数几率。BT 自 1952 年（Bradley-Terry）以来一直是标准做法，也是现代 RLHF 中的主导选择。
+  由于BT是标准的,它是现代RLHF中的主导选择.
 
-- `R_φ` 通常从 SFT 模型初始化，并在顶部添加一个标量头。使用相同的 transformer 骨干网络；一个线性层输出奖励值。
+- `R_φ`转变器的背骨相同;单个线性层输出奖励.
 
-**阶段 3：带 KL 惩罚的 PPO 针对 RM 进行优化。**
+**Stage 3: PPO against the RM with KL penalty.**
 
-- 从 `π_SFT` 初始化可训练策略 `π_θ`。保持一个冻结的*参考模型* `π_ref = π_SFT`。
-- 在回复 `y` 结束时的奖励：
+- 启动可培训的政策`π_θ`其他`π_SFT`保持一个结的 * 参考 *`π_ref = π_SFT`现在,我们要去.
+- 答复结束时的奖励`y`其他:
 
   `r_total(x, y) = R_φ(x, y) - β · KL(π_θ(·|x) || π_ref(·|x))`
 
-  KL 惩罚防止 `π_θ` 任意偏离 `π_SFT` —— 它是一种*正则化*，而非硬性的信任区域。`β` 通常取 `0.01`-`0.05`。
-- 使用此奖励运行 PPO（课程 08）。优势在 token 级轨迹上计算，但 RM 只对完整回复进行打分。
+  克莱特的罚款阻止了`π_θ`由于自主而偏离`π_SFT`它是一个*规范性*的地区,而不是一个难以信任的地区.`β`通常`0.01`- 没有什么.`0.05`现在,我们要去.
+- 运行PPO (课程 08) 通过此奖励.优势在代币水平轨迹上计算,但RM仅得分了全部响应.
 
-**为什么需要 KL？** 没有它，PPO 会欣然找到奖励黑客策略 —— RM 仅在分布内回复上训练过。一个分布外的回复可能比任何人类编写的回复得分都高。KL 将 `π_θ` 保持在 RM 训练所在的流形附近。这是 RLHF 中最重要的旋钮。
+**Why the KL?**没有它,PPO会很高兴找到奖励黑客策略. 人民币只在在分销完成中训练.`π_θ`机器在RLHF中最重要的单个.
 
-**2026 年现状：**
+**2026 status:**
 
-- **DPO**（Rafailov 2023）：闭式代数将阶段 2+3 合并为偏好数据上的单个监督损失。没有 RM，没有 PPO。在对齐基准测试上达到相同质量，但计算量仅为 fractions。在阶段 10 · 08 中有介绍。
-- **GRPO**（DeepSeek 2024–2025）：用组相对基线替代 critic 的 PPO，奖励来自*验证器*（代码运行 / 数学答案匹配）而非人工训练的 RM。在推理模型中占主导地位。在阶段 9 · 12 中有介绍。
-- **过程奖励模型 (PRM)：** 对部分解决方案（每个推理步骤）进行打分，用于推理模型中的 RLHF 和 GRPO 变体。
-- **Constitutional AI / RLAIF：** 使用对齐的 LLM 生成偏好，而非人类。扩展偏好预算。
+- **DPO**(拉法伊洛夫 2023):闭式代数崩 2+3阶段成为一个监督损失对偏好数据.没有RM,没有PPO.对计算的部分的对齐基准的质量相同.
+- **GRPO**(DeepSeek 20242025):PPO以组相关基线而不是批评者,奖励来自*验证者* (代码运行 /数学答案匹配) 而不是人类训练的RM. 主导于推理模型.
+- **Process reward models (PRMs):**评分部分解决方案 (每个推理步骤),用于RLHF和GRPO变体中的推理.
+- **Constitutional AI / RLAIF:**通过一个合并的法定律师来生成偏好,而不是人类.
 
 ```figure
 reward-model
 ```
 
-## 动手构建
+## 建立它
 
-本课使用小型合成"提示"和"回复"，表示为字符串。RM 是基于词袋表示的线性评分器。没有真正的 LLM —— 管道的*形状*比规模更重要。参见 `code/main.py`。
+通过使用微小的合成"提示"和"反应"作为字符串.RM是线性得分符号表现.没有真正的LLM 管道的 *形状*是重要的,而不是规模.`code/main.py`现在,我们要去.
 
-### 步骤 1：合成偏好数据
+### 步骤1:合成优先数据
 
 ```python
 PROMPTS = ["help me", "answer me", "explain this"]
@@ -76,11 +76,11 @@ def make_pair(rng):
     return (x, y_good, y_bad)
 ```
 
-在实际 RLHF 中，这由人类标注员替代。其结构 —— `(prompt, preferred_response, rejected_response)` —— 完全相同。
+在真正的RLHF中,这些标签被人类标签所取代.`(prompt, preferred_response, rejected_response)`是相同的.
 
-### 步骤 2：Bradley-Terry 奖励模型
+### 步骤2:布拉德利-特里奖励模型
 
-线性得分：`R(x, y) = w · bag(y)`。训练以最小化 BT 成对对数损失：
+线性分数:`R(x, y) = w · bag(y)`减轻BT双日记损失:
 
 ```python
 def rm_train_step(w, x, y_pos, y_neg, lr):
@@ -93,11 +93,11 @@ def rm_train_step(w, x, y_pos, y_neg, lr):
         w[tok] -= lr * (1 - p) * cnt
 ```
 
-经过数百次更新后，`w` 会对好词 token 分配正权重，对坏词 token 分配负权重。
+经过几百次更新,`w`给好词标记赋予正面权重,给坏词赋予负面权重.
 
-### 步骤 3：在 RM 之上的类 PPO 策略
+### 步骤3:除了人民币外,PPO类似的政策
 
-我们的玩具策略从词汇表中产生一个 token。我们在 RM 下对该 token 进行打分，计算 `log π_θ(token | prompt)`，加上到参考模型的 KL 惩罚，并应用截断的 PPO 代理。
+我们的玩具政策从词汇中产生一个代币.`log π_θ(token | prompt)`加入KL-to-reference罚款,并使用切割的PPO替代品.
 
 ```python
 def rlhf_step(theta, ref, w, prompt, rng, eps=0.2, beta=0.1, lr=0.05):
@@ -111,13 +111,13 @@ def rlhf_step(theta, ref, w, prompt, rng, eps=0.2, beta=0.1, lr=0.05):
     ...
 ```
 
-### 步骤 4：监控 KL
+### 步骤4:监控KL
 
-跟踪每次更新的平均 `KL(π_θ || π_ref)`。如果它超过 `~5-10`，则策略已远离 `π_SFT` —— β 正在上升或奖励黑客开始出现。这是实际 RLHF 中的首要诊断指标。
+轨道平均值`KL(π_θ || π_ref)`如果它过去,`~5-10`政策已经远离了`π_SFT`低`β`这就是真正的RLHF的顶级诊断.
 
-### 步骤 5：使用 TRL 的生产配方
+### 步骤5:使用TRL的生产配方
 
-一旦理解了玩具管道，以下是真实库用户编写的相同循环。Hugging Face 的 [TRL](https://huggingface.co/docs/trl) 是参考实现 —— `RewardTrainer` 用于阶段 2，`PPOTrainer`（内置到参考模型的 KL）用于阶段 3。
+一旦你明白了玩具的管道, 这里就像一个真正的图书馆用户写的循环.[TRL](https://huggingface.co/docs/trl)是参考实施`RewardTrainer`对于第二阶段和`PPOTrainer`对于第三阶段,
 
 ```python
 # Stage 2: reward model from pairwise preferences
@@ -159,85 +159,85 @@ for batch in dataloader:
     # stats includes: mean_kl, clip_frac, value_loss — the three PPO diagnostics
 ```
 
-库为你做了三件事。`adap_kl_ctrl=True` 实现了自适应 β 调度：如果观测到的 KL 超过 `target_kl`，β 翻倍；如果低于一半，β 减半。参考模型按惯例是冻结的 —— 你必须不能意外地与 `policy` 共享参数。价值头与策略位于同一骨干网络上（`AutoModelForCausalLMWithValueHead` 附加了一个标量 MLP 头），这就是为什么 TRL 分别报告 `policy/kl` 和 `value/loss` 的原因。
+图书馆为你做了三件事.`adap_kl_ctrl=True`执行适应β时间表:如果观察到的KL超过`target_kl`参考模型是按照惯例结的, 您不能意外地与`policy`价值率与政策的基础 (`AutoModelForCausalLMWithValueHead`由于TRL的数据显示,`policy/kl`其他`value/loss`单独的.
 
-## 陷阱
+## 陷
 
-- **过度优化 / 奖励黑客。** RM 是不完美的；`π_θ` 找到了得分高但质量差的对抗性完成。症状：奖励无限攀升，而人工评估分数停滞或下降。修复：提前停止，提高 `β`，扩充 RM 训练数据。
-- **长度黑客。** 在有帮助的回复上训练的 RM 往往隐式地奖励长度。策略学会填充回复。补救措施：长度归一化奖励，或使用具有长度感知 RM 的 RLAIF。
-- **RM 太小。** RM 至少应与策略一样大。一个微小的 RM 无法忠实地评估策略的输出。
-- **KL 调优。** β 过低 → 漂移和奖励黑客。β 过高 → 策略几乎不变。标准技巧是使用*自适应* β 来针对每个步骤的固定 KL。
-- **偏好数据噪声。** 约 30% 的人类标签存在噪声或歧义。通过在与协议过滤的数据上训练 RM 来校准，或在 BT 中使用温度参数。
-- **离策问题。** PPO 数据在第一轮之后略有离策。像课程 08 那样监控截断比例。
+- **Over-optimization / reward hacking.**子是不完美的.`π_θ`发现高分但不佳的对立性完成. 症状:奖励无限上升,而人类评价分水平高或下降. 修正:早点停止,提高 `β`增加了训练数据.
+- **Length hacking.**训练在有用的反应上,RM通常隐含地奖励长度.政策学习填补响应.补救:长度正常化的奖励,或RLAIF与长度意识的RM.
+- **Too-small RM.**只有一个小的RM才能准确地评分出口.
+- **KL tuning.**太低 β →漂移和奖励黑客.太高 β →政策几乎没有改变.标准技巧是*适应性* β 针对每步的固定 KL.
+- **Preference-data noise.**通过训练RM使用协议过数据或使用BT温度进行校准.
+- **Off-policy problems.**监测剪辑分数,如第08课.
 
-## 应用
+## 用它
 
-2026 年的 RLHF 是分层的：
+2026年RLHF是层次的:
 
-| 层级 | 目标 | 方法 |
+| Layer | Target | Method |
 |-------|--------|--------|
-| 指令遵循、有用性、无害性 | 对齐 | DPO（阶段 10 · 08）优于 RLHF-PPO。 |
-| 推理正确性（数学、代码） | 能力 | 带验证器奖励的 GRPO（阶段 9 · 12）。 |
-| 长程多步任务 | 智能体 | 带过程奖励模型的 PPO / GRPO。 |
-| 安全 / 拒绝行为 | 安全 | 带独立安全 RM 的 RLHF-PPO，或 Constitutional AI。 |
-| 推理时的 Best-of-N | 快速对齐 | 在解码时使用 RM；无需策略训练。 |
-| 奖励蒸馏 | 推理计算 | 在冻结的 LM 上训练一个小型"奖励头"。 |
+| Instruction following, helpfulness, harmlessness | Alignment | DPO (Phase 10 · 08) preferred over RLHF-PPO. |
+| Reasoning correctness (math, code) | Capability | GRPO with verifier reward (Phase 9 · 12). |
+| Long-horizon multi-step tasks | Agentic | PPO / GRPO with process reward models over steps. |
+| Safety / refusal behavior | Safety | RLHF-PPO with separate safety RM, or Constitutional AI. |
+| Best-of-N at inference | Fast alignment | Use RM at decode time; no policy training needed. |
+| Reward distillation | Inference compute | Train a small "reward head" on top of a frozen LM. |
 
-RLHF 是 2022–2024 年的*主要*方法。在 2026 年，生产对齐管道优先使用 DPO，仅在对 RM 密集或安全关键的步骤中使用 PPO。
+在2026年,生产配线管道将用于RM密集型或安全关键的步骤,仅用于DPO.
 
-## 交付
+## 运送它
 
-保存为 `outputs/skill-rlhf-architect.md`：
+保存如`outputs/skill-rlhf-architect.md`其他:
 
 ```markdown
 ---
 name: rlhf-architect
-description: 为语言模型设计 RLHF / DPO / GRPO 对齐管道，包括 RM、KL 和数据处理策略。
+description: Design an RLHF / DPO / GRPO alignment pipeline for a language model, including RM, KL, and data strategy.
 version: 1.0.0
 phase: 9
 lesson: 9
 tags: [rl, rlhf, alignment, llm]
 ---
 
-给定一个基础 LM、目标行为（对齐 / 推理 / 拒绝 / 智能体）以及偏好或验证器预算，输出：
+Given a base LM, a target behavior (alignment / reasoning / refusal / agent), and a preference or verifier budget, output:
 
-1. 阶段。SFT？RM？DPO？GRPO？附理由。
-2. 偏好或验证器来源。人类、AI 反馈、基于规则、单元测试通过或奖励蒸馏。
-3. KL 策略。固定 β、自适应 β 或 DPO（隐式 KL）。
-4. 诊断指标。平均 KL、奖励稳定性、过度优化防护（保留人工评估集）。
-5. 安全门。红队测试集、拒绝率、安全 RM 与有用性 RM 分离。
+1. Stage. SFT? RM? DPO? GRPO? With justification.
+2. Preference or verifier source. Humans, AI feedback, rule-based, unit-test-pass, or reward distillation.
+3. KL strategy. Fixed β, adaptive β, or DPO (implicit KL).
+4. Diagnostics. Mean KL, reward stability, over-optimization guard (holdout human eval).
+5. Safety gate. Red-team set, refusal rate, safety RM separate from helpfulness RM.
 
-拒绝在没有 KL 监控的情况下交付 RLHF-PPO。拒绝使用比目标策略小的 RM。拒绝仅基于长度的奖励。标记任何未保留盲盒人工评估集的管道为缺乏过度优化防护。
+Refuse to ship RLHF-PPO without a KL monitor. Refuse to use an RM smaller than the target policy. Refuse length-only rewards. Flag any pipeline that does not hold back a blind human-eval set as lacking over-optimization protection.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 在 `code/main.py` 中的 500 个合成偏好对上训练 Bradley-Terry 奖励模型。在保留的 100 个对上测量成对准确率。应超过 90%。
-2. **中等。** 使用 `β ∈ {0.0, 0.1, 1.0}` 运行玩具 PPO-RLHF 循环。对每种情况，绘制更新过程中 RM 分数与到参考模型的 KL 的图表。哪种情况发生了奖励黑客？
-3. **困难。** 在同一偏好数据上实现 DPO（闭式偏好似然损失），并比较其与 RLHF-PPO 管道在计算使用和最终 RM 分数方面的差异。
+1. **Easy.**训练布拉德利-特里奖励模型`code/main.py`在500个合成优先对上,对100个被持久对上,测量对准.应超过90%.
+2. **Medium.**使用玩具PPO-RLHF循环运行`β ∈ {0.0, 0.1, 1.0}`对于每一个,图片的RM分数与KL参考更新.
+3. **Hard.**根据相同的偏好数据实施DPO (闭式形式偏好概率损失),并在计算中使用的RLHF-PPO管道和最终RM分数中进行比较.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| RLHF | "对齐 RL" | 三阶段 SFT + RM + PPO 管道（Christiano 2017，Ouyang 2022）。 |
-| 奖励模型 (RM) | "评分网络" | 通过 Bradley-Terry 拟合到成对偏好的学习标量函数。 |
-| Bradley-Terry | "成对逻辑损失" | `P(y_+ ≻ y_-) = σ(R(y_+) - R(y_-))`；标准 RM 目标。 |
-| KL 惩罚 | "保持在参考附近" | 奖励中的 `β · KL(π_θ \|\| π_ref)`；反奖励黑客的正则化器。 |
-| 奖励黑客 | "古德哈特定律" | 策略利用 RM 缺陷；症状：奖励上升，人工评估持平。 |
-| RLAIF | "AI 标记的偏好" | 标签来自另一个 LM 而非人类的 RLHF。 |
-| PRM | "过程奖励模型" | 对部分推理步骤进行打分；用于推理管道。 |
-| Constitutional AI | "Anthropic 的方法" | 由显式规则引导的 AI 生成偏好。 |
+| RLHF | "Alignment RL" | Three-stage SFT + RM + PPO pipeline (Christiano 2017, Ouyang 2022). |
+| Reward Model (RM) | "The scoring net" | Learned scalar function fit to pairwise preferences via Bradley-Terry. |
+| Bradley-Terry | "Pairwise logistic loss" | `P(y_+ ≻ y_-) = σ(R(y_+) - R(y_-))`; the standard RM objective. |
+| KL penalty | "Stay near the reference" | `β · KL(π_θ \|\| π_ref)` in the reward; the anti-reward-hacking regularizer. |
+| Reward hacking | "Goodhart's law" | Policy exploits RM flaws; symptoms: reward up, human eval flat. |
+| RLAIF | "AI-labeled preferences" | RLHF where labels come from another LM instead of humans. |
+| PRM | "Process Reward Model" | Scores partial reasoning steps; used in reasoning pipelines. |
+| Constitutional AI | "Anthropic's method" | AI-generated preferences guided by explicit rules. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Christiano 等人 (2017)。深度强化学习从人类偏好中](https://arxiv.org/abs/1706.03741) — 开启 RLHF 的论文。
-- [Ouyang 等人 (2022)。InstructGPT — 训练语言模型以通过人类反馈遵循指令](https://arxiv.org/abs/2203.02155) — ChatGPT 背后的配方。
-- [Stiennon 等人 (2020)。从人类反馈中学习总结](https://arxiv.org/abs/2009.01325) — 早期用于总结的 RLHF。
-- [Rafailov 等人 (2023)。直接偏好优化](https://arxiv.org/abs/2305.18290) — DPO；2026 年后 RLHF 的默认方法。
-- [Bai 等人 (2022)。Constitutional AI：从 AI 反馈中实现无害性](https://arxiv.org/abs/2212.08073) — RLAIF 和自我批判循环。
-- [Anthropic RLHF 论文 (Bai 等人 2022)。训练有帮助且无害的助手](https://arxiv.org/abs/2204.05862) — HH 论文。
-- [Hugging Face TRL 库](https://huggingface.co/docs/trl) — 生产级 `RewardTrainer` 和 `PPOTrainer`。阅读训练器源码以了解自适应 KL 和价值头细节。
-- [Hugging Face — 图解从人类反馈中的强化学习](https://huggingface.co/blog/rlhf) by Lambert, Castricato, von Werra, Havrilla — 带有图示的三阶段管道的典型 walkthrough。
-- [von Werra 等人 (2020)。TRL：Transformer 强化学习](https://github.com/huggingface/trl) — 该库；`examples/` 中有 Llama、Mistral 和 Qwen 的端到端 RLHF 脚本。
-- [Sutton & Barto (2018)。第 17.4 节 — 设计奖励信号](http://incompleteideas.net/book/RLbook2020.pdf) — 奖励假设视角；思考奖励黑客的必要前提。
+- [Christiano et al. (2017). Deep Reinforcement Learning from Human Preferences](https://arxiv.org/abs/1706.03741)是RLHF创始人.
+- [Ouyang et al. (2022). InstructGPT — Training language models to follow instructions with human feedback](https://arxiv.org/abs/2203.02155) ChatGPT背后的食谱.
+- [Stiennon et al. (2020). Learning to summarize with human feedback](https://arxiv.org/abs/2009.01325)之前的RLHF进行总结.
+- [Rafailov et al. (2023). Direct Preference Optimization](https://arxiv.org/abs/2305.18290)                           
+- [Bai et al. (2022). Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)                  
+- [Anthropic RLHF paper (Bai et al. 2022). Training a Helpful and Harmless Assistant](https://arxiv.org/abs/2204.05862)HH纸.
+- [Hugging Face TRL library](https://huggingface.co/docs/trl)生产`RewardTrainer`其他`PPOTrainer`阅读训练人员来源,了解适应性KL和值值.
+- [Hugging Face — Illustrating Reinforcement Learning from Human Feedback](https://huggingface.co/blog/rlhf)通过三阶段管道的可行通行图表.
+- [von Werra et al. (2020). TRL: Transformer Reinforcement Learning](https://github.com/huggingface/trl)图书馆;`examples/`对于Llama,Mistral和Qwen,它有了端到端的RLHF脚本.
+- [Sutton & Barto (2018). Ch. 17.4 — Designing Reward Signals](http://incompleteideas.net/book/RLbook2020.pdf)奖励假设观点;对于考虑奖励黑客的基本前提.

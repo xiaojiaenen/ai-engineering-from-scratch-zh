@@ -1,43 +1,43 @@
-# Skill 调用与路由
+# 技能调用和路由
 
-> 调用是授权决策与相关性决策的组合。好的描述帮助模型做出选择；好的策略决定该选择是否被允许。
+> 要求是当局决定后续的相关性决定.一个好的描述帮助模型选择;一个好的政策决定是否允许选择.
 
-**类型：** Build
-**语言：** Python (stdlib)
-**前置条件：** 第13阶段 · 24（技能发现与渐进式披露）
-**时间：** ~105 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 13 · 24 (Skill Discovery and Progressive Disclosure)
+**Time:** ~105 minutes
 
 ## 学习目标
 
-- 区分显式用户调用、隐式模型调用、应用调用和技能间调用。
-- 将人类可见性和模型可执行性建模为独立策略维度。
-- 编写带有正向触发器和边界案例的路由描述。
-- 在追踪和测试中分离可执行性、选择、激活、参数绑定和执行。
-- 适应特定运行时调用字段，但不将其呈现为可移植的 frontmatter。
+- 区分明确的用户调用,隐含的模型调用,应用调用和技能调用.
+- 作为独立政策尺寸,模拟人类可见性和符合性.
+- 写出具有积极触发和近错误边界的路由描述.
+- 单独的资格,选择,激活,结合参数,并在线索和测试中执行.
+- 调整运行时间特定的调用字段,而不用把它们作为可移植的前置物.
 
 ## 问题
 
-你安装了一个 `database-migration` 技能。用户可以通过名称运行它，但模型也能看到它的描述，并在有人问一般数据库问题时选择它。技能随后为只需要解释的任务提议了 schema 变更。
+你安装一个`database-migration`技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术: 技术:
 
-你添加 `user-invocable: false`，期望阻止用户手动运行它。在另一个运行时中，该字段被忽略。你添加 `disable-model-invocation: true`，期望技能完全消失。在那个理解它的运行时中，用户仍然可以显式调用它。
+你还补充了`user-invocable: false`其他运行时间,该领域被忽视.`disable-model-invocation: true`在理解它的运行时间里,用户仍然可以明确地使用它.
 
-字段名本身没有问题。问题在于模型的理解有误。"用户能看到它"、"模型能选择它"、"应用能预加载它"和"其中的工具能执行"是独立的事实。一个名为 `invocable` 的单一布尔值无法表达这些区别。
+应用程序可以预装它,以及它内部的工具可以执行"是单独的事实.一个单个布鲁尔式叫做`invocable`没有办法表达它们.
 
-路由还有第二个失败模式。如果描述模糊，多个技能都变得合理；如果描述堆砌关键词，不相关的任务也会触发它们。目录是一个概率接口：既要紧凑到能装下，又要具体到能路由。
+路由模式有第二种失败模式.如果描述不清楚,几个技能就会变得可信.如果描述充满关键词,无关任务会触发它们.目录是一个概率界面:足够紧,足够具体的路由.
 
 ## 概念
 
-### 五种通道可以启动生命周期
+### 五个道可以启动生命周期
 
-| 行为者 | 调用形状 | 典型用途 | 主要风险 |
+| Actor | Invocation shape | Typical use | Main risk |
 |---|---|---|---|
-| 人类用户 | 在 UI 或提示中命名技能 | 有意识的工作流选择 | 用户期望宿主未授予的可用性或权限 |
-| 模型或自主智能体 | 从任务上下文中选择目录条目 | 自动专家程序 | 误报路由 |
-| 应用 | 通过运行时代码激活或预加载技能 | 固定产品工作流 | 与单一宿主隐藏耦合 |
-| 另一个技能或子智能体 | 作为工作流依赖请求精确技能 | 组合 | 循环、依赖缺失或上下文泄漏 |
-| 评估工具 | 在固定场景下激活精确技能 | 可重复测量 | 评估技能时意外绕过正在研究的生成策略 |
+| Human user | Names a skill in the UI or prompt | Deliberate workflow selection | User expects availability or authority the host does not grant |
+| Model or autonomous agent | Selects a catalog entry from task context | Automatic expert procedure | False-positive routing |
+| Application | Activates or preloads a skill through runtime code | Fixed product workflow | Hidden coupling to one host |
+| Another skill or subagent | Requests an exact skill as a workflow dependency | Composition | Cycles, missing dependency, or context bleed |
+| Evaluation harness | Activates an exact skill under a fixed scenario | Repeatable measurement | Tests the skill while accidentally bypassing the production policy under study |
 
-可移植的 Agent Skills 规范定义了包的结构。它没有标准化单一的全局斜杠命令 UI、隐式路由标志、应用 API 或子智能体生命周期。
+移动代理技能规范定义了包.它不标准化一个通用切片命令UI,隐含路由旗,应用 API或子代码生命周期.
 
 ### 五个调用阶段
 
@@ -45,174 +45,174 @@
 skill-invocation-stages
 ```
 
-精确使用以下术语：
+准确使用这些词:
 
-- **Eligible（可执行）** 表示策略允许此行为者请求该技能。
-- **Selected（已选择）** 表示用户命名了它或路由器判断它相关。
-- **Activated（已激活）** 表示其指令进入了工作上下文。
-- **Executing（执行中）** 表示智能体在这些指令下开始模型或工具工作。
-- **Completed（已完成）** 表示输出通过了独立成功检查。
+- **Eligible**政策允许这个演员要求技能.
+- **Selected**意思是用户命名或路由器认为它有意义.
+- **Activated**代表其指示进入工作环境.
+- **Executing**代表根据这些指示开始模拟或工具工作.
+- **Completed**产量已通过独立的成功检查.
 
-仅记录 `skill_used=true` 的追踪会掩盖失败发生的边界。
+只有记录的痕迹`skill_used=true`隐藏了失败发生的地方的边界.
 
-### 人类调用和模型调用构成 2x2 矩阵
+### 人类和模型调用形成2x2矩阵
 
-| 人类可调用 | 模型可调用 | 模式 | 合适示例 |
+| Human can invoke | Model can invoke | Mode | Suitable examples |
 |:---:|:---:|---|---|
-| 是 | 是 | 共享 | 代码解释、测试规划、文档审查 |
-| 是 | 否 | 人类专属 | 发布准备、计费导出、破坏性清理计划 |
-| 否 | 是 | 模型专属 | 内部风格指南、领域参考、自动支持程序 |
-| 否 | 否 | 禁用或应用专属 | 分阶段部署、废弃包、编程预加载 |
+| Yes | Yes | Shared | Code explanation, test planning, documentation review |
+| Yes | No | Human-only | Publish preparation, billing export, destructive cleanup plan |
+| No | Yes | Model-only | Internal style guide, domain reference, automatic support procedure |
+| No | No | Disabled or application-only | Staged rollout, deprecated package, programmatic preload |
 
-矩阵是一种策略模型，不是标准 YAML。
+矩阵是一个政策模型,而不是标准的YAML.
 
-某个当前宿主使用 `disable-model-invocation: true` 对应人类专属行，使用 `user-invocable: false` 对应模型专属行。默认值为两者均可。另一个宿主使用 `agents/openai.yaml` 中的 `allow_implicit_invocation: false` 来保留显式调用同时禁用隐式选择。这些都是运行时适配器。未知宿主可能会忽略它们。
+一个当前的主机使用`disable-model-invocation: true`对于只使用人为排列的`user-invocable: false`默认的是两个.另一个主机使用`agents/openai.yaml`随着`allow_implicit_invocation: false`它们是运行时间适配器,未知的主机可能会忽略它们.
 
-这个令人困惑的细节很重要：`user-invocable: false` 并不意味着"模型不能使用它"。它在定义它的宿主中移除了直接用户调用。`disable-model-invocation: true` 并不意味着"技能被禁用"。它移除模型发起的选择，但保留显式用户访问。
+很难理解的细节:`user-invocable: false`它删除了定义它的主机中直接用户调用. `disable-model-invocation: true`没有意味着"技能已被禁用". 它删除了模型启动的选择,同时保持了用户的明确访问.
 
-### 显式调用是身份优先
+### 直接呼唤是身份的第一.
 
-显式调用直接提供身份标识：
+明确的呼叫直接提供身份:
 
 ```text
 /release-readiness v2.4.0
 ```
 
-或：
+或:
 
 ```text
 release-readiness check v2.4.0 without publishing
 ```
 
-当前 Codex 界面记录了 `/skills` 用于选择，在请求中直接使用技能名称用于显式调用。Claude Code 记录了 `/skill-name` 和宿主特定的参数展开。确切的语法、菜单可见性、引号规则和变量展开属于宿主。
+目前的Codex界面文件 `/skills`对于选择和明确调用请求中简单技能名称.`/skill-name`精确的语法,菜单可见性,引用规则和变量扩展属于主机.
 
-显式请求仍然通过策略检查。命名一个技能不应绕过缺失的权限、工作区约束、审批门控或运行时隔离。
+要求仍然通过政策. 命名技能不应该绕过缺失权限,工作空间限制,批准门户或运行时间隔离.
 
-### 隐式调用是描述优先
+### 隐含的呼唤是描述的第一
 
-对于隐式路由，模型最初看到的是目录元数据而非完整内容。因此描述是技能的路由接口。
+对于隐含路由,模型最初看到的是目录元数据而不是整个体.因此,描述是技能的路由界面.
 
-弱描述：
+弱势:
 
 ```yaml
 description: Helps with releases.
 ```
 
-过宽描述：
+超宽:
 
 ```yaml
 description: Use for release, version, package, build, deploy, publish, tag, changelog, GitHub, CI, or software tasks.
 ```
 
-有界描述：
+限制:
 
 ```yaml
 description: Inspect an already prepared release candidate and produce a readiness report. Use when the user asks whether a version, tag, package, or image is ready to publish; do not use for ordinary build failures or feature development.
 ```
 
-有界版本包含：
+限量版本包含:
 
-1. **能力：** 检查已准备的候选版本。
-2. **输出：** 就绪报告。
-3. **正向边界：** 询问发布物是否就绪。
-4. **负向边界：** 普通构建和开发不在范围内。
+1. **Capability:**检查已准备的候选人.
+2. **Output:**准备报告.
+3. **Positive boundary:**问是否准备好释放器件.
+4. **Negative boundary:**其他地方的建筑和发展都不适用.
 
-负向边界在两个相近技能共享词汇时很有用。它们不能替代边界案例评估。
+两个近距离技能共享词汇,而负面界限是有用的.
 
-### 路由是带弃权选项的分类
+### 路由是分类,包含禁用选项
 
-对于技能 `s` 和请求 `x`，想象一个路由器评分：
+为了一个技能`s`要求`x`设想一个路由器的分数:
 
 ```text
 score(s, x) = capability_match + trigger_match + context_match - exclusion_match - ambiguity_penalty
 ```
 
-确切的评分可能是 LLM 决策而非算术。工程原则仍然成立：选择应超过阈值并击败竞争性技能。当证据不足时，弃权。
+精确的分数可能是LLM决策而不是算术.工程原则仍然是如此:选择应该超过一个门和竞争技能.当证据很弱时,避免.
 
 ```figure
 skill-routing-abstention
 ```
 
-对于高影响技能，即使描述很强，隐式路由可能也不合适。当假阳性成本超过自动选择的便利性时，使用人类专属策略。
+对于高影响能力,隐含路由可能不合适,即使有强烈的描述.当假阳性的成本超过自动选择的便利时,只使用人为政策.
 
-### 可执行性必须优先于排序
+### 资格必须先于排名
 
-不要对所有发现的技能评分，选择最强匹配，然后事后检查该技能的政策。一个被阻止的顶级匹配会错误地阻止可执行的次级候选者被考虑。
+没有得到每一个发现的技能,选择最强的比赛,然后检查一个技能的政策.一个被阻止的顶级比赛会错误地阻止一个符合条件的低分的候选人被考虑.
 
-对隐式路由使用以下顺序：
+通过下列列列表来实现暗示路由:
 
-1. 按请求行为者和活动宿主适配器过滤发现的技能。
-2. 仅对可执行的候选者评分。
-3. 如果最强可执行匹配通过阈值和歧义规则，则选择它。
-4. 当无可执行候选者或无可执行评分足够强时弃权。
+1. 选器发现了要求演员和主机适配器的技能.
+2. 只有合格的候选人得到分数.
+3. 选择最强的符合条件的比赛,如果它清除了门和模糊性规则.
+4. 如果没有候选人符合条件或没有合格得分足够强,则避免.
 
-假设 `incident-triage` 得分 `0.80` 但其宿主扩展禁用模型调用。`incident-review` 得分 `0.55` 并允许模型调用。路由器应将 `incident-review` 作为最佳可执行候选进行评估。不应选择 `incident-triage`，拒绝它然后停止。
+假设`incident-triage`评分`0.80`但它的主机扩展禁用模型调用. `incident-review`评分`0.55`路由器应该评估`incident-review`作为最好的资格候选人.`incident-triage`否认,然后停止.
 
-这种顺序还确保策略变更不会改变相关性的含义。可执行性定义选择集。相关性对该集排序。
+根据该规则,在选择组中,有了相关性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性,可选性等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等等
 
-### 路由评估需要边界案例
+### 路由评估需要接近错误
 
-正向案例证明召回率：
+积极的案例证明召回:
 
 ```json
 {"prompt":"Is version 2.4.0 ready to publish?","expected":"release-readiness"}
 ```
 
-清晰负向案例证明基本精确度：
+显而易见的负面结果证明了基本的精确性:
 
 ```json
 {"prompt":"Explain rotary position embeddings.","expected":null}
 ```
 
-边界案例暴露边界质量：
+接近错误会暴露出边界质量:
 
 ```json
 {"prompt":"Why did today's package build fail?","expected":"build-diagnostics"}
 ```
 
-边界案例与发布技能共享 `package` 和 `build`，但属于其他地方。仅由明显正向和不相关负向组成的路由集会高估质量。
+几乎没有什么股票`package`其他`build`只有明显的积极和无关的负面的路由组将夸大质量.
 
-### 参数有三种表示
+### 论点有三个代表性
 
-调用参数跨越多个边界：
+调用参数跨越了几个界限:
 
 ```figure
 skill-argument-boundaries
 ```
 
-在每个边界，保留意图但不将文本视为代码。
+在每一个边界,保持意图,而不是把文本作为代码.
 
-- 宿主解析器决定命令语法和引号。
-- 技能根据宿主规则接收绑定文本或变量。
-- 指令验证必需值和默认值。
-- 工具调用将值转换为类型化 schema 并重新验证。
+- 接待者决定命令语法和引用.
+- 根据主机规则,技能会接收绑定文本或变量.
+- 指示验证所需的值和默认值.
+- 工具调用将值转换为输入的方案,并重新验证它们.
 
-不要将原始参数插值到 shell 命令中。优先使用带参数向量的脚本或类型化 MCP 工具。
+不要将原始参数插入 shell 命令中. 宁愿使用参数向量或输入MCP工具调用的脚本.
 
-### 应用调用是显式编排
+### 申请调用是明确的调整
 
-产品可以激活技能，因为其工作流已经知道任务类型。例如，pull-request 审查服务可以在用户按下 Review 后预加载 `pull-request-risk-review`。
+产品可以激活技能,因为其工作流程已经知道任务类型.例如,一个拉动请求审查服务可以预装`pull-request-risk-review`用户按 Review后.
 
-这消除了路由不确定性，但创建了对运行时 API 的依赖。将此适配器保持在可移植内容之外：
+这消除了路由不确定性,但会对运行时间API产生依赖.
 
 ```figure
 skill-host-adapter
 ```
 
-技能在由不同合规客户端打开时应保持可理解。
+其他符合要求的客户开放时,该技能应该保持可理解性.
 
-### 技能间调用是类工具边
+### 技能到技能调用是一种工具般的优势
 
-假设 `release-readiness` 在依赖文件更改时请求 `security-change-review`。
+假设`release-readiness`要求`security-change-review`在依赖文件发生变化时.
 
-调用者应提供：
+调用人应提供:
 
-- 目标技能身份；
-- 有界任务和工件路径；
-- 预期响应契约；
-- 调用原因；
-- 不可用时的回退；
-- 最大深度或循环规则。
+- 目标技能身份;
+- 设置任务和文物路径;
+- 预期应对合同;
+- 要求的理由;
+- 如果无法实现,则会出现倒退;
+- 极度深度或周期规则.
 
 ```json
 {
@@ -224,13 +224,13 @@ skill-host-adapter
 }
 ```
 
-第二个技能不是盲目粘贴到第一个中。宿主决定如何激活它，以及是否共享上下文、在 fork 中运行或通过工具结果返回。
+接待者决定如何激活它,以及它是否分享文本,运行在叉子中,或者通过工具结果返回.
 
-### 上下文生命周期是宿主特定的
+### 环境生命周期是具体的
 
-激活后，技能内容可能保留在对话中、在压缩期间被摘要、或在委托上下文中运行。工具允许可能只持续一个回合，而指令持续更久。子智能体可能收到技能而没有父代的整个历史。
+启动后,技能体可以留在对话中,在缩小过程中总结,或运行在委托文本中.工具权限可能持续一轮,而指示持续更长时间.一个子女可能没有父母的整个历史获得技能.
 
-不要编写依赖隐形生命周期假设的技能。将持久输出放入文件或类型化状态，确保可重入安全，并说明中断后必须重新加载的内容。
+不要写出依赖于一个隐形的终身假设的技能. 把持久的输出输入文件或打字状态,确保重新进入安全,并说明在中断后需要重新加载什么.
 
 ```markdown
 On resume, read `artifacts/release-readiness.json` if it exists.
@@ -238,22 +238,22 @@ Revalidate the candidate commit before continuing.
 Do not repeat an external write whose idempotency key is already recorded.
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现将策略和路由作为独立适配器。
+`code/main.py`执行政策和路由作为独立的适配器.
 
-模型包括：
+该模型包括:
 
-- `Actor` 用于人类、模型、自主智能体、应用、技能和评估工具调用者；
-- `SkillMetadata` 用于路由身份；
-- `InvocationPolicy` 用于人类/模型矩阵；
-- `InvocationRequest` 和 `InvocationDecision` 用于可追踪的输入和输出；
-- `CorePolicyAdapter` 用于无宿主扩展的可移植行为；
-- `ExtensionPolicyAdapter` 用于识别的运行时字段；
-- `build_invocation_matrix(policy)` 用于 2x2 视图；
-- `route_request(skills, request, adapter)` 用于相关性排序前的可执行性过滤、选择和拒绝。
+- `Actor`对于人,模型,自动操作者,应用,技能和使用者;
+- `SkillMetadata`路由身份;
+- `InvocationPolicy`对人/模型矩阵;
+- `InvocationRequest`其他`InvocationDecision`对于可追踪的输入和结果;
+- `CorePolicyAdapter`对于无主机扩展的便携式行为;
+- `ExtensionPolicyAdapter`对于已认可的运行时间场所;
+- `build_invocation_matrix(policy)`对于2×2视图;
+- `route_request(skills, request, adapter)`在相关性排名,选择和拒绝之前进行资格过.
 
-运行它：
+运行它:
 
 ```bash
 cd phases/13-tools-and-protocols/25-skill-invocation-and-routing
@@ -261,17 +261,17 @@ python3 code/main.py
 python3 -m unittest discover -s code/tests -v
 ```
 
-演示打印一个矩阵和对显式人类、隐式模型、自主智能体、应用、技能组合和评估工具通道的决策。其扩展适配器结果显示一个被阻止的顶级词汇匹配在可执行替代方案排序前被移除。它还包括精确名称白名单。不需要模型 API。确定性路由器存在是为了使策略边界可检查，而非声称词汇匹配能重现生产模型路由。
+演示程序将打印一个矩阵和决定, 显而易见的人类,隐含模型,自主代理,应用,技能组成和利用道. 扩展适配器的结果显示,在符合条件的替代品排名之前,被删除了封锁的顶级词汇匹配. 它还包括确切名称的允许名单. 没有模型API. 确定性路由器是为了使政策界限可检查,而不是说词汇匹配重复生产模型路由.
 
-### 为什么核心适配器和扩展适配器分开
+### 为什么核心和扩展适配器是分离的
 
-如果一个解析器为每个观察到的 frontmatter 字段分配含义，它会悄悄地将运行时约定提升为假标准。分开的适配器迫使调用者命名哪些宿主语义处于活动状态。
+如果一个解析器将每个观察到的前物质字段分配到意义,它会默默地将运行时间公约推广到一个虚假标准. 单独的适配器迫使调用者命名哪些主机语义是活跃的.
 
-`CorePolicyAdapter` 仅使用应用提供的策略。`ExtensionPolicyAdapter` 识别一组明确的宿主字段并记录哪些字段改变了决策。
+其他`CorePolicyAdapter`应用程序只使用申请提供的政策.`ExtensionPolicyAdapter`识别了明确的主机场和记录,该场改变了决定.
 
-## 使用
+## 用它
 
-在发布技能前编写调用契约：
+在发布技能之前,请写一个招聘合同:
 
 ```yaml
 actors:
@@ -290,38 +290,38 @@ context:
   max_composition_depth: 2
 ```
 
-此契约是适配器和测试的设计文档。除非标准明确采用它，否则它不是可移植的 `SKILL.md` frontmatter。
+合同是适配器和测试器的设计文件.`SKILL.md`标准明确采用它以外,
 
-## 交付
+## 运送它
 
-本课程产出 `skill-invocation-router` 包。它包括一个调用模型参考、一个示例宿主策略和一个非执行 CLI，用于评估一个人类、模型、自主智能体、应用、技能组合或评估工具请求，并返回包含通道、适配器、评分和理由的 JSON 决策。
+这一课产生了`skill-invocation-router`包装.它包括一个调用模型参考,一个举例的主机政策,以及一个不执行的CLI,该CLI评估一个人,模型,自主代理,应用程序,技能组合或利用请求,并返回一个JSON决定,包括道,适配器,分数和理由.
 
-单次请求 CLI 是策略探针，不是完整的触发评估。使用第27课中标记的正向案例和边界案例设计来计算混淆计数、精确度、召回率和重复运行稳定性。
+单次请求的CLI是政策调查,而不是一个完整的触发评估. 使用27课中标记的正面和接近错误设计来计算混乱数量,精度,召回和重复运行稳定性.
 
-## 练习
+## 运动
 
-1. 创建人类/模型矩阵的所有四行，并为每行编写一个合法用例。
-2. 向 `CorePolicyAdapter` 添加应用专属激活。证明人类和模型调用者仍然被拒绝。
-3. 为部署技能编写十个边界案例。每个提示必须与技能共享词汇但属于不同工作流。
-4. 在顶部两个路由分数之间添加歧义裕度。当裕度太小时返回 `ask`。
-5. 向技能间请求添加最大组合深度并检测两技能循环。
-6. 让同一标记集通过核心和扩展适配器。解释每一个改变的决策。
+1. 创建人类/模型矩阵的四行,并为每行写出一个合法的使用情况.
+2. 添加仅用于应用的激活`CorePolicyAdapter`证明人类和模特的呼叫仍然被拒绝.
+3. 写出10个近错失的部署技能. 每个提示都必须与技能分享词汇,同时属于不同的工作流程.
+4. 添加前两个路由分数之间的模糊差距. 返回 `ask`如果边缘太小,
+5. 增加最大的组成深度技能到技能要求,检测两个技能周期.
+6. 通过核心和扩展适配器运行相同的标签集.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说什么 | 实际含义 |
+| Term | What people say | What it actually means |
 |---|---|---|
-| Explicit invocation | "斜杠命令" | 行为者直接提供技能身份，受策略约束 |
-| Implicit invocation | "模型选择" | 路由器基于任务上下文从可执行目录元数据中选择 |
-| User-invocable | "人类可以使用它" | 宿主特定的菜单或直接调用属性，不是核心字段 |
-| Model-invocable | "智能体可以使用它" | 在宿主策略下的隐式模型选择可执行性 |
-| Invocation adapter | "Frontmatter 解析器" | 将宿主的字段和 API 映射到声明的策略模型的代码 |
-| Near miss | "困难负例" | 非触发请求，类似于技能的预期输入 |
-| Abstention | "未选择技能" | 当证据缺失或模糊时有意作出的路由结果 |
+| Explicit invocation | "Slash command" | An actor supplies skill identity directly, subject to policy |
+| Implicit invocation | "The model chooses" | A router selects from eligible catalog metadata based on task context |
+| User-invocable | "Humans can use it" | A host-specific menu or direct-invocation property, not a core field |
+| Model-invocable | "The agent can use it" | Eligibility for implicit model selection under host policy |
+| Invocation adapter | "Frontmatter parser" | Code that maps a host's fields and APIs into a declared policy model |
+| Near miss | "Hard negative" | A non-triggering request that resembles a skill's intended inputs |
+| Abstention | "No skill selected" | A deliberate routing result when evidence is absent or ambiguous |
 
 ## 进一步阅读
 
-- [Optimizing skill descriptions](https://agentskills.io/skill-creation/optimizing-descriptions) 用于正向触发器、具体性和评估。
-- [Evaluating skills](https://agentskills.io/skill-creation/evaluating-skills) 用于触发器和输出评估设计。
-- [OpenAI: Build skills](https://learn.chatgpt.com/docs/build-skills) 用于当前 Codex 显式和隐式调用控制。
-- [Claude Code skills](https://code.claude.com/docs/en/skills) 用于一个宿主的 `user-invocable`、`disable-model-invocation`、参数和委托上下文。
+- [Optimizing skill descriptions](https://agentskills.io/skill-creation/optimizing-descriptions)对于积极的触发因素,具体性和评估.
+- [Evaluating skills](https://agentskills.io/skill-creation/evaluating-skills)对于触发和输出评估设计.
+- [OpenAI: Build skills](https://learn.chatgpt.com/docs/build-skills)对于目前的Codex明确和隐含的调用控制.
+- [Claude Code skills](https://code.claude.com/docs/en/skills)对于一个宿主而言`user-invocable`现在`disable-model-invocation`其他问题,

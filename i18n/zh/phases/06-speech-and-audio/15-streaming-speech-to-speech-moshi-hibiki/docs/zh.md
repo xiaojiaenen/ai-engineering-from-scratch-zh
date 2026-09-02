@@ -1,86 +1,86 @@
-# 流式语音到语音对话 — Moshi、Hibiki 与全双工对话
+# 流媒体语音与语音 莫希,希比基和双重对话
 
-> 2024-2026 年重新定义了语音 AI。Moshi 交付了一个单次模型，可在 200 ms 延迟下同时听和说。Hibiki 逐块完成语音到语音翻译。两者都放弃了 ASR → LLM → TTS 流水线，转向基于 Mimi 编解码 token 的统一全双工架构。这是新的参考设计。
+> 2024-2026年重新定义了语音AI.莫希发出一个单个模型,可以在200ms延迟同时听和说话.希比基会逐步进行语音翻译.这两个都放弃了ASR → LLM → TTS管道,以实现Mimi代码代码代码的统一全双结构.这是新的参考设计.
 
-**类型：** 学习
-**语言：** Python
-**前置知识：** Phase 6 · 13（神经音频编解码），Phase 6 · 11（实时音频），Phase 7 · 05（完整 Transformer）
-**时间：** ~75 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 6 · 13 (Neural Audio Codecs), Phase 6 · 11 (Real-Time Audio), Phase 7 · 05 (Full Transformer)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-所有基于第 11 + 12 课构建的语音代理都有一个基础延迟下限，约 300–500 ms：VAD 触发、STT 处理、LLM 推理、TTS 生成。每个阶段都有其自身的最小延迟。你可以调优和并行化，但流水线结构限制了你的上限。
+每个从课11+12构建的语音代理都具有基本的延迟地板约300-500ms:VAD火灾,STT过程,LLM原因,TTS生成.每个阶段都有自己的最低延迟.你可以调和并行,但管道形状限制你.
 
-Moshi（Kyutai，2024–2026）提出了一个不同的问题：如果没有流水线呢？如果有一个模型直接接收音频并持续输出音频，而文本只是中间"内心独白"而非必需环节呢？
+莫希 (九台,2024-2026) 提出了一个不同的问题:如果没有管道呢?如果一个模型接收了音频并直接,连续地发出音频,文字作为中间的"内在单独话语"而不是所需的阶段呢?
 
-答案就是**全双工语音到语音**。理论延迟 160 ms（80 ms Mimi 帧 + 80 ms 声学延迟）。在单张 L4 GPU 上的实际延迟为 200 ms。这仅为业界最佳流水线语音代理延迟的一半。
+答案是**full-duplex speech-to-speech**理论上的延迟160ms (80ms米米框架 +80ms声响延迟). 实际的延迟200ms在单个L4GPU上. 这就是最好的管道语音代理能实现的一半.
 
-## 核心概念
+## 概念
 
-![Moshi 架构：两条并行 Mimi 流 + 内心独白文本](../assets/moshi-hibiki.svg)
+![Moshi architecture: two parallel Mimi streams + inner-monologue text](../assets/moshi-hibiki.svg)
 
-### Moshi 架构
+### 莫希建筑
 
-**输入。** 两条 Mimi 编解码流，均为 12.5 Hz × 8 codebooks：
+**Inputs.**两条米米编码流,都在12.5Hz × 8编码书:
 
-- 流 1：用户音频（Mimi 编码，持续到达）
-- 流 2：Moshi 自身的音频（由 Moshi 生成）
+- 流 1:用户音频 (Mimi编码,不断到达)
+- 流2:莫希的声音 (由莫希制作)
 
-**Transformer。** 一个 7B 参数的时域 Transformer 同时处理两条音频流和一条文本"内心独白"流。在每个 80 ms 步骤中，它：
+**The transformer.**时间变压器处理了两个流和一个文本"内部单独"流.每80ms步骤,它:
 
-1. 消费最新的用户 Mimi token（8 个 codebook）。
-2. 消费最新的 Moshi Mimi token（8 个 codebook，按生成顺序）。
-3. 生成下一个 Moshi 文本 token（内心独白）。
-4. 生成下一个 Moshi Mimi token（8 个 codebook，通过小型深度 Transformer）。
+1. 消耗最新用户的Mimi代币 (8本代码书).
+2. 消耗了最新的Moshi Mimi代币 (8本编码书,如产品).
+3. 生成下一个Moshi文本代码 (内部单词).
+4. 通过小的深度变压器生成下一个Moshi Mimi代币 (8本代码书).
 
-三条流——用户音频、Moshi 音频、Moshi 文本——并行运行。Moshi 可以在说话的同时听用户讲话；可以在用户打断时中断自己；可以在不中断主话语的情况下进行背景回应（"嗯"）。
+所有三条流程都运行并行.莫希可以听到用户在说话时;可以打断自己当用户打断;可以反频道 ("mhm") 没有打破其主语句.
 
-**深度 Transformer。** 在一帧内部，8 个 codebook 并非并行预测——它们之间存在 inter-codebook 依赖关系。一个小型 2 层"深度 Transformer"在 80 ms 内按顺序预测它们。这是 AR 编解码语言模型的标准因式分解方法（VALL-E、VibeVoice 也采用此方法）。
+**The depth transformer.**在一个框架内,8个代码书不会平行预测.它们具有代码书之间的依赖性.一个小型的2层"深度变压器"在80ms内测序预测它们.这是AR代码 LM的标准因子化 (VALL-E,VibeVoice也使用).
 
-### 为什么内心独白文本有帮助
+### 为什么内面单词文本有帮助
 
-若无显式文本，模型必须在隐式层面通过声学流来建模语言。Moshi 的洞察是：强制模型与音频同步输出文本 token。文本流本质上就是 Moshi 所说内容的 transcript。这提升了语义连贯性，便于替换语言模型头部，并免费获得 transcript。
+没有明确的文本,模型必须隐含地模拟语言在声流中.莫希的见解:强迫它与音频一起发射文本代码.文本流基本上是莫希所说的转录.这改善了语义一致性,使更容易更换语言模型头,并免费提供转录.
 
-### Hibiki：流式语音到语音翻译
+### 语文:流媒体语文翻译
 
-相同架构，在翻译对上训练。源语言音频输入，目标语言音频输出，持续进行。Hibiki-Zero（2026 年 2 月）消除了对词级对齐训练数据的需求——使用句子级数据 + GRPO 强化学习进行延迟优化。
+基比基-零 (Feb 2026) 消除了文字级对齐训练数据的需要. 使用语句级数据 + GRPO强化学习来优化延迟.
 
-初始支持四种语言对；适配新语言约需 1000 小时数据。
+首先支持四种语言对;可在1000小时内适应新语言.
 
-### Kyutai 完整技术栈（2026）
+### 更多的九泰堆 (2026)
 
-- **Moshi** — 全双工对话（法语优先，英语支持良好）
-- **Hibiki / Hibiki-Zero** — 同声传译
-- **Kyutai STT** — 流式 ASR（500 ms 或 2.5 s 前瞻）
-- **Kyutai Pocket TTS** — 100M 参数 TTS，可在 CPU 上运行（2026 年 1 月）
-- **Unmute** — 在上述公开服务器上组合这些组件的完整流水线
+- **Moshi** 双重对话 (首先是法语,英语支持良好)
+- **Hibiki / Hibiki-Zero**同时演讲翻译
+- **Kyutai STT**流动ASR (500 ms或2.5秒前景)
+- **Kyutai Pocket TTS** 100M-param TTS运行在CPU上 (2026年1月)
+- **Unmute**将这些数据在公共服务器上结合
 
-L40S GPU 上的吞吐量：64 路并发会话，达 3× 实时速度。
+在L40SGPU上吞吐量: 64次同时会议,实时3x.
 
-### Sesame CSM — 近亲
+### 芝麻CSM 表哥
 
-Sesame CSM（2025）采用了类似思路——以 Llama-3 为骨干，搭配 Mimi 编解码头部。但 CSM 是单向的（接收上下文 + 文本，产出语音），而非全双工。它是市场上最佳的"语音存在感"TTS；与 Moshi 的全双工能力并非同一类别。
+芝麻CSM (2025) 使用类似的想法. 一个Llama-3背骨和米米编程头. 但CSM是单向的 (采取文本 + 语文,产生语音) 而不是全双重. 它是市场上最好的"语音存在"TTS; 不和莫希的全双重能力完全相同.
 
-### 2026 年性能数据
+### 2026 年的绩效数字
 
-| 模型 | 延迟 | 用途 | 许可 |
-|------|------|------|------|
-| Moshi | 200 ms（L4） | 全双工英语/法语对话 | CC-BY 4.0 |
-| Hibiki | 12.5 Hz 帧率 | 法语 ↔ 英语流式翻译 | CC-BY 4.0 |
-| Hibiki-Zero | 相同 | 5 种语言对，无需对齐数据 | CC-BY 4.0 |
-| Sesame CSM-1B | 200 ms TTFA | 上下文条件 TTS | Apache-2.0 |
-| GPT-4o Realtime | ~300 ms | 闭源，OpenAI API | 商业 |
-| Gemini 2.5 Live | ~350 ms | 闭源，Google API | 商业 |
+| Model | Latency | Use case | License |
+|-------|---------|----------|---------|
+| Moshi | 200 ms (L4) | full-duplex English / French dialogue | CC-BY 4.0 |
+| Hibiki | 12.5 Hz framerate | French ↔ English streaming translation | CC-BY 4.0 |
+| Hibiki-Zero | same | 5 language-pairs, no aligned data | CC-BY 4.0 |
+| Sesame CSM-1B | 200 ms TTFA | context-conditioned TTS | Apache-2.0 |
+| GPT-4o Realtime | ~300 ms | closed, OpenAI API | commercial |
+| Gemini 2.5 Live | ~350 ms | closed, Google API | commercial |
 
 ```figure
 sp-fullduplex
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：接口
+### 步骤1:接口
 
-Moshi 暴露了一个 WebSocket 服务器，接收 80 ms 的 Mimi 编码音频块，并返回 80 ms 的 Mimi 编码音频块。双向如此，持续运行。
+莫希暴露了一个WebSocket服务器,它接收了80毫米的Mimi编码音频,
 
 ```python
 import asyncio
@@ -94,7 +94,7 @@ async def moshi_chat():
         await asyncio.gather(mic_task, spk_task)
 ```
 
-### 步骤 2：全双工循环
+### 步骤2:全双循环
 
 ```python
 async def stream_mic_to(ws):
@@ -109,76 +109,76 @@ async def stream_from_to_speaker(ws):
         await play(audio)
 ```
 
-两个方向同时运行。Python asyncio 或 Rust futures 是标准传输方式。
+两条方向同时运行.  Python 异步或 Rust 期货是标准的运输.
 
-### 步骤 3：训练目标（概念性）
+### 步骤3:培训目标 (概念)
 
-对于每个 80 ms 帧 `t`：
+每80ms的时间`t`其他:
 
-- 输入：`user_mimi[0..t]`、`moshi_mimi[0..t-1]`、`moshi_text[0..t-1]`
-- 预测：`moshi_text[t]`，然后 `moshi_mimi[t, codebook_0..7]`
+- 输入:`user_mimi[0..t]`现在`moshi_mimi[0..t-1]`现在`moshi_text[0..t-1]`
+- 预测:`moshi_text[t]`现在`moshi_mimi[t, codebook_0..7]`
 
-文本先于音频预测（内心独白）；音频在深度 Transformer 内按 codebook 顺序预测。
+文字预测在音频之前 (内部单词);音频预测在深度变压器内是代码书序列.
 
-### 步骤 4：Moshi 的优势与局限
+### 步骤4:莫希在哪里赢,在哪里不赢
 
-Moshi 擅长的场景：
+莫希赢了:
 
-- 在廉价硬件上实现 250 ms 以内的端到端延迟。
-- 自然的背景回应和打断处理。
-- 无需流水线胶水代码。
+- 在廉价硬件上,Sub-250ms端到端.
+- 自然的后通道和中断.
+- 没有管道合码.
 
-Moshi 不擅长的场景：
+莫希没有赢得:
 
-- 工具调用（未为此训练；需要单独的 LLM 路径）。
-- 长程推理（Moshi 是一个约 8B 参数的对话模型，而非 Claude/GPT-4）。
-- 小众话题的事实准确性。
-- 大多数企业级生产场景（2026 年仍使用流水线）。
+- 工具调用 (没有接受培训;你需要单独的LLM途径).
+- 长时间推理 (莫希是一个8B式对话模型,而不是克劳德/GPT-4).
+- 关于基层主题的事实准确性.
+- 大多数生产企业使用案例 (2026年仍使用管道).
 
-## 如何使用
+## 用它
 
-| 场景 | 选择 |
-|------|------|
-| 最低延迟语音助手 | Moshi |
-| 实时翻译通话 | Hibiki |
-| 语音演示 / 研究 | Moshi、CSM |
-| 带工具的企业代理 | 流水线（第 12 课），非 Moshi |
-| 上下文中定制音色 TTS | Sesame CSM |
-| 任意语言语音到语音 | GPT-4o Realtime 或 Gemini 2.5 Live（商业） |
+| Situation | Pick |
+|-----------|------|
+| Lowest-latency voice companion | Moshi |
+| Live translation call | Hibiki |
+| Voice demo / research | Moshi, CSM |
+| Enterprise agent with tools | Pipeline (Lesson 12), not Moshi |
+| Custom-voice TTS in context | Sesame CSM |
+| Speech-to-speech, any languages | GPT-4o Realtime or Gemini 2.5 Live (commercial) |
 
-## 常见陷阱
+## 陷
 
-- **工具调用能力有限。** Moshi 是对话模型，而非代理框架。需结合流水线实现工具调用。
-- **特定音色条件。** Moshi 使用单一训练 persona；音色克隆是单独的训练任务。
-- **语言覆盖范围。** 法语 + 英语表现优秀；其他语言有限。Hibiki-Zero 有所帮助，但你仍需提供训练数据。
-- **资源成本。** 完整 Moshi 会话占用一个 GPU 插槽；不适合廉价的共享租户部署模式。
+- **Limited tool calling.**莫希是一个对话模式,而不是代理框架.
+- **Specific-voice conditioning.**莫希使用一个训练有素的人物;克隆是一个独立的训练.
+- **Language coverage.**汉语+英语是优秀的,其他语言有限.
+- **Resource cost.**一个完整的Moshi会话里,有一个GPU插槽,而不是一个便宜的共享租户部署模式.
 
-## 交付物
+## 运送它
 
-保存为 `outputs/skill-duplex-pipeline.md`。为你的语音代理工作负载选择流水线架构还是全双工架构，并给出理由。
+保存如`outputs/skill-duplex-pipeline.md`选择管道与全双结构来进行语音代理工作,有理由.
 
-## 练习
+## 运动
 
-1. **简单。** 运行 `code/main.py`。它以符号方式模拟双流 + 内心独白架构。
-2. **中等。** 从 HuggingFace 拉取 Moshi，运行服务器，测试一轮对话。测量从用户讲话结束到 Moshi 开始回应的墙钟延迟。
-3. **困难。** 取你的第 12 课流水线代理，在 20 条配对测试语句上比较 P50 延迟与 Moshi 的表现。总结流水线在哪些情况下架构上仍然占优。
+1. **Easy.**跑步`code/main.py`它象征性地模拟了两流+内格架构.
+2. **Medium.**拉出Moshi从HuggingFace,运行服务器,测试一场对话. 从用户结束的语音到Moshi响应的时间.
+3. **Hard.**根据20个匹配的测试演示,比较P50延迟与Moshi.
 
-## 关键术语
+## 关键词
 
-| 术语 | 通俗说法 | 实际含义 |
-|------|----------|----------|
-| 全双工 | 边听边说 | 同一模型上同时活跃两条音频流。 |
-| 内心独白 | 模型的文本流 | Moshi 在与音频输出同步时输出文本 token。 |
-| 深度 Transformer | inter-codebook 预测器 | 小型 Transformer，在一个 80 ms 帧内按序预测 8 个 codebook。 |
-| Mimi | Kyutai 的编解码器 | 12.5 Hz × 8 codebook；语义 + 声学；驱动 Moshi。 |
-| 流式 S2S | 实时音频→音频 | 逐块翻译/对话，无流水线环节。 |
-| 背景回应 | "嗯"类反应 | Moshi 可发出简短确认而不打断自身话轮。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| Full-duplex | Hear-and-speak at once | Two audio streams active simultaneously on the same model. |
+| Inner monologue | Model's text stream | Moshi emits text tokens alongside its audio output. |
+| Depth transformer | Inter-codebook predictor | Small transformer that predicts 8 codebooks within one 80 ms frame. |
+| Mimi | Kyutai's codec | 12.5 Hz × 8 codebooks; semantic+acoustic; powers Moshi. |
+| Streaming S2S | Audio → audio live | Chunk-by-chunk translation/dialogue, no pipeline stages. |
+| Back-channeling | "Mhm" reactions | Moshi can emit small acknowledgments without breaking its turn. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Défossez 等（2024）。Moshi — 语音-文本基础模型](https://arxiv.org/html/2410.00037v2) — 论文原文。
-- [Kyutai Labs（2026）。Hibiki-Zero](https://arxiv.org/abs/2602.12345) — 无需对齐数据的流式翻译。
-- [Sesame（2025）。跨越语音恐怖谷](https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice) — CSM 规范。
-- [Kyutai — Moshi 仓库](https://github.com/kyutai-labs/moshi) — 安装与服务器部署。
-- [OpenAI — Realtime API](https://platform.openai.com/docs/guides/realtime) — 闭源商业竞品。
-- [Kyutai — Delayed Streams Modeling](https://github.com/kyutai-labs/delayed-streams-modeling) — 底层 STT/TTS 框架。
+- [Défossez et al. (2024). Moshi — speech-text foundation model](https://arxiv.org/html/2410.00037v2)报纸.
+- [Kyutai Labs (2026). Hibiki-Zero](https://arxiv.org/abs/2602.12345)无线数据的流媒体翻译.
+- [Sesame (2025). Crossing the uncanny valley of voice](https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice) CSM规格
+- [Kyutai — Moshi repo](https://github.com/kyutai-labs/moshi)安装+服务器.
+- [OpenAI — Realtime API](https://platform.openai.com/docs/guides/realtime)关闭商业同行
+- [Kyutai — Delayed Streams Modeling](https://github.com/kyutai-labs/delayed-streams-modeling)罩子下面的STT/TTS框架.

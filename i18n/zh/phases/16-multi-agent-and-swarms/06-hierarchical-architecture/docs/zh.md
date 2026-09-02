@@ -1,21 +1,21 @@
-# 层次化架构及其失败模式
+# 层次结构及其失败方式
 
-> 层次化即主管嵌套。经理代理 → 子经理代理 → 工人代理。CrewAI 的 `Process.hierarchical` 是教科书版本：一个 `manager_llm` 动态委派任务并验证输出。LangGraph 中的等价实现是 `create_supervisor(create_supervisor(...))`。当任务本身是一个真实组织架构图时，这是自然的选择。但这也是最容易崩溃为管理循环的模式——经理代理委派不当、误解子输出、或无法达成共识。此时，顺序模式反而更优。
+> 管理员的管理员,管理员的管理员,管理员的管理员.`Process.hierarchical`是教科书版本:a `manager_llm`通过LangGraph等同的方法,`create_supervisor(create_supervisor(...))`管理人员的任务是很容易被管理的循环中崩的模式. 管理人员的代理人分配工作不佳,误解子输出,或无法达成共识. 序列通常超过它.
 
-**类型：** 学习 + 构建
-**语言：** Python (stdlib)
-**前置知识：** 第 16 阶段 · 05（主管模式）
-**耗时：** 约 60 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 16 · 05 (Supervisor Pattern)
+**Time:** ~60 minutes
 
 ## 问题
 
-一旦掌握了主管模式，下一步很自然会是"如果工人本身也是主管呢？"团队有子团队；公司有部门中的部门。层次化架构正是对这种结构的镜像。
+团队有子团队,公司有部门.等级结构反映了这一点.
 
-问题在于：LLM 经理与人类经理并不相同。人类经理对自己下属知道什么有着稳定的先验判断；而 LLM 经理每轮都会从上下文重新推导组织架构。上下文中微小的漂移，就会导致整棵树错误分配工作。
+问题:LLM经理与人经理不同.一个人经理对他们的报告有稳定的前.一个LLM经理从任何情况下都重新考虑组织.
 
 ## 概念
 
-### 结构形态
+### 形状
 
 ```
                  Manager
@@ -31,100 +31,100 @@
        W1  W2  W3         W4  W5
 ```
 
-每个内部节点负责规划、委派和汇总。只有叶子节点才执行实际工作。
+每个内部节点都会进行计划,委托和合成.
 
-### 适用场景
+### 在它闪的地方
 
-- **清晰的组织映射。** 如果真实任务本身就是部门级的（"法务审文档，财务审文档，工程审文档，然后汇总给高管"），层次结构一目了然。
-- **本地化汇总。** 每个子经理在将结果上交顶层经理之前，会先汇总其团队输出。顶层经理看到的是三个子经理的摘要，而不是十五个工人的原始输出。
+- **Clear org mapping.**如果真正的任务是部门 ("法律审查文件,财务审查文件,工程审查文件,然后为 exec 总结"),等级是明确的.
+- **Local summarization.**每个副经理都会在顶级经理看到之前合成他的团队的输出.顶级经理看到的三个副经理总结,而不是十五个工人输出.
 
-### 失效场景
+### 在它破裂的地方
 
-2026 年的事故复盘反复发现以下三种失败模式：
+两次失败模式,2026年后的测试继续发现:
 
-1. **任务分配错误。** 经理读取目标后，幻觉出一个分解方案，委派给了错误的子经理。由于子经理会顺从地执行被分配的任务，错误直到顶层汇总时才会浮现——比人工检查的位置晚了一个层级。
-2. **输出误解。** 子经理返回"无法验证声明 X"，顶层经理将其总结为"声明 X 未被确认"。每一层级都会产生语义漂移。
-3. **共识循环。** 两个子经理意见不合；顶层经理要求他们协商；他们向下重新委派；工人重新执行；子经理返回略有不同的答案；循环。CrewAI 的 `Process.hierarchical` 通过步骤限制来防范此问题，但该限制本身现在变成了一个超参数。
+1. **Task assignment error.**由于副经理顺服地工作于它所给出的,错误只会在顶部合成一个层次从一个人可能抓住它.
+2. **Output misinterpretation.**副管理员返回"无法验证X索赔".顶级管理员总结为"X索赔未确认".意思在每个级别上波动.
+3. **Consensus loops.**两位副经理不同意;最高经理要求他们和解;他们重新委托下;工人重新运行;副经理回应稍微不同的答案;循环.`Process.hierarchical`现在这个限制本身就是一个超参数.
 
-### 决策问题
+### 关键问题
 
-顺序模式（线性流水线）vs 层次化架构：你的任务是否真的有独立的子团队，还是说它本质上是一个假装成树形的线性流程？如果是后者，使用顺序模式。如果是前者，使用层次化架构但设定明确的协商规则预算。
+序列 (线性管道) 与层次:你的任务是否实际上有独立的子组,还是一个线性流流假装是树?如果后者,使用序列.如果前者,使用层次性但预算明确的调和规则.
 
-### Role-framework 实现
+### 角色框架的实施
 
-CrewAI 的 `Process.hierarchical` 将经理 LLM 与专业 crew 连接。经理负责：
+机组人员`Process.hierarchical`经理: 管理员:
 
-- 接收顶层任务，
-- 向各 crew 分配子任务，
-- 评估 crew 的输出，
-- 决定接受、重新委派或迭代。
+- 接收最高级别任务,
+- 分配小任务给机组人员,
+- 评估船员的输出,
+- 决定是否接受,重新授权或重复.
 
-文档：https://docs.crewai.com/en/introduction（在"核心概念"下查找"Hierarchical Process"）。
+文件:https://docs.crewai.com/en/introduction(在核心概念中搜索"层次流程").
 
-### Graph-framework 实现
+### 图形框架的实施
 
-LangGraph 使用嵌套的 `create_supervisor` 调用。内层主管拥有自己的图；外层主管将内层图视为一个不透明节点。这比 CrewAI 更易调试（可以分别逐步执行每个图），但更难表达动态重塑树形结构。
+兰格拉夫使用嵌套`create_supervisor`内部监督器有自己的图表;外部监督器把内部图表视为一个不透明的节点.这是更干净的CrewAI对调试 (你可以单独通过每个图表),但更难表达动态重塑树.
 
-参考：https://reference.langchain.com/python/langgraph-supervisor.
+参考:https://reference.langchain.com/python/langgraph-supervisor.
 
 ```figure
 swarm-hierarchy-token
 ```
 
-## 动手构建
+## 建立它
 
-`code/main.py` 运行一个三层层次化结构：
+`code/main.py`运行一个3级级别的层次结构:
 
-- 顶层经理：将任务拆分为"工程"和"法务"两个分支，
-- 工程子经理：进一步拆分为"前端"和"后端"工人，
-- 法务子经理：只有一个工人。
+- 高级管理员:将任务分为"工程"和"法律"分类,
+- 工程副经理:分为"前端"和"后端"工人,
+- 法律副经理:一个员工.
 
-演示对比了两种路径：正常路径（所有人达成一致）与**扰动路径**——顶层经理的分解将"法务"误标为"财务"，观察错误如何级联扩散：子经理顺从地执行财务工作，顶层汇总器报告财务结论，原始的法务问题无人回答。
+演示与快乐道路的对比 (每个人都同意)**perturbed path**总经理的分解错误地标记"法律"为"金融"并观察错误 副经理顺服地完成财务工作,顶级合成器报告财务发现,最初的法律问题没有得到答案.
 
-运行方式：
+运行:
 
 ```
 python3 code/main.py
 ```
 
-输出展示两条路径，并清晰对比"请求的内容"与"交付的结果"。
+输出显示了两条路径, 单边的"要求"与"交付"
 
-## 应用
+## 用它
 
-`outputs/skill-hierarchy-fitness.md` 评估某个任务是否应使用层次化、顺序模式或扁平主管。输入：任务描述、组织架构、协商预算。输出：模式推荐及需要防范的具体失败模式。
+`outputs/skill-hierarchy-fitness.md`评估一个特定任务是否应该使用层次,序列或平面监督器.输入:任务描述,组织结构,调整预算.输出:模式建议,包括特定的故障模式.
 
-## 投产建议
+## 运送它
 
-如果你采用层次化架构：
+如果您运输等级:
 
-- **将树深度限制在 2 层以内。** 三层已经会让大多数错误从可观测性中隐藏。
-- **明确的协商预算。** 在顶层经理必须做出决定之前，设置最大轮次。通常设为 2。
-- **每次汇总都附带溯源信息。** 每个节点的摘要必须引用是哪些叶子输出产生了该摘要。
-- **对分解漂移告警。** 每步记录经理的分解方案；与用户查询做 diff。如果分解方案不再覆盖原始查询，触发告警。
+- **Cap tree depth at 2.**现在,三层层已经隐藏了大多数错误.
+- **Explicit reconciliation budget.**总是要在最高经理承诺之前,设定最大的轮子.
+- **Provenance on every synthesis.**每个节点的总结必须指出哪些叶子输出产生它.
+- **Alert on decomposition drift.**记录管理器的分解按步骤;与用户查询不同.如果分解不再覆盖查询,请发出警报.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`，对比正常路径与扰动路径。需要多少层经理交接，顶层输出才会与用户问题完全偏离？
-2. 增加第三层（顶层 → 子层 → 孙层 → 工人）。测量扰动路径随着深度增加时，自我修正与完全偏离的比例。
-3. 在每个子经理层级实现一个"金丝雀"工人，始终被以原样询问用户原始问题。利用金丝雀答案检测分解漂移。当金丝雀与汇总答案不一致时，经理应如何反应？
-4. 阅读 CrewAI 的 `Process.hierarchical` 文档。找出 CrewAI 施加的一个具体防护机制（步骤限制、manager_llm 约束），并说明它针对哪种失败模式。
-5. 比较嵌套 LangGraph 主管与 CrewAI 层次化架构。哪种方式让协商循环更容易被检测？
+1. 跑步`code/main.py`管理者交付需要多少级别才能完全与用户的问题分开?
+2. 增加第三层次 (上 → 下 → 下 → 工作者). 测量受扰路径随着深度增长的频率自行纠正与完全分离.
+3. 根据"鱼"的定义,使用"鱼"的答案来检测分解漂移.当"鱼"不同意合成答案时,管理员应该如何反应?
+4. 阅读CrewAI的文章`Process.hierarchical`确定一个CrewAI应用的混凝土护 (步骤限制,管理者_llm限制) 并描述它针对哪种故障模式.
+5. 让调整循环更便宜地检测?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|---------|
-| 层次化 | "组织架构模式" | 主管之上还有主管；只有叶子节点执行工作。 |
-| 经理 LLM | "老板" | 在内部节点负责分解、分配和验证的 LLM。 |
-| 分解漂移 | "老板跑题了" | 顶层经理的拆分不再覆盖原始问题。 |
-| 协商循环 | "无休止的会议" | 子经理意见不合；顶层重新委派；工人重新执行；循环直至预算耗尽。 |
-| 深度-2 上限 | "不要超过 2 层" | 经验性防护规则：3 层以上会导致可观测性崩溃。 |
-| 金丝雀问题 | "各层级的真理基准" | 始终被以原样询问原始查询的工人，用于检测漂移。 |
-| 溯源链 | "谁说了什么" | 从每次汇总追溯回产生该汇总的叶子输出。 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Hierarchical | "Org chart pattern" | Supervisors over supervisors; only leaves do work. |
+| Manager LLM | "The boss" | The LLM that decomposes, assigns, and validates at an internal node. |
+| Decomposition drift | "The boss lost the plot" | Top manager's split no longer covers the original question. |
+| Reconciliation loop | "Endless meetings" | Sub-managers disagree; top re-delegates; workers re-run; loop until budget exhausted. |
+| Depth-2 ceiling | "Don't go deeper than 2 levels" | Empirical guardrail: 3+ levels collapses observability. |
+| Canary question | "Ground truth at every level" | A worker that is always asked the original query unchanged, to detect drift. |
+| Provenance chain | "Who said what" | Trace from each synthesis back to the leaf outputs that produced it. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [CrewAI 介绍 — Process.hierarchical](https://docs.crewai.com/en/introduction) —— 教科书式的层次化架构，带有经理 LLM
-- [LangGraph supervisor 参考](https://reference.langchain.com/python/langgraph-supervisor) —— 通过 `create_supervisor` 实现嵌套主管
-- [Anthropic 工程团队 — Research 系统](https://www.anthropic.com/engineering/multi-agent-research-system) —— Anthropic 为何刻意选择扁平主管而非层次化架构
-- [Cemri 等 — Why Do Multi-Agent LLM Systems Fail?](https://arxiv.org/abs/2503.13657) —— MAST 分类法；协调失败章节中详细记录了分解漂移问题
+- [CrewAI introduction — Process.hierarchical](https://docs.crewai.com/en/introduction)课本层次管理者LLM
+- [LangGraph supervisor reference](https://reference.langchain.com/python/langgraph-supervisor) 通过监管者`create_supervisor`
+- [Anthropic engineering — Research system](https://www.anthropic.com/engineering/multi-agent-research-system)为什么人类会故意选择平面监管者
+- [Cemri et al. — Why Do Multi-Agent LLM Systems Fail?](https://arxiv.org/abs/2503.13657) MAST分类;关于协调失败的部分文件分解漂移

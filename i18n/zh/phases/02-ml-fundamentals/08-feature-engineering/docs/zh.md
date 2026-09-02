@@ -1,116 +1,116 @@
-# 特征工程与选择
+# 功能工程和选择
 
-> 一个优质特征胜过千个数据点。
+> 一个好功能值一千个数据点.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** Phase 1（机器学习统计、线性代数），Phase 2 第 1-7 课
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 1 (Statistics for ML, Linear Algebra), Phase 2 Lessons 1-7
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 实现数值变换（标准化、最小-最大缩放、对数变换、分箱），并解释各自的适用场景
-- 为分类特征构建 one-hot、label 和 target 编码，并识别 target 编码中的数据泄露风险
-- 从零实现 TF-IDF 向量化器，并解释为何它比原始词频在文本分类中表现更好
-- 应用基于过滤的特征选择方法（方差阈值、相关性、互信息）降低维度
+- 实施数值转换 (标准化,最小最大规模化,日志转换,结) 并解释每一个转换的适当时
+- 建立一个热点,标签和目标编码的类别特征,并确定目标编码中的数据泄漏风险
+- 从零开始构建TF-IDF向量表,并解释为什么它超过文本分类的原始字数
+- 应用基于过器的特征选择 (变异门,相关性,相互信息) 减少维度性
 
-## 问题所在
+## 问题
 
-你有一份数据集，选了一个算法，训练它，结果平平。你换了一个更高级的算法，依旧平平。你花了一周调超参数，提升微乎其微。
+你有数据集,你选择一个算法,你训练它.结果是中等的.你试着一个更精彩的算法.仍然是中等的.你花了一个星期调整超参数.边缘改进.
 
-然后有人将原始数据转换成了更好的特征，一个简单的逻辑回归就击败了你调优的梯度提升集成模型。
+然后有人将原始数据转化为更好的功能, 一个简单的物流回归比你的调节的梯度增强组件更好.
 
-这种情况屡见不鲜。在经典机器学习中，数据的表示方式比算法的选择更重要。一个包含"建筑面积"和"卧室数量"的房屋价格模型，无论学习器多么复杂，都会击败一个将"地址作为原始字符串"使用的模型。算法只能利用你提供给它的信息。
+在经典的ML中,数据的表示比算法的选择更重要.一个"平方录像"和"卧室数量"的房价模型将比一个"地址作为原始字符串"的模型更重要,无论学习者多么复杂.算法只能根据你给出的东西工作.
 
-特征工程是将原始数据转换为模型更容易发现模式的表示形式的过程。特征选择是丢弃那些只增加噪声而不增加信号的特征的过程。两者结合，是经典机器生产中杠杆率最高的活动。
+功能工程是将原始数据转化为模型更容易找到的表现.功能选择是抛弃没有添加信号的噪音特性的过程.它们一起是经典 ML 中最大的杆活动.
 
-## 概念讲解
+## 概念
 
-### 特征流水线
+### 功能管道
 
 ```mermaid
 flowchart LR
-    A[原始数据] --> B[处理缺失值]
-    B --> C[数值变换]
-    B --> D[分类编码]
-    B --> E[文本特征]
-    C --> F[特征交互]
+    A[Raw Data] --> B[Handle Missing Values]
+    B --> C[Numerical Transforms]
+    B --> D[Categorical Encoding]
+    B --> E[Text Features]
+    C --> F[Feature Interactions]
     D --> F
     E --> F
-    F --> G[特征选择]
-    G --> H[模型就绪数据]
+    F --> G[Feature Selection]
+    G --> H[Model-Ready Data]
 ```
 
-### 数值特征
+### 数字特征
 
-原始数值很少直接可用于模型。常见变换：
+基本的数字很少是模型准备的.
 
-**缩放：** 将所有特征放在相同的范围内，使基于距离的算法（K-Means、KNN、SVM）平等对待所有特征。最小-最大缩放将值映射到 [0, 1]。标准化（z-score）将值映射到均值为 0、标准差为 1。
+**Scaling:**设置功能在相同的范围,以使距离基于的算法 (K-Means, KNN, SVM) 对待所有功能均等.最小最大扩展地图到 [0, 1].标准化 (z-score) 地图到 mean=0, std=1.
 
-**对数变换：** 压缩右偏分布（收入、人口、词频）。将乘法关系转换为加法关系。
+**Log transform:**压缩了右倾分布 (收入,人口,字数). 转化了乘法关系为加值关系.
 
-**分箱：** 将连续值转换为类别。当特征与目标之间的关系是非线性但呈阶梯状时很有用（例如年龄段）。
+**Binning:**转换连续值为类别. 当特征与目标之间的关系非线性,但步骤式 (例如年龄组) 时有用.
 
-**多项式特征：** 创建 x^2、x^3、x1*x2 项。让线性模型以更多特征为代价捕获非线性关系。
+**Polynomial features:**允许线性模型以更多的特性来捕捉非线性关系.
 
-### 分类特征
+### 类别特征
 
-模型需要数值。类别需要编码。
+模型需要数字,类别需要编码.
 
-**One-hot 编码：** 为每个类别创建一个二值列。"颜色 = 红/蓝/绿"变为三列：is_red、is_blue、is_green。适用于低基数特征，但当类别很多时会爆炸性增长。
+**One-hot encoding:**创建一个对每个类别的二进制列. "色 = 红/蓝/绿"变成三个列: is_red, is_blue, is_green.适用于低cardinality功能,但在许多类别中爆炸.
 
-**Label 编码：** 将每个类别映射为一个整数：红=0、蓝=1、绿=2。引入了虚假的顺序关系（模型可能认为绿色 > 蓝色 > 红色）。仅适用于在单个值上分裂的树模型。
+**Label encoding:**绘制每个类别的整数:红=0,蓝=1,绿=2. 引入错误的排序 (模型可能认为绿 >蓝 >红). 仅适用于基于树的模型,分为单个值.
 
-**Target 编码：** 用该类别的目标变量均值替换每个类别。功能强大但危险：数据泄露风险很高。必须仅在训练数据上计算，然后应用于测试数据。
+**Target encoding:**强大但危险:高数据泄漏风险.只需基于训练数据计算,应应用于测试数据.
 
-### 文本特征
+### 文字的特征
 
-**Count 向量化器：** 统计每个词在文档中出现的次数。"the cat sat on the mat"变为 {the: 2, cat: 1, sat: 1, on: 1, mat: 1}。
+**Count vectorizer:**计算每一个词在文档中出现在多少次. "猫坐在床上"变成 {the: 2, cat: 1, sat: 1, on: 1, mat: 1}.
 
-**TF-IDF：** 词频-逆文档频率。根据词在各文档中的独特性进行加权。常见词如"the"权重低。稀有且独特的词权重高。
+**TF-IDF:**频率-反文档频率. 根据文档中的独特性,重量词. "the"等常见词变得较低. 罕见的,独特的词变得更重.
 
 ```
-TF(词, 文档) = 词在文档中的出现次数 / 文档总词数
-IDF(词) = log(总文档数 / 包含该词的文档数)
+TF(word, doc) = count(word in doc) / total words in doc
+IDF(word) = log(total docs / docs containing word)
 TF-IDF = TF * IDF
 ```
 
-### 缺失值
+### 缺失的价值观
 
-真实数据存在空洞。策略：
+实际数据有漏洞.
 
-- **删除行：** 仅在缺失数据稀少且随机时使用
-- **均值/中位数插补：** 简单，保留分布形状（中位数对异常值更稳健）
-- **众数插补：** 用于分类特征
-- **指示列：** 插补前添加一个二值列"是否缺失"。数据缺失本身可能蕴含信息
-- **前向/后向填充：** 用于时间序列数据
+- **Drop rows:**只有缺失数据是罕见的,随机的
+- **Mean/median imputation:**简单,保持分布形状 (中位数更坚固到异常)
+- **Mode imputation:**对于类别特征
+- **Indicator column:**在计算之前添加一个二进制列"was_this_missing".数据缺失的事实本身可以是信息性的
+- **Forward/backward fill:**时间序列数据
 
-### 特征交互
+### 功能互动
 
-有时关系存在于组合中。"身高"和"体重"单独使用不如"BMI = 体重 / 身高^2"具有预测力。特征交互会扩大特征空间，因此使用领域知识选择正确的交互项。
+有时,这种关系是结合中的.单独的"身高"和"体重"比"BMI =体重/身高^2"更少的预测性.
 
-### 特征选择
+### 功能选择
 
-特征越多并非越好。无关特征会增加噪声、延长训练时间，并可能导致过拟合。
+没有相关的功能会增加噪音,增加训练时间,并可能导致过度适应.
 
-**过滤方法（模型前）：**
-- 相关性：移除彼此高度相关的特征（冗余）
-- 互信息：衡量知道一个特征能减少多少关于目标的的不确定性
-- 方差阈值：移除几乎不变化的特征
+**Filter methods (pre-model):**
+- 相关性:消除高度相互相关的特征 (冗余)
+- 互通信息:衡量知道特征的程度,减少了对目标的不确定性
+- 变异门:删除几乎不变的功能
 
-**包装方法（基于模型）：**
-- L1 正则化（Lasso）：将无关特征的权重精确驱动为零
-- 递归特征消除：训练、移除最不重要的特征、重复
+**Wrapper methods (model-based):**
+- L1规律化 (Lasso):将无关性的特征权重达到完全零
+- 复发性功能消除:训练,删除最不重要的功能,重复
 
-**为何选择很重要：** 一个包含 10 个优质特征的模型，通常会优于包含 10 个优质特征和 90 个噪声特征的模型。噪声特征给模型提供了在训练数据模式上过拟合的机会，而这些模式并不具备泛化能力。
+**Why selection matters:**具有10个好功能的模型通常会超过具有10个好功能和90个噪音的模型.噪音的功能使模型有机会过度适应不通用的训练数据模式.
 
 ```figure
 feature-scaling
 ```
 
-## 动手实现
+## 建立它
 
-### 第 1 步：从零实现数值变换
+### 步骤1:从零开始进行数值转换
 
 ```python
 import math
@@ -162,7 +162,7 @@ def polynomial_features(row, degree=2):
     return result
 ```
 
-### 第 2 步：从零实现分类编码
+### 步骤2:从零开始编码类别
 
 ```python
 def one_hot_encode(values):
@@ -204,7 +204,7 @@ def target_encode(feature_values, target_values, smoothing=10):
     return [encoding[v] for v in feature_values], encoding
 ```
 
-### 第 3 步：从零实现文本特征
+### 步骤3:从零开始的文字功能
 
 ```python
 def count_vectorize(documents):
@@ -263,7 +263,7 @@ def tfidf(documents):
     return vectors, vocab
 ```
 
-### 第 4 步：从零实现缺失值插补
+### 步骤4:从零开始错失的值归因
 
 ```python
 def impute_mean(values):
@@ -301,7 +301,7 @@ def add_missing_indicator(values):
     return [0 if v is not None else 1 for v in values]
 ```
 
-### 第 5 步：从零实现特征选择
+### 步骤5:从零开始选择功能
 
 ```python
 def correlation(x, y):
@@ -384,7 +384,7 @@ def remove_correlated(features, threshold=0.9):
     return [i for i in range(n_features) if i not in to_remove]
 ```
 
-### 第 6 步：完整流水线与演示
+### 步骤 6: 完整的管道和演示
 
 ```python
 import random
@@ -523,9 +523,9 @@ if __name__ == "__main__":
         print(f"    {feature_names[j]}: r={corr:.4f}")
 ```
 
-## 实际应用
+## 用它
 
-使用 scikit-learn，这些变换可以组成流水线：
+通过使用 scikit-learn,这些转换是可组合的管道:
 
 ```python
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PolynomialFeatures
@@ -550,35 +550,35 @@ preprocessor = ColumnTransformer([
 ])
 ```
 
-从零实现的版本展示了每个变换内部发生了什么。库版本添加了边界情况处理、稀疏矩阵支持和流水线组合，但数学原理相同。
+图书馆版本增加了边缘处理,稀疏的矩阵支持和管道组合,但数学是相同的.
 
-## 成果交付
+## 运送它
 
-本课产出：
-- `outputs/prompt-feature-engineer.md` - 一个系统化地从原始数据工程中构建特征的系统性提示
+这一课产生了:
+- `outputs/prompt-feature-engineer.md`- 系统地从原始数据中进行工程的提示
 
-## 练习
+## 运动
 
-1. 在数值变换中添加稳健缩放（使用四分位距代替标准差，使用中位数代替均值）。在存在极端异常值的数据上将其与标准化进行比较。
-2. 实现留一法 target 编码：对每一行，计算排除该行自身目标值后的目标均值。展示相比朴素 target 编码如何减少过拟合。
-3. 构建一个自动化的特征选择流水线，组合方差阈值、相关性过滤和互信息排序。将其应用于房屋数据集，并使用简单线性回归比较全部特征与选择后特征的模型性能。
+1. 加入强大的规模化 (使用中位数和四分之一间范围而不是平均和标准偏差) 数字变化.将其与极端异常值的数据的标准规模化进行比较.
+2. 实现单独的目标编码:对于每个行,计算目标平均值,排除该行的目标值. 展示如何减少过度适应与天真的目标编码相比.
+3. 建立一个自动化特征选择管道,结合变异门,相关性过和相互信息排名.将其应用到住房数据集,并将模型性能 (使用简单的线性回归) 与所有特征和选定的特征进行比较.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说 | 实际含义 |
-|------|---------|---------|
-| Feature engineering | "创建新列" | 将原始数据转换为暴露模式给模型的表示形式 |
-| Standardization | "使其正态化" | 减去均值并除以标准差，使特征均值为 0、标准差为 1 |
-| One-hot encoding | "创建虚拟变量" | 为每个类别创建一个二值列，每行恰好有一列为 1 |
-| Target encoding | "用答案进行编码" | 用该类别的平均目标值替换每个类别，并加入平滑以防止过拟合 |
-| TF-IDF | "高级词频统计" | 词频乘以逆文档频率：根据词在语料库中的独特性进行加权 |
-| Imputation | "填补缺失值" | 用估计值（均值、中位数、众数或模型预测值）替换缺失值 |
-| Feature selection | "剔除坏列" | 移除增加噪声或冗余的特征，仅保留关于目标有信号的特征 |
-| Mutual information | "一个变量告诉另一个多少" | 衡量观察到变量 X 后关于变量 Y 的不确定性减少量 |
-| Data leakage | "意外作弊" | 在训练过程中使用了预测时不可用的信息，导致虚假的乐观结果 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Feature engineering | "Making new columns" | Transforming raw data into representations that expose patterns to the model |
+| Standardization | "Making it normal" | Subtracting the mean and dividing by standard deviation so the feature has mean=0 and std=1 |
+| One-hot encoding | "Making dummy variables" | Creating one binary column per category, where exactly one column is 1 for each row |
+| Target encoding | "Using the answer to encode" | Replacing each category with the average target value for that category, with smoothing to prevent overfitting |
+| TF-IDF | "Fancy word counts" | Term Frequency times Inverse Document Frequency: words weighted by how distinctive they are across the corpus |
+| Imputation | "Filling in blanks" | Replacing missing values with estimated values (mean, median, mode, or model-predicted) |
+| Feature selection | "Throwing out bad columns" | Removing features that add noise or redundancy, keeping only those with signal about the target |
+| Mutual information | "How much one thing tells you about another" | A measure of the reduction in uncertainty about variable Y gained by observing variable X |
+| Data leakage | "Accidentally cheating" | Using information during training that would not be available at prediction time, giving falsely optimistic results |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Feature Engineering and Selection (Max Kuhn & Kjell Johnson)](http://www.feat.engineering/) - 免费在线书籍，涵盖特征工程的完整图谱
-- [scikit-learn Preprocessing Guide](https://scikit-learn.org/stable/modules/preprocessing.html) - 所有标准变换的实用参考
-- [Target Encoding Done Right (Micci-Barreca, 2001)](https://dl.acm.org/doi/10.1145/507533.507538) - 带平滑的 target 编码的原始论文
+- [Feature Engineering and Selection (Max Kuhn & Kjell Johnson)](http://www.feat.engineering/)- 免费的网上书,涵盖了整个功能工程领域
+- [scikit-learn Preprocessing Guide](https://scikit-learn.org/stable/modules/preprocessing.html)- 对于所有标准转换的实用参考
+- [Target Encoding Done Right (Micci-Barreca, 2001)](https://dl.acm.org/doi/10.1145/507533.507538)- 目标编码的原始文件

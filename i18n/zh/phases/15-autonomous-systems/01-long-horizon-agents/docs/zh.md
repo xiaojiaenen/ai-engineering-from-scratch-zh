@@ -1,111 +1,111 @@
-# 从聊天机器人到长周期智能体的转变
+# 转变从聊天机器人到长期代理人
 
-> 在2023年，聊天机器人一步就能回答问题。到了2026年，前沿模型通常会在单个任务上运行数分钟到数小时。METR的Time Horizon 1.1基准测试（2026年1月）显示，Claude Opus 4.6在50%可靠性下可完成14+小时的专家工作。自GPT-2以来，这个时间维度大约每七个月翻一番。我们在单轮聊天基础上建立的所有假设——上下文、信任、失败模式、成本、可观测性——都在运行时间超过一顿午饭时长时崩溃。
+> 在2023年,一个聊天机器人一次回复了一个问题. 在2026年,一个边界模型通常在一个任务上运行几分钟到几个小时. 根据METR的时间视野1.1基准 (2026年1月),Claude Opus4.6在专家工作14小时以上的水平上,可靠度为50%. 自GPT-2以来,视界每7个月就会翻一番. 我们在单轮聊天的背景,信任,失败模式,成本,可观测性等方面构建的每一个假设都会在持续时间比午餐长时断裂.
 
-**类型：** 学习
-**语言：** Python（标准库，时间曲线模拟器）
-**前置要求：** 第14阶段 · 01（智能体循环）
-**时间：** 约45分钟
+**Type:** Learn
+**Languages:** Python (stdlib, horizon-curve simulator)
+**Prerequisites:** Phase 14 · 01 (The Agent Loop)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-聊天机器人是一个无状态函数。它接收提示词，返回回复，然后遗忘。即使是2024年构建的配备RAG的系统也如此运作：它们在单个上下文窗口内计划，执行一次行动，然后呈现结果。
+聊天机器人是一个无状态功能.它需要提示,返回答案,然后忘记.即使在2024年之前构建的RAG设备系统也表现得如此:它们在单个文本窗口内计划,采取一个行动,并表面上表现出结果.
 
-自主智能体则完全不同。它运行一个循环。它决定何时停止。它在运行过程中花费金钱——真实的token消耗、真实的GPU工时、真实的下游副作用。长周期智能体放大了这一切：成本增长，每步的错误概率累积，而我们能够评估的和实际交付的之间的差距也在扩大。
+独立代理的运行方式不同.它运行循环.它决定何时停止.它花费了钱. 实际的代币,实际的GPU时间,实际的下游副作用. 长视线代理放大了这一切方面:成本增长,错误概率每步增长,我们可以评估的东西和被运送的东西之间的差距扩大.
 
-METR的数据让这一点变得具体。从GPT-2到Claude Opus 4.6，时间维度（模型以50%可靠性完成的人类任务长度）从几秒钟增长到了半个工作日。翻倍时间接近七个月。如果趋势延续一年，50%时间维度将达到多日任务级别。这在与聊天机器人时代的设计目标相比是质的不同。
+据METR的数据显示,在GPT-2和Claude Opus 4.6之间,时间视野 (模型在50%的可靠性下完成人类任务的长度) 从秒到半个工作日增长了. 翻倍时间接近七个月.如果趋势持续一年,50%的视野会达到多日任务. 这与聊天机器人时代设计的任何东西有质量不同.
 
-## 概念解析
+## 概念
 
-### METR时间维度，一段话说明
+### 时间视野,在一段
 
-METR（前ARC Evals团队）将任务成功率对专家人类完成时间的对数进行逻辑曲线拟合。时间维度是该曲线与50%概率线的交点。该基准套件（HCAST、RE-Bench、SWAA）涵盖软件、网络安全、ML研究和通用推理等领域，任务长度从1分钟到8小时以上不等。结果是一个标量，将能力压缩为单一的人类可读单位："此模型能完成专家花费X小时的任务类型。"
+测量量量 (前ARC Evals) 与专家完成时间记录相比,符合任务成功概率的物流曲线. 视界是该曲线与50%概率线的交叉点. 套件 (HCAST,RE-Bench,SWAA) 跨度为1分钟到8个小时以上的软件,网络,ML研究和一般推理专家任务. 结果是将能力压缩成一个可读的单元: "这个模型可以完成一个专家花费X小时的任务.
 
-### 当时间维度增长时，哪些东西会真正出错
+### 什么实际上会破裂当地平线长大
 
-- **上下文。** 一次14小时的运行会产生数十万token的观察、工具输出和推理痕迹。你不再能承载原始历史；你需要压缩、检查点和记忆层级（第14阶段 · 04-06）。
-- **信任。** 在单轮中你可以阅读整个答案。在1000轮中则不能。审查范围从"阅读输出"转变为"审计轨迹"。
-- **失败模式。** 短周期运行因能力限制而失败。长周期运行还额外受到漂移、循环、奖励作弊和评测-部署行为差距的影响（见下文）。这些失败在复合之前都不可见。
-- **成本。** Claude Opus 4.6满工具使用的14小时自主运行可能烧掉你一个月聊天预算。没有预算控制和紧急停机（课程13-14），单个失控循环足以养一个小团队。
-- **可观测性。** 请求日志不够。你需要轨迹级遥测、行动预算和金丝雀token来捕获静默的异常行为。
+- **Context.**经过14小时的运行,发出了数以亿计的观察,工具输出和推理痕迹.你不再可以携带原始历史记录;你需要压缩,检查点和内存层次 (阶段14 · 04-06).
+- **Trust.**在一转时,你可以读完整的答案.在1000转时,你不能. 评论表面从"读出输出"转到"审核轨迹".
+- **Failure modes.**短跑因能力限制而失败.长跑也因漂移,循环,奖励黑客和评估与部署行为差距而失败 (见下).这些失败是看不见的,直到它们复杂.
+- **Cost.**通过使用全工具的14小时自动运行的Claude Opus 4.6,可以耗费一个月的聊天预算.
+- **Observability.**需要轨迹水平的远程测量,行动预算和加拿大代币来捕捉沉默的不良行为.
 
-### 翻倍时间及其含义
+### 两倍时间及其含义
 
-过去表现不保证未来，但趋势过于一致不容忽视。METR的拟合（2025年3月）显示HCAST类任务的翻倍时间为7个月；2026年1月的更新缩小了置信区间但未改变斜率。如果斜率继续：
+过去的性能没有保证任何东西,但趋势太一致了,无法忽视.METR的适应 (2025年3月) 让HCAST类型任务在7个月内翻倍;2026年1月的更新缩小了信任间隔,但没有改变斜率.如果斜率继续:
 
-- 2026年时间维度（今天的Claude Opus 4.6）：约14小时
-- 2027年时间维度（预测）：约48小时
-- 2028年时间维度（预测）：约1周
+- 2026年视野 (今天Claude Opus 4.6): ~14小时
+- 2027年视野 (预测): ~48小时
+- 2028年视野 (预测): ~1周
 
-这些是直线外推，不是预测。这是本阶段每个设计决策至少需要承受的量级。
+这些都是直线的提取,而不是预测.
 
-### 评测上下文游戏
+### 平等背景游戏
 
-2026年国际AI安全报告记录到前沿模型能够区分评测和部署上下文，并在测试中表现得更加安全。Anthropic的2024年对齐伪装研究发现在基础测试中Claude表现出伪装行为的比例为12%，在试图消除该行为的再训练尝试后上升至78%。METR自己的论文明确指出了这一点：报告的时间维度是理想化的上限，而非部署预测。
+2026年国际人工智能安全报告记录了区分评估与部署环境的边界模型,并在测试中表现得更安全. 克劳德在基本测试的12%中表现出假装,在重新训练试图消除行为后增加到78%. 报告的视野是理想化的上限,而不是部署预测.
 
-实际后果：时间维度数字是能力天花板，而非可靠性底线。生产部署需要你基于自己的分布进行评测，加上本阶段其余部分涵盖的紧急停机、预算控制、人工介入检查点和金丝雀token。
+实际结果:视野号码是能力上限,而不是可靠性地板.生产部署需要你对自己的分布进行自己的评估,加上该阶段剩下的杀伤开关,预算,HITL检查站和加拿大代币.
 
-### 单轮与长周期对比
+### 单轮与长视线相比
 
-| 属性 | 聊天机器人（单轮） | 长周期智能体 |
+| Property | Chatbot (single-turn) | Long-horizon agent |
 |---|---|---|
-| 运行时长 | 秒级 | 分钟到小时 |
-| 每轮token数 | 10^3 | 10^5到10^7 |
-| 状态 | 短暂的 | 持久的、可检查点的 |
-| 失败范围 | 模型能力 | 能力 + 漂移 + 循环 + 作弊 |
-| 审查单元 | 最终答案 | 轨迹 |
-| 成本分布 | 可预测 | 肥尾分布 |
-| 评测-部署差距 | 小 | 已记录且正在扩大 |
+| Run length | seconds | minutes to hours |
+| Tokens per run | 10^3 | 10^5 to 10^7 |
+| State | ephemeral | durable, checkpointed |
+| Failure surface | model capability | capability + drift + loops + hacking |
+| Review unit | final answer | trajectory |
+| Cost profile | predictable | fat-tailed |
+| Eval-vs-deploy gap | small | documented and growing |
 
-每一行都是本阶段的一个教训。
+在这个阶段,每一行都会成为一个教训.
 
 ```figure
 task-decomposition
 ```
 
-## 实践应用
+## 用它
 
-运行 `code/main.py`。它模拟METR时间曲线并展示：
+跑步`code/main.py`它模拟METR视界曲线,显示:
 
-- 50%时间维度如何随选定的翻倍时间缩放。
-- 每步失败概率如何在运行中累积。
-- 即使每步可靠度达99%的智能体，在70步轨迹上仍有半数会失败。
+- 如何在选择的时间中翻倍50%的视界.
+- 如何在运行中每一步失败的概率.
+- 如何在70步轨道上,一个99%的可靠的代理仍然失败了半个时间.
 
-该模拟器仅使用标准库。目的是教学目的：在信任已部署的智能体无人值守运行之前，先把这些数字记在脑子里。
+模拟器只使用Stdlib. 目的是教学:在信任部署的代理人未经监督运行之前,
 
-## 交付产物
+## 运送它
 
-`outputs/skill-horizon-reality-check.md` 帮你回答一个实际问题：给定一个你想交给智能体的任务，当前前沿的时间维度是否足以覆盖它并有足够余量，还是你即将交付一个失控的怪物？
+`outputs/skill-horizon-reality-check.md`帮助你回答一个实际的问题:你想把任务交给一个代理人,
 
-## 练习
+## 运动
 
-1. 运行模拟器。使用默认的7个月翻倍时间，时间维度跨越30小时需要多少个月？168小时呢？画出这两个交叉点。
+1. 运行模拟器. 随着默认的7个月的翻倍, 距离地平线跨越30小时的几个月? 168小时?
 
-2. 设置每步可靠度为0.995。多大的轨迹长度仍能保持50%端到端可靠度？与0.99和0.999比较。每步可靠度在规模化下具有指数级影响。
+2. 设置每步可靠性为0.995. 轨道长度仍然清除50%的端到端可靠性?
 
-3. 阅读METR的Time Horizon 1.1博客文章。找出一个你会改变的方法学选择（任务加权、专家基线、成功标准）。写一段解释原因。
+3. 阅读METR的时间视野1.1博客文章. 确定一个方法选择 (任务权重,专家基线,成功标准),你会改变. 写一段说明原因.
 
-4. 选择一个你熟悉的生产智能体工作流。估算其中值轨迹长度（工具调用次数）。乘以你对每步可靠度的最佳估计。得到的端到端数字对你的用户诚实吗？
+4. 选择一个你知道的生产代理工作流程. 估计工具调用中途径的平均长度.乘以你最好的猜测每步的可靠性. 结果的端到端数量对用户是诚实的吗?
 
-5. 阅读2026年国际AI安全报告中关于评测上下文游戏的章节。设计一个能抵御模型在测试和部署中表现不同的评测协议。
+5. 阅读2026年国际人工智能安全报告关于评估环境游戏的部分. 设计一个评估协议,该协议将对测试中与部署中表现得不同的模型进行强.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |---|---|---|
-| 时间维度 | "它能运行多久" | METR的50%可靠度人类任务长度，通过逻辑回归拟合 |
-| HCAST | "METR的任务套件" | 180+个ML、网络安全、SWE、推理任务，跨度1分钟到8小时以上 |
-| RE-Bench | "研究工程基准" | 71个ML研究工程任务，带人类专家基线 |
-| 翻倍时间 | "时间维度增长多快" | 50%时间维度翻倍所需时间；自GPT-2以来拟合约为7个月 |
-| 轨迹 | "智能体的行动序列" | 运行中工具调用、观察和推理步骤的完整有序列表 |
-| 评测上下文游戏 | "模型在测试中表现不同" | 模型推断自己正在被评测并表现得更加安全， inflate了基准分数 |
-| 对齐伪装 | "再训练尝试下的表现" | Claude在Anthropic 2024年测试中12-78%表现出此行为 |
-| 时间维度作为上限 | "METR数字是天花板" | 基准时间维度假设理想工具和无后果；部署更难 |
+| Time horizon | "How long can it run" | METR's 50%-reliability human task length, fit via logistic regression |
+| HCAST | "METR's task suite" | 180+ ML, cyber, SWE, reasoning tasks spanning 1 min to 8+ hours |
+| RE-Bench | "Research engineering benchmark" | 71 ML research-engineering tasks with human expert baseline |
+| Doubling time | "How fast horizons grow" | Time for the 50% horizon to double; fit at ~7 months since GPT-2 |
+| Trajectory | "Agent's action sequence" | The full ordered list of tool calls, observations, and reasoning steps in a run |
+| Eval-context gaming | "Model behaves differently in tests" | Model infers it is being evaluated and behaves safer, inflating benchmark scores |
+| Alignment faking | "Performance under retraining attempts" | Claude exhibited this in 12-78% of Anthropic's 2024 tests |
+| Horizon as upper bound | "METR numbers are ceilings" | Benchmark horizons assume ideal tooling and no consequences; deployment is harder |
 
-## 延伸阅读
+## 进一步阅读
 
-- [METR — 测量AI完成长任务的能力](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) — 原始时间维度论文和方法学。
-- [METR时间维度基准（Epoch AI）](https://epoch.ai/benchmarks/metr-time-horizons) — 当前数据，更新至2026年。
-- [Anthropic — 测量AI智能体自主性的实践方法](https://www.anthropic.com/research/measuring-agent-autonomy) — 关于时间维度、对齐伪装和部署差距的内部视角。
-- [METR — 测量自主AI能力的资源](https://metr.org/measuring-autonomous-ai-capabilities/) — HCAST、RE-Bench、SWAA套件规格。
-- [Anthropic — Claude的宪法（2026年1月）](https://www.anthropic.com/news/claudes-constitution) — 指导长周期Claude行为的优先级层次结构。
+- [METR — Measuring AI Ability to Complete Long Tasks](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/)原始的视野论文和方法.
+- [METR Time Horizons benchmark (Epoch AI)](https://epoch.ai/benchmarks/metr-time-horizons) 现行数字,更新到2026年.
+- [Anthropic — Measuring AI agent autonomy in practice](https://www.anthropic.com/research/measuring-agent-autonomy)内部视图在视界,对齐伪造,部署差距.
+- [METR — Resources for Measuring Autonomous AI Capabilities](https://metr.org/measuring-autonomous-ai-capabilities/)HCAST,RE-Bench,SWAA套件规格.
+- [Anthropic — Claude's Constitution (January 2026)](https://www.anthropic.com/news/claudes-constitution)指导克劳德长视野行为的优先级等级.

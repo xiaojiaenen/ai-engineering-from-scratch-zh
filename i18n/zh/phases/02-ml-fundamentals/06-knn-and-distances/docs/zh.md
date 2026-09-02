@@ -1,237 +1,237 @@
-# K-Nearest Neighbors and Distances（K 最近邻与距离）
+# 附近邻居和距离
 
-> 存储所有数据。通过查看邻居进行预测。真正有效的最简单算法。
+> 通过观察邻居来预测,最简单的算法实际上是有效的.
 
-**类型：** Build
-**语言：** Python
-**前置要求：** Phase 1（第 14 课 范数与距离）
-**时间：** 约 90 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Phase 1 (Lesson 14 Norms and Distances)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 从零实现可配置 K 值和距离加权投票的 KNN 分类器与回归器
-- 比较 L1、L2、余弦和闵可夫斯基距离度量，并根据数据类型选择合适的度量
-- 解释维度灾难，并演示为何 KNN 在高维空间中性能退化
-- 构建 KD-tree 以实现高效的最近邻搜索，并分析其何时优于暴力搜索
+- 实施KN分类和从零开始回归,使用可配置的K和距离权重投票
+- 进行L1,L2,Cosine和Minkowski距离指标的比较,并选择适合给定的数据类型的指标
+- 解释维度的诅咒,并证明KNN为什么在高维空间中降解
+- 建立一个KD树,以有效地搜索和分析近邻,
 
-## 问题描述
+## 问题
 
-你有一个数据集。一个新数据点到达。你需要对它进行分类或预测其值。与线性回归或 SVM 等方法不同，KNN 不从数据中学习参数，而是找到距离新点最近的 K 个训练点，让它们在投票。
+你有一个数据集.一个新的数据点到来.你需要分类它或预测它的价值.而不是从数据中学习参数 (如线性回归或SVM),你只能找到K训练点最接近新点,让他们投票.
 
-这就是 K 最近邻（KNN）。没有训练阶段。没有需要学习的参数。没有需要最小化的损失函数。你存储整个训练集，在预测时计算距离。
+没有训练阶段,没有学习参数,没有减轻损失函数,你将整个训练集存储并计算距离在预测时间.
 
-这听起来太简单而不可能有效。但 KNN 在许多问题上 surprisingly 具有竞争力，尤其是小到中等规模数据集。深入理解 KNN 揭示了基本概念：距离度量的选择（与 Phase 1 第 14 课相连）、维度灾难，以及惰性学习与急切学习的区别。
+对于许多问题来说,KNN显然具有竞争力,特别是对于小到中等数据集,理解它深入揭示了基本概念:距离测量 (连接到第一阶段14课),维度的诅咒,
 
-KNN 也广泛出现在现代 AI 中，只是换了名字。向量数据库对嵌入向量做 KNN 搜索。检索增强生成（RAG）查找 K 个最近的文档片段。推荐系统寻找相似的用户或物品。算法是相同的，只是规模和数据结构不同。
+现在,KNN也在现代人工智能中出现,只是以不同的名称.向量数据库在嵌入式中搜索KNN.检索增强生成 (RAG) 发现K最近的文档块.推系统发现类似的用户或项目.算法是一样的.规模和数据结构不同.
 
-## 概念解析
+## 概念
 
-### KNN 工作原理
+### KNN 的运作方式
 
-给定一个带标签点数据集和一个新的查询点：
+鉴于标记点的数据集和新的查询点:
 
-1. 计算查询点到数据集中每个点的距离
+1. 计算查询到数据集中的每个点的距离
 2. 按距离排序
-3. 取 K 个最近的点
-4. 对于分类：K 个邻居中多数投票
-5. 对于回归：K 个邻居值的平均（或加权平均）
+3. 取 K 最接近的点
+4. 归类:K邻国中多数投票
+5. 对于回归:K邻居值的平均值 (或权重平均值)
 
 ```mermaid
 graph TD
-    Q["查询点 ?"] --> D["计算距离<br>到所有训练点"]
-    D --> S["按距离排序"]
-    S --> K["选择 K 个最近邻"]
-    K --> C{"分类<br>还是回归？"}
-    C -->|分类| V["多数投票"]
-    C -->|回归| A["求平均值"]
-    V --> P["预测"]
+    Q["Query point ?"] --> D["Compute distances<br>to all training points"]
+    D --> S["Sort by distance"]
+    S --> K["Select K nearest"]
+    K --> C{"Classification<br>or Regression?"}
+    C -->|Classification| V["Majority vote"]
+    C -->|Regression| A["Average values"]
+    V --> P["Prediction"]
     A --> P
 ```
 
-这就是整个算法。无需拟合。无需梯度下降。无需训练轮次。
+没有适应,没有梯度下降,没有时代.
 
-### 选择 K 值
+### 选择K
 
-K 是唯一超参数。它控制偏差-方差权衡：
+基是单个超参数,它控制偏差变量交易:
 
-| K | 行为 |
+| K | Behavior |
 |---|----------|
-| K = 1 | 决策边界跟随每个点。训练误差为零。高方差。过拟合 |
-| 小 K（3-5）| 对局部结构敏感。可捕获复杂边界 |
-| 大 K | 更平滑的边界。对噪声更鲁棒。可能欠拟合 |
-| K = N | 对所有点预测多数类。最大偏差 |
+| K = 1 | Decision boundary follows every point. Zero training error. High variance. Overfits |
+| Small K (3-5) | Sensitive to local structure. Can capture complex boundaries |
+| Large K | Smoother boundaries. More robust to noise. May underfit |
+| K = N | Predicts the majority class for every point. Maximum bias |
 
-一个常见的起点是 K = sqrt(N)，其中 N 是数据集的点数。对于二分类，使用奇数 K 以避免平票。
+对于一个数据集的N点,一个常见的起点是K = sqrt(N. 为了避免联系,使用奇数K进行二进制分类.
 
 ```mermaid
 graph LR
-    subgraph "K=1（过拟合）"
-        A["锯齿状边界<br>跟随每个点"]
+    subgraph "K=1 (overfitting)"
+        A["Jagged boundary<br>follows every point"]
     end
-    subgraph "K=15（良好）"
-        B["平滑边界<br>捕获真实模式"]
+    subgraph "K=15 (good)"
+        B["Smooth boundary<br>captures true pattern"]
     end
-    subgraph "K=N（欠拟合）"
-        C["平坦边界<br>预测多数类"]
+    subgraph "K=N (underfitting)"
+        C["Flat boundary<br>predicts majority class"]
     end
-    A -->|"增大 K"| B -->|"增大 K"| C
+    A -->|"increase K"| B -->|"increase K"| C
 ```
 
-### 距离度量
+### 距离指标
 
-距离函数定义了"近"的含义。不同的度量产生不同的邻居和不同的预测。
+距离函数定义了"接近"的意思.不同的指标产生不同的邻居,不同的预测.
 
-**L2（欧氏距离）** 是默认选择。直线距离。
+**L2 (Euclidean)**长度是默认的.
 
 ```
 d(a, b) = sqrt(sum((a_i - b_i)^2))
 ```
 
-对特征尺度敏感。使用 L2 与 KNN 前，务必标准化特征。
+对于特征尺度敏感. 在使用L2与KNN之前,始终标准化特征.
 
-**L1（曼哈顿距离）** 对各维度绝对差求和。比 L2 对异常值更鲁棒，因为它不对差值平方。
+**L1 (Manhattan)**较强于L2的异常值,因为它不方方分差异.
 
 ```
 d(a, b) = sum(|a_i - b_i|)
 ```
 
-**余弦距离** 衡量向量之间的夹角，忽略幅度。对于文本和嵌入数据至关重要。
+**Cosine distance**测量向量之间的角度,忽略大小.
 
 ```
 d(a, b) = 1 - (a . b) / (||a|| * ||b||)
 ```
 
-**闵可夫斯基距离** 用参数 p 泛化 L1 和 L2。
+**Minkowski**概括L1和L2的参数p.
 
 ```
 d(a, b) = (sum(|a_i - b_i|^p))^(1/p)
 
-p=1: 曼哈顿距离
-p=2: 欧氏距离
-p->inf: 切比雪夫距离（最大绝对差）
+p=1: Manhattan
+p=2: Euclidean
+p->inf: Chebyshev (max absolute difference)
 ```
 
-选择哪个度量取决于数据：
+哪个指标使用取决于数据:
 
-| 数据类型 | 最佳度量 | 原因 |
+| Data type | Best metric | Why |
 |-----------|------------|-----|
-| 数值特征，尺度相近 | L2（欧氏距离）| 默认，适用于空间数据 |
-| 数值特征，含异常值 | L1（曼哈顿距离）| 鲁棒，不放大大的差异 |
-| 文本嵌入 | 余弦距离 | 幅度是噪声，方向才是语义 |
-| 高维稀疏 | 余弦距离或 L1 | L2 受维度灾难影响 |
-| 混合类型 | 自定义距离 | 按特征类型组合度量 |
+| Numeric features, similar scale | L2 (Euclidean) | Default, works for spatial data |
+| Numeric features, outliers | L1 (Manhattan) | Robust, does not amplify large differences |
+| Text embeddings | Cosine | Magnitude is noise, direction is meaning |
+| High-dimensional sparse | Cosine or L1 | L2 suffers from curse of dimensionality |
+| Mixed types | Custom distance | Combine metrics per feature type |
 
-### 加权 KNN
+### 权重 KNN
 
-标准 KNN 对所有 K 个邻居赋予相等权重。但距离为 0.1 的邻居应比距离为 5.0 的邻居更重要。
+标准KN给所有K邻居的重量相同. 但在0.1距离的邻居应该在5.0距离的重量超过一个.
 
-**距离加权 KNN** 按距离倒数给每个邻居加权：
+**Distance-weighted KNN**按距离的逆向对每个邻居的重量:
 
 ```
 weight_i = 1 / (distance_i + epsilon)
 
-对于分类：加权投票
-对于回归：     加权平均 = sum(w_i * y_i) / sum(w_i)
+For classification: weighted vote
+For regression:     weighted average = sum(w_i * y_i) / sum(w_i)
 ```
 
-epsilon 防止在查询点恰好与某个训练点重合时除以零。
+问答点与训练点完全匹配时,epsilon可以防止零分.
 
-加权 KNN 对 K 值的选择不那么敏感，因为远距离邻居无论怎样都贡献很少。
+体重KN对K的选择不太敏感,因为远方邻居的贡献不多.
 
-### 维度灾难
+### 维度的诅咒
 
-KNN 性能在高维空间中会退化。这不是模糊的担忧，而是数学事实。
+由于KNN性能在高层次下降,这不是一个模糊的担忧.
 
-**问题 1：距离收敛。** 随着维度增加，最大距离与最小距离之比趋近于 1。所有点都变得与查询点"同样远"。
+**Problem 1: distances converge.**随着维度的增加,最大距离与最小距离的比率接近1.所有点都与查询相等"远".
 
 ```
-在 d 维空间中，对于随机均匀分布的点：
+In d dimensions, for random uniform points:
 
-d=2:    max_dist / min_dist = 变化很大
+d=2:    max_dist / min_dist = varies widely
 d=100:  max_dist / min_dist ~ 1.01
 d=1000: max_dist / min_dist ~ 1.001
 
-当所有距离几乎相等时，"最近"就失去了意义。
+When all distances are nearly equal, "nearest" is meaningless.
 ```
 
-**问题 2：体积爆炸。** 要在固定比例的数据内捕获 K 个邻居，你需要扩展搜索半径以覆盖特征空间的更大比例。高维空间中的"邻域"涵盖了大部分空间。
+**Problem 2: volume explodes.**为了在数据的固定部分内捕获K邻居,你需要扩大搜索半径,以覆盖更大的部分特征空间.
 
-**问题 3：角落占主导。** 在 d 维单位超立方体中，大部分体积集中在角落附近，而不是中心。内切球体占的体积分数随 d 增大而趋近于零。
+**Problem 3: corners dominate.**在d维度的单元超立方体中,大部分体积集中在角落附近,而不是中心.一个刻在立方体中的球体包含d增长时体积的消失小部分.
 
-实际影响：KNN 在约 20-50 个特征以内表现良好。超过这个范围，应用 KNN 前需要降维（PCA、UMAP、t-SNE），或使用利用数据内在低维性的树状搜索结构。
+实际结果:KNN可以使用20-50个功能.除此之外,在应用KNN之前,您需要减少维度 (PCA,UMAP,t-SNE),或者您需要使用基于树的搜索结构,以利用数据的内在较低维度.
 
-### KD-tree：快速最近邻搜索
+### 快速搜索近邻
 
-暴力 KNN 对每个查询点计算到所有训练点的距离。每次查询是 O(n * d)。对于大规模数据集，这太慢了。
+粗力 KNN计算了查询到每个训练点的距离.这就是每次查询的O(n * d).对于大型数据集,这太慢.
 
-KD-tree 沿特征轴递归划分空间。在每一层，它在中位数值处沿一个维度分割。
+基达树在各个层面上,在中值上分开一个维度.
 
 ```mermaid
 graph TD
-    R["沿 x1 在 5.0 处分割"] -->|"x1 <= 5.0"| L["沿 x2 在 3.0 处分割"]
-    R -->|"x1 > 5.0"| RR["沿 x2 在 7.0 处分割"]
-    L -->|"x2 <= 3.0"| LL["叶节点：3 个点"]
-    L -->|"x2 > 3.0"| LR["叶节点：4 个点"]
-    RR -->|"x2 <= 7.0"| RL["叶节点：2 个点"]
-    RR -->|"x2 > 7.0"| RRR["叶节点：5 个点"]
+    R["Split on x1 at 5.0"] -->|"x1 <= 5.0"| L["Split on x2 at 3.0"]
+    R -->|"x1 > 5.0"| RR["Split on x2 at 7.0"]
+    L -->|"x2 <= 3.0"| LL["Leaf: 3 points"]
+    L -->|"x2 > 3.0"| LR["Leaf: 4 points"]
+    RR -->|"x2 <= 7.0"| RL["Leaf: 2 points"]
+    RR -->|"x2 > 7.0"| RRR["Leaf: 5 points"]
 ```
 
-查找最近邻时，遍历到包含查询点的叶节点，然后回溯并仅检查可能包含更近点的相邻分区。
+为了找到最接近的邻居, 穿过树到包含查询的叶子, 然后回头, 检查邻居的分区只有如果它们可以包含更接近的点.
 
-平均查询时间：低维时为 O(log n)。但在高维时（d > 20），KD-tree 退化为 O(n)，因为回溯剪枝的分支越来越少。
+平均查询时间:低维度的O(log n).但KD树在高维度 (d > 20) 中降至O(n,因为后续追踪消除越来越少的分支.
 
-### Ball Tree：更适合中等维度
+### 球树:适量尺寸的树木更好
 
-Ball Tree 将数据划分为嵌套超球体而非轴对齐的盒子。每个节点定义一个包含该子树中所有点的球体（中心 + 半径）。
+球树分区数据成嵌套的超层,而不是轴对齐的框.每个节点定义了一个球 (中心+半径) 包含该子树中的所有点.
 
-相比 KD-tree 的优势：
-- 在中等维度表现更好（约到 50 维）
-- 处理非轴对齐的结构
-- 更紧的包围体积意味着搜索时能剪枝更多分支
+与KD树相比的优势:
+- 在中等尺寸 (最大50°C) 工作更好
+- 操作不轴对齐结构
+- 越来越紧密的边界量意味着搜索过程中更多的枝子被剪切
 
-KD-tree 和 Ball Tree 都是精确算法。对于真正的大规模搜索（数百万点，数百维），使用近似最近邻方法（HNSW、IVF、乘积量化）。这些内容在 Phase 1 第 14 课中覆盖。
+对于真正的大规模搜索 (数百万点,数百个维度),使用近邻方法 (HNSW,IVF,产品量化).这些方法在第1阶段课程14中涵盖.
 
-### 惰性学习 vs 急切学习
+### 惰学习与渴望学习
 
-KNN 是惰性学习者：训练时不做任何工作，预测时做所有工作。大多数其他算法（线性回归、SVM、神经网络）是急切学习者：它们在训练时进行大量计算以构建紧凑模型，然后预测很快。
+现在,KNN是个惰的学习者:它在训练时间没有工作,而所有工作都在预测时间.大多数其他算法 (线性回归,SVM,神经网络) 是热衷于学习者:他们在训练时间进行重计算,以构建紧模型,然后预测是快速的.
 
-| 方面 | 惰性（KNN）| 急切（SVM、神经网络）|
+| Aspect | Lazy (KNN) | Eager (SVM, neural net) |
 |--------|------------|------------------------|
-| 训练时间 | O(1)，仅存储数据 | O(n * epochs) |
-| 预测时间 | 每次查询 O(n * d) | O(d) 或 O(参数数量) |
-| 预测时内存 | 存储整个训练集 | 仅存储模型参数 |
-| 适应新数据 | 即时添加点 | 重新训练模型 |
-| 决策边界 | 隐式，现场计算 | 显式，训练后固定 |
+| Training time | O(1) just store data | O(n * epochs) |
+| Prediction time | O(n * d) per query | O(d) or O(parameters) |
+| Memory at prediction | Store entire training set | Store model parameters only |
+| Adapts to new data | Add points instantly | Retrain the model |
+| Decision boundary | Implicit, computed on the fly | Explicit, fixed after training |
 
-惰性学习在以下情况理想：
-- 数据集频繁变化（无需重新训练即可添加/移除点）
-- 需要预测的查询很少
-- 希望零训练时间
-- 数据集足够小，暴力搜索很快
+惰学习是理想的,
+- 数据集经常发生变化 (不需要重新训练添加/删除点)
+- 对于很少的查询,你需要预测
+- 你想要零训练时间
+- 数据集足够小,以使强迫搜索速度快
 
-### KNN 用于回归
+### 退回 KNN
 
-KNN 回归不像分类那样进行多数投票，而是对 K 个邻居的目标值求平均。
+而不是多数投票,KN为回归的平均值为K邻居的目标值.
 
 ```
 prediction = (1/K) * sum(y_i for i in K nearest neighbors)
 
-或使用距离加权：
+Or with distance weighting:
 prediction = sum(w_i * y_i) / sum(w_i)
-其中 w_i = 1 / distance_i
+where w_i = 1 / distance_i
 ```
 
-KNN 回归产生分段常数（或带加权时分段平滑）的预测。它无法外推到训练数据范围之外。如果训练目标值都在 0 到 100 之间，KNN 永远不会预测 200。
+基因回归产生零件稳定 (或零件平滑与权重) 的预测.它不能超出训练数据范围.如果所有训练目标都在0到100之间,基因永远不会预测200.
 
 ```figure
 knn-smoothness
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：距离函数
+### 步骤1:距离函数
 
-实现 L1、L2、余弦和闵可夫斯基距离。这些直接连接到 Phase 1 第 14 课。
+实现L1,L2,kosine和Minkowski距离.这些直接连接到第一阶段14课.
 
 ```python
 import math
@@ -256,9 +256,9 @@ def minkowski_distance(a, b, p=2):
     return sum(abs(ai - bi) ** p for ai, bi in zip(a, b)) ** (1 / p)
 ```
 
-### 步骤 2：KNN 分类器与回归器
+### 步骤2:KNN分类器和回归器
 
-构建完整的 KNN，支持可配置的 K、距离度量和可选的距离加权。
+构建全KN,设置可 K,距离指标和可选距离权重.
 
 ```python
 class KNN:
@@ -279,28 +279,28 @@ class KNN:
         return [self._predict_one(x) for x in X]
 ```
 
-### 步骤 3：用于高效搜索的 KD-tree
+### 步骤3:KD树,以有效搜索
 
-从零构建一个 KD-tree，递归地在每个维度的中位数处分割。
+建立一个从零开始的KD树,它在每个维度的中位数上反复分裂.
 
 ```python
 class KDTree:
     def __init__(self, X, indices=None, depth=0):
-        # 递归划分数据
+        # Recursively partition the data
         self.axis = depth % len(X[0])
-        # 沿当前轴的中位数分割
+        # Split on median of the current axis
         ...
 
     def query(self, point, k=1):
-        # 遍历到叶节点，然后回溯
+        # Traverse to leaf, then backtrack
         ...
 ```
 
-完整实现（含所有辅助方法和演示）见 `code/knn.py`。
+看到`code/knn.py`对于所有辅助方法和演示的全面实施.
 
-### 步骤 4：特征缩放
+### 步骤4: 功能扩展
 
-KNN 需要特征缩放，因为距离对特征幅度敏感。范围 0 到 1000 的特征会主导范围 0 到 1 的特征。
+KNN需要特征扩展,因为距离对特征大小敏感.从0到1000的特征将占据从0到1的特征的主导地位.
 
 ```python
 def standardize(X):
@@ -314,9 +314,9 @@ def standardize(X):
     return [[((X[i][j] - means[j]) / stds[j]) for j in range(d)] for i in range(n)], means, stds
 ```
 
-## 使用它
+## 用它
 
-使用 scikit-learn：
+通过"学习"
 
 ```python
 from sklearn.neighbors import KNeighborsClassifier
@@ -331,9 +331,9 @@ clf.fit(X_train, y_train)
 print(f"Accuracy: {clf.score(X_test, y_test):.4f}")
 ```
 
-当数据集足够大且维度足够低时，scikit-learn 会自动使用 KD-tree 或 Ball Tree。对于高维数据，它会回退到暴力搜索。你可以通过 `algorithm` 参数控制此行为。
+对于高维度数据,它会回到原力.你可以使用`algorithm`参数
 
-对于大规模最近邻搜索（百万级向量），使用 FAISS、Annoy 或向量数据库：
+为了大规模的近邻搜索 (数百万个向量),使用FAISS,Annoy或向量数据库:
 
 ```python
 import faiss
@@ -343,39 +343,39 @@ index.add(embeddings)
 distances, indices = index.search(query_vectors, k=5)
 ```
 
-## 练习题
+## 运动
 
-1. 在 2D 数据集上实现 KNN 分类（3 个类别）。绘制 K=1、K=5、K=15 和 K=N 的决策边界。观察从过拟合到欠拟合的过渡。
+1. 实现KNN分类在3类的2D数据集上.绘制K=1,K=5,K=15,K=N的决策边界.观察过度适应到不足适应的过渡.
 
-2. 生成 1000 个随机点，维度分别为 2、5、10、50、100 和 500。对于每个维度，计算最大成对距离与最小成对距离的比值。绘制比值与维度的关系图，以可视化维度灾难。
+2. 生成1000个随机点在2,5,10,50,50,100和500个维度中.对于每个维度,计算最大双向距离的比例到最低双向距离.绘制比与维度以可视化维度的诅咒.
 
-3. 在文本分类问题（使用 TF-IDF 向量）上比较 L1、L2 和余弦距离的 KNN。哪个度量给出最高的准确率？为什么余弦距离在文本任务上往往更优？
+3. 在文本分类问题上,比较L1,L2和KNN的小数距离 (使用TF-IDF向量).哪个指标能提供最佳准确性?为什么小数往往在文本中获胜?
 
-4. 实现 KD-tree，并在 2D、10D 和 50D 的 1k、10k 和 100k 点数据集上测量查询时间与暴力搜索的对比。KD-tree 在多少维度时不再比暴力搜索更快？
+4. 实现KD树,并对2D,10D和50D中的1k,10k和100k点数据集进行查询时间与粗体力测量.在哪个维度下,KD树停止比粗体力更快?
 
-5. 构建加权 KNN 回归器用于 y = sin(x) + noise。与 K=3、10、30 的未加权 KNN 比较。展示加权如何产生更平滑的预测，尤其在大 K 值时。
+5. 构建为y = sin(x) +噪音的权重KN回归器.与K=3, 10,30的非权重KN进行比较.
 
-## 关键术语
+## 关键词
 
-| 术语 | 实际含义 |
+| Term | What it actually means |
 |------|----------------------|
-| K-nearest neighbors（K 最近邻）| 非参数算法，通过查找距离查询点最近的 K 个训练点进行预测 |
-| Lazy learning（惰性学习）| 训练时不做计算。所有工作发生在预测时。KNN 是典型示例 |
-| Eager learning（急切学习）| 训练时进行大量计算以构建紧凑模型。大多数 ML 算法是急切学习 |
-| Curse of dimensionality（维度灾难）| 在高维空间中，距离收敛且邻域扩展以覆盖大部分空间，使 KNN 失效 |
-| KD-tree | 沿特征轴递归划分空间的二叉树。低维时查询为 O(log n) |
-| Ball tree | 嵌套超球体的树结构。在中等维度（约到 50 维）下比 KD-tree 表现更好 |
-| Weighted KNN（加权 KNN）| 邻居按距离倒数加权。更近的邻居对预测影响更大 |
-| Feature scaling（特征缩放）| 将特征归一化到可比范围。距离基方法（如 KNN）必需 |
-| Majority vote（多数投票）| 通过计数 K 个邻居中最常见的类别进行分类 |
-| Brute force search（暴力搜索）| 计算到每个训练点的距离。每次查询 O(n*d)。精确但大 n 时慢 |
-| Approximate nearest neighbor（近似最近邻）| （HNSW、LSH、IVF）等算法，比精确搜索快得多地找到近似最近点 |
-| Voronoi diagram（Voronoi 图）| 空间划分，每个区域包含比到其他训练点更接近某个训练点的所有点。K=1 的 KNN 产生 Voronoi 边界 |
+| K-nearest neighbors | Non-parametric algorithm that predicts by finding the K closest training points to a query |
+| Lazy learning | No computation at training time. All work happens at prediction time. KNN is the canonical example |
+| Eager learning | Heavy computation at training time to build a compact model. Most ML algorithms are eager |
+| Curse of dimensionality | In high dimensions, distances converge and neighborhoods expand to cover most of the space, making KNN ineffective |
+| KD-tree | Binary tree that recursively partitions space along feature axes. O(log n) queries in low dimensions |
+| Ball tree | Tree of nested hyperspheres. Works better than KD-trees in moderate dimensions (up to ~50) |
+| Weighted KNN | Neighbors weighted inversely by distance. Closer neighbors have more influence on the prediction |
+| Feature scaling | Normalizing features to comparable ranges. Required for distance-based methods like KNN |
+| Majority vote | Classification by counting which class is most common among K neighbors |
+| Brute force search | Computing distance to every training point. O(n*d) per query. Exact but slow for large n |
+| Approximate nearest neighbor | Algorithms (HNSW, LSH, IVF) that find approximately nearest points much faster than exact search |
+| Voronoi diagram | The partition of space where each region contains all points closer to one training point than any other. K=1 KNN produces Voronoi boundaries |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Cover & Hart: Nearest Neighbor Pattern Classification (1967)](https://ieeexplore.ieee.org/document/1053964) - KNN 奠基论文，证明其误差率最多是贝叶斯最优的两倍
-- [Friedman, Bentley, Finkel: An Algorithm for Finding Best Matches in Logarithmic Expected Time (1977)](https://dl.acm.org/doi/10.1145/355744.355745) - 原始 KD-tree 论文
-- [Beyer et al.: When Is "Nearest Neighbor" Meaningful? (1999)](https://link.springer.com/chapter/10.1007/3-540-49257-7_15) - 最近邻维度灾难的形式化分析
-- [scikit-learn Nearest Neighbors documentation](https://scikit-learn.org/stable/modules/neighbors.html) - 含算法选择的实用指南
-- [FAISS: A Library for Efficient Similarity Search](https://github.com/facebookresearch/faiss) - Meta 的十亿级近似最近邻搜索库
+- [Cover & Hart: Nearest Neighbor Pattern Classification (1967)](https://ieeexplore.ieee.org/document/1053964)- 基础KNN论文证明它具有最大的错误率是贝耶斯最佳的两倍
+- [Friedman, Bentley, Finkel: An Algorithm for Finding Best Matches in Logarithmic Expected Time (1977)](https://dl.acm.org/doi/10.1145/355744.355745)- 原始的KD树纸
+- [Beyer et al.: When Is "Nearest Neighbor" Meaningful? (1999)](https://link.springer.com/chapter/10.1007/3-540-49257-7_15)- 对于近邻的维度诅咒的正式分析
+- [scikit-learn Nearest Neighbors documentation](https://scikit-learn.org/stable/modules/neighbors.html)- 选项选项的实践指南
+- [FAISS: A Library for Efficient Similarity Search](https://github.com/facebookresearch/faiss)- 测量数亿的近邻搜索库

@@ -1,84 +1,84 @@
-# RAG 评估：精确率、召回率、MRR、nDCG、忠实度、答案相关性
+# 根据该报告的数据,该报告的数据和数据的数据均为:
 
-> 如果你无法同时评估检索和答案的质量，就不能发布该系统。这两个指标不同，同一个提示词会在不同维度上失败。
+> 如果您不能同时评分您的检索和答案,则您无法运输系统. 这两种方法不是相同的指标,并且相同的提示在不同的轴上失败.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 阶段 11 第 6 课（RAG）、第 10 课（评估）；阶段 19 B 轨道基础（第 20-29 课）；阶段 19 第 64、65、66、67 课
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 11 lessons 06 (RAG), 10 (evaluation); Phase 19 Track B foundations (lessons 20-29); Phase 19 lessons 64, 65, 66, 67
+**Time:** ~90 minutes
 
 ## 学习目标
-- 从黄金相关文档集（qrels）中计算四个检索指标：精确率@k、召回率@k、MRR（平均倒数排名）和 nDCG@k。
-- 计算两个答案评级指标：忠实度（每个声明都在检索到的上下文中有所依据）和答案相关性（答案是否回应了问题）。
-- 构建一份用于端到端评估的示例 qrels 文件（包含查询、黄金文档 ID、黄金答案文本）。
-- 读取指标值来诊断管道在哪个环节失败：检索、排序、生成或接地。
+- 从金中计算四个取取值指标:精度@k,回忆@k,MRR (平均交互级别) 和nDCG@k.
+- 计算两个答案等级指标:信实性 (每个索赔都是基于检索的背景) 和答案相关性 (答案解决问题).
+- 建立一个固定 qrels 文件 (查询,黄金文件标识,黄金答复文本) 评估读到端到端.
+- 读取测量值,以诊断管道失败的地方:检索,排名,生成或定位.
 
-## 问题所在
+## 问题
 
-一个 RAG 系统至少有四个关键部分：分块器、检索器、重排器、生成器。其中任何一个都可能导致错误答案。没有分阶段的指标，你就是在盲飞。
+没有每一个阶段的指标,你会飞得盲目. 没有每一个阶段的指标,你会飞得盲目.
 
-用户报告了一个错误答案。是因为分块器把答案片段截断了？是因为检索器没有把该片段包含在 top-k 中？是因为重排器把正确的片段排到了第一位之后？是因为生成器忽略了该片段并凭空捏造了内容？仅凭答案本身你无法判断。你需要：
+用户报告错误的答案.这是因为克削减了答案跨度吗?这是因为回收器没有包括克上层的克吗?是因为重排器推了右克过去的位置一?是因为发电机忽视了克并发明了什么东西吗?你不能从答案中说出来.你需要:
 
-- **检索指标**来评估检索器的输出质量。
-- **排序指标**来评估正确片段在排序中的位置。
-- **忠实度**来评估生成器是否始终在检索到的上下文范围内。
-- **答案相关性**来评估答案是否真正回应了问题。
+- 检索仪表将检索仪表的结果进行评分.
+- 排名指标,以分级,正确的部分坐落在顺序.
+- 为了评分发电机是否留在检索的文本中.
+- 答案是否符合问题的相关性.
 
-本教程将在一个示例 qrels 文件之上构建全部六个指标。该评估是离线且确定性的；在生产环境中，你将把模拟的 LLM 裁判替换为真实的模型。
+在本课程中,所有六个课程都建立在一个固定的qrels文件上. 评估是离线和确定性的; 在制作中,你将假的法官作为法官换成一个真实的.
 
-## 概念框架
+## 概念
 
 ```mermaid
 flowchart LR
-  Qrels[Qrels：查询 + 黄金文档 + 黄金答案] --> Retriever[检索器]
-  Retriever --> Top[Top-K 文档]
+  Qrels[Qrels: query + gold docs + gold answer] --> Retriever[Retriever]
+  Retriever --> Top[Top-K Docs]
   Top --> Retrieval[Precision/Recall/MRR/nDCG]
-  Qrels --> Gen[答案生成器]
+  Qrels --> Gen[Answer Generator]
   Top --> Gen
-  Gen --> Answer[生成的答案]
-  Answer --> Faithful[忠实度]
+  Gen --> Answer[Generated Answer]
+  Answer --> Faithful[Faithfulness]
   Top --> Faithful
-  Answer --> Relevant[答案相关性]
+  Answer --> Relevant[Answer Relevance]
   Qrels --> Relevant
 ```
 
-### Precision@k（精确率@k）
+### 精准@k
 
-在检索器返回的 top-k 个文档中，有多少比例属于黄金文档集？如果黄金文档有 3 个，而 top-3 返回了其中的 2 个和 1 个错误的，那么 precision@3 就是 2 / 3。当无关检索片段的成本较高时使用精确率（生成器会在上面浪费 token，或者该片段会污染答案）。
+如果金子有三份文件,而金子3份返回其中两个文件,而一个是错误的,精度@3是2/3.当不相关的检索件的成本高时,使用精度 (发电机浪费代币,或该件毒解答).
 
-### Recall@k（召回率@k）
+### 提醒
 
-在黄金文档中，有多少比例出现在了 top-k 里？如果黄金文档有 3 个，而 top-5 包含了全部 3 个，那么 recall@5 就是 1.0。当你担心遗漏答案片段时使用召回率（你宁愿看到一个额外的错误片段，也不愿完全错过答案片段）。
+如果金子有三个文件,而五号包含三个文件, recall@5是1.0.当错过答案的成本高时,使用 recall (你宁愿看到一个额外的错误部分,而不是完全错过答案部分).
 
-在生产 RAG 系统中，人们通常引用的指标是 recall@k。生成器可以轻松丢弃无关片段；但它无法凭空创造出从未见过片段的答案。
+在生产中,人们通常引用的标准是 recall@k.
 
-### MRR（Mean Reciprocal Rank，平均倒数排名）
+### 平均相应等级
 
-对于每个查询，在排序列表中找出第一个相关文档的位置。倒数排名为 1 / 位置。在所有查询上取平均值。MRR 是一个单一数字，用于总结检索器将最佳答案放在顶部有多好。
+对于每个查询,在排名列表中找到第一个相关文档的位置. 相互排名为1/位置. 在查询集中平均. MRR是检索器如何把最佳答案放在顶部的单数总结.
 
-MRR 对位置 1 有极大权重。一个黄金文档排在第 1 位的查询贡献 1.0，第 2 位贡献 0.5，第 10 位贡献 0.1。该指标主要由列表顶部主导。
+MRR 重量重于位置-1.一个查询中黄金文档处于排名1的贡献1.0.排名2的贡献0.5.排名10的贡献0.1.表格由列表的顶部占主导地位.
 
-### nDCG@k（归一化折损累计增益）
+### 其他类型
 
-全称 Normalized Discounted Cumulative Gain。完整公式为每个检索到的文档分配一个增益值（通常为 1 表示相关，0 表示不相关），按位置的对数进行折扣，求和后除以理想 DCG（即完美排序时的 DCG）。取值范围 0 到 1。
+标准化折扣累计收益.完整公式将每份获取的文件分配到收益 (通常是相关的1个,不相关的0个),按位置日志折扣,总和和 divides 理想的DCG (如果您排名完美的话,您将获得的DCG).范围从0到1.
 
-nDCG 支持分级相关性：黄金标注可以说"文档 A 相关性为 3，文档 B 为 2，文档 C 为 1"。MRR 和 recall@k 将所有内容扁平化为二元关系。当语料库中每个查询有多个部分相关的文档时，使用 nDCG。
+nDCG可以满足分类相关性:金字母可以说"doc A 是 3,doc B 是 2,doc C 是 1".MRR 和 recall@k 将所有内容平坦成二进制.使用 nDCG 当每次查询中有多个部分相关的文档时.
 
-### Faithfulness（忠实度）
+### 忠诚
 
-对于生成答案中的每个声明，检查该声明是否由检索到的上下文支持。标准实现使用一个 LLM-as-judge 提示，输入 (声明, 上下文)，输出 yes 或 no。指标是通过的声明占比。
+对于生成答案中的每个索赔,请检查索索赔是否支持被检索的文本.标准实施使用一个LLM作为法官提示,接收 (索赔,文本) 并返回是否.
 
-忠实度捕捉生成器的失败模式——模型凭空捏造内容。即使检索器返回了正确的片段，一个会产生幻觉的生成器也是有缺陷的。忠实度也称为 groundedness、support、attribution。
+忠诚度捕获生成器故障模式,模型发明内容.即使检索器返回了正确的块,一个产生幻觉的生成器就会被破坏.忠诚度也被称为基地,支持,归因.
 
-本教程使用确定性模拟裁判实现忠实度，检查每个声明的 token 是否与检索到的上下文达到阈值重叠。在生产环境中，你可以替换为真实模型调用。指标的形态是相同的。
+在本课程中,我们使用一个确定性假设法官来实现忠诚度,该法官检查每个索赔的代币是否通过门覆盖检索的文本.在生产中,你会换成一个真实模型调用.
 
-### Answer Relevance（答案相关性）
+### 答案的相关性
 
-答案是否真正回应了问题？忠实度问的是"答案是否有上下文依据？"，而答案相关性问的是"答案是否有问题依据？"。一个忠实但离题的答案会在忠实度上得分高，在相关性上得分低。一个简短、切题但忽略上下文的答案会在相关性上得分高，在忠实度上得分低。
+忠诚性问"答案是否基于文本?"答案相关性问"答案是否基于问题?"一个忠诚但不涉及主题的答案在信任度上高,而在相关性上低.一个忽略文本的短短暂,主题上的答案在相关性上高,而在信任度上低.
 
-标准实现同样使用 LLM-as-judge：输入 (问题, 答案)，询问答案是否回应了问题。本教程实现了一个基于 token 重叠加裁判的替代品。
+标准实施还使用LLM作为法官:接受 (问题,答案) 并问答是否解决问题. 这一课实行了一个代币重叠加法官的替代.
 
-## 示例 qrels 文件
+## 固定式
 
 ```python
 {
@@ -90,99 +90,99 @@ nDCG 支持分级相关性：黄金标注可以说"文档 A 相关性为 3，文
 }
 ```
 
-每个查询携带：
-- 查询字符串，
-- 黄金文档 ID 集合（用于精确率/召回率/MRR），
-- 分级相关性字典（用于 nDCG），
-- 黄金答案子串（作为每个 qrel 的参考元数据保存；本教程中的忠实度是通过裁判提取的声明与检索到的上下文进行比较来计算，而非与该子串比较）。
+每个查询都包含:
+- 查询链,
+- 一组黄金文件 (准确/召回/MRR)
+- 标准性相关性指令 (对于nDCG),
+- 黄金答案字符串 (每个字符串的参考元数据被保留;本课程的忠实性是通过根据检索的文本来判断提取的索赔,而不是对此字符串来计算).
 
-在生产环境中，你需要对这些数据进行标注。本教程提供一个手工构建的示例，以便评估可以直接运行。
+在生产中,你标签这些. 这堂课将手工制造的装置发送,
 
 ```figure
 ci-rag-metric-ladder
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现了：
+`code/main.py`执行:
 
-- `precision_at_k(retrieved, gold, k)` — 字面定义。
-- `recall_at_k(retrieved, gold, k)` — 字面定义。
-- `mean_reciprocal_rank(retrieved_list_of_lists, gold_list)` — 各查询的均值。
-- `ndcg_at_k(retrieved, graded_relevance, k)` — DCG / IDCG，支持二元或分级增益。
-- `extract_claims(answer)` — 将答案拆分为句子形式的声明。
-- `faithfulness(claims, context_texts, judge)` — 通过裁判的声明占比。
-- `answer_relevance(question, answer, judge)` — 裁判答案是否回应了问题。
-- `MockJudge` — 确定性 token 重叠裁判，使评估可以离线运行。
-- `evaluate_pipeline(pipeline_fn, qrels, ks)` — 运行所有指标的主控函数。
-- 一个演示，针对 qrels 运行三种管道变体（分块基线、混合检索、混合检索+重排）并打印指标表。
+- `precision_at_k(retrieved, gold, k)`- - 字面上定义.
+- `recall_at_k(retrieved, gold, k)`- - 字面上定义.
+- `mean_reciprocal_rank(retrieved_list_of_lists, gold_list)`- - 关于查询的恶意.
+- `ndcg_at_k(retrieved, graded_relevance, k)`- 双向或分别增长的DCG/IDCG.
+- `extract_claims(answer)`- 分开答案成句子形状的索赔.
+- `faithfulness(claims, context_texts, judge)`- 据裁定支持的索赔的比例.
+- `answer_relevance(question, answer, judge)`- 判断答案是否符合问题.
+- `MockJudge`确定性标志重叠判断,所以评估运行离线.
+- `evaluate_pipeline(pipeline_fn, qrels, ks)`- - 管家,他运行了每一个指标.
+- 测试试将三个管道变体 (chunker基线,混合检索,混合+重排) 运行到qrels上,并打印一个指标表.
 
-运行：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-输出在同一张指标表中展示每种变体的 precision@k、recall@k、MRR、nDCG@k、忠实度和答案相关性。混合检索行在召回率上优于分块基线；重排行在 MRR 上优于混合检索。
+输出显示了单个指标表中的每个变体的精度@k,回调@k,MRR,nDCG@k,忠实性和答案相关性.混合检索行超过回调时的重点线;重排行行超过MRR上的混合.
 
-## 通过指标诊断失败
+## 阅读测量数据来诊断失败
 
-| 症状 | 可能原因 | 修复方法 |
-|------|---------|---------|
-| 低 recall@k，低 precision@k | 分块器截断了答案，或检索器找不到 | 调整分块边界（第 64 课）或检索器模态（第 65 课） |
-| recall@k 尚可，MRR 低 | 正确片段在 top-k 中，但不在第 1 位 | 重排器（第 66 课） |
-| MRR 高，忠实度低 | 生成器在拥有正确上下文的情况下仍凭空捏造内容 | 生成提示；强制引用或拒绝回答 |
-| 忠实度高，相关性低 | 答案有依据但离题 | 查询改写器（第 67 课）或生成提示 |
-| 四个指标都高，但用户仍抱怨 | 评估集不具备代表性 | 用真实用户查询扩充 qrels |
+| Symptom | Likely cause | What to fix |
+|---------|-------------|-------------|
+| Low recall@k, low precision@k | Chunker cut the answer or retriever cannot find it | Chunker boundaries (lesson 64) or retriever modality (lesson 65) |
+| Decent recall@k, low MRR | Right chunk is in top-k but not at position 1 | Reranker (lesson 66) |
+| High MRR, low faithfulness | Generator invents content despite right context | Generation prompt; force-cite-or-refuse |
+| High faithfulness, low relevance | Answer is grounded but off-topic | Query rewriter (lesson 67) or generation prompt |
+| All four high, users still complain | Eval set is unrepresentative | Expand qrels with real user queries |
 
-## 演示中可能隐藏的失败模式
+## 失败模式的演示将隐藏
 
-**LLM-as-judge 偏见。** 模型倾向于将自己的输出判为更忠实。让裁判使用与生成器不同的模型家族，或对样本进行人工标注。
+**LLM-as-judge bias.**模型判断自己的输出比其更忠实. 用不同的模型家族来判断,
 
-**Qrels 腐化。** 黄金答案会随着语料库的变更而过时。2024 年 1 月针对 q1 的黄金文档，可能在 2024 年 10 月不再正确，因为团队重命名了该函数。安排每季度 qrels 审查。
+**Qrels rot.**随着体积的变化,黄金答案漂移.在2024年1月份为Q1的文件不再是正确的答案,因为团队将该函数更名.
 
-**忠实度微观检查会遗漏宏观声明。** 逐句忠实度可能通过，但整体答案的结构可能产生误导。在自动化指标之上增加样本级定性审查。
+**Faithfulness micro-checks miss macro-claims.**总体答案结构误导性时,每句话的忠诚性可以通过.
 
-**Recall@k 掩盖单条查询的失败。** 90% 的平均召回率可能隐藏某一类查询总是失败的情况。按查询类别（字面查询、 paraphrased、多主题）对 qrels 切片，并分别报告各切片指标。
+**Recall@k masks per-query failures.**平均回忆率90%可以隐藏一个查询类总是错过.按查询类 (字面,句子,多主题) 切割qrels,并每片报告.
 
-## 生产用法
+## 用它
 
-生产模式：
+生产模式:
 
-- 在每次检索器或生成器变更后运行评估。将 recall@k 的退化视为测试失败。
-- 持久化每条查询的指标轨迹。当用户投诉时，查找匹配的 qrels 条目，看看是否会被捕获。
-- 分层 qrels：20 条查询的冒烟测试集在 CI 中运行；200 条的回归测试集每晚运行；2000 条的深度测试集每周运行。
+- 运行每一个检索器或发电机的变化. 处理回调@k 像测试失败.
+- 继续按每一个查询的指标. 当用户抱怨时,请查看匹配的qrels条目,看看它是否被抓住.
+- 排列的数量:一个由20个查询组成的烟集,运行在CI中;一个每晚运行的回归集200个;一个每周运行的深层集2000个.
 
-## 交付
+## 运送它
 
-第 69 课将整个管道（分块器、检索器、重排器、生成器）连接起来，并对端到端系统运行此评估。
+课程69将整个管道线 (机,检索机,重排机,发电机) 线程,并对付端到端系统进行评估.
 
-## 练习
+## 运动
 
-1. 添加第五个检索指标：hit-rate@k。与 recall@k 比较。解释它们何时不同。
-2. 实现分级忠实度：0（无依据）、1（部分支持）、2（完全支持）。相应更新指标。
-3. 用真实模型调用替换模拟裁判。测量模拟裁判与真实裁判在示例集上的分歧。
-4. 添加查询类别切片（"literal"、"paraphrased"、"multi-topic"）。报告各切片的指标。
-5. 添加"答案长度"指标，并与其和忠实度的相关性进行关联分析。绘制曲线。
+1. 添加第五个检索指标:hit-rate@k. 与 recall@k. 解释它们不同时.
+2. 执行一个级别的忠诚度:0 (不支持),1 (部分支持),2 (完全支持). 根据此更新指标.
+3. 测量假设法官和真实法官之间的不一致性.
+4. 添加查询类分片 ("字面","句子","多主题"). 报告每分片的指标.
+5. 添加一个"答案长度"的指标,并将其与忠诚度相对.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|---------|
-| Precision@k | "检索命中准率" | top-k 中属于黄金的比例 |
-| Recall@k | "黄金命中准率" | top-k 中涵盖的黄金比例 |
-| MRR | "首次命中位置" | 第一个相关文档排名的 1/rank 均值 |
-| nDCG@k | "分级排序质量" | top-k 的 DCG 除以理想 DCG |
-| Faithfulness | "接地性" | 答案声明中由检索上下文支持的比例 |
-| Answer relevance | "是否回应了问题？" | 答案是否与问题意图匹配 |
-| Qrels | "黄金标签" | 包含查询及其黄金文档和答案的标注集 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Precision@k | "Hit rate over retrieved" | Fraction of top-k that are gold |
+| Recall@k | "Hit rate over gold" | Fraction of gold in top-k |
+| MRR | "First-hit position" | Mean of 1 / rank of first relevant document |
+| nDCG@k | "Graded ranking quality" | DCG over the top-k divided by ideal DCG |
+| Faithfulness | "Groundedness" | Fraction of answer claims supported by retrieved context |
+| Answer relevance | "Did it address the question?" | Whether the answer matches the question's intent |
+| Qrels | "Gold labels" | The labeled set of queries and their gold documents and answers |
 
-## 延伸阅读
+## 进一步阅读
 
-- Buckley, Voorhees, "Evaluating Evaluation Measure Stability", SIGIR 2000 — 排序指标的经典论文
-- Jarvelin, Kekalainen, "Cumulated Gain-based Evaluation of IR Techniques" — nDCG 论文
+- 布克利,沃尔希斯, "评估评估措施稳定性"SIGIR 2000 - 排名指标的经典论文
+- 瑞林,凯卡莱宁, "基于收益的 IR 技术的累计评估" - nDCG论文
 - [Ragas: Automated Evaluation of RAG Pipelines](https://docs.ragas.io)
 - [Anthropic, Evaluating RAG](https://www.anthropic.com/news/evaluating-rag)
-- 阶段 11 第 10 课 — 评估框架基础
-- 阶段 19 第 64-67 课 — 此处评估的各个组件
-- 阶段 19 第 69 课 — 本评估所针对的端到端管道
+- 第十课 - 评估框架基础
+- 第19阶段课程 64-67 - 在这里评估的组件
+- 第19阶段课程69 - - 这项评估成绩的端到端管道

@@ -1,47 +1,47 @@
-# 调试与性能分析
+# 调整和配置文件
 
-> 最糟糕的 AI Bug 不会崩溃。它们会在垃圾数据上默默训练，然后报告一条漂亮得可疑的损失曲线。
+> 最糟糕的AI虫不会毁,而是沉默地训练垃圾,并报告一个美丽的损失曲线.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** 第1课（开发环境）、基本 PyTorch 熟悉度
-**时间：** 约 60 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Lesson 1 (Dev Environment), basic PyTorch familiarity
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 使用条件断点 `breakpoint()` 和 `debug_print` 检查训练过程中的张量形状、数据类型和 NaN 值
-- 使用 `cProfile`、`line_profiler` 和 `tracemalloc` 分析训练循环，找出瓶颈
-- 检测常见 AI Bug：形状不匹配、NaN 损失、数据泄漏、设备错误的张量
-- 配置 TensorBoard 可视化损失曲线、权重直方图和梯度分布
+- 使用条件`breakpoint()`其他`debug_print`检查子形状,dtype和NaN值在训练中
+- 配置训练循环与`cProfile`现在`line_profiler`其他`tracemalloc`找瓶
+- 检测常见的AI错误:形状不匹配,NaN损失,数据泄露和错误设备器
+- 设置 TensorBoard 可可可查看损失曲线,权重 histogram 和梯度分布
 
-## 问题所在
+## 问题
 
-AI 代码的失败方式与常规代码不同。Web 应用会带着堆栈跟踪崩溃。而配置错误的训练循环会运行 8 小时，花费 200 美元 GPU 费用，最终产出一个预测每个输入均值的模型。代码从未报错。Bug 可能是一个放错设备的张量、一个遗忘的 `.detach()`、或标签泄漏到了特征中。
+网络应用程序会出现条失败.一个错误配置的训练循环运行8小时,在GPU时间中燃烧200美元,并产生一个模型,预测每个输入的平均值.代码从来没有错误.错误是错误设备上的子,一个被遗忘的`.detach()`标签泄露到特征中.
 
-你需要能在这类无声失败浪费你的时间和算力之前捕获它们的调试工具。
+需要检测这些默默失误的工具,
 
 ## 概念
 
-AI 调试分为三个层次：
+人工智能调试在三个层次上运行:
 
 ```mermaid
 graph TD
-    L3["3. 训练动态<br/>损失曲线、梯度范数、激活值"] --> L2
-    L2["2. 张量操作<br/>形状、数据类型、设备、NaN/Inf 值"] --> L1
-    L1["1. 标准 Python<br/>断点、日志、性能分析、内存"]
+    L3["3. Training Dynamics<br/>Loss curves, gradient norms, activations"] --> L2
+    L2["2. Tensor Operations<br/>Shapes, dtypes, devices, NaN/Inf values"] --> L1
+    L1["1. Standard Python<br/>Breakpoints, logging, profiling, memory"]
 ```
 
-大多数人会直接跳到第 3 层（盯着 TensorBoard 看）。但 80% 的 AI Bug 其实存在于第 1 和第 2 层。
+大多数人直接跳到3级 (看TensorBoard). 但80%的AI bugs生活在1级和2级.
 
 ```figure
 s0-flame-hot
 ```
 
-## 动手实现
+## 建立它
 
-### 第 1 部分：Print 调试（没错，真的有用）
+### 第一个部分:打印问题 (是的,它可以工作)
 
-Print 调试常被轻视。但不该如此。对于张量代码，一条精准的 print 语句胜过一步步跟调试器，因为你一眼就能看到形状、数据类型和数值范围。
+对于子代码,一个目标打印语句比通过一个调试器进行排错更好,因为你需要同时看到形状,类型和值范围.
 
 ```python
 def debug_print(name, tensor):
@@ -52,11 +52,11 @@ def debug_print(name, tensor):
           f"has_nan={tensor.isnan().any().item()}")
 ```
 
-在每次可疑操作后调用它。找到 Bug 后，删掉这些 print。就这么简单。
+任何可疑的操作后,请打电话,
 
-### 第 2 部分：Python 调试器（pdb 和 breakpoint）
+### 第2部分:Python 调试器 (pdb 和破点)
 
-内置调试器在 AI 开发中被严重低估。把 `breakpoint()` 插入你的训练循环，然后交互式检查张量。
+由于人工智能工作,内置的调试器被低估.`breakpoint()`进入训练循环,并进行互动检查.
 
 ```python
 def training_step(model, batch, criterion, optimizer):
@@ -71,19 +71,19 @@ def training_step(model, batch, criterion, optimizer):
     optimizer.step()
 ```
 
-当调试器切入时，常用命令：
+当调试器让你进入时,有用的命令:
 
-- `p outputs.shape` 检查形状
-- `p loss.item()` 查看损失值
-- `p torch.isnan(outputs).sum()` 统计 NaN 个数
-- `p model.fc1.weight.grad` 检查梯度
-- `c` 继续运行，`q` 退出
+- `p outputs.shape`检查形状
+- `p loss.item()`查看损失值
+- `p torch.isnan(outputs).sum()`计数纳米
+- `p model.fc1.weight.grad`检查梯度
+- `c`继续,`q`放弃
 
-这是条件调试——只有看起来不对劲时才停下。对于一次 10,000 步的训练，这非常关键。
+这只是条件调试,你只会停下来当有些东西看起来不对.
 
-### 第 3 部分：Python 日志
+### 第三部分:Python记录
 
-当调试超出快速检查的范畴时，用日志替换 print 语句。
+检查时,将打印声明取代为记录.
 
 ```python
 import logging
@@ -103,11 +103,11 @@ logger.warning("Loss spike detected: %.4f at step %d", loss.item(), step)
 logger.error("NaN loss at step %d, stopping", step)
 ```
 
-日志提供时间戳、严重级别和文件输出。当训练在凌晨 3 点失败时，你需要的是一个日志文件，而不是一行行早已滚出终端屏幕的输出。
+登录给你时间标签,严重程度水平和文件输出. 当训练运行在凌晨3点失败时,你需要一个日志文件,而不是终端输出,
 
-### 第 4 部分：为代码段计时
+### 第四部分:时间代码部分
 
-了解时间花在哪里，是优化的第一步。
+知道时间的发展是优化第一步.
 
 ```python
 import time
@@ -134,17 +134,17 @@ with Timer("backward pass"):
     loss.backward()
 ```
 
-常见发现：数据加载占了 60% 的训练时间。解决方案是 DataLoader 里设置 `num_workers > 0`，而不是换更快的 GPU。
+常见发现:数据加载需要60%的培训时间.`num_workers > 0`在你的数据加载器中,而不是更快的GPU.
 
-### 第 5 部分：cProfile 和 line_profiler
+### 第5部分:cProfile和line_profiiler
 
-当手工计时不够用时：
+当你需要不仅仅是手动计时器时:
 
 ```bash
 python -m cProfile -s cumtime train.py
 ```
 
-这显示所有函数调用，按累计时间排序。要逐行分析：
+这显示了每个函数调用按累积时间排序.
 
 ```bash
 pip install line_profiler
@@ -158,12 +158,12 @@ def train_step(model, data, target):
     loss.backward()
     return loss
 
-# 运行：kernprof -l -v train.py
+# Run with: kernprof -l -v train.py
 ```
 
-### 第 6 部分：内存分析
+### 第六部分:记忆分析
 
-#### 使用 tracemalloc 分析 CPU 内存
+#### 具有 tracemalloc 的CPU内存
 
 ```python
 import tracemalloc
@@ -180,7 +180,7 @@ for stat in top_stats[:10]:
     print(stat)
 ```
 
-#### 使用 memory_profiler 分析 CPU 内存
+#### 处理器内存与内存_配置文件
 
 ```bash
 pip install memory_profiler
@@ -191,14 +191,14 @@ from memory_profiler import profile
 
 @profile
 def load_data():
-    raw = read_csv("data.csv")       # 观察内存在此处跳升
-    processed = preprocess(raw)       # 以及这里
+    raw = read_csv("data.csv")       # watch memory jump here
+    processed = preprocess(raw)       # and here
     return processed
 ```
 
-运行 `python -m memory_profiler your_script.py` 查看逐行内存使用情况。
+走上`python -m memory_profiler your_script.py`查看一行一行的内存使用.
 
-#### 使用 PyTorch 分析 GPU 内存
+#### 配备PyTorch的GPU内存
 
 ```python
 import torch
@@ -210,19 +210,19 @@ if torch.cuda.is_available():
     print(f"Cached: {torch.cuda.memory_reserved() / 1e9:.2f} GB")
 ```
 
-遇到 OOM（内存溢出）时：
+当你按OOM (Out of Memory) 时:
 
-1. 减小 batch size（第一优先级，始终尝试）
-2. 使用 `torch.cuda.empty_cache()` 释放缓存内存
-3. 对大型中间张量，使用 `del tensor` 后跟 `torch.cuda.empty_cache()`
-4. 使用混合精度（`torch.cuda.amp`）将内存占用减半
-5. 对极深模型使用梯度检查点（gradient checkpointing）
+1. 减少批量 (首先尝试,总是)
+2. 使用`torch.cuda.empty_cache()`释放缓存的内存
+3. 使用`del tensor`接着是`torch.cuda.empty_cache()`对于大型中间产品
+4. 使用混合精度 (`torch.cuda.amp`) 减少半个内存使用量
+5. 对于非常深层模型使用梯度检查
 
-### 第 7 部分：常见 AI Bug 及检测方法
+### 第7部分:常见的人工智能虫害和如何捕获它们
 
 #### 形状不匹配
 
-最常见的 Bug。张量形状是 `[batch, features]`，但模型期望 `[batch, channels, height, width]`。
+子有形状.`[batch, features]`模型预期的时间`[batch, channels, height, width]`现在,我们要去.
 
 ```python
 def check_shapes(model, sample_input):
@@ -246,16 +246,16 @@ def check_shapes(model, sample_input):
         h.remove()
 ```
 
-用一批样本运行一次。它会绘制你模型中每一步的形状变化。
+试试一次用样本,它将模型中的每个形状转变映射出来.
 
-#### NaN 损失
+#### 损失
 
-NaN 损失意味着某些东西炸了。常见原因：
+子的损失意味着爆炸.
 
 - 学习率太高
-- 自定义损失函数中的除以零
-- 对零或负数取对数
-- RNN 中的梯度爆炸
+- 关损失中零分
+- 零或负数的记录
+- 在RNN中爆炸梯度
 
 ```python
 def detect_nan(model, loss, step):
@@ -271,9 +271,9 @@ def detect_nan(model, loss, step):
     return False
 ```
 
-#### 数据泄漏
+#### 数据泄露
 
-你的模型在测试集上达到 99% 准确率。听起来很棒。这是个 Bug。
+你的模型在测试组上得到了99%的准确性.听起来很好.这是一个错误.
 
 ```python
 def check_data_leakage(train_set, test_set, id_column="id"):
@@ -286,11 +286,11 @@ def check_data_leakage(train_set, test_set, id_column="id"):
     return False
 ```
 
-还要检查时序泄漏：用未来数据预测过去。在划分前先按时间戳排序。
+通过使用未来数据来预测过去,在分开之前按时间标签进行排序.
 
 #### 错误的设备
 
-不同设备（CPU 与 GPU）上的张量会导致运行时错误。但有时某个张量静默地留在 CPU 上，而其他所有内容都在 GPU 上，训练只是运行得慢一些。
+虽然在不同设备 (CPU与GPU) 上的光器会导致运行时间错误.但有时一个光器默默地停留在CPU上,而其他的东西在GPU上,
 
 ```python
 def check_devices(model, *tensors):
@@ -301,9 +301,9 @@ def check_devices(model, *tensors):
             print(f"  WARNING: tensor {i} on {t.device}, model on {model_device}")
 ```
 
-### 第 8 部分：TensorBoard 基础
+### 第8部分:机板的基本原理
 
-TensorBoard 让你看到训练中发生的事情随时间的变化。
+子板显示了训练过程中的情况.
 
 ```bash
 pip install tensorboard
@@ -329,24 +329,24 @@ for step in range(num_steps):
 writer.close()
 ```
 
-启动：
+发射:
 
 ```bash
 tensorboard --logdir=runs
 ```
 
-注意观察：
+什么要找:
 
-- **损失不下降**：学习率太低，或模型架构有问题
-- **损失剧烈震荡**：学习率太高
-- **损失变成 NaN**：数值不稳定（见上方 NaN 部分）
-- **训练损失下降，验证损失上升**：过拟合
-- **权重直方图塌陷为零**：梯度消失
-- **梯度直方图爆炸**：需要梯度裁剪
+- **Loss not decreasing**学习率太低,或模型架构问题
+- **Loss oscillating wildly**学习率太高
+- **Loss goes to NaN**: 数字不稳定 (参见上述NAN部分)
+- **Train loss decreasing, val loss increasing**过度装饰
+- **Weight histograms collapsing to zero**: 渐变的梯度
+- **Gradient histograms exploding**需要梯度剪切
 
-### 第 9 部分：VS Code 调试器
+### 第9部分: VS代码调试器
 
-进行交互式调试时，通过 `launch.json` 配置 VS Code：
+为了进行交互调试,配置VS代码`launch.json`其他:
 
 ```json
 {
@@ -364,34 +364,34 @@ tensorboard --logdir=runs
 }
 ```
 
-点击行号旁的 gutter 设置断点。使用 Variables 面板检查张量属性。调试控制台允许你在执行过程中运行任意 Python 表达式。
+通过点击道设置断点. 使用变量窗口检查子属性. 调试控制台允许在执行中运行任意的Python表达式.
 
-适用于需要逐步查看数据预处理流水线中每一步转换的场景。
+通过数据预处理管道, 看到每个转换.
 
-## 实践应用
+## 用它
 
-以下工作流能捕获大多数 AI Bug：
+这里是检测大部分人工智能错误的调试工作流程:
 
-1. **训练前**：用样本批次运行 `check_shapes`。验证输入和输出维度符合预期。
-2. **前 10 步**：对损失、输出和梯度使用 `debug_print`。确认没有 NaN 且数值在合理范围内。
-3. **训练中**：记录损失、学习率和梯度范数。使用 TensorBoard 可视化。
-4. **出错时**：在失败点插入 `breakpoint()`。交互式检查张量。
-5. **性能优化**：对数据加载、前向传播和反向传播分别计时。接近 OOM 时分析内存。
+1. **Before training**跑步`check_shapes`检查输入和输出尺寸符合预期.
+2. **First 10 steps**使用 `debug_print`确认没有任何 NaN,值在合理的范围内.
+3. **During training**通过TensorBoard进行可视化.
+4. **When something breaks**放下`breakpoint()`检查电压器的互动性.
+5. **For performance**时间数据加载,前进,后退传输,如果您接近OOM,则配置文件内存.
 
-## 交付
+## 运送它
 
-运行调试工具脚本：
+运行调试工具包脚本:
 
 ```bash
 python phases/00-setup-and-tooling/12-debugging-and-profiling/code/debug_tools.py
 ```
 
-参见 `outputs/prompt-debug-ai-code.md` 获取一个帮助诊断 AI 特有 Bug 的提示词。
+看到`outputs/prompt-debug-ai-code.md`通过一个提示来诊断人工智能特定的错误.
 
-## 练习
+## 运动
 
-1. 运行 `debug_tools.py` 并通读各部分的输出。修改占位模型引入 NaN（提示：在前向传播中除以零），观察检测器如何捕获它。
-2. 使用 `cProfile` 分析训练循环，找出最慢的函数。
-3. 使用 `tracemalloc` 找出数据加载流水线中哪一行分配了最多内存。
-4. 为一个简单训练任务配置 TensorBoard，判断模型是否过拟合。
-5. 在训练循环中使用 `breakpoint()`。练习从调试器提示符检查张量形状、设备和梯度值。
+1. 跑步`debug_tools.py`修改模特以引入一个NaN (提示:在前进传输中除以零) 并观看探测器抓住它.
+2. 配置一个训练循环`cProfile`并且确定最慢的函数.
+3. 使用`tracemalloc`查找数据加载管道中哪条线分配最多的内存.
+4. 设置TensorBoard进行简单的训练, 确定模型是否过度适合.
+5. 使用`breakpoint()`练习检查子形状,设备和梯度值从调试器提示.

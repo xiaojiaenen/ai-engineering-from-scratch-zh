@@ -1,123 +1,123 @@
-# 多智能体辩论与协作
+# 多代理商辩论和合作
 
-> Du 等（ICML 2024，《Society of Minds》）运行 N 个模型实例独立提出答案，然后在 R 轮中迭代相互批评以达成收敛。可提升事实准确性、规则遵循能力和推理能力。在 token 成本方面，稀疏拓扑优于全连接拓扑。
+> 杜等人 (ICML 2024,"思想社会") 运行了N模型实例,独立提出答案,然后在R轮中反复批评彼此,以融合.改善事实性,遵循规则,推理.节省拓学在代币成本上击败了全网网.
 
-**类型：** 学习 + 构建
-**语言：** Python (stdlib)
-**前置要求：** Phase 14 · 12（工作流模式）、Phase 14 · 05（自我精炼与 CRITIC）
-**时间：** 约 60 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 12 (Workflow Patterns), Phase 14 · 05 (Self-Refine and CRITIC)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 阐述辩论协议：N 位提议者、R 轮迭代、收敛于共享答案。
-- 说明辩论为何能提升事实准确性、规则遵循能力和推理能力。
-- 解释稀疏拓扑：并非每个辩论者都需要与所有其他辩论者交互。
-- 基于脚本化 LLM 实现全连接与稀疏变体的辩论；测量 token 成本与准确率的权衡。
+- 解释辩论协议:N提案者,R轮,汇聚在一个共享的答案.
+- 描述为什么争论会改善事实,规则和推理.
+- 解释稀少的拓:不是每个辩论者都需要互相见面.
+- 实施一个关于一个编写的LLM的SDLL辩论,其中包括全网和稀缺的变体;衡量代币成本与准确性.
 
 ## 问题
 
-自我精炼（第 05 课）是单个模型批评自己——存在群体思维的风险。CRITIC（第 05 课）将批评建立在外部工具上——但并非始终可用。辩论引入了第三种模式：多个实例、交叉批评、通过分歧达成共识。
+自我清理 (课05) 是一种自我批评模式. 风险群思. 批评 (课05) 在外部工具中不总是可用. 辩论引入第三种模式:多种实例,交叉批评,通过分歧的融合.
 
 ## 概念
 
-### Society of Minds（Du 等，ICML 2024）
+### 思想社会 (Du et al., ICML 2024)
 
-- N 个模型实例针对同一问题独立提出答案。
-- 经过 R 轮交互，每个模型阅读其他模型的提议并加以批评。
-- 模型根据批评更新自己的答案。
-- R 轮结束后，返回收敛的答案。
+- 模型实例独立提出答案.
+- 在R轮中,每个模型都会阅读其他模型的建议并批评它们.
+- 模型根据批评更新了他们的答案.
+- 在R轮之后,返回相近的答案.
 
-由于成本考虑，原始实验采用 N=3、R=2。在难题上（MMLU、GSM8K、棋步有效性、传记生成），增加代理数量和轮次可以提高准确率。
+由于成本,原始实验使用了N=3,R=2.随着更多的代理和更多的重题 (MMLU,GSM8K,象棋移动有效性,传记生成) 的精度提高.
 
-跨模型组合优于单模型辩论：ChatGPT + Bard 联合 > 任一单独使用。
+跨型组合比单个模型辩论更好:ChatGPT + Bard 合一 > 单独.
 
-### 稀疏拓扑
+### 光顶点
 
-《基于稀疏通信拓扑改进多智能体辩论》（arXiv:2406.11776，2024-2025）表明全连接辩论并非总是最优。稀疏拓扑（星型、环形、中心-边缘）可以在更低 token 成本下达到相当的准确率。每个辩论者仅看到部分同行。
+"通过缩通信拓学改进多代理辩论" (arXiv:2406.11776, 2024-2025) 显示,全网辩论并不总是最佳.缩拓学 (星,环,枢纽和口) 可以以较低的代币成本匹配精度.每个辩论者只看到一小组同行.
 
-启示：
+影响:
 
-- 全连接 N=5，R=3 = 5 × 3 = 15 个提议，每个阅读 4 个同行 = 60 次批评操作。
-- 星型 N=5，R=3（一个中心 + 4 个边缘）= 15 个提议，边缘仅阅读中心 = 12 次批评操作。
+- 满网N=5,R=3 =5 ×3 =15个提案,每一个阅读4个同行 =60个评论.
+- 星座N=5,R=3 (一个中心+4个口) =15个提案,口号只读到中心 =12个批评行动.
 
-### 辩论何时有益
+### 辩论有什么帮助
 
-- **事实准确性。** N 个独立提议，交叉检查减少幻觉。
-- **规则遵循。** 棋步有效性——一个模型遗漏规则，其他模型能捕捉到。
-- **开放式推理。** 多种视角逐步收敛到正确答案。
+- **Factuality.**独立的提案,反检查减少了幻觉.
+- **Rule-following.**,一个模型错过了一个规则,其他人抓住了它.
+- **Open-ended reasoning.**许多框架限制了正确的答案.
 
-### 辩论何时有害
+### 当辩论痛
 
-- **延迟敏感的用户体验。** N × R 串行轮次可能带来不可接受的延迟。
-- **成本敏感的规模化。** 每问题需 N × R 个 token。
-- **简单事实查询。** 一次查询比五次辩论更经济。
+- **Latency-sensitive UX.**没有的延迟.
+- **Cost-sensitive scale.**按问题每一个N × R代码.
+- **Simple factual lookups.**一次查询比五次辩论便宜.
 
-### 2026 年的实际应用
+### 2026 实用实例
 
-- **Anthropic orchestrator-workers**（第 12 课）—— 带有综合步骤的辩论变体。
-- **LangGraph supervisor**（第 13 课）—— 中央路由器 + 专家代理可将辩论实现为节点。
-- **OpenAI Agents SDK**（第 16 课）—— 代理间来回交接进行迭代批评。
-- **多智能体评估** —— 辩论 + 评估器-优化器配对以获得评估信号。
+- **Anthropic orchestrator-workers**一个由合成步骤组成的辩论的变体.
+- **LangGraph supervisor**中央路由器+专业代理可以作为节点实现辩论.
+- **OpenAI Agents SDK**代理人向前向后转移,以进行反复批评.
+- **Multi-agent evals**对辩论+评估信号的评估优化器.
 
-### 该模式何时失效
+### 在这个模式出现错误的地方
 
-- **收敛崩溃。** 所有代理收敛到第一个错误答案。可通过强制分歧轮次来缓解。
-- **中心故障。** 在星型拓扑中，坏的中心会污染所有参与者。轮换或使用多个中心。
-- **提示同质化。** 所有代理使用相同提示，产生相同答案。使用多样化提示和/或模型。
+- **Convergence collapse.**所有代理人都会在第一个错误答案上聚合,
+- **Hub failure.**在恒星拓中,一个坏的枢纽会破坏所有人.
+- **Prompt homogenization.**所有代理都使用相同的提示,它们都产生相同的答案.
 
 ```figure
 debate-converge
 ```
 
-## 动手构建
+## 建立它
 
-`code/main.py` 实现了标准库辩论：
+`code/main.py`执行了SDLIB辩论:
 
-- `Debater` 类（带观点漂移的脚本化 LLM）。
-- `FullMeshDebate` 和 `SparseDebate` 运行器。
-- 三个问题：一个事实类、一个规则类、一个推理类。
-- 指标：收敛答案、收敛轮数、总批评操作数。
+- `Debater`专业的专业知识 (专业的专业知识)
+- `FullMeshDebate`其他`SparseDebate`跑步者.
+- 问题是三个:一个是事实性的,一个是基于规则的,一个是推理性的.
+- 标准: 接近答案,转到接近,总批评行动.
 
-运行：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-输出：各协议的准确率与成本；稀疏拓扑在 3 题中 2 题达到与全连接相当的水平，且成本更低。
+产量:每项协议的准确性和成本;少量匹配的 2/3 问题以更低的成本.
 
-## 使用方式
+## 用它
 
-- **Anthropic orchestrator-workers** 用于简单的 2-3 工作器辩论。
-- **LangGraph** 用于带检查点的状态多轮辩论。
-- **自定义** 用于研究或特定正确性保证。
+- **Anthropic orchestrator-workers**对于 2-3 个工人来说,
+- **LangGraph**对于国家多轮辩论,
+- **Custom**对于研究或专业准确性保证.
 
-## 交付
+## 运送它
 
-`outputs/skill-debate.md` 提供了一个可配置拓扑、N、R 和收敛规则的多智能体辩论框架。
+`outputs/skill-debate.md`设置一个多代理辩论,设置可组装的拓学,N,R,并设置一个趋同规则.
 
-## 练习
+## 运动
 
-1. 实现"强制分歧"规则：在第 1 轮，每个辩论者必须产生不同的提议。测量对收敛速度的影响。
-2. 添加置信度加权聚合：辩论者返回 (答案, 置信度)；聚合器按置信度加权。是否有帮助？
-3. 将一个"代理"替换为持有不同观点的不同脚本化 LLM。异质性是否能提升准确率？
-4. 测量全连接与稀疏拓扑在你 3 个问题上的 token 成本。绘制成本与准确率的关系图。
-5. 阅读 Society of Minds 论文。将你的玩具版本移植到 N=5、R=3。什么会出错？什么会改善？
+1. 实施"强制不一致"规则:在第1轮,每个辩论者都必须提出一个不同的建议.
+2. 增加一个以信心为重量的聚合物:辩论者回来 (答案,信心);聚合物按信心重量.
+3. 换一个"代理"换一个不同观点的法学士.
+4. 根据你的3个问题,测量全网格与稀少的代币成本.
+5. 读一读"心智协会"的论文.把玩具转移到N=5,R=3.什么会打断?什么会变得更好?
 
-## 关键术语
+## 关键词
 
-| 术语 | 常见说法 | 实际含义 |
-|------|----------|----------|
-| 辩论 | "多智能体批评" | N 位提议者、R 轮交叉批评，收敛 |
-| 全连接 | "人人互通" | 每轮每个辩论者阅读所有同行 |
-| 稀疏拓扑 | "有限同行视图" | 辩论者仅阅读部分同行 |
-| 中心-边缘 | "星型拓扑" | 一个中央辩论者，N-1 个边缘仅阅读中心 |
-| 收敛 | "达成一致" | 辩论者收敛到共享答案 |
-| Society of Minds | "Du 等的辩论论文" | ICML 2024 多智能体辩论方法 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Debate | "Multi-agent critique" | N proposers, R rounds of cross-critique, converge |
+| Full mesh | "Everyone reads everyone" | Every debater reads every peer each round |
+| Sparse topology | "Limited peer view" | Debaters read only a subset of peers |
+| Hub-and-spoke | "Star topology" | One central debater, N-1 spokes read only the hub |
+| Convergence | "Agreement" | Debaters converge on a shared answer |
+| Society of Minds | "Du et al. debate paper" | ICML 2024 multi-agent debate method |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Du 等，《Society of Minds》(arXiv:2305.14325)](https://arxiv.org/abs/2305.14325) —— 经典多智能体辩论
-- [《稀疏通信拓扑》(arXiv:2406.11776)](https://arxiv.org/abs/2406.11776) —— 稀疏拓扑研究成果
-- [Anthropic，《构建有效代理》](https://www.anthropic.com/research/building-effective-agents) —— 编排器-工作者作为辩论变体
-- [Madaan 等，《Self-Refine》(arXiv:2303.17651)](https://arxiv.org/abs/2303.17651) —— 单模型自我批评对应方案
+- [Du et al., Society of Minds (arXiv:2305.14325)](https://arxiv.org/abs/2305.14325)多代理论坛
+- [Sparse Communication Topology (arXiv:2406.11776)](https://arxiv.org/abs/2406.11776)稀有的拓结果
+- [Anthropic, Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) 作为辩论变体的管弦乐员工
+- [Madaan et al., Self-Refine (arXiv:2303.17651)](https://arxiv.org/abs/2303.17651)单个模型的自我批判对手

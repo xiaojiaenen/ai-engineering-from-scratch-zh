@@ -1,150 +1,150 @@
-# 开放权重 VLM 配方：哪些真正重要
+# 开放式VLM食谱:真正重要的是什么
 
-> 2024-2026 年的开放权重 VLM 文献是一座消融实验表组成的森林。Apple 的 MM1 测试了 13 种图像编码器、连接器和数据混合的组合。Allen AI 的 Molmo 证明详细的人工标注比 GPT-4V 蒸馏更优。Cambrian-1 运行了 20+ 种编码器对比。Idefics2 形式化了五轴设计空间。Prismatic VLMs 在控制基准上比较了 27 种训练配方。在所有噪音中，一组结果跨论文保持一致：图像编码器比连接器架构更重要，数据混合比两者都更重要，详细的人工标注优于蒸馏合成数据。这篇笔记帮你读懂这些表格，你就不用再读了。
+> 开放量VLM文献的2024-2026年是除表的森林. 果的MM1测试了13种组合的图像编码器,连接器和数据组合. 艾伦人工智能的Molmo证明了详细的人类标题比GPT-4V蒸更好. 布里安-1运行了20多个编码器比较. 五轴设计空间的正式化. 体VLM在控制基准上进行了27种培训配方的比较. 在所有这些噪音中,有一小部分结果在论文中得到了支持:图像编码器比连接器架构更重要,数据混合物比任何东西都更重要, 这一课可以读取这些表格,所以你不必读.
 
-**类型：** 学习 + 实验
-**语言：** Python（标准库、消融表解析器 + 配方选择器）
-**前置条件：** Phase 12 · 05（LLaVA 基线）
-**时间：** 约 180 分钟
+**Type:** Learn + lab
+**Languages:** Python (stdlib, ablation table parser + recipe picker)
+**Prerequisites:** Phase 12 · 05 (LLaVA baseline)
+**Time:** ~180 minutes
 
 ## 学习目标
 
-- 说出五轴 VLM 设计空间：图像编码器、连接器、LLM、数据混合、分辨率调度。
-- 阅读 MM1 / Idefics2 / Cambrian-1 的消融表并预测哪个旋钮能推动给定基准。
-- 给定计算预算和任务组合，为新的 VLM 选择配方（编码器、连接器、数据、分辨率）。
-- 解释为什么详细人工标注在同 token 数下优于 GPT-4V 蒸馏。
+- 名称五轴VLM设计空间:图像编码器,连接器,LLM,数据混合,分辨率时间表.
+- 阅读MM1 / Idefics2 / Cambrian-1的缩表,预测哪个按移动给定的基准值.
+- 选择一个新VLM的配方 (编码器,连接器,数据,分辨率),因为计算预算和任务组合.
+- 解释为什么详细的人类标题比GPT-4V蒸量更高.
 
-## 问题所在
+## 问题
 
-存在数百个开放权重 VLM。大多数"好"与"最强"之间的差距不是架构，而是数据、分辨率调度和编码器选择。当你的模型表现不佳时知道该先调哪个旋钮，能避免一个价值 500 万 GPU 小时的错误。
+现在,我们已经开始使用了"高清"的版本,但我们已经开始使用了"高清"的版本,所以我们已经开始使用了"高清"的版本.
 
-2023 年浪潮（LLaVA-1.5、InstructBLIP、MiniGPT-4）基于 caption-pair 预训练 + LLaVA-Instruct-150k 运行。良好的基线。在 MMMU 上止步于 35% 左右。
+2023年波 (LLaVA-1.5,InstructBLIP,MiniGPT-4) 在标题对预训练 +LLaVA-Instruct-150k上运行. 良好的基线. 超过了MMMU的35%.
 
-2024 年浪潮（MM1、Idefics2、Molmo、Cambrian-1、Prismatic VLMs）运行了 exhaustive ablations。结果出人意料且实用。
+2024年波 (MM1,Idefics2,Molmo,Cambrian-1,Prismatic VLM) 进行了彻底的除.结果令人惊和实用.
 
 ## 概念
 
 ### 五轴设计空间
 
-Idefics2（Laurençon 等，2024）命名了各轴：
+根据"国际"的指标,
 
-1. **图像编码器。** CLIP ViT-L/14、SigLIP SO400m/14、DINOv2 ViT-g/14、InternViT-6B。编码器在 patch 大小、分辨率和预训练目标上有所不同。
-2. **连接器。** MLP（2-4 层）、Q-Former（32 个 query + cross-attn）、Perceiver Resampler（64 个 query）、C-Abstractor（卷积 + 双线性池化）。
-3. **语言模型。** Llama-3 8B / 70B、Mistral 7B、Phi-3、Gemma-2、Qwen2.5。LLM 规模是主要的参数成本。
-4. **训练数据。** Caption pairs（CC3M、LAION）、交错数据（OBELICS、MMC4）、指令数据（LLaVA-Instruct、ShareGPT4V、PixMo、Cauldron）。
-5. **分辨率调度。** 固定 224/336/448、AnyRes、原生动态。训练中递增或保持不变。
+1. 图像编码器:CLIP ViT-L/14,SigLIP SO400m/14,DINOv2 ViT-g/14,InternViT-6B.编码器在补丁尺寸,分辨率和预训目标上不同.
+2. 连接器:MLP (2-4层),Q-Former (32个查询+跨接),感知器重样 (64个查询),C-抽象器 (卷积+双线聚合).
+3. 语言模型:Llama-3 8B / 70B,Mistral 7B, Phi-3,Gemma-2,Qwen2.5.LLM大小是主导的参数成本.
+4. 训练数据:字幕对 (CC3M,LAION),交织 (OBELICS,MMC4),指令 (LLaVA-Instruct,ShareGPT4V,PixMo,Cauldron).
+5. 解析时间表:固定224/336/448,AnyRes,原生动态.训练期间或常态.
 
-每个生产级 VLM 都会在各轴上做出选择。MMMU 分数的方差主要由第 1、4、5 轴解释——而非你选择了哪种连接器。
+每个生产VLM都在每个轴上进行选择.MMMU分数的差异大多由1,4,和5轴解释,而不是你选择的连接器.
 
-### 轴 1：编码器 > 连接器
+### 轴1:编码器 > 连接器
 
-MM1 第 3.2 节显示：将 CLIP ViT-L/14 换为 SigLIP SO400m/14 带来了 3+ 分的 MMMU 提升。将连接器从 MLP 换为 Perceiver Resampler 增加不到 1 分。Idefics2 复现了相同结论：SigLIP > CLIP，Q-Former ≈ MLP ≈ Perceiver（在相同 token 数下）。
+MM1 3.2 节显示:从Clip ViT-L/14转换为SigLIP SO400m/14增加了3+分MMMU.从MLP转换连接器到感知器重样器增加了不到1分.
 
-Cambrian-1 的"Cambrian Vision Encoders Match-Up"（Tong 等，2024）在视觉中心基准（CV-Bench）上运行了 20+ 种编码器。排行榜顶部由 DINOv2 和 SigLIP 混合占据；CLIP 处于中游；ImageBind 和 ViT-MAE 较低。CLIP ViT-L 与 DINOv2 ViT-g/14 在 CV-Bench 上的差距约为 5-7 分。
+布里安-1的"布里安视觉编码器匹配" (Tong等,2024年) 在视觉中心基准 (CV-Bench) 上运行了20多个编码器.排名榜的顶部是DINOv2和SigLIP的混合;CLIP是包中;ImageBind和ViT-MAE较低.Clip ViT-L到DINOv2 ViT-g/14之间的差距在CV-Bench上是5-7分.
 
-2026 年开放 VLM 的默认编码器是 SigLIP 2 SO400m/14，用于语义 + 密集特征；必要时可与 DINOv2 ViT-g/14 特征拼接（Cambrian 的"Spatial Vision Aggregator"即采用此方案）。
+2026年开放VLM的默认编码器是SigLIP 2 SO400m/14用于语义+密集功能,有时与DINOv2 ViT-g/14功能连接 (Cambrian的"空间视觉聚合器"这样做).
 
-### 轴 2：连接器设计差异不大
+### 轴2:连接器设计是洗衣
 
-MM1、Idefics2、Prismatic 和 MM-Interleaved 均得出相同结论：在固定视觉 token 数下，连接器架构几乎无影响。基于 mean-pooled patch 的 2 层 MLP 与 32-query Q-Former 在相同 token 预算下性能差距小于 1 分。
+在MM1,Idefics2,Prismatic和MM-Interleaved中,所有人都得出了相同的结论:在固定的视觉代币数量下,连接器架构几乎没有什么意义.在平均聚合的补丁上,一个2层的MLP在同样的代币预算下表现得与32个查询Q-Former的1点内.
 
-真正重要的是 token 数量。更多视觉 token = 更多 LLM 计算 = 更好的性能直到某一点，随后边际收益递减。每张图 64 个 token 对 OCR 来说太少。576-1024 个 token 是大多数开放 VLM 的最佳区间。2048+ 仅在文档和图表场景有增益。
+重要的是代币数量.更多视觉代币 =更多LLM计算 =更好的性能到一个点,然后降低回报.每张图像的64代币对于OCR来说太少. 576-1024代币是大多数开放的VLM的甜点. 2048+只用于文档和图表.
 
-Q-Former vs MLP 是成本问题，而非质量问题：Q-Former 无论图像分辨率如何都将 token 限制在 32-64；MLP 输出所有 patch token。对于高分辨率输入，Q-Former 节省 LLM 上下文；对于低分辨率，差异可以忽略。
+对于高分辨率输入,Q-Former节省LLM文本;对于低分辨率,差异是噪音.
 
-### 轴 3：LLM 规模决定上限
+### 轴3:LLM大小设定了上限
 
-将 LLM 从 7B 翻倍到 13B 在各种 VLM 论文中稳定带来 2-4 分的 MMMU 提升。达到 70B 时你几乎在所有基准上饱和。VLM 的多模态推理上限即 LLM 的文本推理上限——视觉编码器只能为其提供输入，无法替其推理。
+通过从7B到13B的翻倍,可靠地增加每份VLM论文中MMMU的 2-4分.在70B时,你和大多数基准.VLM的多模式推理天花板是LLM的文本推理天花板.视觉编码器只能提供它,而不是理由.
 
-这就是 Qwen2.5-VL-72B 和 Claude Opus 4.7 碾压 MMMU-Pro 和 ScreenSpot-Pro 的原因：语言大脑足够大。一个 7B VLM 无法通过精巧的连接器设计替代 70B VLM。
+这就是为什么Qwen2.5VL-72B和Claude Opus4.7粉碎MMMU-Pro和ScreenSpot-Pro:语言大脑很大. 7BVLM不能通过智能连接器设计取代70BVLM.
 
-### 轴 4：数据——详细人工标注优于蒸馏
+### 轴4:数据 详细的人类标题比蒸
 
-Molmo + PixMo（Deitke 等，2024）是 2024 年每人都应阅读的结果。Allen AI 的标注者以 1-3 分钟的密集语音转文字方式描述图像，得到 712K 张密集标注图像。训练数据中无任何 GPT-4V 蒸馏。
+尔莫+皮克莫 (Deitke等,2024) 是每个人都应该阅读的2024年结果.艾伦人工智能让人类注释器在1到3分钟的密集语音到文本传递中描述图像,产生712K密集标题图像.训练数据中没有GPT-4V蒸.
 
-Molmo-72B 在 11 个基准中的 11 个上击败了 Llama-3.2-90B-Vision。差距不在架构——而在标注质量。详细人工标注每张图片包含 5-10 倍于简短网络标注的信息量，且在 GPT-4V 蒸馏发生幻觉时仍保持事实准确性。
+摩尔莫-72B在11个基准中击败了Llama-3.2-90B-Vision. 德尔塔不是架构,而是标题质量.详细的人类标题包含每幅图像的5-10倍多信息,而短视频标题保持在GPT-4V蒸幻觉的实际基础上.
 
-ShareGPT4V（Chen 等，2023）和 Cauldron（Idefics2）遵循了相同的策略，使用混合人工 + GPT-4V 标注。趋势很清晰：对于 2026 前沿，标注密度 > 标注数量 > 蒸馏便利性。
+根据"Chen et al. 2023"和"Cauldron" (Idefics2) 的不同情况,该公司的标题是混合的人类+GPT-4V.
 
-### 轴 5：分辨率及其调度
+### 轴5:决议及其时间表
 
-Idefics2 的消融：384 → 448 带来 1-2 分提升。448 → 980（配合图像分块 AnyRes）在 OCR 基准上额外带来 3-5 分。固定分辨率训练在中等精度处 plateau；分辨率递增（从 224 起步，到 448 或原生结束）训练更快且最终更高。
+Idefics2 的排放: 384 -> 448 增加1-2 分. 448 -> 980 通过图像分化 (AnyRes) 在 OCR 基准上增加了另外 3-5 分.平分辨率训练平原在中度精度;分辨率坡 (开始 224,完成 448 或本地) 列车更快,更高地结束.
 
-Cambrian-1 运行了分辨率与 token 数量的权衡：在固定计算下，你可以选择更多 token 但更低分辨率，或更少 token 但更高分辨率。更高分辨率在 OCR 上胜出；更低分辨率 + 更多 token 在通用场景理解上胜出。
+布里安-1 进行了分辨率与代币交易:在固定计算中,你可以在更低分辨率下拥有更多代币或更高分辨率的代币.在OCR中,更高分辨率获胜;在一般场景理解中,更低分辨率的代币获胜.
 
-2026 年生产配方：Stage 1 以 384 固定训练，Stage 2 对 OCR 密集型任务使用动态分辨率最高至 1280。
+2026年生产配方:列车第一阶段在384固定,第二阶段在OCR重任务中具有高达1280的动态分辨率.
 
-### Prismatic 控制对比
+### 普里斯马टिक控制的比较
 
-Prismatic VLMs（Karamcheti 等，2024）是控制所有轴的论文。相同的 13B LLM、相同的指令数据、相同评估——仅一次改变一个轴。结果：
+普里斯马टिकVLMs (Karamcheti等,2024) 是控制所有轴的论文.同一个13B LLM,同一个指令数据,同一个评估一次只有一轴变化.结果:
 
-- 每张图视觉 token 数解释了约 60% 的方差。
-- 编码器选择解释了约 20%。
-- 连接器架构解释了约 5%。
-- 其他一切（数据混合、调度器、学习率）占剩余约 15%。
+- 每个图像的视觉标志数量解释了差异的60%
+- 编码器选择解释了20%
+- 连接器架构解释了5%
+- 其他所有 (数据组合,时间表, LR) 剩余的15%.
 
-这是粗略分解，但它是文献中对"我应该先消融哪个"最干净的答案。
+这是一个粗略的分解,但这是最清洁的答案"我应该首先除掉什么"在文学中.
 
-### 2026 配方选择器
+### 2026年的一位选手
 
-基于上述证据，2026 年新项目的默认开放 VLM 配方：
+鉴于证据,2026年新项目的默认开放VLM配方:
 
-- **编码器：** 原生分辨率下的 SigLIP 2 SO400m/14 + NaFlex；如需分割/定位则拼接 DINOv2 ViT-g/14 密集特征。
-- **连接器：** 作用于 patch token 的 2 层 MLP。除非受 token 限制否则跳过 Q-Former。
-- **LLM：** Qwen2.5 / Llama-3.1 / Gemma 2，7B 用于成本控制，70B 用于质量，根据目标延迟选择。
-- **数据：** PixMo + ShareGPT4V + Cauldron，叠加任务特定指令数据。
-- **分辨率：** 动态（长边最小 256，最大 1280 像素）。
-- **调度：** Stage 1 对齐（仅投影器）、Stage 2 全量微调、Stage 3 任务特定微调。
+- 编码器:在 NaFlex 的本地分辨率下 SigLIP 2 SO400m/14,如果需要分段/地定,则与 DINOv2 ViT-g/14 连接.
+- 连接器:两层MLP在补丁代币上. 除非你有代币限制,否则,跳过Q-Former.
+- 士学位:Qwen2.5 / Llama-3.1 / Gemma 2,7B以成本,70B以质量,根据目标延迟.
+- 数据:PixMo + ShareGPT4V + ,加上任务特定指令数据.
+- 解析度:动态 (每长侧256分钟,最大1280像素).
+- 时间表:第一阶段的调整 (仅用于投影机),第二阶段的完整调整,第三阶段的任务特定调整.
 
-以上每一项默认值都追溯到本课末尾所列论文中的测量消融实验。
+根据本课程末尾所述的论文,
 
 ```figure
 l5-vlm-recipe-knobs
 ```
 
-## 动手实践
+## 用它
 
-`code/main.py` 是一个消融表解析器和配方选择器。它编码了 MM1 和 Idefics2 的消融表（精简版），允许你查询：
+`code/main.py`通过使用此方法,您可以查询:
 
-- "给定预算 X 和任务 Y，什么配方获胜？"
-- "如果我在 7B Llama 上用 SigLIP 替换 CLIP，预期 MMMU 差值是多少？"
-- "对 80% 置信度答案，我应该先消融哪个轴？"
+- "考虑到预算X和任务Y,哪个食谱赢得了?"
+- "如果我在7B拉马上换了SigLIP为Clip,预期的MMMU角是什么?"
+- "我应该首先除哪个轴,以获得80%的信心答案?"
 
-输出为带预期基准差值的排名配方列表，以及"先消融"推荐。
+产品是排名的配方列表,预期的基准分数和"先排列"建议.
 
-## 交付
+## 运送它
 
-本课产出 `outputs/skill-vlm-recipe-picker.md`。给定目标任务组合、计算预算和延迟目标，输出完整配方（编码器、连接器、LLM、数据混合、分辨率调度），并附上论证每项选择所依据的消融引用。避免工程师每次启动新的 VLM 项目时都重新发明 Idefics2 消融表。
+这一课产生了`outputs/skill-vlm-recipe-picker.md`鉴于目标任务组合,计算预算和延迟目标,它发布了一个完整的配方 (编码器,连接器,LLM,数据组合,分辨率时间表) ,其中引用了每一个选择的除. 每次启动新的VLM项目时,工程师都不重新发明Idefics2除表.
 
-## 练习题
+## 运动
 
-1. 阅读 MM1 第 3.2 节。对于预算 50M 图片的固定 2B LLM，哪种编码器获胜？在 13B LLM 下答案会翻转吗？为什么？
+1. 对于一个固定2BLLM的预算50万图像,哪个编码器赢得?答案会转向13BLLM吗?为什么?
 
-2. Cambrian-1 发现拼接 DINOv2 + SigLIP 在视觉中心基准上优于任一单独使用，但在 MMMU 上无增益。预测哪些基准会提升，哪些保持不变。
+2. 布里安-1发现,连接DINOv2 + SigLIP单独在视力中心的基准上都比较好,但在MMMU上没有添加任何信号.预测哪些基准获益哪些保持平稳.
 
-3. 你的目标是基于 2B LLM 的移动端 UI 智能体。选择编码器、连接器、分辨率和数据混合。用具体消融表论证每项选择。
+3. 您的目标是2B LLM上的移动UI代理. 选择编码器,连接器,分辨率和数据组合. 用特定的排放表证明每个选择.
 
-4. Molmo 提供 4B 和 72B 两种模型。4B 可与闭源 7B VLM 竞争；72B 在 11/11 基准上击败 Llama-3.2-90B-Vision。这说明了什么关于 LLM 规模 plateau 的假设？
+4. 摩尔莫公司生产的4B和72B型号.4B与封闭的7BVLM竞争力;72B在11/11的基准上超过Llama-3.2-90B-Vision.这告诉你什么关于LLM大小高原假设?
 
-5. 设计一个消融表以在 7B VLM 上将数据混合质量与编码器质量隔离开。最少需要多少次训练运行？提出四个轴的设定值。
+5. 设计一个抽象表以分离数据混合质量和编码器质量在7B VLM上. 训练至少有多少次? 提出四个轴设置.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
-|------|-----------|---------|
-| Ablation（消融） | "拧一个旋钮" | 训练多个运行，仅在一个设计空间轴上不同，其余保持不变 |
-| Connector（连接器） | "桥" / "投影器" | 将图像编码器输出映射到 LLM token 空间的 trainable 模块（MLP、Q-Former、Perceiver） |
-| Detailed human caption（详细人工标注） | "密集标注" | 多句人工撰写的描述（通常 80-300 token），比网络 alt text 信息更丰富 |
-| Distillation（蒸馏） | "GPT-4V 标注" | 由更强闭源 VLM 生成的训练数据；方便但易继承幻觉 |
-| AnyRes / dynamic res（动态分辨率） | "高分路径" | 通过分块或 M-RoPE 将大于编码器原生分辨率的图像输入的策略 |
-| Resolution ramp（分辨率递增） | "课程学习" | 从低分辨率开始并逐步提升的训练调度，加速对齐学习 |
-| Vision-centric bench（视觉中心基准） | "CV-Bench / BLINK" | 强调细粒度视觉感知而非重型语言推理的评测 |
-| PixMo | "Molmo 的数据" | Allen AI 的 712K 密集标注图像数据集；人工语音转录为密集标注 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Ablation | "Turning one knob" | Training multiple runs that differ in exactly one design-space axis, holding everything else constant |
+| Connector | "Bridge" / "projector" | Trainable module that maps vision encoder output into the LLM's token space (MLP, Q-Former, Perceiver) |
+| Detailed human caption | "Dense caption" | A multi-sentence human-written description (typically 80-300 tokens) richer than a web alt text |
+| Distillation | "GPT-4V captions" | Training data generated by a stronger proprietary VLM; convenient but prone to inherited hallucination |
+| AnyRes / dynamic res | "High-res path" | Strategy to feed images larger than the encoder's native resolution via tiling or M-RoPE |
+| Resolution ramp | "Curriculum" | Training schedule that starts low-resolution and increases, speeding alignment learning |
+| Vision-centric bench | "CV-Bench / BLINK" | Evaluation that stresses fine-grained visual perception rather than language-heavy reasoning |
+| PixMo | "Molmo's data" | Allen AI's 712K densely-captioned image dataset; human speech transcribed into dense captions |
 
-## 延伸阅读
+## 进一步阅读
 
-- [McKinzie 等 — MM1 (arXiv:2403.09611)](https://arxiv.org/abs/2403.09611)
-- [Laurençon 等 — Idefics2 / What matters building VLMs (arXiv:2405.02246)](https://arxiv.org/abs/2405.02246)
-- [Deitke 等 — Molmo and PixMo (arXiv:2409.17146)](https://arxiv.org/abs/2409.17146)
-- [Tong 等 — Cambrian-1 (arXiv:2406.16860)](https://arxiv.org/abs/2406.16860)
-- [Karamcheti 等 — Prismatic VLMs (arXiv:2402.07865)](https://arxiv.org/abs/2402.07865)
+- [McKinzie et al. — MM1 (arXiv:2403.09611)](https://arxiv.org/abs/2403.09611)
+- [Laurençon et al. — Idefics2 / What matters building VLMs (arXiv:2405.02246)](https://arxiv.org/abs/2405.02246)
+- [Deitke et al. — Molmo and PixMo (arXiv:2409.17146)](https://arxiv.org/abs/2409.17146)
+- [Tong et al. — Cambrian-1 (arXiv:2406.16860)](https://arxiv.org/abs/2406.16860)
+- [Karamcheti et al. — Prismatic VLMs (arXiv:2402.07865)](https://arxiv.org/abs/2402.07865)

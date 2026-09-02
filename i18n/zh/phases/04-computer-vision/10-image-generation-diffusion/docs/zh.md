@@ -1,72 +1,72 @@
-# 图像生成 — 扩散模型
+# 图像生成  扩散模型
 
-> 扩散模型学习的是去噪。训练它从含噪图像中移除一小部分噪声，重复该反向过程一千次，你就有了一个图像生成器。
+> 扩散模型学会了化,训练它去除一个噪音的图像中的微小噪音,
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 第4阶段第07课（U-Net）、第1阶段第06课（概率）、第3阶段第06课（优化器）
-**时间：** ~75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 4 Lesson 07 (U-Net), Phase 1 Lesson 06 (Probability), Phase 3 Lesson 06 (Optimizers)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 推导前向加噪过程 `x_0 -> x_1 -> ... -> x_T`，并解释为何对任意 `t` 都存在闭式 `q(x_t | x_0)`
-- 实现 DDPM 风格的训练目标（对每一步加入的噪声进行回归），以及一个从纯噪声逐步回到图像的采样器
-- 构建时间条件 U-Net（足够小可在 CPU 上训练），使其能预测任意时间步的噪声
-- 解释 DDPM 与 DDIM 采样的区别，以及各自的适用场景（第23课将深入讲解 flow matching 与 rectified flow）
+- 导出前面噪声过程`x_0 -> x_1 -> ... -> x_T`解释为什么封闭形式`q(x_t | x_0)`适用于任何t
+- 实施一个DDPM类型的训练目标,以降低每一步增加的噪音,以及从纯噪音转向图像的样本采集器
+- 建立一个时间条件的U-Net (足够小以训练CPU) 预测任何时间步骤的噪音
+- 解释DDPM和DDIM采样之间的区别,以及当每一个适当时 (23课程涵盖了流量匹配和深度调整流量)
 
-## 问题所在
+## 问题
 
-GAN 是一次生成：噪声输入，图像输出，单次前向传播。它们速度快但训练困难。扩散模型是迭代生成：从纯噪声开始，逐步去噪，图像逐渐浮现。它们速度慢但训练容易。过去五年，后一种特性占据了主导：任何小型团队都能训练一个扩散模型并得到合理的样本；而 GAN 训练是一门需要多年失败经验才能掌握的手艺。
+射器产生一次性:噪音进入,图像出,前进一次. 他们很快,很难训练. 扩散模型以反复生成:从纯噪音开始,以小步骤描述,图像出现. 他们很慢,很容易训练. 过去五年来,后者主导着:任何小团队都可以训练一个扩散模型并获得合理的样本;
 
-除了训练稳定性之外，扩散模型的迭代结构也是解锁现代图像生成所有能力的关键：文本条件控制、图像修复、图像编辑、超分辨率、可控风格。采样循环中的每一步都是注入新约束的地方。这正是 Stable Diffusion、Imagen、DALL-E 3、Midjourney，以及你未来会使用的所有可控图像模型都基于扩散的原因。
+除了训练稳定之外,扩散的反复结构是解锁现代图像生成所做的一切:文本定制,涂料,图像编辑,超级分辨率,可控制的风格. 采样循环的每一步都是注入新限制的地方. 这就是为什么稳定射,图像,DALL-E 3,中程,以及你使用的所有可控制的图像模型都是基于射的原因.
 
-本课构建最简 DDPM：前向加噪、反向去噪、训练循环。下一课（Stable Diffusion）将把它接入生产系统，搭配 VAE、文本编码器和无分类器引导。
+这一课构建了最小的DDPM:前面噪音,后面代号,训练循环.下一课 (稳定分散) 将其连接到一个生产系统中,使用了VAE,文本编码器和无分类器指导.
 
-## 核心概念
+## 概念
 
-### 前向过程
+### 未来的过程
 
-取一张图像 `x_0`。加入少量高斯噪声得到 `x_1`。再加入少量噪声得到 `x_2`。重复 T 步，直到 `x_T` 几乎与纯高斯噪声无法区分。
+拍照`x_0`添加一个小量的高斯噪音,得到`x_1`添加一个小额的额外的`x_2`继续走T步骤,直到`x_T`几乎无法与纯粹的高斯噪音区分.
 
 ```
 q(x_t | x_{t-1}) = N(x_t; sqrt(1 - beta_t) * x_{t-1},  beta_t * I)
 ```
 
-`beta_t` 是一个小方差调度，通常在 T=1000 步内从 0.0001 线性增长到 0.02。每一步略微削弱信号并注入新噪声。
+`beta_t`射频率为 0.0001 射频率,通常是从 0.0001 到 0.02 射频率的小变量时间表.
 
 ### 闭式跳跃
 
-逐步加噪是一个马尔可夫链，但数学可以折叠：你可以一步直接从 `x_0` 采样 `x_t`。
+增加噪音一步一步是马科夫链,但数学折叠:你可以样本`x_t`直接从`x_0`在一个步骤.
 
 ```
-定义 alpha_t = 1 - beta_t
-定义 alpha_bar_t = prod_{s=1..t} alpha_s
+Define alpha_t = 1 - beta_t
+Define alpha_bar_t = prod_{s=1..t} alpha_s
 
-则：
+Then:
   q(x_t | x_0) = N(x_t; sqrt(alpha_bar_t) * x_0,  (1 - alpha_bar_t) * I)
 
-等价地：
+Equivalently:
   x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * epsilon
-  其中 epsilon ~ N(0, I)
+  where epsilon ~ N(0, I)
 ```
 
-这个单一方程是整个扩散模型可行的根本原因。训练时你随机选取一个 `t`，直接从 `x_0` 采样 `x_t`，一步完成训练——无需模拟完整马尔可夫链。
+在训练中,你选择一个随机的`t`样本`x_t`直接从`x_0`没有必要模拟整个马科夫链.
 
-### 反向过程
+### 逆转过程
 
-前向过程是固定的。反向过程 `p(x_{t-1} | x_t)` 才是神经网络所学习的内容。扩散模型不直接预测 `x_{t-1}`，而是预测第 t 步加入的噪声 `epsilon`，然后由数学推导出 `x_{t-1}`。
+进步过程是固定的.`p(x_{t-1} | x_t)`扩散模型不能预测`x_{t-1}`它们可以预测噪音.`epsilon`通过步骤 t,数学取出`x_{t-1}`没有任何东西.
 
 ```mermaid
 flowchart LR
-    X0["x_0<br/>(干净图像)"] --> Q1["q(x_t|x_0)<br/>加噪"]
-    Q1 --> XT["x_t<br/>(含噪)"]
+    X0["x_0<br/>(clean image)"] --> Q1["q(x_t|x_0)<br/>add noise"]
+    Q1 --> XT["x_t<br/>(noisy)"]
     XT --> MODEL["model(x_t, t)"]
-    MODEL --> EPS["预测的 epsilon"]
-    EPS --> LOSS["与<br/>真实 epsilon 的 MSE"]
+    MODEL --> EPS["predicted epsilon"]
+    EPS --> LOSS["MSE against<br/>true epsilon"]
 
-    XT -.->|采样| STEP["p(x_{t-1}|x_t)"]
+    XT -.->|sampling| STEP["p(x_{t-1}|x_t)"]
     STEP -.-> XT1["x_{t-1}"]
-    XT1 -.->|重复1000次| X0S["x_0 (采样结果)"]
+    XT1 -.->|repeat 1000x| X0S["x_0 (sampled)"]
 
     style X0 fill:#dcfce7,stroke:#16a34a
     style MODEL fill:#fef3c7,stroke:#d97706
@@ -76,57 +76,57 @@ flowchart LR
 
 ### 训练损失
 
-每个训练步：
+对于每一步的训练:
 
-1. 采样真实图像 `x_0`。
-2. 在 [1, T] 内均匀采样时间步 `t`。
-3. 采样噪声 `epsilon ~ N(0, I)`。
-4. 计算 `x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * epsilon`。
-5. 用网络预测 `epsilon_theta(x_t, t)`。
-6. 最小化 `|| epsilon - epsilon_theta(x_t, t) ||^2`。
+1. 样本真实图像`x_0`现在,我们要去.
+2. 时间步骤的样本`t`从 [1,T] 开始均.
+3. 样本噪音`epsilon ~ N(0, I)`现在,我们要去.
+4. 计算`x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * epsilon`现在,我们要去.
+5. 预测`epsilon_theta(x_t, t)`通过网络.
+6. 减少`|| epsilon - epsilon_theta(x_t, t) ||^2`现在,我们要去.
 
-就这些。神经网络学习预测任意时间步的噪声。损失是 MSE。没有对抗博弈，没有崩溃，没有振荡。
+网络学会在任何时间阶段预测噪音. 损失是MSE. 没有对抗游戏,没有崩,没有振荡.
 
-### 采样器（DDPM）
+### 样本采集器 (DDPM)
 
-生成时：从 `x_T ~ N(0, I)` 开始，逐步反向走每一步。
+发电:从`x_T ~ N(0, I)`走向后一步一步.
 
 ```
 for t = T, T-1, ..., 1:
     eps = model(x_t, t)
     x_{t-1} = (1 / sqrt(alpha_t)) * (x_t - (beta_t / sqrt(1 - alpha_bar_t)) * eps) + sqrt(beta_t) * z
-    其中 z ~ N(0, I) 若 t > 1，否则 z = 0
+    where z ~ N(0, I) if t > 1, else 0
 return x_0
 ```
 
-关键在于，尽管一般情形下反向条件分布没有闭式，但对于这种特定的高斯前向过程，它是存在的。那些看似复杂的系数就是贝叶斯法则给出的结果。
+关键是,尽管反向条件通常不被关闭形式中知道,但对于这个特定的高斯式前进过程,它是.看起来丑的系数是贝斯规则给你的.
 
-### 为什么需要 1000 步
+### 为什么要走1000步
 
-前向噪声调度被设计为每一步只加入刚好足够的噪声，使反向步近似高斯。步数太少，反向步偏离高斯太远，网络难以建模。步数太多，采样昂贵而收益递减。T=1000 配合线性调度是 DDPM 的默认设置。
+预测时间表是选择的,因此每个步骤只增加足够的噪音,以使反步骤几乎是高斯的.太少步骤和反步骤远离高斯的,网络无法很好地建模.随着收益的减少,太多步骤和样本取量变得昂贵.T=1000具有线性时间表是DDPM默认.
 
-### DDIM：20 倍更快的采样
+### 化物:采样速度20倍
 
-训练完全相同。采样改变。DDIM（Song 等，2020）定义了一个确定性反向过程，可在不重新训练的情况下跳过时间步。使用 DDIM 在 50 步内采样可得到接近 1000 步 DDPM 的质量。所有生产系统都使用 DDIM 或更快的变体（DPM-Solver、Euler ancestral）。
+训练是一样的.样本采集变化.DDIM (Song et al.,2020) 定义了一个决定性逆转过程,它不会再训练.用DDIM进行50步的样本采集,可以达到1000步的DDPM质量.每个生产系统都使用DDIM或更快的变体 (DPM-Solver,尤勒祖先).
 
-### 时间条件
+### 时间定制
 
-网络 `epsilon_theta(x_t, t)` 需要知道当前是哪一个时间步在去噪。现代扩散模型通过正弦时间嵌入（与 Transformer 中的位置编码思路相同）将 `t` 注入到 U-Net 各层特征图中。
+网络`epsilon_theta(x_t, t)`现代扩散模型注射`t`通过状时间嵌入 (像变压器中的位置编码一样的想法) 添加到每个U-Net级别的功能地图中.
 
 ```
 t_embedding = sinusoidal(t)
 feature_map += MLP(t_embedding)
 ```
 
-若没有时间条件，网络必须从图像本身猜测噪声水平，效果可以但样本效率要低得多。
+没有时间调节,网络必须从图像本身猜测噪音水平,
 
 ```figure
 cv-diffusion-image
 ```
 
-## 动手构建
+## 建立它
 
-### 步骤 1：噪声调度
+### 步骤1:噪音时间表
 
 ```python
 import torch
@@ -150,9 +150,9 @@ def precompute_schedule(betas):
 schedule = precompute_schedule(linear_beta_schedule(T=1000))
 ```
 
-一次性预计算，训练和采样时按索引取值。
+预计一次,在训练和采样过程中按指数收集.
 
-### 步骤 2：前向扩散（q_sample）
+### 步骤2:前进扩散 (q_样本)
 
 ```python
 def q_sample(x0, t, noise, schedule):
@@ -161,9 +161,9 @@ def q_sample(x0, t, noise, schedule):
     return sqrt_a * x0 + sqrt_one_minus_a * noise
 ```
 
-一行闭式。`t` 是一个批次的时间步，批次中每个图像对应一个。
+单行封闭形式`t`是一个时间步骤,每一个图像的批量.
 
-### 步骤 3：微小的时间条件 U-Net
+### 步骤3:一个小的时间条件的U-网
 
 ```python
 import torch.nn as nn
@@ -207,9 +207,9 @@ class TinyUNet(nn.Module):
         return self.dec2(d2)
 ```
 
-两层 U-Net，时间条件注入瓶颈处。处理真实图像时扩展深度和宽度即可。
+两个层次的U-Net,时间调节注射在瓶.
 
-### 步骤 4：训练循环
+### 步骤4:训练循环
 
 ```python
 def train_step(model, x0, schedule, optimizer, device, T=1000):
@@ -227,9 +227,9 @@ def train_step(model, x0, schedule, optimizer, device, T=1000):
     return loss.item()
 ```
 
-这就是完整的训练循环。没有 GAN 博弈，没有特殊损失，只有一行 MSE 调用。
+没有GAN游戏,没有专业损失,只有一个MSE电话.
 
-### 步骤 5：采样器（DDPM）
+### 步骤5:样本采集 (DDPM)
 
 ```python
 @torch.no_grad()
@@ -252,9 +252,9 @@ def sample(model, schedule, shape, T=1000, device="cpu"):
     return x
 ```
 
-1000 次前向传播产生一批样本。实际代码中应替换为 DDIM 50 步采样器。
+实际代码中,你会换一个DDIM50步样品器.
 
-### 步骤 6：DDIM 采样器（确定性，约 20 倍更快）
+### 步骤 6:DDIM样品 (确定性,速度大约20倍)
 
 ```python
 @torch.no_grad()
@@ -279,11 +279,11 @@ def sample_ddim(model, schedule, shape, steps=50, T=1000, device="cpu", eta=0.0)
     return x
 ```
 
-`eta=0` 完全确定性（相同噪声输入始终产生相同输出）。`eta=1` 还原为 DDPM。
+`eta=0`总是完全确定性 (相同的噪音输入总是产生相同的输出).`eta=1`恢复了DDPM.
 
-## 使用它
+## 用它
 
-生产环境请使用 `diffusers`：
+对于生产工作,使用`diffusers`其他:
 
 ```python
 from diffusers import DDPMScheduler, UNet2DModel
@@ -292,39 +292,39 @@ unet = UNet2DModel(sample_size=32, in_channels=3, out_channels=3, layers_per_blo
 scheduler = DDPMScheduler(num_train_timesteps=1000)
 ```
 
-该库提供了现成的调度器（DDPM、DDIM、DPM-Solver、Euler、Heun）、可配置的 U-Net、文本到图像和图像到图像的 pipeline，以及 LoRA 微调辅助工具。
+图书馆提供准备好的时间表表 (DDPM,DDIM,DPM-Solver,Euler,Heun),可配置的U-Nets,用于文字到图像和图像到图像的管道以及LoRA精细调辅助器.
 
-研究用途推荐使用 `k-diffusion`（Katherine Crowson），它拥有最忠实于原论文的参考实现和最好的采样变体。
+为了研究,`k-diffusion`现在,我们需要一个新的方法来做出.
 
-## 交付成果
+## 运送它
 
-本课产出：
+这一课产生了:
 
-- `outputs/prompt-diffusion-sampler-picker.md` — 一个根据质量目标、延迟预算和条件类型选择 DDPM / DDIM / DPM-Solver / Euler 的提示模板。
-- `outputs/skill-noise-schedule-designer.md` — 一个技能，给定 T 和目标噪声水平，生成线性、余弦或 Sigmoid beta 调度，并提供信噪比随时间变化的诊断图。
+- `outputs/prompt-diffusion-sampler-picker.md`根据质量目标,延迟预算和条件类型,选择DDPM / DDIM / DPM-Solver / Euler的提示.
+- `outputs/skill-noise-schedule-designer.md`一种技能,以T和目标腐败水平为线性,共数或西格莫ид的贝塔时间表,加上随时间的信号与噪音比的诊断图表.
 
-## 练习
+## 运动
 
-1. **(简单)** 可视化前向过程：取一张图像，绘制 `t in [0, 100, 250, 500, 750, 1000]` 时的 `x_t`。验证 `x_1000` 看起来像纯高斯噪声。
-2. **(中等)** 在合成圆形数据集上训练 TinyUNet 20 个 epoch，采样 16 个圆形。比较 DDPM（1000 步）和 DDIM（50 步）采样——使用相同噪声种子时，它们是否产生相似的图像？
-3. **(困难)** 实现余弦噪声调度（Nichol & Dhariwal, 2021）：`alpha_bar_t = cos^2((t/T + s) / (1 + s) * pi / 2)`。在同一模型上分别用线性和余弦调度训练，展示余弦调度在低步数时产生更好的样本。
+1. **(Easy)**视觉化前进过程: 拍下一个图像和图片`x_t`在`t in [0, 100, 250, 500, 750, 1000]`检查一下`x_1000`像纯粹的高斯噪音.
+2. **(Medium)**训练TinyUNet在20个时代的合成圈数据集上,并采样16个圈. 比较DDPM (1000步) 和DDIM (50步) 采样,它们是否从同一种噪音种子中产生相似的图像?
+3. **(Hard)**实施一个音时间表 (尼乔尔和达里瓦尔,2021年):`alpha_bar_t = cos^2((t/T + s) / (1 + s) * pi / 2)`训练相同的模型,使用线性和共数表,并证明共数在低步数下提供更好的样本.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| 前向过程 | "随时间加噪" | 固定的马尔可夫链，在 T 步内将图像腐蚀为高斯噪声 |
-| 反向过程 | "逐步去噪" | 学习到的分布，从噪声逐步走回图像 |
-| 噪声预测 | "预测噪声" | 训练目标：`epsilon_theta(x_t, t)` 预测第 t 步加入的噪声 |
-| Beta 调度 | "噪声量" | T 个小的方差序列，定义每一步注入多少噪声 |
-| alpha_bar_t | "累积保留因子" | 从 1 到 t 的 (1 - beta_s) 的乘积；t 越大，信号剩余越少 |
-| DDPM 采样器 | "祖先型、随机" | 从条件高斯中采样每个 x_{t-1}；1000 步 |
-| DDIM 采样器 | "确定性、快速" | 将采样重写为确定性 ODE；20-100 步质量相近 |
-| 时间条件 | "告诉模型 t 是哪个" | t 的正弦嵌入注入 U-Net，使模型知道噪声水平 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Forward process | "Add noise over time" | Fixed Markov chain that corrupts an image into Gaussian noise over T steps |
+| Reverse process | "Denoise step by step" | Learned distribution that walks back from noise to image |
+| Epsilon prediction | "Predict the noise" | The training target: `epsilon_theta(x_t, t)` predicts the noise added at step t |
+| Beta schedule | "Noise amounts" | Sequence of T small variances that define how much noise enters per step |
+| alpha_bar_t | "Cumulative retain factor" | Product of (1 - beta_s) up to time t; bigger t means less signal left |
+| DDPM sampler | "Ancestral, stochastic" | Samples each x_{t-1} from its conditional Gaussian; 1000 steps |
+| DDIM sampler | "Deterministic, fast" | Rewrites sampling as a deterministic ODE; 20-100 steps with similar quality |
+| Time conditioning | "Tell the model which t" | Sinusoidal embedding of t injected into the U-Net so it knows the noise level |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Denoising Diffusion Probabilistic Models (Ho et al., 2020)](https://arxiv.org/abs/2006.11239) — 让扩散模型变得实用并在 FID 上击败 GAN 的论文
-- [Improved DDPM (Nichol & Dhariwal, 2021)](https://arxiv.org/abs/2102.09672) — 余弦调度和 v-参数化
-- [DDIM (Song, Meng, Ermon, 2020)](https://arxiv.org/abs/2010.02502) — 使实时推理成为可能的确定性采样器
-- [Elucidating the Design Space of Diffusion (Karras et al., 2022)](https://arxiv.org/abs/2206.00364) — 对所有扩散设计选择的统一视图；当前最佳参考
+- [Denoising Diffusion Probabilistic Models (Ho et al., 2020)](https://arxiv.org/abs/2006.11239)使传播成为实践的论文,
+- [Improved DDPM (Nichol & Dhariwal, 2021)](https://arxiv.org/abs/2102.09672) 代数表和v参数化
+- [DDIM (Song, Meng, Ermon, 2020)](https://arxiv.org/abs/2010.02502)使实时推断成为可能的确定性样本
+- [Elucidating the Design Space of Diffusion (Karras et al., 2022)](https://arxiv.org/abs/2206.00364)对每种扩散设计选择的统一视图;目前最好的参考

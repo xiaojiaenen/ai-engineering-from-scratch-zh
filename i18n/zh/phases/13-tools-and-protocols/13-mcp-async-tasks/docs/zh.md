@@ -1,66 +1,66 @@
-# MCP Tasks 扩展：在状态核心上的持久化工作
+# 扩大MCP任务:对无国籍核心的持续工作
 
-> 状态无涉 MCP 并不意味着每个操作必须在一次请求中完成。官方 Tasks 扩展为长时间运行的工作提供了显式的持久化句柄。服务器可以从 `tools/call` 返回该句柄，任何实例都可以响应 `tasks/get`，客户端输入通过 `tasks/update` 到达，无需恢复协议会话。
+> 无国籍MCP并不意味着每个操作都必须在一个请求中完成.官方任务扩展提供了长时间工作的明确持久的手柄.`tools/call`任何一个例子都能回答.`tasks/get`通过客户输入`tasks/update`没有恢复协议会议.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** Phase 13 · 09（传输层）、Phase 13 · 11（状态无涉 MRTR）、Phase 13 · 12（elicitation）
-**预计时间：** ~90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 13 · 09 (transports), Phase 13 · 11 (stateless MRTR), Phase 13 · 12 (elicitation)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 区分状态无涉协议传输与持久化应用任务状态。
-- 在每次请求的 capabilities 和 `server/discover` 中协商 `io.modelcontextprotocol/tasks` 扩展。
-- 仅在持久化创建后才返回服务器驱动的 `CreateTaskResult`，且 `resultType: "task"`。
-- 通过 `tasks/get` 轮询，通过 `tasks/update` 提供任务输入，并通过 `tasks/cancel` 请求协作式取消。
-- 移除旧的 `tasks/status`、`tasks/result` 和 `tasks/list` 假设。
-- 通过在 POST 响应 SSE 流上使用 `subscriptions/listen` 订阅可选的任务通知。
-- 正确建模任务过期、重启恢复、输入键去重和执行错误。
+- 区分无状态协议运输与耐用应用任务状态.
+- 谈判`io.modelcontextprotocol/tasks`扩大每次请求能力`server/discover`现在,我们要去.
+- 返回一个服务器导向的`CreateTaskResult`随着`resultType: "task"`只有在永恒的创造之后.
+- 调查`tasks/get`完成任务输入`tasks/update`要求合作取消`tasks/cancel`现在,我们要去.
+- 删除老人`tasks/status`现在`tasks/result`其他`tasks/list`假设
+- 通过 订阅可选任务通知`subscriptions/listen`在 POST 响应 SSE 流上.
+- 模型任务过期,重新启动恢复,输入键的排版,以及执行错误正确.
 
-## 为什么 Tasks 是扩展
+## 为什么任务是延长
 
-Tasks 首次作为实验性核心功能出现在 2025-11-25 版本。2026 年 7 月的重新设计将其移入官方 `io.modelcontextprotocol/tasks` 扩展，使客户端和服务器可以选择加入额外的生命周期，而不会为所有人扩展核心协议。
+任务首次在2025年1月25日出现为实验核心功能.`io.modelcontextprotocol/tasks`扩展,使客户和服务器可以选择额外的生命周期,
 
-尽管它是 Tasks 当前的官方归属，扩展规范仍然是草稿版本。固定你的 SDK 支持的扩展版本，运行合规性场景，并将线适配器与你的 worker 和存储域隔离。
+扩展规范仍然是一个草稿表面,尽管它是目前的官方主页任务. 插入 SDK 支持的扩展版本,运行符合性场景,并将线索适配器从您的工作者和存储域中隔离.
 
-当操作具有以下一个或多个特性时使用任务：
+使用操作具有以下一个或多个特性时的任务:
 
-- 可能超出普通请求超时。
-- worker 队列或外部作业系统已拥有执行权。
-- 客户端需要在自身重启后恢复。
-- 操作在执行过程中暂停等待用户或模型输入。
-- 取消和持久化结果检索是产品需求。
+- 要求时间可能超过普通的要求时间.
+- 工人队列或外部工作系统已经拥有执行.
+- 客户需要恢复,
+- 执行过程中,操作暂停用户或模型输入.
+- 取消和持久的结果检索是产品要求.
 
-不要为廉价确定性查找创建任务。句柄、持久化、轮询、过期和取消都是真实的复杂性。
+没有什么可做,但我们必须要做一个好事.
 
-## 状态无涉核心，状态ful 应用
+## 无国籍核心,国家申请
 
-MCP 2026-07-28 移除了 `initialize`、`notifications/initialized`、协议会话和 `Mcp-Session-Id`。这并不禁止有状态的产品。
+移除MCP 2026-07-28 `initialize`现在`notifications/initialized`会议,`Mcp-Session-Id`这并不禁止有国产.
 
-任务 id 是显式的应用状态：
+任务 id 是明确的应用状态:
 
-- 服务器在返回前持久化它。
-- 客户端可以存储它并在重启后再次轮询。
-- 该 id 可以路由到由同一持久存储支持的任意副本。
-- 每次任务方法都检查授权。
-- 过期和删除由任务字段定义，而非传输生命周期。
+- 在返回之前,服务器坚持使用.
+- 客户可以重新启动后存储并进行重新调查.
+- 身份证可以向任何复制品提供相同的持久商店的支持.
+- 每个任务方法都会检查授权.
+- 过期和删除由任务领域定义,而不是运输寿命.
 
-这在操作上与附加到连接的隐藏状态不同。
+这从操作上来看,与连接连接的隐藏状态不同.
 
-保持四个生命周期分离：
+让四个生命分开:
 
-| 状态 | 生命周期 | 归属位置 |
+| State | Lifetime | Where it belongs |
 |---|---|---|
-| 协议元数据 | 一次请求 | `params._meta`，每次调用时重新验证 |
-| 传输工作 | 一次 stdio 请求或 HTTP 响应 | 带有限制期限的在进行中协调器 |
-| MRTR 延续 | 一次重试序列 | 完整性保护的 `requestState`，以及按需的重放控制 |
-| 持久任务 | 跨请求、副本、重启和重连 | 通过授权 `taskId` 键控的共享应用存储 |
+| Protocol metadata | One request | `params._meta`, validated again on every call |
+| Transport work | One stdio request or HTTP response | In-flight coordinator with a bounded deadline |
+| MRTR continuation | One retry sequence | Integrity-protected `requestState`, plus replay controls when needed |
+| Durable task | Across requests, replicas, restarts, and reconnects | Shared application store keyed by an authorized `taskId` |
 
-将任务记录移入进程内存并不会使 MCP 有状态。它会使应用不可靠。协议保持状态无涉，但后续路由到另一副本的 `tasks/get` 无法恢复该记录。在返回句柄前持久化，然后让每个任务方法在租户和主体检查下解析同一共享记录。
+移动一个任务记录到进程内存并不能使MCP变得状态.`tasks/get`继续前回手柄,然后让每个任务方法在租户和主管检查下解决相同的共享记录.
 
-## 能力协商
+## 能力谈判
 
-客户端在每次符合条件的请求上声明支持：
+客户在每一个符合条件的请求上宣告支持:
 
 ```json
 {
@@ -79,19 +79,19 @@ MCP 2026-07-28 移除了 `initialize`、`notifications/initialized`、协议会�
 }
 ```
 
-服务器从 `server/discover` 返回精确的 `supportedVersions`、capabilities、`ttlMs` 和 `cacheScope`，capabilities 下包含同一扩展。因为声明了工具，它也实现了必需的 `tools/list`。该结果返回确定性的 `generate_report` 描述符、有效的 object `inputSchema`、`resultType: "complete"`、服务器身份元数据和公开缓存提示。
+服务器返回了确切的信息`supportedVersions`其他国家`ttlMs`其他`cacheScope`其他`server/discover`由于它宣传工具,它也实施强制性`tools/list`这结果返回了确定性`generate_report`描述符,有效的对象`inputSchema`现在`resultType: "complete"`服务器身份元数据,以及公共缓存提示.
 
-来自未声明该扩展的客户端的任务方法返回 `-32021`（缺少必需的客户端能力），其中 `data.requiredCapabilities` 设置为 `{"extensions":{"io.modelcontextprotocol/tasks":{}}}`。不支持的协议字符串返回 `-32022`，附带精确的 `supported` 和 `requested` 数据；缺失或非字符串版本返回 `-32602`。
+没有声明延长返回的客户端的任务方法`-32021`缺失客户能力,`data.requiredCapabilities`设置为`{"extensions":{"io.modelcontextprotocol/tasks":{}}}`没有支持的协议链返回`-32022`确切的`supported`其他`requested`输出数据; 输出缺失或非字符串版本 `-32602`现在,我们要去.
 
-没有 JSON-RPC `id` 的包是通知。接收方可以处理它，但不会发出 JSON-RPC 结果或错误。Streamable HTTP 适配器对接受的通知返回 `202 Accepted`，无正文。
+没有JSON-RPC的封面`id`接收器可能会处理它,但它不会发出任何JSON-RPC结果或错误.`202 Accepted`没有接受通知的机构.
 
-目前，只有 `tools/call` 支持任务增强执行。设计你的内部抽象，使未来的请求类型不需要重写存储。
+目前,只有`tools/call`设计您的内部抽象,以便未来的请求类型不需要重写存储.
 
-## 服务器驱动的任务创建
+## 服务器指导任务创建
 
-旧的客户端标志 `params._meta.task.required` 已移除。客户端声明扩展支持，然后服务器决定特定的 `tools/call` 是否成为任务。
+旧客户旗`params._meta.task.required`客户端宣布扩展支持,然后服务器决定是否提供特定的服务器.`tools/call`成为一个任务.
 
-请求：
+要求:
 
 ```json
 {
@@ -113,7 +113,7 @@ MCP 2026-07-28 移除了 `initialize`、`notifications/initialized`、协议会�
 }
 ```
 
-响应：
+答案:
 
 ```json
 {
@@ -132,32 +132,32 @@ MCP 2026-07-28 移除了 `initialize`、`notifications/initialized`、协议会�
 }
 ```
 
-在针对该 id 的 `tasks/get` 可以解析之前，服务器不得返回此句柄。在最终一致存储中，在回答前等待读可见性。否则客户端可能收到看起来有效的 id，随即得到"未找到"。
+服务器不得返回此手柄,直到一个`tasks/get`在最终一致的存储中,在回答之前等待读取可见性.否则客户端可以收到一个有效的ID,然后立即得到"没有找到".
 
-任务响应在某种意义上是未经请求的，因为客户端不请求任务模式。但它并非未经协商：当前请求仍必须声明扩展。
+任务响应是未要求的,即客户端不要求任务模式. 它并非未经谈判:当前的请求仍然必须广告扩展.
 
-## 任务形态
+## 任务的形状
 
-每个任务包含：
+每个任务都包含:
 
-- `taskId`：稳定的服务器生成标识符；
-- `status`：`working`、`input_required`、`completed`、`cancelled` 或 `failed`；
-- `createdAt` 和 `lastUpdatedAt`：ISO 8601 时间戳；
-- `ttlMs`：从创建起的过期时长，或 `null` 表示无 advertised 限制；
-- 可选 `pollIntervalMs`：服务器的当前最小建议轮询间隔；
-- 可选 `statusMessage`：面向用户或模型的上下文。
+- `taskId`:稳定服务器生成的标识符;
+- `status`其他`working`现在`input_required`现在`completed`现在`cancelled`其他`failed`其他
+- `createdAt`其他`lastUpdatedAt`:ISO 8601时间标签;
+- `ttlMs`:自创建到期,或`null`没有广告的限制;
+- 选择性`pollIntervalMs`:服务器目前的最低建议投票时间;
+- 选择性`statusMessage`面向用户或面向模型的环境.
 
-状态特定的字段仅在相关时出现：
+只有当相关时,状态特定的字段才会出现:
 
-- `input_required` 包含 `inputRequests`。
-- `completed` 包含原始请求的 `result` 形态。
-- `failed` 包含 JSON-RPC `error` 对象。
+- `input_required`包括`inputRequests`现在,我们要去.
+- `completed`包括原本请求的文件`result`它们的形状.
+- `failed`包含一个JSON-RPC`error`它们是什么?
 
-客户端应遵守 `pollIntervalMs`。服务器可能对更激进的轮询进行速率限制，并可能在任务生命周期内更改间隔。
+客户应该尊重`pollIntervalMs`服务器可能会限制更具攻击性的民意调查,并且可能会在任务寿命中改变间隔.
 
-## 通过 `tasks/get` 轮询
+## 调查`tasks/get`
 
-客户端请求当前快照：
+客户端要求一个当前的快照:
 
 ```http
 POST /mcp HTTP/1.1
@@ -186,16 +186,16 @@ Mcp-Name: tsk_786512e29e0d
 }
 ```
 
-`tasks/get` 本身已完成，因此其结果始终具有 `resultType: "complete"`。嵌套任务仍可能有 `status: "working"` 或 `status: "input_required"`。
+`tasks/get`结果总是有着`resultType: "complete"`嵌的任务仍然可以得到`status: "working"`或`status: "input_required"`现在,我们要去.
 
-此区别防止了常见的解析器 bug：
+这种区别可以防止一个常见的解析器错误:
 
 ```text
-result.resultType = complete    表示 tasks/get RPC 已完成
-result.status = working         表示所表示的作业仍在运行
+result.resultType = complete    means the tasks/get RPC finished
+result.status = working        means the represented job is still running
 ```
 
-没有 `tasks/result` 调用。当任务完成时，下一个 `tasks/get` 响应在 `result` 下内联原始 `CallToolResult`：
+没有.`tasks/result`接下来,我们将会做一个任务.`tasks/get`答案是原始的`CallToolResult`根据`result`其他:
 
 ```json
 {
@@ -228,23 +228,23 @@ result.status = working         表示所表示的作业仍在运行
 }
 ```
 
-外层 `resultType` 表示 `tasks/get` RPC 已完成。嵌套的 `result.resultType` 表示原始工具调用已完成。该嵌套鉴别器是必需的。嵌套的 `CallToolResult` 还应携带其自己的 `io.modelcontextprotocol/serverInfo`；本课程包含它而非存储未类型化的载荷。
+外面的`resultType`现在,`tasks/get`完成了. 嵌套`result.resultType`需要一个嵌套的区分符.`CallToolResult`应该还要带着自己的.`io.modelcontextprotocol/serverInfo`没有类型的有效载荷的存储,
 
-没有 `tasks/list`。无会话服务器无法安全地推断哪些任务属于连接作用域列表。需要历史记录的应用应公开带有显式过滤和所有权规则的授权域工具。
+没有.`tasks/list`无会议服务器无法安全地推断哪些任务属于连接范围列表.需要历史记录的应用程序应该暴露出一个有权限的域名工具,有明确的过器和所有权规则.
 
-## 任务执行期间的输入
+## 执行任务时输入
 
-任务输入和核心 MRTR 看起来相似，但使用不同的延续。
+任务输入和核心MRTR看起来相似,但使用不同的延续.
 
-### 任务创建前的输入
+### 任务创建前所需的输入
 
-从原始 `tools/call` 返回核心 `resultType: "input_required"`。客户端兑现它并重试该原始调用。仅在那些同步 MRTR 轮完成后才创建任务。
+返回核心`resultType: "input_required"`根据原始的版本`tools/call`客户端完成了任务,然后再尝试原来的调用,
 
-### 任务创建后的输入
+### 任务创建后所需的输入
 
-将任务设置为 `input_required`。`tasks/get` 暴露待处理的 `inputRequests`，客户端通过 `tasks/update` 发送响应。客户端不重试原始 `tools/call`。
+设定任务`input_required`现在,我们要去.`tasks/get`揭示了突出的`inputRequests`客户通过`tasks/update`客户不会再试原始`tools/call`现在,我们要去.
 
-快照：
+快速拍摄:
 
 ```json
 {
@@ -271,7 +271,7 @@ result.status = working         表示所表示的作业仍在运行
 }
 ```
 
-更新：
+更新:
 
 ```http
 POST /mcp HTTP/1.1
@@ -306,13 +306,13 @@ Mcp-Name: tsk_786512e29e0d
 }
 ```
 
-成功响应是一个空确认加上 `resultType: "complete"`。状态变更可能是最终一致的，因此客户端继续轮询或监听。
+成功的反应是空白的承认,加上`resultType: "complete"`总之,客户继续进行投票或听取.
 
-每个 `inputRequests` 键在整个任务生命周期中必须唯一。重复的 `tasks/get` 快照可能显示相同的待处理键；客户端对 UI 去重，服务器忽略未知、已取代或已兑现的键的响应。部分更新可能使任务保持 `input_required`，直到所有必需键都已回答。
+每个`inputRequests`重复  重复 重复 重复 重复`tasks/get`快照可能显示相同的未完成密钥;客户端将UI复制,服务器忽略对未知,取代或已经完成的密钥的响应.`input_required`在所有必要的钥匙被回答之前.
 
-## 取消是协作式的
+## 取消是合作的
 
-`tasks/cancel` 发出意图信号并返回空完成确认。该确认并不保证 worker 已停止。工作可能首先完成、忽略取消或稍后转换。
+`tasks/cancel`工作人员的工作可能会先完成,忽略取消或过渡.
 
 ```http
 POST /mcp HTTP/1.1
@@ -341,74 +341,74 @@ Mcp-Name: tsk_786512e29e0d
 }
 ```
 
-对于所有三个任务方法，`Mcp-Name` 镜像 `params.taskId`。它不重复 JSON-RPC 方法名。`code/main.py` 在 `make_http_request` 中集中了此规则。
+对于所有三个任务方法,`Mcp-Name`镜子`params.taskId`没有重复JSON-RPC方法名称. `code/main.py`们的们在`make_http_request`现在,我们要去.
 
-课程 worker 立即尊重取消，使重复调用幂等。生产客户端仍必须将取消视为协作式，而非从确认推断最终任务状态。
+课程工作者立即尊重取消,并会重复打电话无权.
 
-不要使用 `notifications/cancelled` 来取消任务。该通知属于请求取消，而非持久化 Tasks。
+不要使用`notifications/cancelled`通知属于取消请求,而不是持久任务.
 
-此区别在路由边界处很重要。请求取消针对一个进行中的 JSON-RPC 操作或其请求作用域的 HTTP 响应。如果 `tools/call` 已经返回 `resultType: "task"`，则该请求已完成，关闭其传输无法命名或停止持久化作业。`tasks/cancel` 是一个新的授权 RPC。它携带 `params.taskId`，在 `Mcp-Name` 中镜像该 id，解析任务的拥有后端，记录协作取消意图，并返回确认而不声称 worker 已停止。
+要求取消是针对飞行中一个JSON-RPC操作或其请求范围的HTTP响应.`tools/call`已经回来了`resultType: "task"`要求已完成,关闭运输不能提及或停止持久的工作. `tasks/cancel`具有授权的新PCP.`params.taskId`镜像是个身份证`Mcp-Name`解决任务的后端,记录合作伙伴取消意图,并返回确认,而不要求工人停止.
 
-因此网关必须将请求协调器和任务路由保持在不同的表中。请求表可以在响应完成后消失。任务路由必须持续到终态和保留过期。[课程 29：MCP 可靠性、取消和流量控制](../../29-mcp-reliability-cancellation-and-flow-control/docs/en.md) 为两条路径构建竞态、超时、幂等性、背压和重试规则。
+通过一个网关,请求协调器和任务路线必须在不同的表格中存储.请求表可能会在响应完成时消失.任务路线必须存活到终端状态和保留期限到期. [Lesson 29: MCP Reliability, Cancellation, and Flow Control](../../29-mcp-reliability-cancellation-and-flow-control/docs/en.md)建立竞赛,时间过期,无力,压力,再试规则.
 
-## 可选通知
+## 选择性通知
 
-轮询是基线。想要推送更新的客户端发送带有任务 id 的 `subscriptions/listen`。对于 Streamable HTTP，这是一个 POST，其响应是请求作用域的 SSE 流。没有独立的 GET 事件流，也没有需要保持存活的协议会话。
+客户想要推送更新的发送`subscriptions/listen`对于 Streamable HTTP,这是一个 POST,其响应是请求-scoped SSE 流.没有独立的 GET 事件流和没有协议会议保持活跃.
 
-服务器通过 `notifications/subscriptions/acknowledged` 确认已接受的 id，然后通过 `notifications/tasks` 发送完整快照。确认和每个任务通知都在 `_meta` 中携带 `io.modelcontextprotocol/subscriptionId`，等于 `subscriptions/listen` 请求 id。每个任务通知在其他方面等价于 `tasks/get` 在该时刻会返回的内容。
+服务器确认接受的ID`notifications/subscriptions/acknowledged`然后可以通过全息图发送`notifications/tasks`确认和每项任务通知都包含`io.modelcontextprotocol/subscriptionId`在`_meta`等于`subscriptions/listen`要求 id. 其他情况下,每个任务通知等于`tasks/get`现在,我会回来.
 
-客户端仍必须声明 Tasks 扩展。它们应重新连接并从持久任务 id 恢复，而非依赖事件重放或 `Last-Event-ID`。
+客户仍然必须声明任务扩展. 他们应该从持久的任务ID重新连接和恢复,而不是依赖于事件重播或`Last-Event-ID`现在,我们要去.
 
 ## 失败语义
 
-正确使用两个错误层。
+运用两个错误层正确.
 
 ### 协议错误
 
-无效的方法参数或未知的任务 id 返回 JSON-RPC 错误，通常为 `-32602`。缺少扩展支持返回 `-32021`，附带必需能力对象。
+无效方法参数或未知的任务ID返回JSON-RPC错误,通常是`-32602`缺失延期支持的回报`-32021`具有所需能力对象.
 
 ### 任务执行结果
 
-- 带有 `isError: true` 的正常工具结果仍然是 `completed` 任务，因为工具调用产生了其定义的结果。
-- 延迟执行期间的 JSON-RPC 错误使任务 `failed`，并将该 JSON-RPC 错误存储在 `error` 下。
-- 用户拒绝可以产生 `cancelled`、完成的拒绝结果或其他域特定的安全结果。记录选择。
+- 具有正常的工具结果`isError: true`现在还在`completed`由于工具调用产生了所定义的结果.
+- 延期执行过程中出现了JSON-RPC错误,使得任务完成`failed`存储在 中的 JSON-RPC 错误`error`现在,我们要去.
+- 用户拒绝可能会产生`cancelled`文件文件,文件文件,文件文件,文件文件,文件文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,文件,
 
-## 持久化、过期和所有权
+## 长期,期限和所有权
 
-至少持久化任务 id、状态、时间戳、ttl、轮询间隔、原始操作所有权、结果或错误、待处理输入请求和所有已发出的输入键。
+保持至少任务 id,状态,时间标签, ttl,投票间隔,最初操作所有权,结果或错误,未完成的输入请求以及所有发行的输入密钥.
 
-存储键必须包含或解析权威租户和主体。知道任务 id 不得授予访问权限。在每次 `tasks/get`、`tasks/update`、`tasks/cancel` 和订阅时检查所有权。
+存储密钥必须包含或解决一个权威的租户和主管.知道一个任务ID不能允许访问. 检查所有权`tasks/get`现在`tasks/update`现在`tasks/cancel`加入
 
-`ttlMs` 从创建时测量，可能发生变化。当任务停止产生可观察更新时，客户端可以将其视为安全网。服务器可以失败并稍后删除已过期的任务。不要将其描述为在完成后的那么多毫秒内保留完成结果的承诺。
+`ttlMs`服务器可能会失败,然后删除过期任务.不要描述它为承诺保留完成结果完成后的数毫秒.
 
-使用原子写入或事务。课程写入临时文件并原子重命名它。多副本服务应使用共享持久存储和 worker 租约或等效并发控制。
+课程编写一个临时文件,并将其原子改名.多重复制服务应该使用共享的持久存储器和工人租或同等的同时控制.
 
 ```figure
 tp-task-lifecycle
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了一个确定性任务服务：
+`code/main.py`执行确定性任务服务:
 
-- `server/discover` 返回 `supportedVersions`、缓存提示和 Tasks 扩展。
-- `tools/list` 返回确定性的、可缓存的 `generate_report` 描述符，带有有效的输入模式。
-- `tools/call` 在返回 `resultType: "task"` 前创建并持久化任务。
-- 新服务实例重新加载同一任务，演示重启恢复。
-- `tasks/get` 返回完整任务快照。
-- worker 从 `working` 转换到 `input_required`。
-- `tasks/update` 接受表单响应并返回空完成确认。
-- worker 存储带有其自己的 `resultType` 和服务器身份的嵌套 `CallToolResult`，然后转换到 `completed`。
-- `tasks/cancel` 在此实现中是幂等的。
-- HTTP 构建器为 `tasks/get`、`tasks/update` 和 `tasks/cancel` 将 `Mcp-Name` 设置为 `params.taskId`。
-- 通知 helper 使用 `notifications/subscriptions/acknowledged` 和 `notifications/tasks`，都带有 listen 请求 id 标记。
-- 无 id 的通知不产生 JSON-RPC 响应。
+- `server/discover`收益`supportedVersions`预存提示,和任务扩展.
+- `tools/list`返回一个确定性,可缓存的`generate_report`具有有效输入方案的描述符.
+- `tools/call`在返回之前创建和持续任务`resultType: "task"`现在,我们要去.
+- 重新启动恢复的新服务实例重新加载相同任务.
+- `tasks/get`返回完整任务快照.
+- 工人从`working`为了`input_required`现在,我们要去.
+- `tasks/update`接受表格回复并返回空白的完全确认.
+- 工人存储一个子`CallToolResult`自己的`resultType`服务器身份,然后转向`completed`现在,我们要去.
+- `tasks/cancel`在此实施中,它是无力的.
+-  HTTP 构建器设置`Mcp-Name`为了`params.taskId`为了`tasks/get`现在`tasks/update`其他`tasks/cancel`现在,我们要去.
+- 通知助理使用`notifications/subscriptions/acknowledged`其他`notifications/tasks`两者都标记着听取请求的身份.
+- 无 id 的通知没有产生 JSON-RPC 响应.
 
-worker 显式推进而非在后台线程中睡眠。这使得每个状态转换确定，并保持协议示例与队列机制分离。
+工人显然进步,而不是睡在背景线程中. 这使得每个状态过渡都具有确定性,并且使协议示例与队列机制保持分开.
 
-## 使用它
+## 用它
 
-从仓库根目录：
+根据数据库根:
 
 ```bash
 cd phases/13-tools-and-protocols/13-mcp-async-tasks/code
@@ -416,7 +416,7 @@ python3 main.py
 python3 -m unittest discover tests -v
 ```
 
-预期结果序列：
+预期结果序列:
 
 ```text
 id=0 resultType=complete status=ack
@@ -427,42 +427,42 @@ id=4 resultType=complete status=ack
 id=5 resultType=complete status=completed
 ```
 
-同时验证 `tasks/status`、`tasks/result` 和 `tasks/list` 在现代服务中返回 method-not-found。
-验证 `tools/list` 是确定性的，且每个当前 HTTP 任务方法通过 `Mcp-Name` 镜像其任务 id。
+检查一下`tasks/status`现在`tasks/result`其他`tasks/list`报价方法在现代服务中没有找到.
+检查一下`tools/list`现在的 HTTP 任务方法都反映了其任务 id 通过`Mcp-Name`现在,我们要去.
 
-## 交付它
+## 运送它
 
-`outputs/skill-task-store-designer.md` 现在产生一个扩展感知的设计：能力协商、持久化优先返回创建、当前方法、输入更新流程、所有权、过期、取消、订阅和从已移除的实验方法的迁移。
+`outputs/skill-task-store-designer.md`现在生产一个知情的扩展设计:能力谈判,持续前回归创建,当前的方法,输入更新流量,所有权,过期,取消,订阅和从删除的实验方法迁移.
 
-## 练习
+## 运动
 
-1. 添加第二个待处理输入键。发送部分 `tasks/update` 并证明任务保持 `input_required`，直到两个键都得到回答。
-2. 向存储添加租户所有权，并拒绝由错误认证主体呈现的有效任务 id。
-3. 添加带有过期的 worker 租约。演示两个服务实例不能并发完成同一任务。
-4. 为 `subscriptions/listen` 实现 POST 响应 SSE 适配器。不添加 GET、`Last-Event-ID` 或会话头。
-5. 添加过期清理。区分过期任务与畸形任务 id，而不泄露跨租户存在。
+1. 添加第二个未完成输入键.`tasks/update`证明任务仍然存在`input_required`直到两个钥匙都被回答.
+2. 增加租户的所有权,并拒绝由错误的认证主体提供的有效任务身份.
+3. 增加到到期的工人租合同. 证明两个服务实例不能同时完成同一个任务.
+4. 实现一个POST响应SSE适配器`subscriptions/listen`不要添加GET,`Last-Event-ID`没有任何问题,
+5. 加入过期清理. 区分过期任务与错误的任务身份证,而不会泄露跨租户存在.
 
-## 关键术语
+## 关键词
 
-| 术语 | 当前扩展中的含义 |
-|------|------------------|
-| Tasks 扩展 | 用于持久化异步工作的可选 `io.modelcontextprotocol/tasks` 能力 |
-| `CreateTaskResult` | 对符合条件请求的服务器驱动 `resultType: "task"` 响应 |
-| `tasks/get` | 轮询完整当前任务快照，包括终端结果或待定输入 |
-| `tasks/update` | 向任务的待处理 `inputRequests` 提交响应 |
-| `tasks/cancel` | 确认协作取消意图 |
-| `input_required` | 指示客户端输入待处理的任务状态 |
-| `pollIntervalMs` | 服务器建议的下一次轮询前的最小延迟 |
-| `ttlMs` | 从任务创建起测量的过期时长 |
-| 持久化优先返回 | 任务 id 必须在发送其句柄前可解析的规则 |
-| `notifications/tasks` | 在订阅的 SSE 响应上交付的可选完整任务快照 |
+| Term | Meaning in the current extension |
+|------|----------------------------------|
+| Tasks extension | Optional `io.modelcontextprotocol/tasks` capability for durable async work |
+| `CreateTaskResult` | Server-directed `resultType: "task"` response to an eligible request |
+| `tasks/get` | Poll a full current task snapshot, including terminal result or pending input |
+| `tasks/update` | Submit responses to a task's outstanding `inputRequests` |
+| `tasks/cancel` | Acknowledge cooperative cancellation intent |
+| `input_required` | Task status indicating client input is outstanding |
+| `pollIntervalMs` | Server-suggested minimum delay before another poll |
+| `ttlMs` | Expiry duration measured from task creation |
+| Durable-before-return | Rule that the task id must resolve before its handle is sent |
+| `notifications/tasks` | Optional full task snapshot delivered on a subscribed SSE response |
 
-## 遗留兼容性
+## 遗产兼容性
 
-2025-11-25 实验性表面使用客户端请求的任务增强、`tasks/status`、`tasks/result` 和可选的 `tasks/list`。仅在固定的遗留适配器内保留这些名称。当前客户端使用扩展能力，接受服务器驱动的句柄，轮询 `tasks/get`，用 `tasks/update` 提供输入，并从任务快照读取最终结果。
+根据客户要求,`tasks/status`现在`tasks/result`其他选择性`tasks/list`现在的客户端使用扩展功能,接受服务器导向手柄,投票`tasks/get`提供输入`tasks/update`读取任务快照的最终结果.
 
-## 延伸阅读
+## 进一步阅读
 
-- [官方 MCP Tasks 扩展](https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks)
-- [MCP 2026-07-28 多往返请求](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr)
+- [Official MCP Tasks extension](https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks)
+- [MCP 2026-07-28 Multi Round-Trip Requests](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr)
 - [MCP 2026-07-28 Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)

@@ -1,43 +1,43 @@
-# 文本处理 —— 分词、词干提取、词形还原
+# 文本处理 标记化,排序,化
 
-> 语言是连续的，模型是离散的。预处理是连接两者的桥梁。
+> 语言是连续的,模型是离散的,预处理是桥梁.
 
-**类型：** 构建
-**语言：** Python
-**前置要求：** 阶段 2 · 14（朴素贝叶斯）
-**预计时间：** 约 45 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 2 · 14 (Naive Bayes)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-模型无法"阅读" `"The cats were running."` 。它读取的是整数。
+模型不能读"猫们跑了". 它读完整数.
 
-每个 NLP 系统的入口都面临着同样的三个问题：一个词从哪里开始？一个词的根本形式是什么？何时应当把 `"run"`、`"running"`、`"ran"` 视为同一个东西，何时又应当视为不同？
+每个NLP系统都以相同的三个问题开启.一个词从哪里开始.这个词的根源是什么?我们如何把"跑","跑","跑"当它帮助的时候,当它帮助的时候,当它帮助的时候,当它帮助的时候,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它帮助时,当它对待时,当它帮助时,当它对待时,当它对待时,当它对待时,当它对它对它有所帮助时,当它对它对它对它有所帮助时,当它对它对它对它对它有不同的影响时,当它对它对它对它对它对它对它对它有所影响.
 
-分词做错，模型就会从垃圾中学习。如果你的分词器把 `don't` 当作一个 token，却把 `do n't` 当作两个 token，训练分布就会被撕裂。如果你的词干提取器把 `organization` 和 `organ` 折叠成同一个词干，主题建模就会失效。如果你的词形还原器需要词性上下文但你没有传入，动词就会被当作名词处理。
+如果你的代币器处理了,`don't`作为一个标志,但`do n't`如果你的投票崩,`organization`其他`organ`如果你的化器需要部分语文背景,但你没有通过它,动词将被视为名词.
 
-本课从零实现这三个预处理步骤，然后展示 NLTK 和 spaCy 如何完成同样的工作，让你看清各自的取舍。
+这一课程将从零开始构建三个预处理步骤,然后展示NLTK和spaCy如何做同样的工作,
 
 ## 概念
 
-三个操作。每个都有各自的职责和失败的诱因。
+三个操作,每个操作都有一个任务,一个失败模式.
 
-**分词（Tokenization）** 将一段字符串拆分为 token。"Token" 这个词故意留有一定的模糊空间，因为合适的粒度取决于任务。经典 NLP 用词级别，Transformer 用子词级别，无空格语言（如中文）用字符级别。
+**Tokenization**字符串分为代币. "代币"是故意模糊的,因为正确的细分性取决于任务. 经典NLP的字面级别. 变压器的字体. 语言的字符没有白色空间.
 
-**词干提取（Stemming）** 用规则切除词缀。快速、激进、笨拙。`running -> run`。`organization -> organ`。第二种情况就是失败模式的体现。
+**Stemming**快速,侵略性,愚蠢.`running -> run`现在,我们要去.`organization -> organ`第二个是失败模式.
 
-**词形还原（Lemmatization）** 借助语法知识将词归并到字典中的规范形式。较慢、准确、需要查找表或形态分析器。`ran -> run`（需要知道 "ran" 是 "run" 的过去式）。`better -> good`（需要知道这是比较级形式）。
+**Lemmatization**通过使用语法知识将一个词缩小到词典形式. 慢慢,准确,需要一个搜索表或形态分析仪. `ran -> run`(需要知道"跑"是"跑"的过去时代).`better -> good`(需要了解相对形式).
 
-经验法则：当速度重要且可容忍噪声时用词干提取（搜索索引、粗略分类）；当语义重要时用词形还原（问答、语义搜索、任何用户会看到的结果）。
+语:当速度重要时,你可以容忍噪音 (搜索索索引,粗略分类).当意义重要时,你可以语 (回答问题,语义搜索,用户会阅读任何东西).
 
 ```figure
 edit-distance
 ```
 
-## 动手实现
+## 建立它
 
-### 第 1 步：一个基于正则的词级分词器
+### 步骤1:一个regex字符标记器
 
-最简单实用的分词器按非字母数字字符拆分，同时把标点单独作为 token 保留。不够完美，也不是最终方案，但一行就能跑通。
+最简单的有用代币器分成非字母符号,同时保留符号作为自己的代币. 不完美,不是最终的,但它运行在一个行.
 
 ```python
 import re
@@ -46,18 +46,18 @@ def tokenize(text):
     return re.findall(r"[A-Za-z]+(?:'[A-Za-z]+)?|[0-9]+|[^\sA-Za-z0-9]", text)
 ```
 
-按优先级排列的三个模式：带内部可选撇号的单词（`don't`、`it's`）、纯数字、单个非空白非字母数字字符作为独立 token（即标点）。
+字母的排序:`don't`现在`it's`) 纯数字:任何单个非白色空间非字母符作为独立的标记 (点点).
 
 ```python
 >>> tokenize("The cats weren't running at 3pm.")
 ['The', 'cats', "weren't", 'running', 'at', '3', 'pm', '.']
 ```
 
-需要留意失败模式。`3pm` 会被拆成 `['3', 'pm']`，因为我们交替匹配字母段和数字段。大多数场景够用了。URL、邮箱、标签全部会出错。生产环境需要在通用规则之前添加专用模式。
+检测失败模式.`3pm`分成`['3', 'pm']`因为我们在字母运行和数字运行之间交替. 足够适合大多数任务. URL,电子邮件,hashtag都破裂.
 
-### 第 2 步：一个 Porter 词干提取器（仅第 1a 阶段）
+### 步骤2:一个 Porter stemmer (仅步骤1a)
 
-完整的 Porter 算法有五阶段规则。只实现第 1a 阶段就足以覆盖最常见的英语后缀并展现该模式。
+波特算法包含五个阶段的规则. 单独的第一步涵盖了最常见的英语后音,并教导了模式.
 
 ```python
 def stem_step_1a(word):
@@ -77,11 +77,11 @@ def stem_step_1a(word):
 ['caress', 'poni', 'caress', 'cat']
 ```
 
-从上往下读这些规则。`ies -> i` 这条规则解释了为什么 `ponies -> poni` 而不是 `pony`。真正的 Porter 有第 1b 阶段可以修正这个问题。规则之间存在竞争关系，靠前的规则胜出。顺序比任何单条规则都更重要。
+阅读下面的规则.`ies -> i`规则是为什么`ponies -> poni`没有`pony`实际的波特有第一步B,可以解决问题,规则竞争,以前的规则赢得,秩序比任何单一规则都重要.
 
-### 第 3 步：一个基于查表的词形还原器
+### 步骤3:基于搜索的化器
 
-真正的词形还原需要形态学知识。一个便于教学的简化版使用一个小查表 + 兜底逻辑。
+化需要形态学.一个可操作的教学版本使用一个小的形表和一个倒退.
 
 ```python
 LEMMA_TABLE = {
@@ -119,9 +119,9 @@ def lemmatize(word, pos):
 'watched'
 ```
 
-最后一个例子是核心教学点。`watched` 不在我们的表中，而兜底逻辑只处理 `ing` 结尾。真正的词形还原本应覆盖 `ed` 结尾、不规则动词、形容词比较级、发生音变的复数（`children -> child`）。这正是生产系统使用 WordNet、spaCy 的词形分析器或完整形态分析器的原因。
+最后一个案例是教学的关键时刻.`watched`没有在我们的桌子上,我们的倒退只能处理.`ing`实际的化覆盖`ed`无规律的动词,比较形容词,音调变化的多元 (`children -> child`这就是为什么生产系统使用WordNet, spaCy的形态分析仪,或一个完整的形态分析仪.
 
-### 第 4 步：把它们串起来
+### 步骤4:将它们连接在一起
 
 ```python
 def preprocess(text, pos_tagger=None):
@@ -132,13 +132,13 @@ def preprocess(text, pos_tagger=None):
     return {"tokens": tokens, "stems": stems, "lemmas": lemmas}
 ```
 
-缺失的一环是词性标注器。阶段 5 · 07（词性标注）会构建一个。现在先把所有词默认标为 `NOUN`，并接受这个局限。
+现在,默认所有东西都在`NOUN`承认自己的限制.
 
-## 实际使用
+## 用它
 
-NLTK 和 spaCy 提供的是生产级版本。各只需几行代码。
+产品版本的NLTK和SpaCy运输,每行几行.
 
-### NLTK
+### 其他国家
 
 ```python
 import nltk
@@ -170,9 +170,9 @@ def nltk_pos_to_wordnet(tag):
 lemmas = [lemmatizer.lemmatize(t, nltk_pos_to_wordnet(tag)) for t, tag in tagged]
 ```
 
-`word_tokenize` 能正确处理缩略形式、Unicode 以及你的正则表达式会漏掉的边界情况。`PorterStemmer` 执行全部五个阶段。`WordNetLemmatizer` 需要把 NLTK 的 Penn Treebank 词性标签翻译成 WordNet 的缩写集合。上面那串翻译映射是多数教程跳过的那一步。
+`word_tokenize`处理缩短,Unicode,边缘案例,你的regex错过了.`PorterStemmer`它们在五个阶段都运行.`WordNetLemmatizer`需要从NLTK的Penn Treebank计划转换到WordNet的缩写集.上面的翻译线程是大多数教程的跳过.
 
-### spaCy
+### 空间
 
 ```python
 import spacy
@@ -192,66 +192,66 @@ running  run     VERB
 .        .       PUNCT
 ```
 
-spaCy 把整个流水线隐藏在 `nlp(text)` 背后。分词、词性标注、词形还原全部运行。规模上比 NLTK 更快，开箱即用也更准确。代价是你难以单独替换其中的某个组件。
+太空系统隐藏了整个管道.`nlp(text)`标记, POS标记和 lemmatization都运行. 比NLTK更快. 精确. 折衷是,你不能轻松交换个体组件.
 
-### 如何选择
+### 什么时候选择哪个
 
-| 场景 | 推荐 |
-|------|------|
-| 教学、研究、需要灵活替换组件 | NLTK |
-| 生产环境、多语言、对速度敏感 | spaCy |
-| Transformer 流水线（你反正会用模型的 tokenizer 做分词） | 使用 `tokenizers` / `transformers`，跳过经典预处理 |
+| Situation | Pick |
+|-----------|------|
+| Teaching, research, swapping components | NLTK |
+| Production, multi-language, speed matters | spaCy |
+| Transformer pipeline (you'll tokenize with the model's tokenizer anyway) | Use `tokenizers` / `transformers` and skip classical preprocessing |
 
-### 两个几乎没人提醒你注意的失败模式
+### 没有人警告你
 
-大多数教程只教算法然后就结束了。在真实预处理流水线上，有两件事会让你翻车，而且它们几乎从不被讨论。
+两件事会造成真正的预处理管道,而且几乎从来都没有被覆盖.
 
-**可复现性漂移。** NLTK 和 spaCy 在不同版本之间会改变分词和词形还原的行为。spaCy 2.x 中产生 `['do', "n't"]` 的逻辑，在 3.x 中可能产生 `["don't"]`。你的模型训练于一种分布，而推理却跑在另一种分布上。准确率会无声地退化，而没有人知道原因。在 `requirements.txt` 中锁定库的版本。编写一条预处理回归测试，对 20 个样本句子的分词结果进行冻结校验，每次升级时都运行它。
+**Reproducibility drift.**它们的版本在NLTK和 spaCy之间改变了代码化和 lemmatizer行为.`['do', "n't"]`在 spaCy 2.x 中可能产生`["don't"]`现在,你的模型在一个分布上运行. 推理现在运行在另一个. 精度缓慢降低,没有人知道为什么.`requirements.txt`写一个预处理回归测试, 结20个样本句子的预期标记.
 
-**训练 / 推理不匹配。** 训练时用激进的预处理（小写化、停用词去除、词干提取），部署时却在原始用户输入上运行，然后看着性能崩溃。这是生产 NLP 最常见的失败模式。如果训练时做了预处理，推理时必须运行完全相同的函数。把预处理作为一个函数随模型包一起交付，而不是让推理团队自行改写的一个 notebook 单元格。
+**Training / inference mismatch.**训练使用积极的预处理 (小字母,停止字母删除,源),部署在原始用户输入,表现坑.这是最常见的生产NLP失败.如果你在训练中预处理,你必须在推断期间运行相同的功能. 运输预处理作为模型包内功能,而不是作为笔记本电脑细胞服务团队重写.
 
-## 交付物
+## 运送它
 
-一条可复用的提示词，帮助工程师在不读三本教材的情况下选择合适的预处理策略。
+帮助工程师在没有阅读三本教科书的情况下选择预处理策略的可重复使用提示.
 
-保存为 `outputs/prompt-preprocessing-advisor.md`：
+保存如`outputs/prompt-preprocessing-advisor.md`其他:
 
 ```markdown
 ---
 name: preprocessing-advisor
-description: 为 NLP 任务推荐分词、词干提取和词形还原的配置方案。
+description: Recommends a tokenization, stemming, and lemmatization setup for an NLP task.
 phase: 5
 lesson: 01
 ---
 
-你为经典 NLP 预处理提供建议。根据任务描述，输出：
+You advise on classical NLP preprocessing. Given a task description, you output:
 
-1. 分词方案选择（正则、NLTK word_tokenize、spaCy 或 Transformer tokenizer）。说明理由。
-2. 是否应该词干提取、词形还原、两者都做或都不做。说明理由。
-3. 具体的库调用。给出函数名。如果涉及 NLTK，写出词性标签的翻译对照。
-4. 一条用户应当测试的失败模式。
+1. Tokenization choice (regex, NLTK word_tokenize, spaCy, or transformer tokenizer). Explain why.
+2. Whether to stem, lemmatize, both, or neither. Explain why.
+3. Specific library calls. Name the functions. Quote the POS-tag translation if NLTK is involved.
+4. One failure mode the user should test for.
 
-拒绝为用户可见文本推荐词干提取。拒绝在无词性标签时推荐词形还原。发现非英文输入时标注为需要不同的流水线。
+Refuse to recommend stemming for user-visible text. Refuse to recommend lemmatization without POS tags. Flag non-English input as needing a different pipeline.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 扩展 `tokenize` 使其将 URL 作为单个 token 保留。测试：`tokenize("Visit https://example.com today.")` 应产生一个 URL token。
-2. **中等。** 实现 Porter 第 1b 阶段：如果单词包含元音且以 `ed` 或 `ing` 结尾，则移除之后缀。处理双辅音规则（`hopping -> hop`，不是 `hopp`）。
-3. **困难。** 构建一个以 WordNet 为查表、在 WordNet 无条目时回退到你实现的 Porter 词干提取器的词形还原器。在与词性标注语料对比时，分别测量纯 WordNet 和纯 Porter 的准确率。
+1. **Easy.**延长时间`tokenize`测试: `tokenize("Visit https://example.com today.")`应该产生一个URL代码.
+2. **Medium.**执行 Porter 步骤 1b. 如果一个词包含一个音符,`ed`或`ing`取消它. 处理双语音规则 (`hopping -> hop`没有`hopp`)
+3. **Hard.**建立一个使用WordNet作为搜索表的 lemmatizer,但当WordNet没有输入时,它会回到你的 Porter stemmer.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|-----------|---------|
-| Token | 一个词 | 模型实际消费的单位。可以是词、子词、字符或字节。 |
-| Stem（词干） | 词根 | 基于规则的词缀剥离结果。不一定是真实存在的词。 |
-| Lemma（词原） | 字典形式 | 你在词典中会查找到的那个形式。需要语法上下文才能正确计算。 |
-| POS tag（词性标签） | 词类 | 如 NOUN、VERB、ADJ 等类别。词形还原需要它才能准确执行。 |
-| Morphology（形态学） | 词的形态规则 | 词如何根据时态、数、格等改变形式。词形还原依赖于它。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| Token | A word | Whatever unit the model consumes. Can be word, subword, character, or byte. |
+| Stem | Root of a word | Result of rule-based suffix stripping. Not always a real word. |
+| Lemma | Dictionary form | The form you'd look up. Requires grammatical context to compute correctly. |
+| POS tag | Part of speech | Category like NOUN, VERB, ADJ. Needed to lemmatize accurately. |
+| Morphology | Word shape rules | How a word changes form based on tense, number, case. Lemmatization depends on it. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Porter, M. F. (1980). An algorithm for suffix stripping](https://tartarus.org/martin/PorterStemmer/def.txt) —— 原始论文，五页篇幅，至今仍是解释最清晰的文献。
-- [spaCy 101 — linguistic features](https://spacy.io/usage/linguistic-features) —— 一个真实流水线是如何连接的。
-- [NLTK book, chapter 3](https://www.nltk.org/book/ch03.html) —— 你可能尚未想到的分词边界情况。
+- [Porter, M. F. (1980). An algorithm for suffix stripping](https://tartarus.org/martin/PorterStemmer/def.txt)五页的原始论文,仍然是最清晰的解释.
+- [spaCy 101 — linguistic features](https://spacy.io/usage/linguistic-features)如何连接一个真正的管道.
+- [NLTK book, chapter 3](https://www.nltk.org/book/ch03.html)你还没有想到的代币化边缘案例.

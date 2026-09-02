@@ -1,60 +1,60 @@
-# Sim-to-Real 迁移
+# 转移到真实
 
-> 在模拟器中训练、在真实硬件上失败的策略，是一个记住了模拟器而非学会控制的策略。域随机化（Domain Randomization）、域适应（Domain Adaptation）和系统辨识（System Identification）是三种让学习控制器跨越"现实鸿沟"的工具。
+> 训练在模拟器中失败的硬件是记住模拟器的政策.域名随机化,域名适应和系统识别是让学到的控制器跨越现实差距的三个工具.
 
-**类型：** 学习
-**语言：** Python
-**前置知识：** 第 9 阶段 · 08 (PPO)、第 2 阶段 · 10 (偏差/方差)
-**时间：** 约 45 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 9 · 08 (PPO), Phase 2 · 10 (Bias/Variance)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-训练真实的机器人既慢又危险，还非常昂贵。一个双足机器人需要数百万次训练回合才能学会走路；而一个真实双足机器人即使摔一次也会损坏硬件。仿真提供了无限重置次数、确定性可复现、并行环境，以及零物理损坏。
+训练一个真正的机器人是慢,危险,昂贵的.双脚需要数百万次训练才能学会走路;一个真正的双脚即使一旦打破硬件,也会摔倒.模拟给你无限的重置,确定性可复制性,并行环境,没有物理损害.
 
-但仿真是有缺陷的。轴承摩擦比 MuJoCo 模型中的更大。摄像头存在仿真未包含的镜头畸变。电机存在延迟、背隙和饱和，而 99% 的仿真模型都忽略了这些。风、灰尘和变化的光照会毁掉一个在无菌渲染环境下训练的策略。**现实鸿沟（Reality Gap）**——仿真分布与实际分布之间的系统性差异——是部署式机器人强化学习的核心问题。
+模拟器是错误的.轴承比MuJoCo模型更有摩擦.相机有镜头扭曲.模拟器不包括.电机有延误,反响和和99%的Sim模型跳过.风,尘埃和变量照明破坏了训练在无菌的染的政策.**reality gap**系统性区别在真实分布和Sim分布之间是机器人部署RL的核心问题.
 
-你需要一个对 sim-to-real 分布偏移具备**鲁棒性**的策略。三种历史方法：随机化模拟器（域随机化）、用少量真实数据适应策略（域适应/微调）、或辨识真实系统的参数来匹配仿真（系统辨识）。到 2026 年，主流方案将三者与大规模并行仿真（Isaac Sim、Isaac Lab、GPU 上的 Mujoco MJX）结合使用。
+需要一个可靠的政策, 历史方法:随机化模拟器 (域名随机化),使用一些实际数据 (域名适应/细调) 调整政策,或识别实际系统的参数并匹配它们 (系统识别). 2026年,主导的配方将所有三种配方都结合到大型并行模拟 (GPU上的Isaac Sim,Isaac Lab,Mujoco MJX).
 
-## 核心概念
+## 概念
 
-![三种 sim-to-real 范式：域随机化、域适应、系统辨识](../assets/sim-to-real.svg)
+![Three sim-to-real regimes: domain randomization, adaptation, system identification](../assets/sim-to-real.svg)
 
-**域随机化（DR）。** Tobin 等人 2017，Peng 等人 2018。在训练期间，随机化所有可能与真实机器人不同的仿真参数：质量、摩擦系数、电机 PD 增益、传感器噪声、相机位置、光照、纹理、接触模型。策略学会了一个关于"今天处于哪个仿真"的条件分布，并在整个跨度内泛化。如果真实机器人落在训练覆盖范围内，策略就能工作。
+**Domain Randomization (DR).**其他类型 2017年,潘等 美国 在训练期间,随机定制每一个可能在实际机器人上不同的模拟参数:质量,摩擦系数,电动PD增长,传感器噪音,摄像头位置,照明,纹理,接触模型. 政策学习了"今天的情况"的条件分布,并将其在整个范围进行概括. 如果真正的机器人属于训练包,
 
-- **优点：** 不需要真实数据。一套方案适配多台机器人。
-- **缺点：** 过度随机化的训练会产生一个"万能"但过于保守的策略。噪声太多 ≈ 正则化过强。
+- **Upside:**没有真正的数据,只需要一个食谱,很多机器人.
+- **Downside:**过度随机化培训产生了"普遍"但过于谨慎的政策.
 
-**系统辨识（SI）。** 在训练之前，将仿真参数拟合到真实世界数据。如果你能在真实机器人上测量关节摩擦，就把这些值代入仿真。然后训练一个期望这些值的策略。需要对真实系统进行测量，但能直接缩小现实鸿沟。
+**System Identification (SI).**训练前将模拟器的参数与现实数据调整.如果你能测量实机器人的臂关节摩擦,将其插入在模拟器中.然后训练一个预期这些值的政策.需要访问实系统,但直接减少现实差距.
 
-- **优点：** 精确、低噪声的训练目标。
-- **缺点：** 残差模型误差对策略不可见；微小的未辨识效应（如电机死区）仍会导致部署失败。
+- **Upside:**精确的低噪音训练目标.
+- **Downside:**剩余模型错误是政策看不见的;小小的未识别的效应 (例如,电动带) 仍然破坏了部署.
 
-**域适应。** 在仿真中训练，再用少量真实数据微调。两种变体：
+**Domain Adaptation.**训练在模拟,微调用少量真实数据.
 
-- **Real2Sim2Real：** 用真实轨迹学习残差仿真器 `f(s, a, z) - f_sim(s, a)`，在修正后的仿真中训练。用最少的真实数据缩小差距。
-- **观测适配：** 训练一个策略，通过学习的特征提取器（如 GAN 像素到像素）将真实观测映射为类仿真观测。控制器仍在仿真中运行。
+- **Real2Sim2Real:**学习一个残余模拟器`f(s, a, z) - f_sim(s, a)`通过使用真实推广,在修改的模拟中训练. 没有太多真实数据就关闭了差距.
+- **Observation adaptation:**通过学习的特征提取器 (例如GAN像素到像素) 绘制真实obs →sim类似的obs的策略.控制器保持在sim.
 
-**特权学习 / 教师-学生。** Miki 等人 2022（ANYmal 四足机器人）。在仿真中训练一个能够访问特权信息（真实摩擦、地形高度、IMU 漂移）的**教师**策略。蒸馏出一个只接收真实传感器观测的**学生**策略。学生学会从历史中推断特权特征，在不同物理参数下均具鲁棒性。
+**Privileged learning / teacher-student.**学生们可以从历史中推断特权特征,在物理参数中强. 学生们可以从历史中推断特权特征,在物理参数中强. 学生们可以从历史中推断特权特征.
 
-**大规模并行仿真。** 2024–2026。Isaac Lab、Mujoco MJX、Brax 都在单 GPU 上运行数千个并行机器人。带有 4,096 个并行人形机器人的 PPO 在数小时内即可收集多年的经验。随着训练分布拓宽，"现实鸿沟"逐渐缩小；当 4,096 个环境各自具有不同随机化参数时，DR 的成本几乎可以忽略。
+**Massively parallel simulation.**20242026年.艾萨克实验室,Mujoco MJX,Brax都在一个GPU上运行数千个并行机器人.PPO拥有4,096个并行人形,在几个小时内收集了多年的经验.随着训练分布的扩大,"现实差距"缩小;当这些4,096个 envs中的每个具有不同的随机参数时,DR几乎变得自由.
 
-**2026 年的真实世界方案（以四足行走为例）：**
+**The real-world 2026 recipe (quadruped walking example):**
 
-1. 大规模并行仿真，域随机化重力、摩擦、电机增益、负载。
-2. 使用特权信息（地形图、真实身体速度）训练教师策略。
-3. 仅用本体感知（腿部关节编码器）将教师策略蒸馏到学生策略。
-4. （可选）通过对真实 IMU 使用自编码器进行观测适配。
-5. 部署。在 10+ 环境中零样本工作。若失败，使用安全约束 PPO 进行分钟级真实微调。
+1. 具有域式随机引力,摩擦,动力增长,有效载荷.
+2. 教师政策训练有素的信息 (地图,身体速度地图).
+3. 学生政策仅使用自体感 (腿关节编码器) 来从教师中炼.
+4. 通过真实IMU的自动编码器进行可选的观察适应.
+5. 如果它失败,用安全限制的PPO进行几分钟的现实世界细节调整.
 
 ```figure
 f3-reality-gap
 ```
 
-## 动手实践
+## 建立它
 
-本课代码是一个在具有*噪声*转移的 GridWorld 上进行域随机化的小型演示。我们训练一个在"仿真"中经历随机化滑倒概率的策略，并在"真实"环境中以训练时从未见过的滑倒水平进行评估。这个框架直接映射到 MuJoCo 到硬件的迁移。
+本课程的代码是 GridWorld上随机域定位的小示范,具有 *噪音*的过渡.我们训练了一个政策,在"sim"中体验到随机滑梯概率,并以"真实"评估,使用训练中从未见过的滑梯水平.形状直接映射到MuJoCo到硬件转移.
 
-### 步骤 1：参数化仿真
+### 步骤1:参数化Sim
 
 ```python
 def step(state, action, slip):
@@ -63,95 +63,95 @@ def step(state, action, slip):
     ...
 ```
 
-`slip` 是仿真暴露的一个参数。在真实机器人学中，它可能是摩擦、质量、电机增益——任何在仿真和真实之间产生偏移的东西。
+`slip`在真实机器人中,它可能是摩擦,质量,运动增长 任何在真实和真实之间转移的东西.
 
-### 步骤 2：使用 DR 训练
+### 步骤2:与DR一起训练
 
-在每个 episode 开始时，采样 `slip ~ Uniform[0.0, 0.4]`。训练 PPO / Q-learning / 任意算法。持续多个 episode。
+在每一集的开始,`slip ~ Uniform[0.0, 0.4]`训练PPO/Q学习/任何东西.
 
-### 步骤 3：在"真实"滑倒水平上零样本评估
+### 步骤3:评估"真实"的分片中零射击
 
-在 `slip ∈ {0.0, 0.1, 0.2, 0.3, 0.5, 0.7}` 上评估。前四个在训练覆盖范围内；`0.5` 和 `0.7` 在范围之外。DR 训练的策略应在覆盖范围内保持接近最优，在范围外优雅退化。固定滑倒水平训练的策略在其训练滑倒水平之外会非常脆弱。
+评估`slip ∈ {0.0, 0.1, 0.2, 0.3, 0.5, 0.7}`首先,四个项目包括培训支持.`0.5`其他`0.7`对于外围的运动, DR训练的运动应该保持在内部的支持中接近最佳水平,在外面却会显著降低.
 
-### 步骤 4：与窄训练对比
+### 步骤4:与狭窄的训练相比
 
-用仅 `slip = 0.0` 训练第二个策略。在相同的滑倒扫描上评估。你应该会看到一旦真实滑倒 > 0 就会出现灾难性下降。
+培养第二个政策`slip = 0.0`只有在同一方面进行评估`slip`实际滑动时就会出现灾难性的下降.
 
-## 常见陷阱
+## 陷
 
-- **随机化过多。** 在 `slip ∈ [0, 0.9]` 上训练，策略会过于规避风险而从不尝试最优路径。匹配*预期*真实世界分布，而不是"什么都可能发生"。
-- **随机化过少。** 在狭窄区间上训练，策略完全无法泛化。使用自适应课程（自动域随机化），随策略改进而拓宽分布。
-- **参数空间辨识错误。** 随机化了错误的东西（如调整相机色调而真实鸿沟来自电机延迟），DR 不会有帮助。先对真实机器人进行分析。
-- **特权信息泄漏。** 一个利用全局状态而非仅观测来决定动作的教师，可能产生学生无法追赶的结果。确保在给定观测历史的情况下，学生的策略可实现教师的策略。
-- **仿真到仿真的迁移失败。** 如果你的策略对更难的仿真变体不鲁棒，它对真实世界也不会鲁棒。部署前始终在保留的仿真变体上测试。
-- **无真实世界安全边界。** 一个在仿真中"有效"且在没有底层安全保护的情况下"在真实中也有效"的策略，仍可能损坏硬件。在非学习的控制器中添加速率限制、扭矩限制、关节限制。
+- **Too much randomization.**列车上线`slip ∈ [0, 0.9]`您的政策是如此的不愿意冒险,它从来没有尝试最佳的路径.
+- **Too little randomization.**训练在一个薄片,政策根本不能通用. 使用适应课程 (自动域名随机化),随着政策的改善,扩大分布.
+- **Misidentified parameter space.**随机定位错误的东西 (当真实差距是运动延迟时,摄像头的色调)
+- **Privileged info leakage.**通过使用全球状态来进行行动,而不是仅仅进行观察, 教授可以产生无法追赶的学生.
+- **Sim-to-sim transfer failure.**如果您的政策不适合更难的模拟变体,它也不适合现实世界.
+- **No real-world safety envelope.**没有低级安全屏蔽的"真实工作"的政策仍然可以打破硬件. 在未学习的控制器中添加速度限制,扭矩限制,关节限制.
 
-## 应用
+## 用它
 
-2026 年的 sim-to-real 技术栈：
+现在,我们要做什么?
 
-| 领域 | 技术栈 |
-|------|--------|
-| 足式运动（ANYmal、Spot、人形） | Isaac Lab + DR + 特权教师/学生 |
-| 操作（灵巧手、拾取放置） | Isaac Lab + DR + DR-GAN 用于视觉 |
-| 自动驾驶 | CARLA / NVIDIA DRIVE Sim + DR + 真实微调 |
-| 无人机竞速 | RotorS / Flightmare + DR + 在线适应 |
-| 手指/手中操作 | OpenAI Dactyl（前所未有的 DR 规模） |
-| 工业机械臂 | MuJoCo-Warp + SI + 少量真实微调 |
+| Domain | Stack |
+|--------|-------|
+| Legged locomotion (ANYmal, Spot, humanoid) | Isaac Lab + DR + privileged teacher / student |
+| Manipulation (dexterous hands, pick-and-place) | Isaac Lab + DR + DR-GAN for vision |
+| Autonomous driving | CARLA / NVIDIA DRIVE Sim + DR + real fine-tune |
+| Drone racing | RotorS / Flightmare + DR + online adaptation |
+| Finger/in-hand manipulation | OpenAI Dactyl (DR at unprecedented scale) |
+| Industrial arms | MuJoCo-Warp + SI + small real fine-tune |
 
-对于所有尺度的控制，工作流一致：尽可能拟合仿真，随机化无法拟合的部分，训练超大规模策略，蒸馏，配合安全保护部署。
+为了在所有尺度上控制,工作流程是一致的:尽可能适应模拟器,随机定制无法适应的,
 
-## 交付物
+## 运送它
 
-保存为 `outputs/skill-sim2real-planner.md`：
+保存如`outputs/skill-sim2real-planner.md`其他:
 
 ```markdown
 ---
 name: sim2real-planner
-description: 为给定的机器人 + 任务规划一条 sim-to-real 迁移流水线，涵盖 DR、SI 和安全措施。
+description: Plan a sim-to-real transfer pipeline for a given robot + task, covering DR, SI, and safety.
 version: 1.0.0
 phase: 9
 lesson: 11
 tags: [rl, sim2real, robotics, domain-randomization]
 ---
 
-给定一个机器人平台、一个任务以及对真实硬件的使用时间，输出：
+Given a robot platform, a task, and access to real hardware time, output:
 
-1. 现实鸿沟清单。按预期影响排序的疑似来源（接触、传感、执行延迟、视觉）。
-2. DR 参数。精确列表、范围、分布。根据真实测量值证明每个范围的合理性。
-3. SI 步骤。需要测量的参数；测量方法。
-4. 教师/学生划分。教师使用哪些特权信息；学生使用哪些观测。
-5. 安全边界。底层限制、紧急停止、备用控制器。
+1. Reality gap inventory. Suspected sources ranked by expected impact (contact, sensing, actuation delay, vision).
+2. DR parameters. Exact list, ranges, distribution. Justify each range against real measurements.
+3. SI steps. Which parameters to measure; measurement method.
+4. Teacher/student split. What privileged info the teacher uses; what obs the student uses.
+5. Safety envelope. Low-level limits, emergency stops, backup controller.
 
-未经以下三项验证不得部署：(a) 零样本仿真变体测试，(b) 安全保护，(c) 回滚计划。标记任何 DR 范围超过实测真实变异 3 倍的项为可能过度随机化。
+Refuse to deploy without (a) a zero-shot sim-variant test, (b) a safety shield, (c) a rollback plan. Flag any DR range wider than 3× measured real variability as likely over-randomized.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 在固定滑倒 GridWorld（slip=0.0）上训练 Q-learning 智能体。在 slip ∈ {0.0, 0.1, 0.3, 0.5} 上评估。绘制回报 vs 滑倒图。
-2. **中等。** 训练一个 DR Q-learning 智能体，采样 `slip ~ Uniform[0, 0.3]`。在相同扫描上评估。DR 在 slip=0.5（分布外）时带来了多少收益？
-3. **困难。** 实现课程学习：从 slip=0.0 开始，每次策略达到 90% 最优时拓宽 DR 范围。测量到达 slip=0.3 零样本所需的总环境步数，与固定 DR 基线对比。
+1. **Easy.**训练一个Q学习代理在固定滑动格里德世界 (滑动=0.0). 评估在滑动 ∈ {0.0, 0.1, 0.3, 0.5}.
+2. **Medium.**训练一个DRQ学习代理样本`slip ~ Uniform[0, 0.3]`根据"分销"的价格,DR在0.5分时购买多少钱?
+3. **Hard.**实施课程:从滑=0.0开始,每当政策达到90%的最佳时,扩大DR范围. 测量环境的总步骤,以达到滑=0.3的零射与固定DR基线.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Reality gap（现实鸿沟） | "仿真到真实的差异" | 训练与部署物理/传感之间的分布偏移。 |
-| Domain randomization (DR) | "在随机仿真中训练" | 训练期间随机化仿真参数，使策略泛化。 |
-| System identification (SI) | "测量真实并拟合仿真" | 估计真实物理参数；设置仿真以匹配。 |
-| Domain adaptation（域适应） | "在真实数据上微调" | 仿真训练后的小规模真实微调；可能适配观测或动力学。 |
-| Privileged info（特权信息） | "给教师的真实值" | 仅仿真拥有的信息；学生必须从观测历史中推断。 |
-| Teacher/student（教师/学生） | "蒸馏特权到可观测" | 教师用捷径训练；学生无需捷径即可模仿。 |
-| ADR | "自动域随机化" | 随策略改进而拓宽 DR 范围的课程学习。 |
-| Real2Sim | "用真实数据缩小鸿沟" | 学习残差使仿真模仿真实轨迹。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| Reality gap | "Sim-to-real difference" | Distribution shift between training and deployment physics/sensing. |
+| Domain randomization (DR) | "Train across random sims" | Randomize sim parameters during training so policy generalizes. |
+| System identification (SI) | "Measure real and fit sim" | Estimate real physical parameters; set sim to match. |
+| Domain adaptation | "Fine-tune on real data" | Small real-world fine-tune after sim training; may adapt obs or dynamics. |
+| Privileged info | "Ground truth for teacher" | Information only the sim has; student must infer it from obs history. |
+| Teacher/student | "Distill privileged -> observable" | Teacher trained with shortcuts; student learns to mimic without them. |
+| ADR | "Automatic Domain Randomization" | Curriculum that widens DR ranges as the policy improves. |
+| Real2Sim | "Close the gap with real data" | Learn a residual to make the sim mimic real rollouts. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Tobin 等人 (2017). Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World](https://arxiv.org/abs/1703.06907) — 原始 DR 论文（机器人视觉）。
-- [Peng 等人 (2018). Sim-to-Real Transfer of Robotic Control with Dynamics Randomization](https://arxiv.org/abs/1710.06537) — 动力学的 DR，四足运动。
-- [OpenAI 等人 (2019). Solving Rubik's Cube with a Robot Hand](https://arxiv.org/abs/1910.07113) — Dactyl，大规模 ADR。
-- [Miki 等人 (2022). Learning robust perceptive locomotion for quadrupedal robots in the wild](https://www.science.org/doi/10.1126/scirobotics.abk2822) — ANYmal 的教师-学生方法。
-- [Makoviychuk 等人 (2021). Isaac Gym: High Performance GPU Based Physics Simulation for Robot Learning](https://arxiv.org/abs/2108.10470) — 驱动 2025–2026 部署的大规模并行仿真。
-- [Akkaya 等人 (2019). Automatic Domain Randomization](https://arxiv.org/abs/1910.07113) — ADR 课程学习方法。
-- [Sutton & Barto (2018). 第 8 章 — Planning and Learning with Tabular Methods](http://incompleteideas.net/book/RLbook2020.pdf) — Dyna 框架（用模型进行规划和轨迹生成），是现代 sim-to-real 流水线的理论基础。
-- [Zhao, Queralta & Westerlund (2020). Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: a Survey](https://arxiv.org/abs/2009.13303) — sim-to-real 方法的分类学及基准结果。
+- [Tobin et al. (2017). Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World](https://arxiv.org/abs/1703.06907)原始的DR论文 (机器人技术的视觉).
+- [Peng et al. (2018). Sim-to-Real Transfer of Robotic Control with Dynamics Randomization](https://arxiv.org/abs/1710.06537) 动力,四次机动的DR.
+- [OpenAI et al. (2019). Solving Rubik's Cube with a Robot Hand](https://arxiv.org/abs/1910.07113) 达克泰尔,ADR在尺度上.
+- [Miki et al. (2022). Learning robust perceptive locomotion for quadrupedal robots in the wild](https://www.science.org/doi/10.1126/scirobotics.abk2822)为 ANYmal 的教师-学生.
+- [Makoviychuk et al. (2021). Isaac Gym: High Performance GPU Based Physics Simulation for Robot Learning](https://arxiv.org/abs/2108.10470)引发2025~2026次部署的巨大平行模拟器.
+- [Akkaya et al. (2019). Automatic Domain Randomization](https://arxiv.org/abs/1910.07113)ADR课程方法.
+- [Sutton & Barto (2018). Ch. 8 — Planning and Learning with Tabular Methods](http://incompleteideas.net/book/RLbook2020.pdf)Dyna框架 (用于规划+推广模型),支持现代的真实模拟管道.
+- [Zhao, Queralta & Westerlund (2020). Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: a Survey](https://arxiv.org/abs/2009.13303)与基准结果的真实模拟方法分类.

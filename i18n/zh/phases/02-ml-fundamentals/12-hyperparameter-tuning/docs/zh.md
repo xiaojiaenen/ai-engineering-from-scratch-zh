@@ -1,202 +1,202 @@
-# 超参数调优
+# 超参数调整
 
-> 超参数是你在训练开始前可以调节的旋钮。调得好与调得差，就是平庸模型与优秀模型之间的差距。
+> 超参数是训练开始前转动的,转动它们是中等模型和伟大的模型之间的区别.
 
-**类型：** Build
-**语言：** Python
-**前置知识：** Phase 2，第 11 课（集成方法）
-**预计时长：** 约 90 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Phase 2, Lesson 11 (Ensemble Methods)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 从零实现网格搜索、随机搜索和贝叶斯优化，并比较它们的采样效率
-- 解释为什么在大多数超参数有效维度较低时，随机搜索的表现优于网格搜索
-- 使用代理模型和采集函数构建贝叶斯优化循环来指导搜索
-- 通过合理的交叉验证设计超参数调优策略，避免对验证集过拟合
+- 从零开始实施网格搜索,随机搜索和贝叶斯优化,并比较他们的样本效率
+- 解释为什么随机搜索超过网格搜索,当大多数超参数具有低有效维度时
+- 建立一个使用替代模型和收购函数来引导搜索的贝叶斯优化循环
+- 通过适当的交叉验证,设计一个超参数调整策略,以避免过度匹配验证集
 
-## 问题所在
+## 问题
 
-你的梯度提升模型有学习率、树的数量、最大深度、叶节点最小样本数、子样本比例和列采样比例。这是六个超参数。如果每个有 5 个合理的取值，网格就有 $5^6 = 15{,}625$ 种组合。训练每一个需要 10 秒。要穷举所有组合需要 43 小时的计算。
+您的梯度增强模型具有学习速度,树木数量,最大深度,每叶的最小样本,子样本比和列样本比.这相当于六个超参数.如果每个具有5个合理值,格格有5^6=15.625个组合.训练每一个需要10秒.这相当于43个小时的计算时间来尝试它们.
 
-网格搜索是显而易见的方法，也是在大尺度下最糟糕的方法。随机搜索用更少的计算量做得更好。贝叶斯优化通过从过去的评估中学习做得更好。知道该用哪种策略、哪些超参数真正重要，可以节省数天 wasted GPU 时间。
+网格搜索是显而易见的方法,规模最差的方法.随机搜索在计算较少的情况下更好.贝叶斯式优化通过从过去的评估中学习更好.知道要使用哪种策略,以及哪些超参数实际上很重要,可以节省几天的浪费GPU时间.
 
-## 概念讲解
+## 概念
 
-### 参数 vs 超参数
+### 参数与超参数
 
-参数是在训练过程中学到的（权重、偏置、分裂阈值）。超参数是在训练开始前设定的，控制学习如何发生。
+在训练期间学习参数 (体重,偏见,分门).
 
-| 超参数 | 控制什么 | 典型范围 |
-|--------|----------|----------|
-| 学习率 | 每次更新的步长 | 0.001 到 1.0 |
-| 树的数量/轮数 | 训练多长时间 | 10 到 10,000 |
-| 最大深度 | 模型复杂度 | 1 到 30 |
-| 正则化（lambda） | 防止过拟合 | 0.0001 到 100 |
-| 批次大小 | 梯度估计噪声 | 16 到 512 |
-| Dropout 比率 | 丢弃的神经元比例 | 0.0 到 0.5 |
+| Hyperparameter | What it controls | Typical range |
+|---------------|-----------------|---------------|
+| Learning rate | Step size per update | 0.001 to 1.0 |
+| Number of trees/epochs | How long to train | 10 to 10,000 |
+| Max depth | Model complexity | 1 to 30 |
+| Regularization (lambda) | Overfitting prevention | 0.0001 to 100 |
+| Batch size | Gradient estimation noise | 16 to 512 |
+| Dropout rate | Fraction of neurons dropped | 0.0 to 0.5 |
 
 ### 网格搜索
 
-网格搜索评估所有指定值的组合。它是穷举式的且易于理解，但随着超参数数量的增加呈指数级增长。
+网格搜索评估了指定的每个值组合. 它是详尽的,容易理解的,但与超参数数数量相符,它会呈指数级的扩展.
 
 ```
-两个超参数的网格：
+Grid for 2 hyperparameters:
 
   learning_rate: [0.01, 0.1, 1.0]
   max_depth:     [3, 5, 7]
 
-  评估次数：3 x 3 = 9 种组合
+  Evaluations: 3 x 3 = 9 combinations
 
   (0.01, 3)  (0.01, 5)  (0.01, 7)
   (0.1,  3)  (0.1,  5)  (0.1,  7)
   (1.0,  3)  (1.0,  5)  (1.0,  7)
 ```
 
-网格搜索有一个根本缺陷：如果一个超参数重要而另一个不重要，大部分评估都是浪费。你从 9 次评估中只得到了 3 个重要参数的唯一取值。
+网格搜索有一个基本缺点:如果一个超参数重要,而另一个不重要,大多数评估都是浪费的.
 
 ### 随机搜索
 
-随机搜索从分布中采样超参数，而不是在网格上搜索。用同样 9 次评估的预算，你可以得到每个超参数的 9 个唯一取值。
+随机搜索来自分布而不是网格的超参数. 通过相同的预算9项评估,你得到9个超参数的独特值.
 
 ```mermaid
 flowchart LR
-    subgraph 网格搜索
-        G1[3 个唯一的学习率]
-        G2[3 个唯一的 max_depth]
-        G3[共 9 次评估]
+    subgraph Grid Search
+        G1[3 unique learning rates]
+        G2[3 unique max depths]
+        G3[9 total evaluations]
     end
 
-    subgraph 随机搜索
-        R1[9 个唯一的学习率]
-        R2[9 个唯一的 max_depth]
-        R3[共 9 次评估]
+    subgraph Random Search
+        R1[9 unique learning rates]
+        R2[9 unique max depths]
+        R3[9 total evaluations]
     end
 ```
 
-随机搜索优于网格搜索的原因（Bergstra & Bengio，2012）：
+为什么随机击败格格 (Bergstra & Bengio, 2012):
 
-- 大多数超参数有效维度较低。给定问题通常只有 1-2 个超参数真正重要。
-- 网格搜索在不重要的维度上浪费评估。
-- 随机搜索用同样的预算对重要维度进行更密集的覆盖。
-- 进行 60 次随机试验，你有 95% 的概率找到一个距离最优解 5% 以内的点（如果搜索空间中存在最优解）。
+- 大多数超参数具有低效维度.通常只有1到2个超参数对特定问题有意义.
+- 电网搜索废物评估在不重要的尺寸上.
+- 随机搜索对同一预算更密集地涵盖了重要维度.
+- 在60个随机试验中,你有95%的机会找到一个在5%的最佳点 (如果一个存在于搜索空间).
 
 ### 贝叶斯优化
 
-随机搜索不利用已有结果。它不知道高学习率会导致发散，也不知道深度 3 持续优于深度 10。贝叶斯优化利用过去的评估结果来决定下一步在哪里搜索。
+随机搜索忽略了结果.它不会学习高的学习率导致差异或深度3稳步超过深度10.贝耶斯优化利用过去的评估来决定下一步搜索的地方.
 
 ```mermaid
 flowchart TD
-    A[定义搜索空间] --> B[评估初始随机点]
-    B --> C[用结果拟合代理模型]
-    C --> D[用采集函数选择下一个点]
-    D --> E[在该点评估模型]
-    E --> F{预算用完了吗？}
-    F -->|否| C
-    F -->|是| G[返回找到的最佳超参数]
+    A[Define search space] --> B[Evaluate initial random points]
+    B --> C[Fit surrogate model to results]
+    C --> D[Use acquisition function to pick next point]
+    D --> E[Evaluate the model at that point]
+    E --> F{Budget exhausted?}
+    F -->|No| C
+    F -->|Yes| G[Return best hyperparameters found]
 ```
 
-两个关键组件：
+两个主要组成部分:
 
-**代理模型：** 一个计算廉价的模型（通常是高斯过程），用于近似代价高昂的目标函数。它在搜索空间的任意点给出预测值和不确定性估计。
+**Surrogate model:**价格便宜的评估模型 (通常是高斯过程) 接近昂贵的目标函数.它提供了预测和不确定性估计在搜索空间的任何一个点.
 
-**采集函数：** 通过对开发（在已知好点附近搜索）和探索（在高不确定性区域搜索）的权衡来决定下一步评估的位置。常见选择：
+**Acquisition function:**通过平衡利用 (接近已知好处的搜索) 和探索 (高不确定性的搜索) 来决定下一步评估的位置.
 
-- **期望改进（EI）：** 在该点上我们预期能比当前最优值改进多少？
-- **置信上界（UCB）：** 预测值加上不确定度的若干倍。UCB 越高意味着要么前景好，要么尚未探索。
-- **改进概率（PI）：** 该点优于当前最优值的概率是多少？
+- **Expected Improvement (EI):**我们现在预计的情况会有多好?
+- **Upper Confidence Bound (UCB):**预测加上不确定性的倍数. 较高的UCB意味着有前景或未被探索.
+- **Probability of Improvement (PI):**现在的最佳点是多少?
 
-贝叶斯优化通常用比随机搜索少 2-5 倍的评估次数找到更好的超参数。拟合代理模型的开销与实际训练模型相比可以忽略不计。
+贝叶斯优化通常比随机搜索更好的超参数,并且有2-5倍的评估.与实际模型训练相比,替代模型的安装的总费是微不足道的.
 
-### 早停法
+### 早期停止
 
-并非每次训练都需要跑完。如果某个配置在 10 个 epoch 之后就明显很差，停止它然后继续。这是在超参数搜索语境下的早停法。
+没有每次训练都需要完成.如果一个配置在10个时代后显然不好,就停止它,然后继续前进.
 
-策略：
-- **耐心机制：** 如果验证损失在 N 个连续 epoch 内没有改善则停止
-- **中位数剪枝：** 如果试验的中间结果差于同期已完成试验的中位数则停止
-- **Hyperband：** 给许多配置分配小预算，然后逐步增加最优配置的预算
+战略:
+- **Patience-based:**如果 N 连续期没有改善验证损失,则停止
+- **Median pruning:**如果试验中期结果比同一步骤完成试验的中位数差,则停止
+- **Hyperband:**分配小预算给多个配置,然后逐步增加最好的预算
 
-Hyperband 特别有效。它以每个配置 1 个 epoch 启动 81 个配置，保留前三分之一，给它们 3 个 epoch，再保留前三分之一，依此类推。这比对所有配置执行完整预算快 10-50 倍找到好的配置。
+超级带特别有效.它启动81个配置,每个配置有1个时代,保持上一个第三,给他们3个时代,保持上一个第三,等等.这发现了好的配置10-50倍快于评估所有配置的完整预算.
 
-### 学习率调度器
+### 学习时间表
 
-学习率几乎总是最重要的超参数。调度器在训练过程中动态调整它，而不是保持固定。
+学习速度几乎总是最重要的超值.
 
-| 调度器 | 公式 | 适用场景 |
-|--------|------|----------|
-| 步长衰减 | 每 N 个 epoch 乘以 0.1 | 经典 CNN 训练 |
-| 余弦退火 | lr * 0.5 * (1 + cos(pi * t / T)) | 现代默认 |
-| 预热 + 衰减 | 线性增加后余弦衰减 | Transformer |
-| 单周期 | 一个周期内先增后减 | 快速收敛 |
-| 基于平台下降 | 指标停滞时按因子降低 | 安全默认 |
+| Scheduler | Formula | When to use |
+|-----------|---------|-------------|
+| Step decay | Multiply by 0.1 every N epochs | Classic CNN training |
+| Cosine annealing | lr * 0.5 * (1 + cos(pi * t / T)) | Modern default |
+| Warmup + decay | Linear increase then cosine decay | Transformers |
+| One-cycle | Increase then decrease over one cycle | Fast convergence |
+| Reduce on plateau | Reduce by factor when metric stalls | Safe default |
 
-### 超参数重要性
+### 超参数的重要性
 
-并非所有超参数的重要性都相同。对随机森林（Probst 等，2019）和梯度提升的研究显示了一致的规律：
+随机森林的研究 (Probst等人,2019) 和梯度增强显示一致的模式:
 
-**高重要性：**
-- 学习率（始终最先调优）
-- 估计器数量/epoch 数（使用早停而非调优）
-- 正则化强度
+**High importance:**
+- 学习率 (始终先调音)
+- 估计器/时代数量 (使用早期停止而不是调整)
+- 规律化强度
 
-**中等重要性：**
-- 最大深度/层数
-- 叶节点最小样本数/权重衰减
-- 子样本比例
+**Medium importance:**
+- 极度深度/层数量
+- 每叶子/重量衰减的最小样本
+- 副样本比例
 
-**低重要性：**
-- 最大特征数（针对随机森林）
-- 具体激活函数选择
-- 批次大小（在合理范围内）
+**Low importance:**
+- 最大特征 (用于随机森林)
+- 特定激活函数的选择
+- 批量 (在合理范围内)
 
-先调优重要的，其余保持默认。
+首先调整重要,剩下的按默认.
 
-### 实用策略
+### 实际战略
 
 ```mermaid
 flowchart TD
-    A[从默认值开始] --> B[粗粒度随机搜索：20-50 次试验]
-    B --> C[识别重要超参数]
-    C --> D[精细随机或贝叶斯搜索：在收窄的空间中 50-100 次]
-    D --> E[用最佳超参数训练最终模型]
-    E --> F[在全部训练数据上重新训练]
+    A[Start with defaults] --> B[Coarse random search: 20-50 trials]
+    B --> C[Identify important hyperparameters]
+    C --> D[Fine random or Bayesian search: 50-100 trials in narrowed space]
+    D --> E[Final model with best hyperparameters]
+    E --> F[Retrain on full training data]
 ```
 
-具体工作流程：
+具体工作流程:
 
-1. **从库默认值开始。** 它们由经验丰富的实践者选择，通常已经完成了 80% 的工作。
-2. **粗粒度随机搜索。** 宽泛的范围，20-50 次试验。使用早停快速淘汰差的配置。
-3. **分析结果。** 哪些超参数与性能相关？收窄搜索空间。
-4. **精细搜索。** 在收窄的空间中用贝叶斯优化或聚焦随机搜索。50-100 次试验。
-5. **用找到的最佳超参数在全部训练数据上重新训练。**
+1. **Start with library defaults.**经验丰富的医生选择它们,
+2. **Coarse random search.**长范围,20-50试验,使用早点停止,杀死坏跑.
+3. **Analyze results.**哪些超参数与性能相关?
+4. **Fine search.**通过贝叶斯式优化或在狭窄空间中进行集中随机搜索.
+5. **Retrain on all training data**它们是最好的超参数.
 
-### 交叉验证集成
+### 跨验证整合
 
-在单一验证分割上调优超参数是有风险的。最佳超参数可能过拟合到特定的验证折。嵌套交叉验证通过使用两个循环来解决这个问题：
+调整一个验证分区的超参数是风险的.最好的超参数可能会过度适应特定的验证折叠.嵌入式交叉验证通过使用两个循环来解决这一问题:
 
-- **外循环**（评估）：将数据分为训练+验证和测试。报告无偏性能。
-- **内循环**（调优）：将训练+验证分为训练和验证。找到最佳超参数。
+- **Outer loop**(评估):将数据分为列车+值和测试. 报告无偏见的性能.
+- **Inner loop**(调整):将火车+val分为火车和val.
 
 ```mermaid
 flowchart TD
-    D[完整数据集] --> O1[外折 1：测试]
-    D --> O2[外折 2：测试]
-    D --> O3[外折 3：测试]
-    D --> O4[外折 4：测试]
-    D --> O5[外折 5：测试]
+    D[Full Dataset] --> O1[Outer Fold 1: Test]
+    D --> O2[Outer Fold 2: Test]
+    D --> O3[Outer Fold 3: Test]
+    D --> O4[Outer Fold 4: Test]
+    D --> O5[Outer Fold 5: Test]
 
-    O1 --> I1[剩余数据的内部 5 折 CV]
-    I1 --> T1[折 1 的最佳超参数]
-    T1 --> E1[在外测试折 1 上评估]
+    O1 --> I1[Inner 5-fold CV on remaining data]
+    I1 --> T1[Best hyperparams for fold 1]
+    T1 --> E1[Evaluate on outer test fold 1]
 
-    O2 --> I2[剩余数据的内部 5 折 CV]
-    I2 --> T2[折 2 的最佳超参数]
-    T2 --> E2[在外测试折 2 上评估]
+    O2 --> I2[Inner 5-fold CV on remaining data]
+    I2 --> T2[Best hyperparams for fold 2]
+    T2 --> E2[Evaluate on outer test fold 2]
 ```
 
-每个外折独立找到各自的最佳超参数。外折分数是对泛化性能的无偏估计。
+每个外层独立地找到自己的最佳超参数. 外层分数是通用性性能的公正估计.
 
-使用 sklearn：
+含有:
 
 ```python
 from sklearn.model_selection import cross_val_score, GridSearchCV
@@ -217,43 +217,43 @@ outer_scores = cross_val_score(
     inner_cv, X, y, cv=5, scoring="neg_mean_squared_error"
 )
 
-print(f"嵌套 CV MSE: {-outer_scores.mean():.4f} +/- {outer_scores.std():.4f}")
+print(f"Nested CV MSE: {-outer_scores.mean():.4f} +/- {outer_scores.std():.4f}")
 ```
 
-这很昂贵（5 个外折 × 5 个内折 × 27 个网格点 = 675 次模型拟合），但它给你一个可信的性能估计。在发表论文报告最终结果或决策风险较高时使用。
+这种方法很昂贵 (5 外面折叠 × 5 内面折叠 × 27 格格点 = 675 个模型适合),但它可以给你一个可靠的性能估计.
 
-### 实用建议
+### 实际的建议
 
-**从学习率开始。** 它始终是基于梯度的方法中最重要的超参数。差的学习率会让一切其他参数失去意义。将其他超参数固定在默认值，先扫描学习率。
+**Start with the learning rate.**由于学习率差,其他一切都不重要. 设置其他超参数在默认情况下,然后先扫除学习率.
 
-**对学习率和正则化使用对数均匀分布。** 0.001 和 0.01 之间的差异与 0.1 和 1.0 之间的差异一样重要。线性搜索会在大值端浪费预算。
+**Use log-uniform distributions for learning rate and regularization.**差异在0.001和0.01之间与0.1和1.0之间的差异一样重要.
 
-**用早停代替调优 n_estimators。** 对于提升法和神经网络，将 n_estimators 或 epoch 数设得高一些，让早停决定何时停止。这样可以减少一个待调超参数。
+**Use early stopping instead of tuning n_estimators.**对于增强和神经网络,设置高 n_estimators或 epochs,并让早期停止决定何时停止. 这将从搜索中删除一个超参数.
 
-**预算分配。** 将 60% 的调优预算用于最重要的 2 个超参数。剩余 40% 用于其他所有参数。前 2 个解释了大部分性能差异。
+**Budget allocation.**投资你的调整预算的60%用于最重要的两个超参数. 投资剩余的40%用于其他一切.
 
-**量级很重要。** 永远不要在对数尺度上搜索批次大小（16、32、64 就可以了）。总是用对数尺度搜索学习率。让搜索分布与超参数影响模型的方式相匹配。
+**Scale matters.**永远不要在日志尺度上搜索批量 (16, 32, 64 都是可以的).总是在日志尺度上搜索学习率.与搜索分布相匹配,超参数如何影响模型.
 
-| 模型类型 | 关键超参数 | 推荐搜索方式 | 预算 |
-|----------|------------|--------------|------|
-| 随机森林 | n_estimators、max_depth、min_samples_leaf | 随机搜索，50 次试验 | 低（训练快） |
-| 梯度提升 | learning_rate、n_estimators、max_depth | 贝叶斯，100 次试验 + 早停 | 中等 |
-| 神经网络 | learning_rate、weight_decay、batch_size | 贝叶斯或随机，100+ 次试验 | 高（训练慢） |
-| SVM | C、gamma（RBF 核） | 对数尺度网格，25-50 次试验 | 低（2 个参数） |
-| Lasso/Ridge | alpha | 对数尺度一维搜索，20 次试验 | 很低 |
-| XGBoost | learning_rate、max_depth、subsample、colsample | 贝叶斯，100-200 次试验 + 早停 | 中等 |
+| Model Type | Top Hyperparameters | Recommended Search | Budget |
+|-----------|--------------------|--------------------|--------|
+| Random Forest | n_estimators, max_depth, min_samples_leaf | Random search, 50 trials | Low (fast training) |
+| Gradient Boosting | learning_rate, n_estimators, max_depth | Bayesian, 100 trials + early stopping | Medium |
+| Neural Network | learning_rate, weight_decay, batch_size | Bayesian or random, 100+ trials | High (slow training) |
+| SVM | C, gamma (RBF kernel) | Grid on log scale, 25-50 trials | Low (2 params) |
+| Lasso/Ridge | alpha | 1D search on log scale, 20 trials | Very low |
+| XGBoost | learning_rate, max_depth, subsample, colsample | Bayesian, 100-200 trials + early stopping | Medium |
 
-**不确定时：** 用随机搜索，试验次数为超参数数量的 2 倍（例如，6 个超参数 = 至少 12 次试验）。你会发现随机搜索用 50 次试验频繁胜过精心设计的网格搜索。
+**When in doubt:**随机搜索的数量是试验中的超参数的2倍 (例如,6个超参数=12个+试验最小).你会惊,随机搜索的50个试验比精心设计的网格搜索更常见.
 
 ```figure
 k-fold-cv
 ```
 
-## 动手实践
+## 建立它
 
-### 步骤 1：从零实现网格搜索
+### 步骤1:从零开始搜索网格
 
-`code/tuning.py` 中的代码从零实现了网格搜索、随机搜索和简单的贝叶斯优化器。
+编码在`code/tuning.py`实现了网格搜索,随机搜索,以及从零开始的简单贝耶斯式优化器.
 
 ```python
 def grid_search(model_fn, param_grid, X_train, y_train, X_val, y_val):
@@ -277,7 +277,7 @@ def grid_search(model_fn, param_grid, X_train, y_train, X_val, y_val):
     return best_params, best_score, n_evals
 ```
 
-### 步骤 2：从零实现随机搜索
+### 步骤2:从零开始随机搜索
 
 ```python
 def random_search(model_fn, param_distributions, X_train, y_train,
@@ -299,9 +299,9 @@ def random_search(model_fn, param_distributions, X_train, y_train,
     return best_params, best_score, n_iter
 ```
 
-### 步骤 3：贝叶斯优化（简化版）
+### 步骤3:贝叶斯优化 (简化)
 
-核心思想：对观测到的（超参数，得分）配对拟合高斯过程，然后使用采集函数来决定下一步搜索哪里。
+核心想法:将高斯过程适应观察到的 (超参数,分数) 对,然后使用收购函数来决定下一步要去哪里看.
 
 ```python
 class SimpleBayesianOptimizer:
@@ -355,11 +355,11 @@ class SimpleBayesianOptimizer:
         self.y_observed.append(score)
 ```
 
-高斯过程代理在每个候选点提供两样东西：预测得分（mu）和不确定性（var）。期望改进将两者结合：它偏好模型预测高分的点，也偏好不确定性高的点。在初期，大部分点都有高不确定性，因此优化器会广泛探索。后期则聚焦于最有前景的区域。
+预期改进平衡这些:它有利于模型预测高分数或不确定性高的点.早期,大多数点都具有高不确定性,因此优化者探索.后来,它专注于最有前景的地区.
 
-### 步骤 4：比较所有方法
+### 步骤4:比较所有方法
 
-在同一合成目标上运行三种方法并比较。此比较使用一个简化包装，直接调用每个优化器（无需训练模型），因此 API 与上述基于模型的实现有所不同：
+运行所有三个方法在同一合成目标上并进行比较. 这种比较使用简单的包装,将每个优化器与直接目标函数 (没有模型培训) 调用,因此API与上面的基于模型的实现不同:
 
 ```python
 def synthetic_objective(params):
@@ -409,20 +409,20 @@ for _ in range(28):
     bayes_history.append((params, score))
 bayes_score = max(s for _, s in bayes_history)
 
-print(f"{'方法':<20} {'最佳得分':>12} {'评估次数':>12}")
+print(f"{'Method':<20} {'Best Score':>12} {'Evaluations':>12}")
 print("-" * 50)
-print(f"{'网格搜索':<20} {grid_score:>12.4f} {len(grid_history):>12}")
-print(f"{'随机搜索':<20} {rand_score:>12.4f} {len(rand_history):>12}")
-print(f"{'贝叶斯优化':<20} {bayes_score:>12.4f} {len(bayes_history):>12}")
+print(f"{'Grid Search':<20} {grid_score:>12.4f} {len(grid_history):>12}")
+print(f"{'Random Search':<20} {rand_score:>12.4f} {len(rand_history):>12}")
+print(f"{'Bayesian Opt':<20} {bayes_score:>12.4f} {len(bayes_history):>12}")
 ```
 
-用同样的预算，贝叶斯优化通常最快找到最佳得分，因为它不会在明显差的区域浪费评估。随机搜索覆盖的范围比网格搜索更广。只有在超参数非常少且能负担穷举搜索时，网格搜索才会胜出。
+随着相同的预算,贝叶斯优化通常会找到最好的分数最快,因为它不会浪费明显糟糕的地区的评估.随机搜索比网格搜索更为广泛.网格搜索只有当你拥有很少的超参数并且可以负担得起是完整时才能获胜.
 
-## 实际应用
+## 用它
 
-### Optuna 实践
+### 实践中的图纳
 
-Optuna 是进行专业超参数调优的首选库。它开箱即用支持剪枝、分布式搜索和可视化。
+对于严的超参数调整,Optuna是推的库. 它支持剪裁,分布式搜索和外框视觉化.
 
 ```python
 import optuna
@@ -443,20 +443,20 @@ def objective(trial):
 study = optuna.create_study(direction="minimize")
 study.optimize(objective, n_trials=100)
 
-print(f"最佳参数: {study.best_params}")
-print(f"最佳 MSE: {study.best_value:.4f}")
+print(f"Best params: {study.best_params}")
+print(f"Best MSE: {study.best_value:.4f}")
 ```
 
-Optuna 关键功能：
-- `suggest_float(..., log=True)` 用于适合在对数尺度上搜索的参数（学习率、正则化）
-- `suggest_int` 用于整数参数
-- `suggest_categorical` 用于离散选择
-- 内置 MedianPruner 用于早停差的试验
-- `study.trials_dataframe()` 用于分析
+关键的Optuna功能:
+- `suggest_float(..., log=True)`对于日志尺度上最好搜索的参数 (学习率,规范化)
+- `suggest_int`对于整数参数
+- `suggest_categorical`对于分离选择
+- 内部的MedianPruner,可以提前停止不好的试验
+- `study.trials_dataframe()`分析
 
-### 带剪枝的 Optuna
+### 子子
 
-剪枝提前停止没有前景的试验，节省大量计算。模式如下：
+切割可以提前阻止不有前途的试验,从而节省大量的计算.
 
 ```python
 import optuna
@@ -486,11 +486,11 @@ study = optuna.create_study(direction="minimize", pruner=pruner)
 study.optimize(objective, n_trials=200)
 ```
 
-`MedianPruner` 当某试验的中间值差于同期所有已完成试验的中位数时停止该试验。剪枝需要调用 `trial.report()` 报告中间指标，并用 `trial.should_prune()` 检查是否应停止试验。`n_startup_trials=10` 确保至少有 10 个试验完整执行后才开始剪枝。这通常可节省 40-60% 的总计算量。
+其他`MedianPruner`试验中值比完成的试验中位数差.`trial.report()`报告中途指标和`trial.should_prune()`检查是否应该停止试验.`n_startup_trials=10`通过此,通常节省40-60%的总计算.
 
-### sklearn 内置调优器
+### 斯克尔纳的内置调节器
 
-对于快速实验，sklearn 提供了 `GridSearchCV`、`RandomizedSearchCV` 和 `HalvingRandomSearchCV`：
+为了快速实验,S sklearn提供了`GridSearchCV`现在`RandomizedSearchCV`其他`HalvingRandomSearchCV`其他:
 
 ```python
 from sklearn.model_selection import RandomizedSearchCV
@@ -512,54 +512,54 @@ search = RandomizedSearchCV(
     n_jobs=-1,
 )
 search.fit(X_train, y_train)
-print(f"最佳参数: {search.best_params_}")
-print(f"最佳 CV MSE: {-search.best_score_:.4f}")
+print(f"Best params: {search.best_params_}")
+print(f"Best CV MSE: {-search.best_score_:.4f}")
 ```
 
-对学习率和正则化使用 scipy 的 `loguniform`。对整数超参数使用 `randint`。`n_jobs=-1` 标志在所有 CPU 核心上并行化。
+使用`loguniform`对于学习速度和规律化.`randint`对于整数超参数.`n_jobs=-1`旗在所有CPU核心上并行.
 
-### 超参数调优中的常见错误
+### 超参数调节常见错误
 
-**预处理导致的数据泄漏。** 如果在交叉验证之前对整个数据集拟合缩放器，验证折的信息会泄漏到训练中。始终将预处理放在 `Pipeline` 内部，使其仅拟合训练折。
+**Data leakage through preprocessing.**如果在验证交叉之前将一个扩展器安装在整个数据集中,验证折叠中的信息会泄露到训练中.`Pipeline`所以它只适合训练.
 
-**对验证集过拟合。** 运行数千次试验实际上是在对验证集进行训练。使用嵌套交叉验证来获得最终性能估计，或者保留一个在调优过程中从不碰触的独立测试集。
+**Overfitting to the validation set.**运行数千个试验有效地训练验证套件. 为了最终的性能估计,使用嵌套交叉验证,或者举出一个独立的测试套件,你从来没有触摸在调整过程中.
 
-**搜索范围过窄。** 如果你的最佳值位于搜索空间边界，说明搜索范围不够宽。最优值可能在你的范围之外。始终检查最佳参数是否在边缘上。
+**Searching too narrow a range.**如果您的最佳值位于搜索空间的边界,则您没有搜索足够广泛.最佳值可能不在您的范围之外.
 
-**忽视交互效应。** 学习率和估计器数量在提升法中强烈交互。低学习率需要更多估计器。独立调优它们得到的结果不如联合调优。
+**Ignoring interaction effects.**学习率和估计器数量在提高方面有着强烈的相互作用.学习率低需要更多的估计器.独立调整它们会产生更糟糕的结果,而不是调整它们在一起.
 
-**对迭代模型不使用早停。** 对于梯度提升和神经网络，将 n_estimators 或 epoch 数设高，并使用早停。这严格优于将迭代次数作为超参数调优。
+**Not using early stopping for iterative models.**对于渐变增强和神经网络,设置n_estimators或 epochs为高值,并使用早期停止. 这比调节代数为超参数更好.
 
-## 练习
+## 运动
 
-1. 用相同的总预算（例如 50 次评估）运行网格搜索和随机搜索。比较找到的最佳得分。用不同种子重复实验 10 次。随机搜索获胜的频率有多高？
+1. 运行网格搜索和随机搜索,总预算相同 (例如,50项评估).比较发现的最佳分数.运行实验10次与不同的种子.随机搜索有多频繁获胜?
 
-2. 从零实现 Hyperband。从 81 个配置开始，每个配置训练 1 个 epoch。每轮保留前三分之一，并将预算翻三倍。将总计算量（所有配置的所有 epoch 之和）与运行 81 个配置完整预算进行比较。
+2. 开始从零开始实现Hyperband.从81个配置开始,每个配置都训练1个时代.在每个轮中保持上一个三分之一,并将预算 triplicate.比较总计算 (所有时代的总和在所有配置) 运行81个配置为完整的预算.
 
-3. 在第 11 课的梯度提升实现中添加学习率调度器（余弦退火）。与固定学习率相比，它是否有帮助？
+3. 在第11课中,将学习速度调度器 (节调节) 添加到实现的渐变增强度.
 
-4. 使用 Optuna 在真实数据集上（例如 sklearn 的乳腺癌数据集）调优 RandomForestClassifier。使用 `optuna.visualization.plot_param_importances(study)` 查看哪些超参数最重要。结果与本课的重要性排序一致吗？
+4. 使用Optuna来调整一个真实数据集 (例如S sklearn的乳腺癌数据集).使用 `optuna.visualization.plot_param_importances(study)`它们是否与本课中的重要排名相匹配?
 
-5. 实现一个简单的采集函数（期望改进），并展示探索与开发的对比。绘制代理模型的均值和不确定性，并展示 EI 选择在何处进行下一次评估。
+5. 实现简单的收购函数 (预期改进) 并展示探索与剥削. 绘制替代模型的平均和不确定性,并显示EI选择下一步评估的地方.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|----------|
-| 超参数 | "你选择的一个设置" | 在训练前设定的值，控制学习过程，而非从数据中学到 |
-| 网格搜索 | "尝试所有组合" | 在指定参数网格上穷举搜索。成本指数级增长。 |
-| 随机搜索 | "随机采样即可" | 从分布中采样超参数。对重要维度的覆盖优于网格搜索。 |
-| 贝叶斯优化 | "智能搜索" | 使用目标函数的代理模型来决定下一步在哪里评估，平衡探索与开发 |
-| 代理模型 | "廉价的近似" | 一个（通常是高斯过程）模型，从观测评估中近似代价高昂的目标函数 |
-| 采集函数 | "下一步去哪里" | 通过对期望改进与不确定性的平衡来对候选点打分。EI 和 UCB 是常见选择。 |
-| 早停法 | "别浪费时间" | 当验证性能停止改善时提前终止训练 |
-| Hyperband | "配置的淘汰赛" | 自适应资源分配：先用小预算启动大量配置，保留最优的并增加其预算 |
-| 学习率调度器 | "训练过程中改变 lr" | 在训练过程中调整学习率的函数，以实现更好的收敛 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Hyperparameter | "A setting you choose" | A value set before training that controls the learning process, not learned from data |
+| Grid search | "Try every combination" | Exhaustive search over a specified parameter grid. Exponential cost. |
+| Random search | "Just sample randomly" | Sample hyperparameters from distributions. Covers important dimensions better than grid search. |
+| Bayesian optimization | "Smart search" | Uses a surrogate model of the objective to decide where to evaluate next, balancing exploration and exploitation |
+| Surrogate model | "A cheap approximation" | A model (usually Gaussian process) that approximates the expensive objective function from observed evaluations |
+| Acquisition function | "Where to look next" | Scores candidate points by balancing expected improvement with uncertainty. EI and UCB are common choices. |
+| Early stopping | "Stop wasting time" | Terminate training early when validation performance stops improving |
+| Hyperband | "Tournament bracket for configs" | Adaptive resource allocation: start many configs with small budgets, keep the best and increase their budgets |
+| Learning rate scheduler | "Change lr during training" | A function that adjusts the learning rate over the course of training for better convergence |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Bergstra & Bengio: Random Search for Hyper-Parameter Optimization (2012)](https://jmlr.org/papers/v13/bergstra12a.html) —— 证明随机搜索优于网格搜索的论文
-- [Snoek 等，Practical Bayesian Optimization of Machine Learning Algorithms (2012)](https://arxiv.org/abs/1206.2944) —— 机器学习中的贝叶斯优化
-- [Li 等，Hyperband: A Novel Bandit-Based Approach (2018)](https://jmlr.org/papers/v18/16-558.html) —— Hyperband 论文
-- [Optuna: A Next-generation Hyperparameter Optimization Framework](https://arxiv.org/abs/1907.10902) —— Optuna 论文
-- [Probst 等，Tunability: Importance of Hyperparameters (2019)](https://jmlr.org/papers/v20/18-444.html) —— 哪些超参数真正重要
+- [Bergstra & Bengio: Random Search for Hyper-Parameter Optimization (2012)](https://jmlr.org/papers/v13/bergstra12a.html)-- 报纸显示随机跳动格
+- [Snoek et al., Practical Bayesian Optimization of Machine Learning Algorithms (2012)](https://arxiv.org/abs/1206.2944)-- 对于 ML 的贝叶斯式优化
+- [Li et al., Hyperband: A Novel Bandit-Based Approach (2018)](https://jmlr.org/papers/v18/16-558.html)-- 超带纸
+- [Optuna: A Next-generation Hyperparameter Optimization Framework](https://arxiv.org/abs/1907.10902)-- 欧普图纳报
+- [Probst et al., Tunability: Importance of Hyperparameters (2019)](https://jmlr.org/papers/v20/18-444.html)-- 哪些超参数是重要的

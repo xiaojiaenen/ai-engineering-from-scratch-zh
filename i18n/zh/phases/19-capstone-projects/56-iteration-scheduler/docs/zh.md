@@ -1,128 +1,126 @@
-```markdown
-# 迭代调度器
+# 复制时间表
 
-> 没有调度器的研究循环，是一个有妄想症的队列。调度器决定了循环何时停止探索，而这个决策就是全部游戏。
+> 没有调度器的研究循环是有妄想的排队.调度器是循环决定什么停止探索的地方,
 
-**类型：** Build
-**语言：** Python
-**前置条件：** 第 19 阶段课程 50-53
-**时间：** ~90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 19 lessons 50-53
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 将研究工作流建模为假设队列，向并行实验槽位输送数据，结果再扇形回传。
-- 使用 asyncio 并发运行多个实验，使调度器能保持所有槽位满载。
-- 用 UCB 对每个假设分支进行评分，使调度器能在不放弃探索的前提下剪除低产分支。
-- 将完成的结果扇出到论文撰写阶段和重新入队阶段，使高产分支能生成后续假设。
-- 展示包含分支得分、槽位占用和剪除决策的逐次迭代跟踪记录。
+- 模型研究工作流程作为一个假设队列,以提供平行实验插槽,其结果反弹.
+- 同时执行多次实验,以便调度器可以保持所有空中的繁忙.
+- 通过 UCB 评分每个假设分支,以便安排人员可以在不放弃探索的情况下剪切低产量分支.
+- 通过将完成的结果分发到纸上写作阶段和排队阶段,
+- 填写一个反复的标记,分分分数,占用空间和剪裁决定.
 
 ```figure
 ch-ucb-scheduler
 ```
 
-## 为什么是调度器而非工作列表
+## 为什么要安排时间,而不是工作列表
 
-扁平工作列表按提交顺序运行作业。当每个作业相互独立时这样做没问题。但研究并不独立：第三个实验的发现会改变第四和第五个实验的优先级。能够读取结果回传并重新排序队列的调度器，能在单位计算量内完成更多有价值的工作。
+单一的工作列表以提交顺序运行工作.每一份工作都是独立的.研究不是独立的:从实验三中发现的结果改变了四和五的实验的优先级.一个编程程序员读取结果的粉丝并重新排列队列,每个计算单位都能完成更有用的工作.
 
-有趣的设计选择在于评分规则。贪婪评分器总是选择当前领导者，从不探索。均匀评分器从不利用。UCB（上置信界）走中间路线：利用领导者，同时为尝试次数较少的分支保留容量。
+设计的选择是得分规则.一个贪的得分者总是选择当前的领袖,从来没有探索.一个统一的得分者从来没有利用.UCB (上层信心限制) 是中间的途径:利用领袖,同时保留能力,用于未经尝试过的分支.
 
-## 系统形态
+## 系统形状
 
 ```mermaid
 flowchart LR
-    Queue[假设队列] --> Sched[调度器]
-    Sched --> Slot1[槽位 1]
-    Sched --> Slot2[槽位 2]
-    Sched --> Slot3[槽位 3]
-    Slot1 --> Bus[结果总线]
+    Queue[Hypothesis queue] --> Sched[Scheduler]
+    Sched --> Slot1[Slot 1]
+    Sched --> Slot2[Slot 2]
+    Sched --> Slot3[Slot 3]
+    Slot1 --> Bus[Result bus]
     Slot2 --> Bus
     Slot3 --> Bus
-    Bus --> Score[UCB 评分器]
+    Bus --> Score[UCB scorer]
     Score --> Queue
-    Bus --> Paper[论文写入扇出]
+    Bus --> Paper[Paper write fan-out]
 ```
 
-队列中保存假设。当槽位空闲时，调度器选择 UCB 分数最高的假设。每个槽位异步运行一个实验。完成的实验将结果扇形上传到总线。当某个分支的收益超过阈值时，总线更新该分支的 UCB 统计并将结果扇出到论文撰写阶段。
+排队包含假设.当一个插槽释放时,调度器选择最高的UCB假设.每个插槽都以异步运行实验.完成的实验将其结果传递到公共汽车上.公共汽车更新了 UCB的统计数据,并在分支收益超过门时将其更新到纸上写的阶段.
 
-## 假设形态
+## 假设的形状
 
 ```mermaid
 flowchart TB
-    Hyp[假设] --> Id[id]
-    Hyp --> Branch[分支 id]
-    Hyp --> Payload[payload 字典]
-    Hyp --> Stats[运行次数和奖励总和]
-    Stats --> Runs[运行次数 int]
-    Stats --> Sum[奖励总和 float]
+    Hyp[Hypothesis] --> Id[id]
+    Hyp --> Branch[branch id]
+    Hyp --> Payload[payload dict]
+    Hyp --> Stats[runs and reward sum]
+    Stats --> Runs[runs int]
+    Stats --> Sum[reward sum float]
 ```
 
-`branch` 是 UCB 统计的关键字。多个假设可能共享同一个分支（分支是研究方向；假设是其中的单次试验）。`runs` 是该分支已完成实验的次数，`reward_sum` 是累积奖励。UCB 同时读取这两个值。
+`branch`许多假设可能是分支 (分支是研究方向;假设是其中的一个试验).`runs`是该分支完成的实验数量,`reward_sum`美国央行读出了这两项.
 
-## UCB 评分
+## 欧元联储的分数
 
-本课程使用的 UCB 公式是经典的 UCB1。
+在本课中使用的UCB公式是经典的UCB1.
 
 ```text
 ucb(branch) = mean_reward(branch) + c * sqrt( ln(total_runs) / runs(branch) )
 ```
 
-`total_runs` 是所有分支已完成实验的总次数。`c` 是探索权重；课程默认为 `sqrt(2)`。零运行次数的分支得到 `+inf`，因此未尝试的分支总是优先调度。平均奖励高的分支保持高分数，直到其他分支追上来；运行多次但收益不高的分支会被运行较少的替代方案压制。
+`total_runs`是所有各个部门完成的所有实验的数量.`c`探索重量; 课程不符合`sqrt(2)`没有运行的分支得到了`+inf`因此未经测试的分支总是先安排.高平均奖励的分支保持高分数,直到其他分支赶上;许多次运行的分支没有太多奖励的分支被运行的替代品遮盖.
 
-剪除门控与选择器是分离的。当分支的平均奖励低于绝对下限（默认 `0.2`）且至少经过 `prune_after_runs` 次试验（默认 `3` 次）后，剪除操作会将该分支从未来调度中移除。这能保持队列有界。
+切割门与采集器分开. 切割将分支从未来的安排中移除,当其平均奖励低于绝对地板时 (默认`0.2`) 至少在`prune_after_runs`试验 (默认`3`这将保持排队的限制.
 
-## asyncio 并行槽位
+## 具有异步的平行槽
 
-调度器通过 `asyncio.create_task` 驱动实验。每个任务运行实验 runner（一个 `async def` 可调用对象），返回一个 `Result`。主循环使用 `asyncio.wait(..., return_when=asyncio.FIRST_COMPLETED)` 等待在飞任务集，并在每次完成时触发评分更新。
+时间表器使用了`asyncio.create_task`每个任务都会由实验运行者 (一个`async def`报名可) 返回一个`Result`机上任务的重组将在 `asyncio.wait(..., return_when=asyncio.FIRST_COMPLETED)`并且在每次完成时都会发射得分更新.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant S as 调度器
-    participant Q as 假设队列
-    participant R as 实验 runner
-    participant T as 在飞任务
-    S->>Q: 弹出 UCB 最高值
+    participant S as Scheduler
+    participant Q as Hypothesis queue
+    participant R as Experiment runner
+    participant T as In-flight tasks
+    S->>Q: pop highest UCB
     S->>R: create_task(run(hypothesis))
-    R-->>T: Result（任务完成）
+    R-->>T: Result (task completes)
     S->>T: await wait(FIRST_COMPLETED)
-    S->>S: 更新 UCB 统计
-    S->>Q: 重新入队后续项
+    S->>S: update UCB stats
+    S->>Q: re-queue follow-ups
 ```
 
-三个槽位并发运行。主循环从不阻塞在单个实验上。调度器在槽位释放后立即开始新任务，直到队列耗尽且无在飞任务为止。
+两个分槽同时运行.主循环从来没有阻止一个实验. 编程师随着分槽的释放,就会继续启动新的任务,直到排队都空,没有任务在飞行中.
 
-## 扇出：论文触发
+## 扩展:纸质触发器
 
-当分支的平均奖励超过 `paper_threshold`（默认 `0.7`）且该分支尚未生成过论文时，调度器会将 `paper.trigger` 事件扇出到输出列表。下游由第五十四课中的论文撰写器会拾取此事件。在本课中，触发事件被捕获为列表，以便测试可以断言它。
+当一个分支的平均奖励越来越高`paper_threshold`(默认方式`0.7`) 而该分支尚未制作一份论文,`paper.trigger`在本课中,触发器被捕获为列表,以便测试可以确认它.
 
-## 扇出：后续假设
+## 扩散:后续假设
 
-当高产结果落地时，调度器可以调用用户提供的 `expander` 以在同一分支上生成一个或多个后续假设。expander 是从 `Result` 到 `list[Hypothesis]` 的纯函数。课程附带一个确定性 expander，对于奖励超过论文阈值的任何结果都会生成两个后续项。
+当一个高效的结果降落时,调度器可以调用用户提供的`expander`扩展器是从 到 的纯函数.`Result`为了`list[Hypothesis]`课程将运输一个确定性扩展器, 产生两个后续结果,
 
 ## 预算
 
-两个预算保护调度器免受循环失控的影响。
+两个预算保护时间表达者免受逃跑的循环.
 
 ```text
-max_experiments    : 所有分支累计运行的实验总次数
-max_seconds        : 墙钟时间上限（asyncio 时间）
+max_experiments    : total count of experiments run across all branches
+max_seconds        : wall-clock cap (asyncio time)
 ```
 
-当任一预算触发时，调度器停止调度新任务，等待在飞任务完成，并返回最终跟踪记录。跟踪记录包含 `stop_reason`。
+随着任何一场火灾,调度器停止调度新的任务,等待飞行中的任务,并返回最后的痕迹.`stop_reason`现在,我们要去.
 
-## 跟踪记录与最终报告
+## 追踪和最终报告
 
-每次调度决策（选取、派发、结果、剪除、扇出）都会产生一个事件。最终报告会汇总各分支统计、总运行次数、总墙钟时间和触发的论文事件。下一课端到端演示会读取此报告来驱动论文撰写器。
+每个安排决定 (选择,发送,结果,剪裁,风扇) 发出一个事件.最终报告总结每分支的统计数据,总运行,总墙钟,和发射的纸动触发器.下一个课程,端到端演示,阅读这份报告以驱动纸写者.
 
-## 如何阅读代码
+## 如何读取代码
 
-`code/main.py` 定义了 `Hypothesis`、`Result`、`BranchStats`、`IterationScheduler`，以及一个 `make_deterministic_runner` 工厂函数，返回具有可预测奖励的 asyncio 实验 runner。runner 以固定 `delay_ms`（默认 `5ms`）休眠，以便观察并发性。
+`code/main.py`定义`Hypothesis`现在`Result`现在`BranchStats`现在`IterationScheduler`其他`make_deterministic_runner`运行者睡着一段时间.`delay_ms`(默认方式`5ms`) 因此可以观察到同步性.
 
-`code/tests/test_scheduler.py` 覆盖了以下场景：UCB 优先选择未尝试分支、并行槽位占用、阈值超过时触发论文、低产试验后剪除分支、扇出后续假设，以及预算退出（包括实验次数和墙钟时间两种情况）。
+`code/tests/test_scheduler.py`封面:UCB首先选择未经测试的分支,平行槽占用量,超过门时的纸质触发,低产量试验后的分支剪切,延伸后续假设和预算退出 (实验计数和墙钟).
 
-## 进一步探索
+## 走得更远
 
-真实实现需要三个扩展。第一，跨会话持久化 UCB 统计：当前统计数据存在于内存中；真实调度器会对其进行检查点保存，使重启后已消耗的探索预算得以保留。第二，多目标评分：结果不再发出标量奖励，而是向量，UCB 变为 Pareto 风格的选择器。第三，上下文 bandit：选择器基于假设特征（长度、复杂度）进行条件判断，使相似假设共享探索。
+实际实施需要三次扩展. 首先,在会议中持续的UCB统计数据:当前的统计数据存储在内存中;一个真正的时间表将检查它们, 第二,多目标得分:每个结果都发出向量,UCB成为帕雷托式选手. 第三,背景盗:假设的选择条件 (长度,复杂性) 具有特征,因此类似的假设共享探索.
 
-调度器是研究超越简单工作列表的地方。一旦接入 UCB 且槽位并行运行，其余所有改进都能在此基础上组合。
-```
+时间表是研究不仅仅成为一个工作列表的地方. 一旦UCB连接,并行时段,其他改进都会加上.

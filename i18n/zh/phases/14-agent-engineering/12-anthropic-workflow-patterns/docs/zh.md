@@ -1,120 +1,120 @@
-# Anthropic 的工作流模式：简单优于复杂
+# 简单而不是复杂的"人类"工作流程模式
 
-> Schluntz 和 Zhang（Anthropic，2024 年 12 月）区分了工作流（预定义路径）与智能体（动态工具使用）。五种工作流模式覆盖了大多数场景。从直接 API 调用开始，只有在步骤无法预测时才引入智能体。
+> 施伦茨和张 (Anthropic, Dec 2024) 区分工作流程 (预定义的路径) 与代理 (动态工具使用).五个工作流程模式涵盖大多数情况.从直接的API调用开始.只需无法预测步骤时添加代理.
 
-**类型：** 学习 + 构建
-**语言：** Python（标准库）
-**前置知识：** Phase 14 · 01（智能体循环）
-**时间：** 约 60 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 01 (Agent Loop)
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 说出 Anthropic 的五种工作流模式：提示链、路由、并行化、编排器-工作者、评估器-优化器。
-- 解释智能体与工作流的差异及各自的工程成本。
-- 判断何时选择工作流而非智能体（反之亦然）。
-- 针对脚本化 LLM，用标准库实现全部五种模式。
+- 命名Anthropic的五个工作流程模式:快速链接,路由,并行,管弦工作者,评估者优化器.
+- 解释代理与工作流程的区别以及每个工程成本.
+- 确定何时选择工作流而不是代理 (反之亦然).
+- 执行五个模式,与编写的LLM进行.
 
-## 问题所在
+## 问题
 
-团队常常为只需一次函数调用的问题去套用多智能体框架。这种选择的代价是真实的：框架增加了层层抽象，模糊了提示词，隐藏了控制流，并诱发了过早的复杂度。Schluntz 和 Zhang 在 2024 年 12 月的这篇文章是该行业引用最多的反驳观点：从简单起步，仅在复杂度证明其价值时才引入它。
+团队寻求多代理框架来解决需要单次函数调用的问题.成本是真实的:框架添加了模糊提示的层次,隐藏了控制流量,并邀请过早的复杂性.Schluntz和张的2024年12月的帖子是行业最受引用的推迟:简单开始,只有当它获得成本时添加复杂性.
 
 ## 概念
 
-### 工作流 vs 智能体
+### 工作流程与代理人
 
-- **工作流。** 通过预定义代码路径编排 LLM 和工具的协作。工程师掌控整个图结构。
-- **智能体。** LLM 动态地指挥自己的工具并执行自己的步骤。模型掌控整个图结构。
+- **Workflow.**工程师拥有图表.
+- **Agent.**士们动态地指导自己的工具,采取自己的步骤.
 
-两者各有适用场景。工作流成本更低、速度更快、更易调试。智能体可以解决开放式问题，但失败模式更难推理。
+工作流程便宜,快速,更容易调试. 代理人解锁了无限的问题, 但使失败模式更难推理.
 
-### 增强的 LLM
+### 增强的法定律师
 
-五种模式的共同基础：一个具备三种能力的 LLM——搜索（检索）、工具（动作）、记忆（持久化）。任何 API 调用都可以使用这些能力。
+基础五种模式:一个LLM,有三个功能,包括搜索 (检索),工具 (行动),内存 (持久性).任何API调用都可以使用这些.
 
 ### 五种模式
 
-1. **提示链（Prompt Chaining）。** 第 1 次调用的输出作为第 2 次调用的输入。适用于任务有清晰线性分解的场景。步骤之间可加入程序化门控。
+1. **Prompt chaining.**输出调用1是输入调用2. 使用当任务具有清洁的线性分解时. 选项间的程序门.
 
-2. **路由（Routing）。** 一个分类 LLM 决定调用哪个下游 LLM 或工具。适用于类别截然不同的输入需要不同处理方式的情况（如一级客服、退款、 Bug、销售）。
+2. **Routing.**类别的LLM选择下游LLM或工具. 使用当不同的输入需要不同的处理 (级-1支持与退款与错误与销售).
 
-3. **并行化（Parallelization）。** 并发运行 N 次 LLM 调用，聚合结果。两种形式：分块（不同片段）和投票（相同提示，N 次运行，取多数/合成）。
+3. **Parallelization.**运行N LLM同时调用,总结结果.两个形式:分区 (不同块) 和投票 (相同的提示,N运行,多数/合成).
 
-4. **编排器-工作者（Orchestrator-Workers）。** 一个编排器 LLM 动态决定运行哪些工作者（也是 LLM），并合成它们的输出。与智能体循环类似，但编排器不会无限循环。
+4. **Orchestrator-workers.**管弦乐师 (LLM) 动态决定哪些工人 (也叫做LLM) 运行并合成他们的产量.类似于代理循环,但管弦乐师不会无限时间循环.
 
-5. **评估器-优化器（Evaluator-Optimizer）。** 一个 LLM 提出答案，另一个 LLM 对其进行评估，迭代直到评估通过。这是对自我精炼（Lesson 05）的泛化。
+5. **Evaluator-optimizer.**一个法学士提出答案,另一个法学士评估它. 连续进行直到评估者通过. 这就是自我清理 (课程05).
 
-### 工作流胜过智能体的场景
+### 工作流程比代理人更好
 
-- **可预测的任务。** 如果你能枚举步骤，就应当这么做。
-- **成本受限的任务。** 工作流步骤数有界；智能体可能陷入螺旋。
-- **合规受限的任务。** 审计人员希望阅读图结构，而不是从轨迹中推断它。
+- **Predictable tasks.**如果您能列出步骤,那么您应该.
+- **Cost-bound tasks.**工作流程有限步骤数量; 代理人可以螺旋.
+- **Compliance-bound tasks.**审计人员希望阅读图表,而不是从轨迹中推断.
 
-### 智能体胜过工作流的场景
+### 代理人比工作流程更好
 
-- **开放式研究。** 下一步取决于上一步的返回结果。
-- **变长任务。** 耗时数分钟到数小时、步骤数未知的任务。
-- **新领域。** 当你还不确定哪种工作流合适时——先探索，后固化。
+- **Open-ended research.**接下来的步骤是什么,取决于最后的步骤是什么.
+- **Variable-length tasks.**工作时间分钟到几个小时,步骤数量不清楚.
+- **Novel domains.**首先要编码,然后要编码.
 
-### 上下文工程的互补
+### 环境工程的伴侣
 
-"Effective context engineering for AI agents"（Anthropic，2025）将相邻领域形式化：20 万 token 窗口是一个预算，而不是容器。该讲什么、何时压缩、何时让上下文增长，将在 Phase 14 关于上下文压缩的课程中详细展开（在本课程重新编号之前的 Phase 14 较早课时 06）。
+"人工智能代理人有效的文本工程" (Anthropic 2025) 正式化了相邻的学科:200k窗口是一个预算,而不是容器.什么要包括,何时缩小,何时让文本生长.在文本压缩的第14阶段课程 (在重新编号之前的第14阶段课程中,第06课程) 中详细介绍.
 
 ```figure
 workflow-chain
 ```
 
-## 动手实现
+## 建立它
 
-`code/main.py` 针对 `ScriptedLLM` 实现了全部五种工作流模式：
+`code/main.py`执行所有五种工作流程模式`ScriptedLLM`其他:
 
-- `prompt_chain(input, steps)` — 顺序执行。
-- `route(input, classifier, handlers)` — 分类 + 分发。
-- `parallel_vote(prompt, n, aggregator)` — N 次运行，聚合结果。
-- `orchestrator_workers(task, workers)` — 编排器选择工作者。
-- `evaluator_optimizer(task, proposer, evaluator, max_iter)` — 循环直至通过。
+- `prompt_chain(input, steps)`连续.
+- `route(input, classifier, handlers)`分类+发送.
+- `parallel_vote(prompt, n, aggregator)`N运行,总数.
+- `orchestrator_workers(task, workers)`管家选工人.
+- `evaluator_optimizer(task, proposer, evaluator, max_iter)`循环到通过.
 
-运行方式：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-每种模式都会打印其执行轨迹。每种模式的代码约 10–15 行；而一个框架的成本则是数千行。
+每个图案都会印出其痕迹.每个图案的代码总线是10-15个;一个框架的成本是以数千计的.
 
-## 如何使用
+## 用它
 
-- 大多数任务直接使用 API 调用。
-- 仅在模式确实需要持久化状态（LangGraph）、Actor 模型并发（AutoGen v0.4）或角色模板化（CrewAI）时才使用框架。
-- 当你需要 Claude Code 的编排器形态但不想自行构建时，使用 Claude Agent SDK。
+- 直接 API 要求大多数任务.
+- 只有当模式真正需要持久状态 (LangGraph),演员模型同步性 (AutoGen v0.4),或角色模板 (CrewAI) 时.
+- 找克劳德代理 SDK,当你想要克劳德代码的使用形状,
 
-## 交付物
+## 运送它
 
-`outputs/skill-workflow-picker.md` 根据给定任务描述选择最合适的工作流模式，包括决策依据和当工作流不足以胜任时重构为智能体的路径。
+`outputs/skill-workflow-picker.md`选择给定的任务描述的正确模式,包括决定的理由和工作流程不足时向代理的重点路径.
 
-## 练习
+## 运动
 
-1. 为路由添加置信度阈值。低于阈值则升级给人工。在一級客服场景中，阈值应该设在哪里？
-2. 为 `parallel_vote` 添加超时。当一个调用挂起时会发生什么？如何在有缺失投票的情况下聚合？
-3. 将 `evaluator_optimizer` 改造成贪心算法：跨迭代保留前 2 名输出，避免一个后期出现的劣质结果覆盖掉后期出现的优质结果。
-4. 将提示链与路由结合：一个路由器选择三条链中的一条。衡量其 token 成本与单一大型提示方案之间的差异。
-5. 选择你生产环境中的一个功能，画出工作流图，统计步骤数。智能体在这里真的会更好吗？
+1. 实现可靠性门的路由. 门以下 -> 升级到人. 对于一级支持使用情况,门到底是什么?
+2. 加入时间休息`parallel_vote`什么会发生当一个电话挂?
+3. 转`evaluator_optimizer`让二排前进的输出在反复中保持,以免一个晚期好的结果被晚期的坏结果覆盖.
+4. 结合即时链接和路由:路由器选择三条链中的一个. 测量代币成本与单个大即时代代方案.
+5. 选择一个生产特征,绘制工作流程图,计算步骤.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们通常的说法 | 实际含义 |
-|------|--------------|---------|
-| Workflow | "预定义的流程" | 由工程师掌控的 LLM 和工具调用图 |
-| Agent | "自主 AI" | 由模型掌控的图；动态工具调度 |
-| Augmented LLM | "带工具的 LLM" | LLM + 搜索 + 工具 + 记忆；基本原子单元 |
-| Prompt chaining | "顺序调用" | 第 N 次调用的输出作为第 N+1 次调用的输入 |
-| Routing | "分类器分发" | 决定由哪条链/哪个模型处理输入 |
-| Parallelization | "扇出" | N 次并发调用；按分块或投票聚合 |
-| Orchestrator-workers | "调度智能体" | 编排器 LLM 动态选择专家 LLM |
-| Evaluator-optimizer | "提议者 + 评判者" | 迭代至评估通过；自我精炼的泛化 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Workflow | "Predefined flow" | Engineer-owned graph of LLM and tool calls |
+| Agent | "Autonomous AI" | Model-owned graph; dynamic tool direction |
+| Augmented LLM | "LLM with tools" | LLM + search + tools + memory; the atomic unit |
+| Prompt chaining | "Sequential calls" | Output of call N is input to call N+1 |
+| Routing | "Classifier dispatch" | Pick which chain/model handles the input |
+| Parallelization | "Fan out" | N concurrent calls; aggregate by sectioning or voting |
+| Orchestrator-workers | "Dispatcher agent" | Orchestrator LLM picks specialist LLMs dynamically |
+| Evaluator-optimizer | "Proposer + judge" | Iterate until evaluator passes; Self-Refine generalized |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Anthropic, Building Effective Agents (2024 年 12 月)](https://www.anthropic.com/research/building-effective-agents) — 五种工作流模式
-- [Anthropic, Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — 互补领域
-- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview) — 何时状态化图值得其成本
-- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) — 编排器-工作者模式的工程化产品
+- [Anthropic, Building Effective Agents (Dec 2024)](https://www.anthropic.com/research/building-effective-agents)五个工作流程模式
+- [Anthropic, Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)伴侣的纪律
+- [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview)当状态图表取成本时
+- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) 演唱家-工人模式,生产

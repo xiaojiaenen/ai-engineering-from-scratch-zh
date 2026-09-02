@@ -1,61 +1,61 @@
-# 时间差分 — Q-Learning 与 SARSA
+# 时间差异 Q学习和SARSA
 
-> 蒙特卡洛等待回合结束。TD 在每个步骤后通过自举下一个值估计进行更新。Q-learning 是离策略且乐观的；SARSA 是策略内且谨慎的。两者都只需一行代码。它们构成了本阶段所有深度强化学习方法的基石。
+> 蒙特卡洛等到集结束.TD每一步都会通过启动下一个值估计进行更新.Q-学习是非政策和乐观的;SARSA是政策和谨慎的.这两条都是一个代码线.这两条都支持了这个阶段的每种深度RL方法.
 
-**类型：** 构建
-**语言：** Python
-**先修知识：** 阶段 9 · 01（MDP）、阶段 9 · 02（动态规划）、阶段 9 · 03（蒙特卡洛）
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 9 · 01 (MDPs), Phase 9 · 02 (Dynamic Programming), Phase 9 · 03 (Monte Carlo)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-蒙特卡洛方法可行，但它有两个代价高昂的要求。它需要能终止的回合，且仅在最终回报确定后才更新。如果你的回合有 1,000 步，MC 要等 1,000 步才能更新任何东西。它在实践中是高方差、低偏差且缓慢的。
+蒙特卡洛工作,但它有两个昂贵的要求.它需要结束的集,并且只有在最后的回报后更新.如果你的集是1000步,MC等待1000步更新任何东西.它是高变异,低偏见,并缓慢的实践.
 
-动态规划则有相反的特性——零方差的自举备份——但需要已知模型。
+动态编程具有相反的配置文件,但需要已知的模型.
 
-时间差分（TD）学习折中了两者。从单个转移 `(s, a, r, s')`，构造一步目标 `r + γ V(s')` 并将 `V(s)` 向它拉近。无需模型，无需完整回合。由于在右侧使用了近似 `V` 而带来偏差，但相比 MC 方差显著降低，且从第一步就能在线更新。
+时间差异 (TD) 学习将差异分开.`(s, a, r, s')`形成一个步骤的目标`r + γ V(s')`着着`V(s)`没有模型,没有完整的集,使用近似的偏见.`V`在RHS上,但与MC和在线更新相比,
 
-这正是所有现代 RL——DQN、A2C、PPO、SAC——所依托的转折点。阶段 9 的其余内容是构建在你将在本课中编写的一步 TD 更新之上的函数近似层和技巧。
+现在,我们在第9阶段的基础上将使用一个步骤的TD更新,然后再进行一个步骤的TD更新.
 
 ## 概念
 
-![Q-learning 与 SARSA：离策略 max vs 策略内 Q(s', a')](../assets/td.svg)
+![Q-learning vs SARSA: off-policy max vs on-policy Q(s', a')](../assets/td.svg)
 
-**TD(0) 对 V 的更新：**
+**The TD(0) update for V:**
 
 `V(s) ← V(s) + α [r + γ V(s') - V(s)]`
 
-方括号中的量是 TD 误差 `δ = r + γ V(s') - V(s)`。它是 MC 中 `G_t - V(s_t)` 的在线模拟。收敛需要 `α` 满足 Robbins-Monro 条件（`Σ α = ∞`，`Σ α² < ∞`）且所有状态被无限次访问。
+括数量是TD错误`δ = r + γ V(s') - V(s)`它是网上模拟的`G_t - V(s_t)`在MC. 融合需要`α`满足罗宾斯-蒙罗的需求 (`Σ α = ∞`现在`Σ α² < ∞`许多国家都经常访问.
 
-**Q-learning。** 一种用于控制的离策略 TD 方法：
+**Q-learning.**控制的非政策TD方法:
 
 `Q(s, a) ← Q(s, a) + α [r + γ max_{a'} Q(s', a') - Q(s, a)]`
 
-`max` 假设从 `s'` 开始将遵循*贪婪*策略，无论智能体实际采取什么动作。这种解耦使 Q-learning 能够学习 `Q*`，同时智能体通过 ε-贪婪进行探索。Mnih 等人（2015）将其转换为 Ataris 上的深度 Q-learning（第 05 课）。
+其他`max`假设从`s'`无论代理人做什么,这种脱而出,使Q学习学习.`Q*`在Atari (课程05) 上,Mnih et al. (2015) 将这转化为深度Q学习.
 
-**SARSA。** 一种策略内 TD 方法：
+**SARSA.**政策上的TD方法:
 
 `Q(s, a) ← Q(s, a) + α [r + γ Q(s', a') - Q(s, a)]`
 
-名称来自元组 `(s, a, r, s', a')`。SARSA 使用智能体*实际*采取的下一个动作 `a'`，而非贪婪的 `argmax`。收敛到当前运行的 ε-贪婪 `π` 对应的 `Q^π`，当 `ε → 0` 时变为 `Q*`。
+现在,这个叫""`(s, a, r, s', a')` SARSA使用该行动`a'`现在,那个代理人是接下来的,而不是贪的人.`argmax`合到`Q^π`为了什么是贪的`π`现在,它正在运行,`ε → 0`成为`Q*`现在,我们要去.
 
-**悬崖行走的差别。** 在经典的悬崖行走任务中（跌落悬崖 = 奖励 -100），Q-learning 学习沿悬崖边缘的最优路径，但在探索期间偶尔会承受惩罚。SARSA 学习一条距离悬崖一步的安全路径，因为它将探索噪声纳入了其 Q 值考量。随着训练，两者在 `ε → 0` 时都能达到最优。在实践中这很重要：当部署时实际发生探索，SARSA 的行为更为保守。
+**The cliff-walking difference.**在经典的悬崖行走任务 (落下悬崖 = 奖励 -100),Q-学习学习沿悬崖边缘的最佳路径,但偶尔在探索过程中承担罚款.SARSA学习一个更安全的路径,因为它将探索噪音纳入其Q值.`ε → 0`在实践中,这很重要:当探索实际发生在部署时,SARSA的行为更保守.
 
-**期望 SARSA。** 用 `π` 下的期望值替换 `Q(s', a')`：
+**Expected SARSA.**取代`Q(s', a')`预期值低于`π`其他:
 
 `Q(s, a) ← Q(s, a) + α [r + γ Σ_{a'} π(a'|s') Q(s', a') - Q(s, a)]`
 
-比 SARSA 方差更低（无需采样 `a'`），相同的策略内目标。通常是现代教材中的默认选择。
+较 SARSA较低的变异性 (没有样本`a'`常常是现代教科书中的默认.
 
-**n步 TD 和 TD(λ)。** 通过在自举前等待 `n` 步来插值 TD(0) 和 MC。`n=1` 是 TD，`n=∞` 是 MC。TD(λ) 使用几何权重 `(1-λ)λ^{n-1}` 对所有 `n` 求平均。大多数深度 RL 使用 `n` 在 3 到 20 之间。
+**n-step TD and TD(λ).**通过等待来间隔TD(0) 和MC`n`起步前的步骤.`n=1`是TD,`n=∞`是 MC. TD(λ) 平均值`n`具有几何权重`(1-λ)λ^{n-1}`大多数深度RL使用`n`在3到20之间.
 
 ```figure
 qlearning-gridworld
 ```
 
-## 构建它
+## 建立它
 
-### 步骤 1：在 ε-贪婪策略上的 SARSA
+### 步骤1:关于利政策的SARS
 
 ```python
 def sarsa(env, episodes, alpha=0.1, gamma=0.99, epsilon=0.1):
@@ -80,9 +80,9 @@ def sarsa(env, episodes, alpha=0.1, gamma=0.99, epsilon=0.1):
     return Q
 ```
 
-八行代码。与 Q-learning 的唯一区别在于目标行。
+只有一个区别与Q学习是目标线.
 
-### 步骤 2：Q-learning
+### 步骤2:Q学习
 
 ```python
 def q_learning(env, episodes, alpha=0.1, gamma=0.99, epsilon=0.1):
@@ -100,89 +100,89 @@ def q_learning(env, episodes, alpha=0.1, gamma=0.99, epsilon=0.1):
     return Q
 ```
 
-`max` 将目标与行为解耦。这一个符号就是策略内与离策略的区别。
+其他`max`目标与行为分离. 这一符号是政策和非政策之间的区别.
 
-### 步骤 3：学习曲线
+### 步骤3:学习曲线
 
-追踪每 100 个回合的平均回报。Q-learning 在简单确定性 GridWorld 上收敛更快；SARSA 在悬崖行走中更为保守。在 `code/main.py` 中的 4×4 GridWorld 上，两者在 `α=0.1, ε=0.1` 下经过约 2,000 个回合即接近最优。
+追踪平均回报每100集.Q学习在简单的确定性格里德世界上更快地融合;SARSA在悬崖行走上更保守.在4×4格里德世界上`code/main.py`两部都在2000集后接近最佳`α=0.1, ε=0.1`现在,我们要去.
 
-### 步骤 4：与 DP 真实值比较
+### 步骤4:与DP真相相比较
 
-运行价值迭代（第 02 课）以获得 `Q*`。检查 `max_{s,a} |Q_learned(s,a) - Q*(s,a)|`。一个健康的表格型 TD 代理在 4×4 GridWorld 上经过 10,000 个回合后可达到 `~0.5` 以内。
+运行值回复 (课程02) 得到`Q*`查看`max_{s,a} |Q_learned(s,a) - Q*(s,a)|`一个健康的表表表TD代理落地在`~0.5`在4×4格林世界上,经过1万集.
 
-## 陷阱
+## 陷
 
-- **初始 Q 值很重要。** 乐观初始化（对于负奖励任务设置 `Q = 0`）鼓励探索。悲观初始化可能永远困住贪婪策略。
-- **α 调度。** 常数 `α` 对于非平稳问题是可以的。衰减的 `α_n = 1/n` 理论上保证收敛，但实际上太慢——将 `α` 固定于 `[0.05, 0.3]` 并监控学习曲线。
-- **ε 调度。** 从较高值开始（`ε=1.0`），衰减至 `ε=0.05`。"GLIE"（无限探索下的极限贪婪）是收敛条件。
-- **Q-learning 中的最大值偏差。** 当 `Q` 有噪声时，`max` 算子会向上有偏。导致高估——Hasselt 的双 Q-learning（在第 05 课中用于 DDQN）通过使用两个 Q 表来修复此问题。
-- **非终止回合。** TD 可以在没有终止的情况下学习，但你需要要么限制步数，要么正确处理截止处的自举。标准做法：将截止视为非终止，继续自举。
-- **状态哈希。** 如果状态是元组/张量，使用可哈希的键（元组而非列表；浮点数取整后的元组，而非原始值）。
+- **Initial Q values matter.**乐观的初步 (`Q = 0`悲观的初步可以永远陷入贪的政治陷.
+- **α schedule.**持续`α`对于非静态问题来说,很好.`α_n = 1/n`在理论上,它能实现相近性,但在实践中却太慢了.`α`在`[0.05, 0.3]`监视学习曲线.
+- **ε schedule.**开始高 (`ε=1.0`), 衰退到`ε=0.05`利 (贪在极限的探索) 是化条件.
+- **Max bias in Q-learning.**其他`max`操作员偏向上升时`Q`导致过度估值 哈塞尔特的双重Q学习 (DDQN在05课中使用) 用两个Q表来解决这一问题.
+- **Non-terminating episodes.**标准:把作为非终端,继续启动.
+- **State hashing.**如果状态是体/体,请使用可的键 (体,而不是列表;体圆,而不是原始).
 
-## 使用它
+## 用它
 
-2026 年的 TD 格局：
+2026年特工技术景观:
 
-| 任务 | 方法 | 原因 |
+| Task | Method | Reason |
 |------|--------|--------|
-| 小型表格环境 | Q-learning | 直接学习最优策略。 |
-| 策略内安全关键 | SARSA / 期望 SARSA | 探索期间保守。 |
-| 高维状态 | DQN（阶段 9 · 05） | 带回放和目标网络的神经网络 Q 函数。 |
-| 连续动作 | SAC / TD3（阶段 9 · 07） | 对 Q 网络的 TD 更新；策略网络输出动作。 |
-| LLM RL（基于奖励模型） | PPO / GRPO（阶段 9 · 08, 12） | 带 TD 风格优势的 Actor-Critic，通过 GAE。 |
-| 离线 RL | CQL / IQL（阶段 9 · 08） | 带保守正则化的 Q-learning。 |
+| Small tabular environments | Q-learning | Learns optimal policy directly. |
+| On-policy safety-critical | SARSA / Expected SARSA | Conservative during exploration. |
+| High-dimensional state | DQN (Phase 9 · 05) | Neural-net Q-function with replay and target net. |
+| Continuous actions | SAC / TD3 (Phase 9 · 07) | TD update on a Q-network; policy net emits actions. |
+| LLM RL (reward-model-based) | PPO / GRPO (Phase 9 · 08, 12) | Actor-critic with TD-style advantage via GAE. |
+| Offline RL | CQL / IQL (Phase 9 · 08) | Q-learning with conservative regularization. |
 
-你在 2026 年论文中读到的 90% 的"RL"是 Q-learning 或 SARSA 的某种扩展。在深入阅读之前，先在手指上掌握表格更新的细节。
+在2026年报纸中,你读到的"RL"中90%是Q学习或SARSA的精细化.
 
-## 交付它
+## 运送它
 
-保存为 `outputs/skill-td-agent.md`：
+保存如`outputs/skill-td-agent.md`其他:
 
 ```markdown
 ---
 name: td-agent
-description: 为表格或小型特征 RL 任务在 Q-learning、SARSA、期望 SARSA 之间做出选择。
+description: Pick between Q-learning, SARSA, Expected SARSA for a tabular or small-feature RL task.
 version: 1.0.0
 phase: 9
 lesson: 4
 tags: [rl, td-learning, q-learning, sarsa]
 ---
 
-给定一个表格或小型特征环境，输出：
+Given a tabular or small-feature environment, output:
 
-1. 算法。Q-learning / SARSA / 期望 SARSA / n步变体。一句话理由，关联策略内与离策略及方差。
-2. 超参数。α, γ, ε, 衰减调度。
-3. 初始化。Q_0 值（乐观 vs 零）及理由。
-4. 收敛诊断。目标学习曲线，如可能则检查 `|Q - Q*|`。
-5. 部署注意事项。探索在推理时将如何表现？是否需要 SARSA 的保守性？
+1. Algorithm. Q-learning / SARSA / Expected SARSA / n-step variant. One-sentence reason tied to on-policy vs off-policy and variance.
+2. Hyperparameters. α, γ, ε, decay schedule.
+3. Initialization. Q_0 value (optimistic vs zero) and justification.
+4. Convergence diagnostic. Target learning curve, `|Q - Q*|` check if DP is possible.
+5. Deployment caveat. How will exploration behave at inference? Is SARSA's conservatism needed?
 
-拒绝将表格 TD 应用于超过 10⁶ 的状态空间。拒绝在没有最大值偏差警告的情况下交付 Q-learning 代理。标记任何在整个训练过程中 ε 保持为 1.0 的代理（无利用阶段）。
+Refuse to apply tabular TD to state spaces > 10⁶. Refuse to ship a Q-learning agent without a max-bias caveat. Flag any agent trained with ε held at 1.0 throughout (no exploitation phase).
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 在 4×4 GridWorld 上实现 Q-learning 和 SARSA。绘制学习曲线（每 100 个回合的平均回报）共 2,000 个回合。谁收敛更快？
-2. **中等。** 构建悬崖行走环境（4×12，最后一行是奖励 -100 并重置到起点的悬崖）。比较 Q-learning 和 SARSA 的最终策略。截图各自的路径。哪个更接近悬崖？
-3. **困难。** 实现 Double Q-learning。在有噪声奖励的 GridWorld 上（每步奖励添加高斯噪声 σ=5），展示 Q-learning 显著高估 `V*(0,0)`，而 Double Q-learning 不会。
+1. **Easy.**实现Q学习和SARSA在4×4格林世界. 绘制学习曲线 (每100集的平均回报) 进行2000集.谁更快地融合?
+2. **Medium.**建立一个悬崖走路环境 (4×12,最后一行是悬崖,奖励 -100,重新设置开始).比较Q学习和SARSA最终政策.截图每个路径.哪个离悬崖更近?
+3. **Hard.**在一个噪音奖励格里德世界 (加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加加`V*(0,0)`双重Q学习没有.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-------------------------|------------------------------------------------------------|
-| TD 误差 | "更新信号" | `δ = r + γ V(s') - V(s)`，自举残差。 |
-| TD(0) | "一步 TD" | 每次转移后使用仅下一步估计的更新。 |
-| Q-learning | "离策略 RL 入门" | 对下一步动作取 `max` 的 TD 更新；无论行为策略如何都学习 `Q*`。 |
-| SARSA | "策略内 Q-learning" | 使用实际下一步动作的 TD 更新；学习当前 ε-贪婪 `π` 的 `Q^π`。 |
-| 期望 SARSA | "低方差 SARSA" | 用 `π` 下的期望替换采样动作 `a'`。 |
-| GLIE | "正确的探索调度" | 无限探索下的极限贪婪；Q-learning 收敛所需。 |
-| 自举 | "在目标中使用当前估计" | 区分 TD 与 MC 的关键。偏差来源但大幅降低方差。 |
-| 最大化偏差 | "Q-learning 高估" | 对噪声估计取 `max` 会上偏；Double Q-learning 可修复。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| TD error | "The update signal" | `δ = r + γ V(s') - V(s)`, the bootstrapped residual. |
+| TD(0) | "One-step TD" | Update after every transition using only the next state's estimate. |
+| Q-learning | "Off-policy RL 101" | TD update with `max` over next-state actions; learns `Q*` regardless of behavior policy. |
+| SARSA | "On-policy Q-learning" | TD update using the actual next action; learns `Q^π` for current ε-greedy π. |
+| Expected SARSA | "The low-variance SARSA" | Replace sampled `a'` with its expectation under π. |
+| GLIE | "Correct exploration schedule" | Greedy in the Limit with Infinite Exploration; needed for Q-learning convergence. |
+| Bootstrapping | "Using current estimate in the target" | What distinguishes TD from MC. Source of bias but massive variance reduction. |
+| Maximization bias | "Q-learning overestimates" | `max` over noisy estimates is upward-biased; fixed by Double Q-learning. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Watkins & Dayan (1992). Q-learning](https://link.springer.com/article/10.1007/BF00992698) — 原始论文及收敛证明。
-- [Sutton & Barto (2018). 第 6 章 — 时间差分学习](http://incompleteideas.net/book/RLbook2020.pdf) — TD(0)、SARSA、Q-learning、期望 SARSA。
-- [Hasselt (2010). Double Q-learning](https://papers.nips.cc/paper_files/paper/2010/hash/091d584fced301b442654dd8c23b3fc9-Abstract.html) — 最大化偏差的修复方案。
-- [Seijen, Hasselt, Whiteson, Wiering (2009). 期望 SARSA 的理论与实证分析](https://ieeexplore.ieee.org/document/4927542) — 期望 SARSA 的动机。
-- [Rummery & Niranjan (1994). 使用联结主义系统的在线 Q-learning](https://www.researchgate.net/publication/2500611_On-Line_Q-Learning_Using_Connectionist_Systems) — 首次提出 SARSA（当时称为"修正联结主义 Q-learning"）的论文。
-- [Sutton & Barto (2018). 第 7 章 — n步自举](http://incompleteideas.net/book/RLbook2020.pdf) — 将 TD(0) 推广至 TD(n)，是从 Q-learning 到资格迹线再到后来 PPO 中 GAE 的路径。
+- [Watkins & Dayan (1992). Q-learning](https://link.springer.com/article/10.1007/BF00992698)原始文件和相近性证明.
+- [Sutton & Barto (2018). Ch. 6 — Temporal-Difference Learning](http://incompleteideas.net/book/RLbook2020.pdf) TD(0),SARSA,Q学习,预期SARSA.
+- [Hasselt (2010). Double Q-learning](https://papers.nips.cc/paper_files/paper/2010/hash/091d584fced301b442654dd8c23b3fc9-Abstract.html)对最大化偏见的修正.
+- [Seijen, Hasselt, Whiteson, Wiering (2009). A Theoretical and Empirical Analysis of Expected SARSA](https://ieeexplore.ieee.org/document/4927542)预期 SARSA动机.
+- [Rummery & Niranjan (1994). On-line Q-learning using connectionist systems](https://www.researchgate.net/publication/2500611_On-Line_Q-Learning_Using_Connectionist_Systems)创建了SARSA的论文 (当时被称为"修改的连接性Q学习").
+- [Sutton & Barto (2018). Ch. 7 — n-step Bootstrapping](http://incompleteideas.net/book/RLbook2020.pdf)将TD(0) 概括为TD(n),从Q学习到资格追踪的路径,后来,在PPO中GAE.

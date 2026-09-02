@@ -1,62 +1,62 @@
-# LLM 评估 — RAGAS、DeepEval、G-Eval
+# 法学士评价 RAGAS,DeepEval,G-Eval
 
-> 精确匹配和 F1 分数无法捕捉语义等价性。人工评审无法扩展。LLM-as-judge 是生产环境的答案 — 但需足够的校准才能信任这些数字。
+> 精确匹配和F1失去了语义等效. 人类审查不扩展. LLM作为法官是生产答案,具有足够的校准度以信任数字.
 
-**类型：** Build
-**语言：** Python
-**前置要求：** Phase 5 · 13（问答），Phase 5 · 14（信息检索）
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 5 · 13 (Question Answering), Phase 5 · 14 (Information Retrieval)
+**Time:** ~75 minutes
 
-## 问题所在
+## 问题
 
-你的 RAG 系统回答："June 29th, 2007."
-黄金参考答案是："June 29, 2007."
-精确匹配得分为 0。F1 分数约为 75%。人工评分会是 100%。
+你的RAG系统回答:"2007年6月29日".
+黄金的参考是:"2007年6月29日".
+精确的比赛得分0.F1得分约75%.
 
-现在将测试用例乘以 10,000。再乘以每一次对检索器、分块、提示词或模型的变更。你需要一个能理解语义、低成本规模化运行、不会在回归时撒谎、并能揭示正确失败模式的评估器。
+现在乘以1万个测试案例. 再乘以每次检索器,分量,提示或模型的变化.你需要一个理解意义的评估员,在尺度上运行便宜,不撒谎关于回归,并显示正确的失败模式.
 
-2026 年有三个框架主导这个问题。
+2026年有三个框架,
 
-- **RAGAS。** Retrieval-Augmented Generation ASsessment（检索增强生成评估）。四种 RAG 指标（忠实度、答案相关性、上下文精确度、上下文召回率），带有 NLI + LLM-judge 后端。具有研究支持，轻量级。
-- **DeepEval。** Pytest for LLMs（LLM 的 Pytest）。G-Eval、任务完成、幻觉、偏见指标。CI/CD 原生。
-- **G-Eval。** 一种方法（也是 DeepEval 的一个指标）：带思维链的 LLM-as-judge、自定义标准、0-1 分数。
+- **RAGAS.**检索增强代代 ASsessment. 四个RAG指标 (忠诚度,答案相关性,文本精确性,文本回忆) 与NLI + LLM评审后台. 研究支持,轻量.
+- **DeepEval.**士的考试. G-Eval,任务完成,幻觉,偏见指标. CI/CD原生.
+- **G-Eval.**一种方法 (以及一个DeepEval指标):具有思想链的法官,定制标准,0-1分数.
 
-三者都依赖 LLM-as-judge。本课程建立对此方法及围绕它的信任层面的直觉。
+这一课建立了对方法的直觉,
 
 ## 概念
 
-![四种评估维度，LLM-as-judge 架构](../assets/llm-evaluation.svg)
+![Four evaluation dimensions, LLM-as-judge architecture](../assets/llm-evaluation.svg)
 
-**LLM-as-judge。** 用给定评分标准的 LLM 替代静态指标。给定 `(query, context, answer)`，提示评审 LLM："按忠实度打分 0-1。"返回分数。
+**LLM-as-judge.**取代静态指标的LLM,该指标将给出的输出进行评分.`(query, context, answer)`让法官说:"忠诚度为0:1".
 
-为何有效：LLM 以极低的成本近似人类判断。GPT-4o-mini 每次评分成本约 $0.003，支持 1000 样本的回归评估运行费用低于 $5。
+法律法学在成本的微小部分上,接近人类判断力.$0.003 per scored case enables 1000-sample regression eval runs for under $5. 如何?
 
-为何会无声失败：
+为什么它默默失败:
 
-1. **评审者偏见。** 评审者偏好较长的答案、来自自己模型家族的答案、与提示风格匹配的答案。
-2. **JSON 解析失败。** 糟糕的 JSON → NaN 分数 → 被静默排除在聚合之外。RAGAS 用户深知此痛。用 try/except + 明确的失败模式设置网关。
-3. **随模型版本漂移。** 升级评审者会改变所有指标。冻结评审者模型 + 版本。
+1. **Judge bias.**评委们更喜欢更长的答案,来自他们自己的模特家庭的答案,
+2. **JSON parsing failures.**坏JSON → NaN分数 →默默排除在总体中.RAGAS用户知道这种痛苦.试用/除+明确失败模式的门.
+3. **Drift over model versions.**升级评审者改变了每一个指标.
 
-**RAG 四指标。**
+**The RAG four.**
 
-| 指标 | 问题 | 后端 |
+| Metric | Question | Backend |
 |--------|----------|---------|
-| 忠实度 (Faithfulness) | 答案中的每个主张是否来自检索到的上下文？ | 基于 NLI 的蕴含 |
-| 答案相关性 (Answer relevance) | 答案是否回答了问题？ | 从答案生成假设问题；与实际问题比较 |
-| 上下文精确度 (Context precision) | 在检索到的块中，有多少比例是相关的？ | LLM-judge |
-| 上下文召回率 (Context recall) | 检索是否返回了所有必要内容？ | 与黄金答案对比的 LLM-judge |
+| Faithfulness | Does each claim in the answer come from the retrieved context? | NLI-based entailment |
+| Answer relevance | Does the answer address the question? | Generate hypothetical questions from answer; compare to real question |
+| Context precision | Of retrieved chunks, what fraction were relevant? | LLM-judge |
+| Context recall | Did retrieval return everything needed? | LLM-judge against gold answer |
 
-**G-Eval。** 定义自定义标准："答案是否引用了正确的来源？"框架自动展开为思维链评估步骤，然后打分 0-1。适用于 RAGAS 未覆盖的领域特定质量维度。
+**G-Eval.**定义一个定制标准:"答案是否引用了正确的来源?"框架自动扩展到思想链评估步骤,然后得分为0-1.对域特定质量维度很好.RAGAS不涵盖.
 
-**校准。** 在与人工标签的相关性验证之前，不要信任原始评审分数。运行 100 个手工标注示例。绘制评审者 vs 人工散点图。计算 Spearman rho。如果 rho < 0.7，说明你的评审标准需要改进。
+**Calibration.**永远不要相信原始评审员的分数,直到你与人类标签相对相关性.运行100个手工标签的例子.剧情评审员与人类.计算Spearman rho.如果 rho <0.7,你的评审员条目需要工作.
 
 ```figure
 n5-judge-gauge
 ```
 
-## 构建
+## 建立它
 
-### 步骤 1：使用 NLI 的忠实度（RAGAS 风格）
+### 步骤1:对NLI (RAGAS类型) 的忠诚性
 
 ```python
 from typing import Callable
@@ -66,13 +66,13 @@ nli = pipeline("text-classification",
                model="MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
                top_k=None)
 
-# `llm` 是任意可调用函数：提示字符串 -> 生成的字符串。
-# 示例：llm = lambda p: client.messages.create(model="claude-haiku-4-5", ...).content[0].text
+# `llm` is any callable: prompt str -> generated str.
+# Example: llm = lambda p: client.messages.create(model="claude-haiku-4-5", ...).content[0].text
 LLM = Callable[[str], str]
 
 
 def atomic_claims(answer: str, llm: LLM) -> list[str]:
-    prompt = f"""将此答案拆分为简单的事实主张（每行一个）：
+    prompt = f"""Break this answer into simple factual claims (one per line):
 {answer}
 """
     return llm(prompt).splitlines()
@@ -91,19 +91,19 @@ def faithfulness(answer: str, context: str, llm: LLM) -> float:
     return supported / len(claims)
 ```
 
-将答案分解为原子主张。针对检索到的上下文对每个主张进行 NLI 检查。忠实度 = 被支持的比例。
+解答到原子索赔. NLI 检查每个索赔与检索的文本. 忠实性 = 支持的分数.
 
-### 步骤 2：答案相关性
+### 步骤2:答案的相关性
 
 ```python
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-# encoder：任何实现 .encode(texts, normalize_embeddings=True) -> ndarray 的模型
-# 例如，encoder = SentenceTransformer("BAAI/bge-small-en-v1.5")
+# encoder: any model implementing .encode(texts, normalize_embeddings=True) -> ndarray
+# e.g., encoder = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
 def answer_relevance(question: str, answer: str, encoder, llm: LLM, n: int = 3) -> float:
-    prompt = f"写出 {n} 个此答案可能回答的问题：\n{answer}"
+    prompt = f"Write {n} questions this answer could be the answer to:\n{answer}"
     generated = [line for line in llm(prompt).splitlines() if line.strip()][:n]
     if not generated:
         return 0.0
@@ -113,9 +113,9 @@ def answer_relevance(question: str, answer: str, encoder, llm: LLM, n: int = 3) 
     return sum(sims) / len(sims)
 ```
 
-如果答案暗示了与被问问题不同的问题，相关性就会下降。
+如果答案与问的不同,
 
-### 步骤 3：G-Eval 自定义指标
+### 步骤3:G-Eval 定制指标
 
 ```python
 from deepeval.metrics import GEval
@@ -141,9 +141,9 @@ metric.measure(test)
 print(metric.score, metric.reason)
 ```
 
-评估步骤就是评分标准。显式步骤比隐式的"评分 0-1"提示更稳定。
+显而易见的步骤比隐含的"0-1分数"提示更稳定.
 
-### 步骤 4：CI 网关
+### 步骤4:CI门
 
 ```python
 import deepeval
@@ -161,39 +161,39 @@ def test_rag_system():
         assert rel.score >= 0.7, f"relevancy regression on {case.id}"
 ```
 
-保存为 pytest 文件。在每次 PR 时运行。在出现回归时阻止合并。
+作为一个 pytest文件,运行每一个 PR. 块在回归合并.
 
-### 步骤 5：从零开始的玩具评估
+### 步骤5:从零开始评估玩具
 
-参见 `code/main.py`。仅使用标准库对忠实度（答案主张与上下文的交集）和相关性（答案令牌与问题令牌的交集）的近似实现。不是生产级。展示了基本形态。
+看到`code/main.py`仅仅仅是对信任性 (答案要求与背景重叠) 和相关性 (答案代币与问题代币重叠) 的近似. 不是生产.显示形状.
 
-## 陷阱
+## 陷
 
-- **无校准。** 与人工标签相关系数为 0.3 的评审者是噪声。发货前要求运行校准。
-- **自评估。** 使用同一个 LLM 生成和评审会使分数虚高 10-20%。评审者使用不同的模型家族。
-- **成对评审中的位置偏见。** 评审者偏好首先呈现的选项。始终随机化顺序并双向运行。
-- **原始聚合掩盖失败。** 平均分 0.85 经常掩盖 5% 的灾难性失败。始终检查最低分位数。
-- **黄金数据集腐化。** 未版本化的评估集随时间漂移会破坏纵向比较。用每次变更标记数据集。
-- **LLM 成本。** 在大规模下，评审调用主导成本。使用满足校准阈值的最低成本模型。GPT-4o-mini、Claude Haiku、Mistral-small。
+- **No calibration.**对于人类标签的0.3相关性,是噪音.
+- **Self-evaluation.**通过使用相同的法学士来生成和判断, 提高得分10-20%.
+- **Positional bias in pairwise judging.**评委更喜欢第一个选择,总是随机排序,运行两者.
+- **Raw aggregate hides failures.**平均分数0.85通常隐藏5%的灾难性失败.
+- **Golden dataset rot.**随着时间的推移而流动的未经翻译的评估集打破了纵向比较.
+- **LLM cost.**根据标准,评委的要求, 控制成本. 使用符合校准门的最便宜模型.
 
-## 使用
+## 用它
 
-2026 技术栈：
+现在,我们要做什么?
 
-| 用例 | 框架 |
+| Use case | Framework |
 |---------|-----------|
-| RAG 质量监控 | RAGAS（4 项指标） |
-| CI/CD 回归网关 | DeepEval + pytest |
-| 自定义领域标准 | DeepEval 中的 G-Eval |
-| 在线实时流量监控 | 无参考模式的 RAGAS |
-| 人工抽查 | 带标注 UI 的 LangSmith 或 Phoenix |
-| 红队测试 / 安全评估 | Promptfoo + DeepEval |
+| RAG quality monitoring | RAGAS (4 metrics) |
+| CI/CD regression gates | DeepEval + pytest |
+| Custom domain criteria | G-Eval within DeepEval |
+| Online live-traffic monitoring | RAGAS with reference-free mode |
+| Human-in-the-loop spot checks | LangSmith or Phoenix with annotation UI |
+| Red-teaming / safety eval | Promptfoo + DeepEval |
 
-典型栈：RAGAS 用于监控，DeepEval 用于 CI，G-Eval 用于新颖维度。运行全部三个；它们会产生有 useful 的分歧。
+典型的堆:RAGAS用于监测,DepEval用于CI,G-Eval用于新尺寸.运行三个;它们非常不一致.
 
-## 交付
+## 运送它
 
-保存为 `outputs/skill-eval-architect.md`：
+保存如`outputs/skill-eval-architect.md`其他:
 
 ```markdown
 ---
@@ -216,28 +216,28 @@ Given a use case (RAG / agent / generative task), output:
 Refuse to rely on a judge untested against ≥50 human-labeled examples. Refuse self-evaluation (same model generates + judges). Refuse aggregate-only reporting without bottom-10% surfacing. Flag any pipeline where judge upgrade lands without parallel baseline eval.
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 对 10 个已知存在幻觉的 RAG 示例使用 RAGAS。验证忠实度指标是否捕获了每一个。
-2. **中等。** 手工标注 50 个 QA 答案的正确性 0-1。用 G-Eval 评分。测量评审者与人工之间的 Spearman rho。
-3. **困难。** 使用 DeepEval 构建 pytest CI 网关。故意使检索器回归。验证网关是否失败。通过对最低 10% 的阈值检查添加最低分位数告警。
+1. **Easy.**通过使用RAGAS在已知幻觉的10个RAG例子上.
+2. **Medium.**标签50个质量答案为0-1对准确性. 通过G-Eval,测量Spearman rho在法官和人类之间.
+3. **Hard.**通过 DeepEval 构建一个最难的CI门. 故意退回检索器. 检查门失败. 通过最低10%的门检查添加底部量子力学警报.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| LLM-as-judge | 用 LLM 评分 | 给定评分标准，提示评审模型对输出打分 0-1。 |
-| RAGAS | RAG 指标库 | 具有 4 个无参考 RAG 指标的开源评估框架。 |
-| 忠实度 (Faithfulness) | 答案是否基于依据？ | 被检索上下文蕴含的答案主张比例。 |
-| 上下文精确度 (Context precision) | 检索到的块是否相关？ | 前 K 个块中实际重要的比例。 |
-| 上下文召回率 (Context recall) | 检索是否找到了所有内容？ | 被检索块支持的黄金答案主张比例。 |
-| G-Eval | 自定义 LLM 评审 | 评分标准 + 思维链评估步骤 + 0-1 分数。 |
-| 校准 | 信任但验证 | 评审分数与人工分数之间的 Spearman 相关系数。 |
+| LLM-as-judge | Scoring with an LLM | Prompt a judge model to score outputs 0-1 given a rubric. |
+| RAGAS | The RAG metric library | Open-source eval framework with 4 reference-free RAG metrics. |
+| Faithfulness | Is the answer grounded? | Fraction of answer claims entailed by retrieved context. |
+| Context precision | Were retrieved chunks relevant? | Fraction of top-K chunks that actually mattered. |
+| Context recall | Did retrieval find everything? | Fraction of gold-answer claims supported by retrieved chunks. |
+| G-Eval | Custom LLM judge | Rubric + chain-of-thought eval steps + 0-1 score. |
+| Calibration | Trust but verify | Spearman correlation between judge score and human score. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Es 等人（2023）。RAGAS: Automated Evaluation of Retrieval Augmented Generation](https://arxiv.org/abs/2309.15217) — RAGAS 论文。
-- [Liu 等人（2023）。G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment](https://arxiv.org/abs/2303.16634) — G-Eval 论文。
-- [DeepEval 文档](https://deepeval.com/docs/metrics-introduction) — 开源生产栈。
-- [Zheng 等人（2023）。Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685) — 偏见、校准、局限性。
-- [MLflow GenAI Scorer](https://mlflow.org/blog/third-party-scorers) — 集成 RAGAS、DeepEval、Phoenix 的统一框架。
+- [Es et al. (2023). RAGAS: Automated Evaluation of Retrieval Augmented Generation](https://arxiv.org/abs/2309.15217)RAGAS的报纸.
+- [Liu et al. (2023). G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment](https://arxiv.org/abs/2303.16634)G-Eval纸
+- [DeepEval docs](https://deepeval.com/docs/metrics-introduction)开放生产堆.
+- [Zheng et al. (2023). Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)偏见,校准,限制.
+- [MLflow GenAI Scorer](https://mlflow.org/blog/third-party-scorers)统一框架,将RAGAS,DeepEval,Phoenix集成在一起.

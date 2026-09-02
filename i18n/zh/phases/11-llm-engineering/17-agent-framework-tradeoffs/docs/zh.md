@@ -1,138 +1,138 @@
-# Agent 框架权衡 —— Graph、Role 与 Actor 编排
+# 代理框架交易 图表,角色和演员配乐
 
-> 每个框架都演示同一个样例（研究代理生成报告），同时隐藏同一个缺陷（状态 schema 与编排层冲突）。选择抽象方式与你问题形状相匹配的框架；其余都是你需要写两遍的胶水代码。
+> 每个框架都销售相同的演示 (研究代理构建报告) 并隐藏相同的错误 (状态方案与编排层作战). 选择一个框架,其抽象与您的问题的形状相匹配; 其余的东西都是您写的两次粘合.
 
-**类型：** 学习
-**语言：** Python
-**前置知识：** Phase 11 · 09（Function Calling）、Phase 11 · 16（LangGraph）
-**时间：** 约 45 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 11 · 09 (Function Calling), Phase 11 · 16 (LangGraph)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-你有一个任务，需要不止一次 LLM 调用。可能是一个研究工作流（规划、搜索、总结、引用）。可能是一个代码审查流水线（解析 diff、评论、打补丁、验证）。可能是一个多轮助手，负责订票、写邮件、提交报销。你挑选一个框架。
+你有一个需要多次LLM调试的任务.也许这是一个研究工作流程 (计划,搜索,总结,引用).也许这是一个代码审查管道 (解析差异,批评,补丁,验证).也许这是一个多轮辅助员,谁会预订飞行,写电子邮件,文件支出报告.你选择一个框架.
 
-三天后，你发现框架的抽象泄漏了。CrewAI 给了你角色，但当"研究员"需要把结构化计划交给"写作者"时它就开始跟你作对。AutoGen 给了代理间的对话，但没有原生状态支持，所以你的检查点是会话日志的 pickle。LangGraph 给了你一个状态图，但在你不知道代理会做什么之前就迫使你命名每一个转换。Agno 给了你一个单代理抽象，当你尝试分支到三个并发工作者时它就开始报错。
+之后三天,你发现了框架的抽象漏洞. 机器人给你提供角色,但当"研究人员"需要把结构化的计划交给"作家"时,它会对你进行斗争. 兰格拉夫给你一个状态图, 但迫使你在你知道代理会做什么之前, 命名每个转变. 艾格诺给你一个单机抽象,当你试图扩散到三个同时工作者时,它会尖叫.
 
-解决方案不是"选择最好的框架"，而是将框架的核心抽象与你的问题形状匹配。本课就是绘制那张地图。
+解决方案不是"选择最好的框架". 解决方案是将框架的核心抽象与您的问题的形状相匹配.
 
 ## 概念
 
-![Agent 框架矩阵：核心抽象 vs 问题形状](../assets/framework-matrix.svg)
+![Agent framework matrix: core abstraction vs problem shape](../assets/framework-matrix.svg)
 
-四个框架主导了 2026 年的格局。它们的核心抽象各不相同。
+它们的核心抽象不一样.
 
-| 框架 | 核心抽象 | 最适合 | 最不适合 |
-|------|----------|--------|----------|
-| **LangGraph** | `StateGraph` —— 类型化状态、节点、条件边、检查点器。 | 具有显式状态和人工介入中断的工作流；需要时间旅行调试的生产级代理。 | 松散的、角色驱动头脑风暴，拓扑未知。 |
-| **CrewAI** | `Crew` —— 角色（目标、背景故事）、任务、流程（顺序或层级）。 | 角色驱动或人格驱动的工作流，具有简短的顺序/层级计划。 | 超出 Crew 轮次历史的任何状态性内容；复杂分支。 |
-| **AutoGen** | `ConversableAgent` 对 —— 两个或多个代理交替发言，直到满足退出条件。 | 多代理*对话*（教师-学生、提议者-批评者、执行者-审核者），思维从对话中涌现。 | 已知 DAG 的确定性工作流；需要在重启间保持持久状态的任何内容。 |
-| **Agno** | `Agent` —— 单个 LLM + 工具 + 记忆，可组合为团队。 | 快速构建的单代理和轻量级团队；强大的多模态支持和内置存储驱动。 | 具有自定义 reducer 的深度显式分支图。 |
+| Framework | Core abstraction | Best fit | Worst fit |
+|-----------|------------------|----------|-----------|
+| **LangGraph** | `StateGraph` — typed state, nodes, conditional edges, checkpointer. | Workflows with explicit state and human-in-the-loop interrupts; production agents needing time-travel debugging. | Loose, role-driven brainstorming where the topology is unknown. |
+| **CrewAI** | `Crew` — roles (goal, backstory), tasks, process (sequential or hierarchical). | Role-playing or persona-driven workflows with a short linear/hierarchical plan. | Anything stateful beyond the crew's turn history; complex branching. |
+| **AutoGen** | `ConversableAgent` pair — two or more agents that speak in turns until an exit condition. | Multi-agent *dialogue* (teacher-student, proposer-critic, actor-reviewer) where the thinking emerges from the chat. | Deterministic workflows with a known DAG; anything needing durable state across restarts. |
+| **Agno** | `Agent` — a single LLM + tools + memory, composable into teams. | Fast-to-build single agents and lightweight teams; strong multi-modality and built-in storage drivers. | Deep, explicitly-branched graphs with custom reducers. |
 
-### "抽象"实际含义什么
+### "抽象"实际上意味着什么
 
-框架的核心抽象是你向他人介绍架构时在白板上画的东西。
+框架的核心抽象是你在设计时绘制在白板上的东西.
 
-- **LangGraph** → 你画一张图。节点是步骤，边是转换，每一点的状态对象都是类型化的。心智模型是一个状态机。
-- **CrewAI** → 你画一张组织架构图。每个角色有职位描述，经理分配任务。心智模型是一组小型专家团队。
-- **AutoGen** → 你画一个 Slack 私聊窗口。两个代理互相发消息；如果需要调解员第三个加入。心智模型是对话。
-- **Agno** → 你画一个带工具附件的单框。把框放在一起就是团队。心智模型是"自带电池的代理"。
+- **LangGraph**结点是步骤,边缘是过渡,每个点都打字状态对象.
+- **CrewAI**工作人员的职位描述,管理员的任务路线.
+- **AutoGen**两个代理人互相发短信,如果需要一个调节者,第三个加入.
+- **Agno**让一个团队一起画一个单一的盒子,上面挂着工具. 让一个团队一起画一个盒子. 心理模型是"包括电池的代理".
 
-### 状态问题
+### 国家问题
 
-状态是大多数框架选择在生产中出问题的地方。
+制造业的框架选择在大多数国家都会崩.
 
-- **LangGraph。** 类型化状态（`TypedDict` 或 Pydantic 模型），每字段 reducer，一等公民检查点器（SQLite/Postgres/Redis）。恢复、中断和时间旅行开箱即用。*（参见 Phase 11 · 16。）*
-- **CrewAI。** 状态通过 `context` 字段在任务间以字符串形式流动，或通过 `output_pydantic` 结构化。开箱没有持久的每 Crew 存储；如果 Crew 必须在重启后存活，你需要自己附加。
-- **AutoGen。** 状态是对话历史和任何用户定义的 `context`。会话转录持久化；任意工作流状态除非你编写适配器否则不持久。
-- **Agno。** 内置存储驱动（SQLite、Postgres、Mongo、Redis、DynamoDB）通过 `storage=` 附加到 `Agent`——会话和用户记忆自动持久化。不是完整的图检查点器；是会话存储。
+- **LangGraph.**类型状态 (`TypedDict`简历,中断和时间旅行是免费的. *(见第11期 · 16期.) *
+- **CrewAI.**通过                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `context`其他类型的`output_pydantic`没有一个持久的每员工店出盒子,如果你必须生存一个重启,你自己就会跳.
+- **AutoGen.**状态是聊天历史和任何用户定义的状态`context`对话转录仍然存在,除非你写适配器,否则任意工作流状态不会存在.
+- **Agno.**连接到一个 `Agent`通过`storage=`对话会话和用户记忆会自动保存.
 
 ### 分支问题
 
-每个非平凡代理都会分支。谁决定分支很重要。
+每个非微不足道的代理都分支,谁决定分支的事.
 
-- **LangGraph** —— 你通过条件边决定。路由是用命名分支的 Python 函数。分支在编译后的图中是一等公民；检查点器记录选择了哪条分支。
-- **CrewAI** —— 管理器在层级模式中决定；在顺序模式中你在构建时决定。路由隐式存在于任务列表中；管理器提示词之外没有第一公民的"if"。
-- **AutoGen** —— 代理通过对话决定。分支是从下一个说话者涌现出来的。`GroupChatManager` 选择下一个发言者；你可以手写 `speaker_selection_method`，但默认是 LLM 驱动的。
-- **Agno** —— 代理通过决定下一个调用哪个工具来分支。团队有协调器/路由器/协作者模式；超出此范围的分支是开发者的责任。
+- **LangGraph**您决定,通过条件边缘.路由是一个名字分支的Python函数.分支在编译图中是第一类;检查点记录了哪个分支被取.
+- **CrewAI**管理者在等级模式下决定;在序列模式下,你决定在构建时.路由是隐含的任务列表中;管理者的提示之外没有一级"如果".
+- **AutoGen**代理人通过聊天决定. 分支是从谁接下来说.`GroupChatManager`选择下一个扬声器;你可以手写一个`speaker_selection_method`但默认的原因是,
+- **Agno**代理人决定下一步使用哪个工具.团队有协调员/路由器/合作者模式;在此之外,分支是开发者的责任.
 
-### 可观测性问题
+### 观察性问题
 
-- **LangGraph** —— 通过 LangSmith 或任何 OTel 导出器的 OpenTelemetry。每次节点转换都是一个追踪跨度；检查点同时可作为可重放的追踪。LangSmith 是官方选项；Langfuse/Phoenix 也有适配器。
-- **CrewAI** —— 自 2025 年末起支持一等公民 OpenTelemetry；与 Langfuse、Phoenix、Opik、AgentOps 集成。
-- **AutoGen** —— 通过 `autogen-core` 的 OpenTelemetry 集成；AgentOps 和 Opik 有连接器。追踪粒度是每代理消息，而非每节点。
-- **Agno** —— 内置 `monitoring=True` 标志加上 OpenTelemetry 导出器；与 Langfuse 的会话追踪紧密集成。
+- **LangGraph**通过兰格斯密或任何OTel出口商的OpenTelemetry.每个节点过渡都是追踪时间;检查站是可重复的追踪.兰格斯密是第一方选项;兰格斯密/尼克斯也拥有适配器.
+- **CrewAI**自2025年底以来的第一级开放电气;与兰格斯,城,奥皮克,代理运营公司的集成.
+- **AutoGen**通过OpenTelemetry集成`autogen-core`检测细分度是每个代理信息,而不是每个节点.
+- **Agno**内置`monitoring=True`旗加上OpenTelemetry出口商;密切与Langfuse集成,以便进行会议追踪.
 
-### 成本与延迟
+### 成本和延迟
 
-所有四个框架都会增加每次调用的开销（框架逻辑、验证、序列化）。开销大致递增顺序：Agno ≈ LangGraph < CrewAI ≈ AutoGen。差异主要由框架额外执行的 LLM 路由量决定。CrewAI 的层级管理器花费 token 来决定下一个是谁；AutoGen 的 `GroupChatManager` 同理。LangGraph 只在你编写 `llm.invoke` 的地方花费 token。Agno 的单代理路径很轻。
+所有四个框架都增加了每次通话的通用费用 (框架逻辑,验证,序列化).大致的通用费用增加顺序:Agno ≈ LangGraph < CrewAI ≈ AutoGen. 差异由框架的额外LLM路由所占主导地位. CrewAI的层次管理人员花费代币决定谁接下来; AutoGen的代码.`GroupChatManager`长图只在你写的位置花钱.`llm.invoke`亚格诺的单机代理路线很薄.
 
-当每次运行成本很重要时，优先使用显式路由（LangGraph 边、AutoGen `speaker_selection_method`）而非 LLM 选择的路由。
+当每次运行成本重要时,更好选择明确的路由 (长图边缘,自动生成`speaker_selection_method`) 通过选择LLM路线.
 
 ### 互操作性
 
-- **LangGraph** ↔ **LangChain** 工具、检索器、LLM。一等公民 MCP 适配器（工具作为 MCP 服务器导入）。
-- **CrewAI** ↔ 工具继承自 `BaseTool`；LangChain 工具、LlamaIndex 工具和 MCP 工具都可以适配进来。通过 `allow_delegation=True` 支持 Crew 到 Crew 委派。
-- **AutoGen** → `FunctionTool` 包装任意 Python 可调用对象；MCP 适配器可用。与 AG2 生态系统的代理到代理模式紧密耦合。
-- **Agno** → `@tool` 装饰器或 BaseTool 子类；MCP 适配器；工具可以在代理和团队间共享。
+- **LangGraph** **LangChain**工具,检索器,LLM. 一级MCP适配器 (作为MCP服务器进口的工具).
+- **CrewAI**工具继承`BaseTool`通过机组人员的代表团通过机组人员的代表团,`allow_delegation=True`现在,我们要去.
+- **AutoGen**其他`FunctionTool`通过"Python"来调用,可使用的MCP适配器,并将其紧密地连接到AG2生态系统,以实现代理对代理模式.
+- **Agno**其他`@tool`装饰器或BaseTool子类;MCP适配器;工具可在代理人和团队之间共享.
 
 ## 技能
 
-> 你能用一句话解释为什么某个框架适合某个代理问题。
+> 您可以用一句话解释为什么给定的框架适合给定的代理问题.
 
-预构建清单：
+预制清单:
 
-1. **画出形状。** 这是图（类型化状态、命名转换）？角色扮演的形式（专家交接工作）？对话（代理交谈直到完成）？还是带工具的单个代理？
-2. **决定谁分支。** 开发者决定分支 → LangGraph。管理器代理决定 → CrewAI 层级模式。对话涌现 → AutoGen。工具调用决定 → Agno。
-3. **检查状态预算。** 你需要从检查点恢复？时间旅行？运行中人工中断？如果是，LangGraph 是默认选择；Agno 会话覆盖会话范围内的状态。
-4. **检查成本预算。** LLM 选择的路由每轮消耗额外 token。如果代理每天运行数千次，优先选择显式路由。
-5. **预算框架开销。** 每个框架都是另一个依赖项。如果任务只是两次 LLM 调用加一个工具，写 30 行裸 Python；没有框架比任何框架都便宜。
+1. **Draw the shape.**这是一个图表 (类型状态,命名的过渡);一个角色扮演 (专家放弃工作);一个聊天 (代理人谈到完成);一个单独的代理人有工具?
+2. **Decide who branches.**开发者决定分支 → 兰格拉夫. 管理者-代理人决定 → 机组人员等级. 聊天出现 → 自动生成. 工具调用决定 → Agno.
+3. **Check the state budget.**如果是,则是LangGraph默认,AgnO会话覆盖对话范围状态.
+4. **Check the cost budget.**如果代理人每天运行数千次, 宁愿明确的路由.
+5. **Budget the framework overhead.**如果任务是两个LLM调用和一个工具,请写30行简单的Python;没有框架比没有框架便宜.
 
-在你能够画出图、组织架构图、对话或代理框之前，不要随手抓一个框架。不要选择一个迫使你与你实际需要的事物对抗其状态模型的框架。
+拒绝在绘制图表,组织图表,聊天或代理框之前寻找一个框架.拒绝选择一个强迫你为你真正需要的东西而战的框架.
 
 ## 决策矩阵
 
-| 问题形状 | 首选框架 | 原因 |
-|----------|----------|------|
-| 具有类型化状态、人工审批、长运行的工作流 DAG | LangGraph | 一等公民状态、检查点器、中断、时间旅行。 |
-| 具有不同角色的研究/写作流水线 | CrewAI（顺序）或 LangGraph 子图 | 角色对应任务在 CrewAI 中表达成本低；分支变复杂时用 LangGraph 扩展。 |
-| 提议者-批评者或教师-学生对话 | AutoGen | 双代理对话是其原生形状。 |
-| 带工具、会话、记忆的单代理 | Agno | 最轻量的设置，内置存储和记忆。 |
-| 带 reducer 的数千次并行扇出 | LangGraph + `Send` | 唯一具有并行分发 API 的框架。 |
-| 快速原型，无框架承诺 | 裸 Python + 提供商 SDK | 没有框架是最快的框架。 |
+| Problem shape | Preferred framework | Why |
+|---------------|---------------------|-----|
+| Workflow DAG with typed state, human approvals, long-running | LangGraph | First-class state, checkpointer, interrupts, time-travel. |
+| Research / writing pipeline with distinct roles | CrewAI (sequential) or LangGraph subgraphs | Role-per-task is cheap to express in CrewAI; scale up with LangGraph when branching gets complex. |
+| Proposer-critic or teacher-student dialogue | AutoGen | Two-agent chat is its native shape. |
+| Single agent with tools, sessions, memory | Agno | Thinnest setup, built-in storage and memory. |
+| Thousands of parallel fanouts with reducers | LangGraph + `Send` | The only one with a first-class parallel-dispatch API. |
+| Quick prototype, no framework commitment | Plain Python + provider SDK | No framework is the fastest framework. |
 
 ```figure
 l5-framework-fit
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 将同一个任务——"研究 Anthropic 总部，撰写 200 字简报，引用来源"——分别在 LangGraph（四个节点：plan、search、write、cite）和 CrewAI（三个角色：researcher、writer、editor）中实现。报告每次运行的 token 消耗和代码行数。
-2. **中等。** 在 AutoGen（researcher ↔ writer 对话，editor 通过 `GroupChat` 加入）和 Agno（单个代理带 `search_tools` 和 `write_tools`，加上会话存储）中构建相同任务。对四个实现在以下方面排名：(a) 每次运行成本，(b) 崩溃后恢复能力，(c) 在 write 步骤前注入人工审批的能力。
-3. **困难。** 构建一个决策树脚本 `pick_framework.py`，接收简短问题描述（JSON：`{has_typed_state, has_roles, has_dialogue, has_parallel_fanout, needs_resume}`）并返回带一句话理由的建议。用你自己设计的六个用例验证它。
+1. **Easy.**"研究人类总部,写一个200字的简要,引用来源",并将其实现在LangGraph (四个节点:计划,搜索,写,引用) 和CrewAI (三个角色:研究人员,作家,编辑). 报告每次运行和代码行代码成本.
+2. **Medium.**在AutoGen中构建相同的任务 (研究人员 作家聊天,编辑通过 加入`GroupChat`) 和阿格诺 (一个代理人`search_tools`其他`write_tools`根据 (a) 每次运行成本, (b) 事故后恢复能力, (c) 在写作步骤之前注入人类批准的能力,将四个实现分类.
+3. **Hard.**建立一个决策树脚本`pick_framework.py`需要简短的问题描述 (JSON: `{has_typed_state, has_roles, has_dialogue, has_parallel_fanout, needs_resume}`) 并返回一个句子的推,请在您自己设计的六个案例上验证.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Orchestration（编排） | "代理如何协调" | 决定下一个运行哪个节点/角色/代理的层。 |
-| Durable state（持久状态） | "重启后恢复" | 存活于进程死亡的状态，附加到检查点或会话存储。 |
-| LLM-selected routing（LLM 选择路由） | "让模型决定" | 规划 LLM 每轮选择下一步；灵活但每次决策都消耗 token。 |
-| Explicit routing（显式路由） | "开发者决定" | Python 函数或静态边选择下一步；廉价且可审计。 |
-| Crew | "一个 CrewAI 团队" | 角色 + 任务 + 流程（顺序或层级）绑定为单个可运行单元。 |
-| GroupChat | "AutoGen 的多代理对话" | 带发言选择器的 N 个代理之间的受管对话。 |
-| Team (Agno) | "多代理 Agno" | 一组代理上的路由/协调/协作模式。 |
-| StateGraph | "LangGraph 的图" | 类型化状态、节点、条件边、检查点器抽象。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| Orchestration | "How the agents coordinate" | The layer that decides which node/role/agent runs next. |
+| Durable state | "Resume after a restart" | State that survives process death, attached to a checkpoint or session store. |
+| LLM-selected routing | "Let the model decide" | A planner LLM picks the next step each turn; flexible but pays tokens on every decision. |
+| Explicit routing | "Developer decides" | A Python function or static edge picks the next step; cheap and auditable. |
+| Crew | "A CrewAI team" | Roles + tasks + process (sequential or hierarchical) bound into a single runnable. |
+| GroupChat | "AutoGen's multi-agent chat" | A managed conversation between N agents with a speaker selector. |
+| Team (Agno) | "Multi-agent Agno" | Route / coordinate / collaborate mode over a set of agents. |
+| StateGraph | "LangGraph's graph" | Typed-state, node, conditional-edge, checkpointer abstraction. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [LangGraph 文档](https://langchain-ai.github.io/langgraph/) —— StateGraph、检查点器、中断、时间旅行。
-- [CrewAI 文档](https://docs.crewai.com/) —— Crews、Flows、Agents、Tasks、Processes。
-- [AutoGen 文档](https://microsoft.github.io/autogen/) —— ConversableAgent、GroupChat、团队、工具。
-- [Agno 文档](https://docs.agno.com/) —— Agent、Team、Workflow、存储、记忆。
-- [Anthropic —— 构建有效代理（2024 年 12 月）](https://www.anthropic.com/research/building-effective-agents) —— 模式库（提示链、路由、并行化、编排器-工作者、评估器-优化器），与框架无关。
-- [Yao 等，《ReAct：协同推理与行动》（ICLR 2023）](https://arxiv.org/abs/2210.03629) —— 每个框架包装的循环。
-- [Wu 等，《AutoGen：通过多代理对话启用下一代 LLM 应用》（2023）](https://arxiv.org/abs/2308.08155) —— AutoGen 设计论文。
-- [Park 等，《生成代理：人类行为的交互拟像》（UIST 2023）](https://arxiv.org/abs/2304.03442) —— CrewAI 风格人格堆栈建立的角色扮演基础。
-- Phase 11 · 16（LangGraph）—— 本课用来基准比较的框架。
-- Phase 11 · 19（Reflexion）—— 一种可干净映射到 LangGraph 但映射到 CrewAI 时较为别扭的模式。
-- Phase 11 · 22（生产可观测性）—— 如何 instrumentation 你选择的任何框架。
+- [LangGraph documentation](https://langchain-ai.github.io/langgraph/)国家图,检查点,中断,时间旅行.
+- [CrewAI documentation](https://docs.crewai.com/) 机组人员,流动,代理人,任务,过程.
+- [AutoGen documentation](https://microsoft.github.io/autogen/)可交谈的代理,集团聊天,团队,工具.
+- [Agno documentation](https://docs.agno.com/)代理,团队,工作流程,存储,内存.
+- [Anthropic — Building effective agents (Dec 2024)](https://www.anthropic.com/research/building-effective-agents)模式图书馆 (即时链接,路由,并行,管弦工作者,评估者优化器) 框架-无知.
+- [Yao et al., "ReAct: Synergizing Reasoning and Acting" (ICLR 2023)](https://arxiv.org/abs/2210.03629)每个框架都穿着循环.
+- [Wu et al., "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation" (2023)](https://arxiv.org/abs/2308.08155) 汽车代购设计文件.
+- [Park et al., "Generative Agents: Interactive Simulacra of Human Behavior" (UIST 2023)](https://arxiv.org/abs/2304.03442)角色扮演基础, CrewAI风格的人物堆建立在.
+-                                                                                                                                                                                                                                                               
+- 阶段11·19 (反射) 一个图案,它清晰地映射到LangGraph,但对CrewAI来说很尬.
+- 如何使用仪器,无论你选择哪个框架.

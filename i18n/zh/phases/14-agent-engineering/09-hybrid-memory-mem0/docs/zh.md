@@ -1,48 +1,48 @@
-# 混合记忆：向量 + 图 + KV
+# 混合型内存:向量+图表+KV
 
-> 混合记忆并行运行三种存储——向量用于语义相似度，KV 用于快速事实查找，图用于实体关系推理——并在检索时通过评分层将它们融合。这是外部记忆的常用生产模式；Mem0（Chhikara 等人，2025）是一个参考实现。
+> 混合存储器在并行中运行三个存储器 向量用于语义相似性,KV用于快速的事实搜索,图为实体关系推理,并具有在检索时合并它们的分数层.这是外部存储器的广泛使用的生产模式;Mem0 (Chhikara等,2025) 是一个参考实现.
 
-**类型：** Build
-**语言：** Python（标准库）
-**前置条件：** 阶段 14 · 07（MemGPT）、阶段 14 · 08（Letta Blocks）
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python (stdlib)
+**Prerequisites:** Phase 14 · 07 (MemGPT), Phase 14 · 08 (Letta Blocks)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 解释为什么单一存储（仅向量、仅图、仅 KV）对智能体记忆是不够的。
-- 说出 Mem0 的三种并行存储及其各自优化的目标。
-- 描述 Mem0 的融合评分——相关性、重要性、时效性——以及为什么它是加权求和而非分层结构。
-- 使用标准库实现一个玩具三级存储记忆系统，包含写入所有三个存储的 `add()` 和融合结果的 `search()`。
+- 解释为什么单个存储器 (仅为向量,仅为图,仅为KV) 为代理记忆不够.
+- 给Mem0的三个平行商店一个名称,每个商店都为什么优化.
+- 描述Mem0的融合评分 相关性,重要性,近期性 以及为什么它是一个权重的数量,而不是一个层次.
+- 通过一个   应用一个玩具三层内存在 stdlib`add()`这写给三个和一个`search()`这会导致结.
 
-## 问题所在
+## 问题
 
-一种存储对于三类查询而言都不够：
+对于三个查询类别之一,一个商店是错误的:
 
-- **语义相似度**——"上周我们讨论了什么关于智能体漂移的内容？" 向量存储胜出；KV 和图存储无法回答。
-- **事实查找**——"用户的电话号码是什么？" KV 存储胜出；向量存储效率低，图存储过于复杂。
-- **关系推理**——"哪些客户共享相同的计费实体？" 图存储胜出；向量和 KV 无法回答。
+- **Semantic similarity**"我们上周讨论了什么关于代理漂移?" 矢量获胜;KV和图表失败.
+- **Fact lookup**"用户的电话号码是什么?"KV获胜;向量是浪费的,图表是过度的.
+- **Relationship reasoning** "哪些客户共享相同的发票实体?"图表获胜;向量和KV无法回答.
 
-生产环境中的智能体会在一次会话中发起所有三类查询。单一存储记忆系统总是有两类查询无法正确回答。Mem0 的贡献在于通过一个统一的 `add`/`search` 接口将三者串联，并配以融合评分函数。
+制作代理人在一次会议中发布了所有三个. 一个单店内存总是对两个错误的. Mem0的贡献是将所有三个连接到一个单个内存.`add`现在,我们要去.`search`表面具有分数函数,将它们合并.
 
 ## 概念
 
-### 三种并行存储
+### 连续三家商店
 
-Mem0（arXiv:2504.19413，2025 年 4 月）在 `add(text, user_id, metadata)` 时：
+关于"联合国"的决议`add(text, user_id, metadata)`其他:
 
-1. 从文本中提取候选事实（由 LLM 驱动的步骤）。
-2. 将每个事实写入向量存储（生成嵌入）以用于语义搜索。
-3. 将每个事实写入以 `(user_id, fact_type, entity)` 为键的 KV 存储以实现 O(1) 查找。
-4. 将每个事实写入图存储（Mem0g）作为带类型边以支持关系查询。
+1. 从文本中提取候选事实 (基于LLM的步骤).
+2. 写每一个事实到向量存储 (嵌入) 中进行语义搜索.
+3. 写出每个事实到按键 (user_id, fact_type, entity) 键入的 KV存储中,用于O(1) 搜索.
+4. 写每一个事实到图库 (Mem0g) 作为键入边缘关系查询.
 
-在 `search(query, user_id)` 时：
+现在`search(query, user_id)`其他:
 
-1. 向量存储返回基于嵌入余弦相似度的 top-k。
-2. KV 存储返回基于查询派生的 `(user_id, type, entity)` 键的直接匹配。
-3. 图存储返回从查询实体可达的子图。
-4. 评分层融合这三个结果。
+1. 通过嵌入 cosine,向量商店返回 top-k.
+2. 查询来源 (user_id,类型,实体) 上键入的直接击中返回.
+3. 图库返回从查询实体可访问的子图.
+4. 结合了三种.
 
-### 融合评分
+### 聚合分数
 
 ```
 score = w_relevance * relevance(q, record)
@@ -50,100 +50,100 @@ score = w_relevance * relevance(q, record)
       + w_recency * recency(record)
 ```
 
-- **相关性**——向量余弦相似度、KV 精确匹配、图路径权重。
-- **重要性**——在写入时标记或学习（某些事实更重要：姓名、ID、策略）。
-- **时效性**——自上次写入或读取以来的指数衰减。
+- **Relevance**向量共数,KV的确切匹配,图路径重量.
+- **Importance**标记在写作时间或学习 (一些事实更重要:名称,身份证,政策).
+- **Recency**自上一次写或阅读以来,随时间的推移而呈指数级衰退.
 
-权重按产品调优。聊天智能体设置更高的 `w_recency`；合规智能体设置更高的 `w_importance`；检索智能体设置更高的 `w_relevance`。
+按产品调整的重量.`w_recency`对于聊天代理人;更高`w_importance`对于合规代理人;`w_relevance`为了检索人员.
 
-### Mem0g 与时间推理
+### 记忆和时间推理
 
-Mem0g 增加了冲突检测器。当新事实与现有边矛盾时，现有边被标记为无效但不会被删除。时间查询（"用户在三月份的城市是什么？"）遍历当时有效的子图。
+Mem0g添加了冲突探测器.当一个新的事实与现有边缘相矛盾时,现有边缘被标记为无效但不会被删除.时间查询 ("3月用户的城市是什么?") 穿越了有效时代子图.
 
-这是 Letta 失效模式的合规级行为。
+这就是Letta的无效模式一般化的合规性行为.
 
-### 基准数据
+### 基准号码
 
-Mem0 论文报告了（2025 年）以下数据：
+报告 (2025):
 
-- **LoCoMo**（长篇对话记忆）：91.6
-- **LongMemEval**（长时程情节记忆）：93.4
-- **BEAM 1M**（100 万 token 记忆基准）：64.1
+- **LoCoMo**(长时间对话记忆): 91.6
+- **LongMemEval**长视野事件记忆:93.4
+- **BEAM 1M**(M-代币内存基准值): 64.1
 
-对比基线（完整上下文 128k LLM、扁平向量存储、扁平 KV 存储）均落后 10 分以上。基准数据本身不足以证明选择——操作形态才是——但这些数字表明融合设计并非无关紧要。
+比较基线 (全文 128k LLM,平面向量存储,平面KV) 都损失了10+分.仅仅的基准不证明选择的操作形状是,但数字显示融合设计不是圆形错误.
 
 ### 范围分类
 
-Mem0 按范围划分记忆：
+Mem0 分开记忆范围:
 
-- **用户记忆**——跨会话持久化，以 `user_id` 为键。
-- **会话记忆**——在单个线程内持久化。
-- **智能体记忆**——每个智能体实例的状态。
+- **User memory**持续在整个会议中,按键开.`user_id`现在,我们要去.
+- **Session memory**在一个线程内持续.
+- **Agent memory**每代理实例状态.
 
-每次写入选择一个范围。检索可以跨范围查询并带有每范围的权重。不经思考地混合范围是导致"助理向 Alice 透露了 Bob 的项目"这类事故的原因。
+每个写作都会选择一个范围. 检索可以通过每个范围的权重进行查询. 混合范围是如何得到"助理告诉爱丽丝关于勃的项目"事件.
 
-### 此模式的失效场景
+### 在这个模式出现错误的地方
 
-- **嵌入漂移。** 在向量的前一百次查询中看起来正确的结果会随语料库增长而退化。定期重新嵌入使用频率最高的 N 条记录。
-- **KV 模式蔓延。** `(user_id, type, entity)` 看起来简单，直到每个团队都添加了自己的 `type`。每季度审核类型集合。
-- **图爆炸。** 一个噪声提取器每条消息增加 50 条边。限制每次 `add` 调用的图写入数量；丢弃低置信度边。
+- **Embedding drift.**随着体积的增长,向量结果在第一百个查询中会降低.
+- **KV schema creep.** `(user_id, type, entity)`看起来很简单,直到每个团队都加入了自己的团队.`type`季度检查类型.
+- **Graph explosion.**一个噪音的提取器每条消息增加了50个边缘.`add`让人们放弃低信心的边缘.
 
 ```figure
 ae-memory-fusion
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 使用标准库实现了三级存储模式：
+`code/main.py`在 stdlib 中实现了三层格式:
 
-- `VectorStore`——使用简单的 token 重叠相似度作为嵌入替身。
-- `KVStore`——以 `(user_id, fact_type, entity)` 为键的字典。
-- `GraphStore`——带类型边（主体、关系、客体、有效性）。
-- `Mem0`——具有 `add()`、`search()`、融合评分和范围感知检索的顶层门面。
-- 针对多用户、多会话对话的工作追溯。
+- `VectorStore`作为嵌入式替代品的无明的代币重叠相似性.
+- `KVStore` 按键键键`(user_id, fact_type, entity)`现在,我们要去.
+- `GraphStore`打字边缘 (主体,关系,对象,有效).
+- `Mem0`顶层面面`add()`现在`search()`合分数,以及意识到范围的检索.
+- 通过多个用户进行的对话,
 
-运行它：
+运行它:
 
 ```
 python3 code/main.py
 ```
 
-输出显示了三条独立的召回路径以及融合后的 top-k。翻转 `main()` 顶部的评分权重，观察排名变化。
+输出显示了三个独立的召回路径加上合并的顶-k.`main()`看到排名变化.
 
-## 使用它
+## 用它
 
-- **Mem0（Apache 2.0）**——生产就绪。使用 Postgres + Qdrant + Neo4j 自托管，或使用托管云服务。
-- **Letta**——三级核心/召回/归档架构；自带向量和图后端。
-- **Zep**——带有时间知识图谱和事实提取的商业替代方案。
-- **自定义构建**——当需要精确控制提取器（合规）或融合权重（时效性占主导的语音智能体）时。
+- **Mem0 (Apache 2.0)** 准备生产.自主主持人使用Postgres + Qdrant + Neo4j,或使用管理云.
+- **Letta**三层核心/回忆/档案;带你自己的向量和图形后端.
+- **Zep**商业替代品,即时间KG和事实提取.
+- **Custom builds**需要对取器 (合规性) 或合权重 (声源主导的声源) 的确控制.
 
-## 交付它
+## 运送它
 
-`outputs/skill-hybrid-memory.md` 生成了一个三级存储记忆脚手架，其中集成了融合评分器、范围分类和时间失效机制。
+`outputs/skill-hybrid-memory.md`产生一个三层内存架子, 配有合分数, 范围分类和时间无效的电缆.
 
-## 练习
+## 运动
 
-1. 用真正的嵌入模型（sentence-transformers、Ollama、OpenAI embeddings）替换玩具向量相似度。在合成长篇对话上测量 recall@10。经过 1000 次写入后排名是否漂移？
-2. 添加时间查询：`search(query, as_of=timestamp)`。仅返回在该时间之前有效的记录。哪个存储需要最多工作？
-3. 实现冲突检测器：如果传入的事实与图边矛盾，则使旧边失效并记录两者。在"用户住在柏林"→"用户住在里斯本"上测试。
-4. 将融合评分器扩展以包含 `user_feedback` 维度（对检索到的记录点赞）。如何防止滥用（智能体只返回它已经喜欢的记录）？
-5. 阅读 Mem0 文档（`docs.mem0.ai`）。将玩具代码移植到 `mem0` 客户端调用。在相同的 20 个测试查询上比较检索质量。
+1. 取代玩具向量相似性用一个真正的嵌入模型 (句子变换器,Ollama,OpenAI嵌入).在合成长对话中测量回忆@10.排名漂移超过1000写?
+2. 添加时间查询:`search(query, as_of=timestamp)`返回只有在那个时间或之前有效的记录.哪家商店需要最多的工作?
+3. 实现冲突检测器:如果一个传入的事实与图表边缘相矛盾,请无效取消旧边缘并记录两者.
+4. 移植合分数器,包括一个`user_feedback`如何防止游戏 (代理只返回已喜欢的记录)?
+5. 阅读 Mem0文件 (`docs.mem0.ai`把玩具带到`mem0`根据相同的20个测试查询,
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|------------------------|
-| 混合记忆 | "向量加图加 KV" | 三种存储并行写入，检索时融合 |
-| 事实提取 | "记忆摄取" | 将文本拆分为（实体、关系、事实）元组的 LLM 步骤 |
-| 融合评分 | "相关性排序" | 相关性、重要性、时效性的加权求和 |
-| 范围 | "记忆命名空间" | 用户/会话/智能体——决定谁能看到什么 |
-| Mem0g | "记忆图" | 带有时间有效性的带类型边以支持关系查询 |
-| 时间失效 | "软删除" | 标记被否定的边为无效；永不删除 |
-| 嵌入漂移 | "检索腐烂" | 向量质量随语料库增长而退化；定期重新嵌入 |
+| Hybrid memory | "Vector plus graph plus KV" | Three stores written in parallel, fused on retrieval |
+| Fact extraction | "Memory ingestion" | LLM step that breaks text into (entity, relation, fact) tuples |
+| Fusion scoring | "Relevance ranking" | Weighted sum of relevance, importance, recency |
+| Scope | "Memory namespace" | user / session / agent — determines who sees what |
+| Mem0g | "Memory graph" | Typed edges with temporal validity for relationship queries |
+| Temporal invalidation | "Soft delete" | Mark contradicted edges invalid; never delete |
+| Embedding drift | "Retrieval rot" | Vector quality degrades as corpus grows; re-embed periodically |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Chhikara 等人，Mem0（arXiv:2504.19413）](https://arxiv.org/abs/2504.19413)——原始论文
-- [Mem0 文档](https://docs.mem0.ai/platform/overview)——生产 API、SDK、托管云
-- [Packer 等人，MemGPT（arXiv:2310.08560）](https://arxiv.org/abs/2310.08560)——虚拟上下文的先驱
-- [Letta，Memory Blocks 博客](https://www.letta.com/blog/memory-blocks)——三级_sibling_设计
+- [Chhikara et al., Mem0 (arXiv:2504.19413)](https://arxiv.org/abs/2504.19413)原始纸
+- [Mem0 docs](https://docs.mem0.ai/platform/overview)生产API,SDK,管理云
+- [Packer et al., MemGPT (arXiv:2310.08560)](https://arxiv.org/abs/2310.08560)虚拟文本前身
+- [Letta, Memory Blocks blog](https://www.letta.com/blog/memory-blocks)三层式的兄弟设计

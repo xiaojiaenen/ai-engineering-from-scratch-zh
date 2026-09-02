@@ -1,166 +1,166 @@
-# MARL — MADDPG、QMIX、MAPPO
+# 马德普格,QMIX,MAPPO
 
-> 多智能体协调的强化学习传统，至今仍在影响 2026 年的 LLM-Agent 系统。**MADDPG**（Lowe 等，NeurIPS 2017，arXiv:1706.02275）引入了集中式训练、去中心化执行（CTDE）：每个评论家在训练期间能看到所有智能体的状态和行动；在测试时只有本地演员运行。适用于合作、竞争和混合设置。**QMIX**（Rashid 等，ICML 2018，arXiv:1803.11485）是基于值分解且带有单调混合网络的算法；各智能体的 Q 值组合为联合 Q，使得 `argmax` 可干净地分解——在星际争霸多智能体挑战赛（SMAC）上表现主导。**MAPPO**（Yu 等，NeurIPS 2022，arXiv:2103.01955）是带集中式价值函数的 PPO；在粒子世界、SMAC、Google Research Football、Hanabi 上用极少的调参就"令人惊讶地有效"。这些方法构成了必须去中心化行动的 agent 团队的训练策略基础。MAPPO 是 **2026 年合作型 MARL 的默认基线**。本课从小型网格世界玩具问题出发构建这三种方法，让三个思路成为肌肉记忆，再触及 LLM-Agent 的训练。
+> 跨代理协调的增强学习遗产,在2026年仍在线提供LLM代理系统. **MADDPG**(Lowe et al., NeurIPS 2017, arXiv:1706.02275) 引入了集中训练,分散执行 (CTDE):每个评论家都会在训练中看到所有代理人的状态和行动;在测试时间,只有当地演员运行.为合作,竞争和混合环境工作. **QMIX**(Rashid等,ICML 2018,arXiv:1803.11485) 是一个单调的混合网络的值分解;每种代理Qs结合成联合Q,所以`argmax`清洁地分布在星际飞行器多代理挑战 (SMAC) 中. **MAPPO**(Yu et al., NeurIPS 2022, arXiv:2103.01955) 是一个具有中心化的价值函数的PPO;在粒子世界,SMAC,谷歌研究足球,哈纳比上"惊人的有效".这些支持代理团队的培训政策,必须以分散方式行动.**default 2026 cooperative-MARL baseline**在学习法师训练之前,我们将这三个想法放在肌肉记忆中.
 
-**类型：** 学习
-**语言：** Python（stdlib，小型无 NumPy 实现）
-**前置知识：** 第 09 阶段（强化学习）、第 16 阶段 · 09（并行 swarm 网络）
-**时间：** 约 90 分钟
+**Type:** Learn
+**Languages:** Python (stdlib, small NumPy-free implementations)
+**Prerequisites:** Phase 09 (Reinforcement Learning), Phase 16 · 09 (Parallel Swarm Networks)
+**Time:** ~90 minutes
 
 ## 问题
 
-LLM-Agent 系统越来越多地训练用于智能体间协调的策略：何时委托、何时行动、呼叫哪个同级智能体。告诉你如何训练这类策略的文献是多智能体强化学习（MARL），它先于 LLM 浪潮出现，且只有少量主导算法。
+专业知识管理机构系统越来越多地培训机构间协调的政策:何时推迟,何时采取行动,谁应调用.告诉你如何培训这些政策的文献是多代理增强学习 (MARL),它早于专业知识管理机构的波浪,并且有一小组主导算法.
 
-不带模式词汇阅读 MARL 论文会很痛苦。集中式训练+去中心化执行（CTDE）、值分解、集中式评论家不是流行语——它们是对特定问题的具体解答：
+没有模式词汇阅读 MARL 论文是痛苦的.集中式训练,分散执行 (CTDE),价值分解和集中式批评不是流行词,它们是特定问题的具体答案:
 
-- 独立 RL（每个智能体单独学习）从每个智能体的视角看是非平稳的。不好。
-- 集中式 RL（一个智能体控制全部）不可扩展且违反执行约束。
-- CTDE 兼顾两者优点：用全局信息训练，部署用本地策略。
+- 独立的RL (每一个代理学习独自) 是从每个代理的角度来看不静止的.
+- 集中式RL (一个代理控制所有) 不扩展并违反执行限制.
+- 技术技术技术得到了两者的最佳效果:利用全球信息训练,
 
 ## 概念
 
-### 论文使用的三种环境
+### 论文使用的三个环境
 
-- **粒子世界（多智能体粒子环境）。** 带合作/竞争任务的简单 2D 物理。MADDPG 的原始测试床。
-- **星际争霸多智能体挑战赛（SMAC）。** 合作微观管理，部分观测。QMIX 的测试床。离散行动、连续状态。
-- **Google Research Football、Hanabi、MPE。** MAPPO 的基准。
+- **Particle World (multi-agent particle env).**简单的二维物理,具有合作/竞争任务.
+- **StarCraft Multi-Agent Challenge (SMAC).**合作微管理,部分观察,QMIX的试验床, 微妙的行动,持续状态.
+- **Google Research Football, Hanabi, MPE.**根据地图的基本线.
 
-不同环境有不同的行动/观测类型。算法据此选择。
+不同的环境有不同的行动/观察类型.算法根据此选择.
 
-### MADDPG（2017）—— CTDE 模式
+###         
 
-每个智能体 `i` 有一个演员 `mu_i(o_i)`，将其自身观测映射为行动。每个智能体还有一个评论家 `Q_i(x, a_1, ..., a_n)`，在训练期间能看到所有观测和所有行动。演员通过针对评论家评估的策略梯度进行更新。
+每个代理人`i`有一个演员`mu_i(o_i)`任何代理都具有一个批评者.`Q_i(x, a_1, ..., a_n)`演员的政策格里因与评论家的评价进行更新.
 
 ```
 actor update:    grad_theta_i J = E[grad_theta mu_i(o_i) * grad_a_i Q_i(x, a_1..n) at a_i=mu_i(o_i)]
 critic update:   TD on Q_i(x, a_1..n) given next-state joint estimate
 ```
 
-为什么用 CTDE：训练时我们知道所有人的行动；我们利用这一点降低每个评论家的方差。在部署时，每个智能体只看到 `o_i` 并调用 `mu_i(o_i)`。
+为什么CTDE:在训练时,我们知道每个人的行动;我们使用这一点来减少每个评论家的差异.`o_i`电话`mu_i(o_i)`现在,我们要去.
 
-失败模式：评论家随 N 个智能体增长（输入包含所有行动）。没有近似方法时，无法扩展到超过约 10 个智能体。
+失败模式:批评者使用N代理增长 (输入包括所有操作).没有接近的情况下不超过~10代理.
 
-### QMIX（2018）—— 值分解
+### 值分解 QMIX (2018)
 
-仅合作。全局奖励是各智能体 Q 值的单调函数之和：
+总奖项是每代理Q值的单调函数的总和:
 
 ```
 Q_tot(tau, a) = f(Q_1(tau_1, a_1), ..., Q_n(tau_n, a_n)),   df/dQ_i >= 0
 ```
 
-单调性保证 `argmax_a Q_tot` 可通过每个智能体独立选择 `argmax_{a_i} Q_i` 来计算。这正是你所需要的**去中心化执行性质**。在训练时，一个混合网络根据各智能体的 Q 值生成 `Q_tot`。
+调性保证`argmax_a Q_tot`任何代理选择的可计算`argmax_{a_i} Q_i`独立的.**exactly the decentralized execution property**在训练时,一个混合网络产生了`Q_tot`根据每位代理的Qs.
 
-QMIX 在 SMAC 上获胜的原因：合作型星际争霸微观管理具有同构智能体、局部观测、全局奖励——值分解的完美适配场景。
+为什么QMIX在SMAC中获胜:合作伙伴的StarCraft微管理具有均的代理,本地工作,全球奖励 完美适合价值分解.
 
-失败模式：单调性约束具有限制性；有些任务的奖励结构不是单调可分解的（一个智能体为团队牺牲）。扩展方法（QTRAN、QPLEX）放松了这一约束。
+失败模式:单调性限制是限制性的;一些任务具有非单调分解性的奖励结构 (一个代理为团队牺牲).扩展 (QTRAN,QPLEX) 缓解这一点.
 
-### MAPPO（2022）—— 被低估的默认选项
+###  没有考虑的违约
 
-多智能体 PPO：带集中式价值函数的 PPO。每个智能体有自己的策略；所有智能体共享（或拥有各自）能看到完整状态的價值函数。Yu 等 2022 年在五个基准上将 MAPPO 与 MADDPG、QMIX 及其扩展进行了对比，发现：
+多代理PPO:PPO具有集中价值功能.每个代理都有自己的政策;所有代理都分享 (或每个代理) 价值功能,看出完整状态.Yu等. 2022年与MADDPG,QMIX和它们的扩展进行了比较,并发现:
 
-- MAPPO 在粒子世界、SMAC、Google Research Football、Hanabi、MPE 上匹敌或超越离策略 MARL 方法。
-- 需要的超参数调优极少。
-- 训练稳定；跨随机种子可复现。
+- 根据"MAPPO"的规定,MAPPO与"粒子世界",SMAC,Google研究足球,Hanabi,MPE"的非政策 MARL方法相匹配或超过.
+- 需要最小的超参数调整.
+- 稳定训练;可在种子中复制.
 
-社区此前低估了 on-policy MARL，直到这篇论文。在 2026 年，MAPPO 是合作型 MARL 的默认基线；任何新方法都必须胜过它。
+在2026年,MAPPO是合作社MarL的默认基准;任何新的方法都必须击败它.
 
-### 为什么 LLM-Agent 工程师应该关心
+### 什么是 LLM代理工程师应该关心
 
-三个直接用途：
+直接使用的三种用途:
 
-1. **路由器训练。** 元智能体选择哪个子智能体处理任务。这是一个 MARL 问题，有 N 个去中心化子智能体和一个集中式路由器。MAPPO 适用。
-2. **角色涌现。** 在生成式 agent 模拟中，训练智能体随时间采用互补角色是一种伪装成 MARL 的问题。QMIX 式值分解从构造上强制了互补性。
-3. **多智能体工具使用。** 当智能体共享工具并竞争预算时，通过 CTDE 训练它们会产生遵守资源约束的可部署本地策略。
+1. **Router training.**转载中,一个分类代理选择哪个分类代理处理任务.这是一个 MARL 问题,N 分级分类代理和一个集中路由器.
+2. **Role emergence.**在生成代理模拟中,培训代理人随着时间的推移采取互补作用是身的MARL问题.
+3. **Multi-agent tool use.**当代理人分享工具并争取预算时,通过CTDE培训产生可部署的本地政策,尊重资源限制.
 
-实际注意事项：在 2026 年，大多数生产型 LLM-Agent 系统是提示式策略而非训练式策略。当你具备以下三个条件时 MARL 才会派上用场：(a) 大量交互数据、(b) 明确的奖励信号、(c) 愿意投入训练基础设施。
+实际警告:在2026年,大多数生产LLM代理系统会提醒其政策而不是培训. MARL是当你 (a) 有大量的互动数据, (b) 清楚的奖励信号, (c) 愿意投资培训基础设施时.
 
-### CTDE 作为 RL 之外的设计模式
+### CTDE作为超越RL的设计模式
 
-即使不训练，CTDE 也是有用的架构模式：
+即使没有培训,CTDE是一个有用的建筑模式:
 
-- 在*设计阶段*，假设完全的全队可见性。
-- 在*运行时*，强制去中心化执行：每个智能体只看到 `o_i`。
+- 在设计过程中, 确保团队的全视力.
+- 在*运行时间*,执行分散执行:每个代理只看到`o_i`现在,我们要去.
 
-该模式迫使你将各智能体的状态显式化，并提前思考部分可观测性问题。许多生产型多智能体系统 silently 假设各处都有共享状态——CTDE 纪律防止了这一点。
+许多生产多代理系统默默地假设在任何地方都会分享状态. CTDE纪律阻止这种情况.
 
-### 非平稳性问题
+### 无静止性问题
 
-当多个智能体同时学习时，每个智能体的环境（包含其他智能体的策略）是非平稳的。经典单智能体 RL 证明在此失效。本课中的 MARL 算法都解决了这一问题：
+当多个代理同时学习时,每个代理的环境 (包括其他代理的政策) 不会静止.经典单代理RL证明断裂.本课中的 MARL算法都解决了这一问题:
 
-- MADDPG：全局评论家能看到所有行动，因此其价值估计是平稳的。
-- QMIX：值分解将学习移至联合 Q 空间，其中最优性是明确定义的。
-- MAPPO：集中式价值函数削弱了由其他智能体策略变化带来的方差。
+- 全球批评者看到所有行动,所以它的估值是静止的.
+- 值分解将学习转移到一个合体Q空间,其中优化是精确定义的.
+- 图:集中价值函数缓解了其他政策变化的差异.
 
-在 LLM-Agent 系统中，非平稳性表现为"我的智能体上个月还好好的，现在上游那个智能体变了，我的行为就出问题了。"用 CTDE 训练 MARL 是原则性修复方案；提示层修复更快但持久性较差。
+在LLM代理系统中,非静止性表现为"我的代理工作了上个月,现在其他代理上游改变了,我的行为不当.
 
-### 本课不包含的内容
+### 这本课没有涵盖的内容
 
-训练实际网络是第 09 阶段的主题。本课构建的是演示 CTDE、值分解和集中式价值模式的脚本策略版本，不涉及梯度更新。目标是在你拿起完整的 MARL 库（PyMARL、MARLlib、RLlib 多智能体）之前，将这些模式内化为肌肉记忆。
+培训实际网络是9阶段的课程.本课程建立了脚本式政策版本,展示了CTDE,值分解和中心化的值模式,而没有梯度更新.目标是在您采集完整的 MARL库之前,将模式内部化.
 
 ```figure
 sw-ctde
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 实现了三种模式演示，均在小型 2 智能体合作网格世界中进行：
+`code/main.py`通过两个代理合作的小网络世界,
 
-- 环境：2 个智能体在 4x4 网格上，一个奖励颗粒。任意智能体到达颗粒时奖励 = 1；任务完成。
-- `IndependentAgents` —— 每个智能体将其他智能体视为环境。基线。
-- `MADDPGStyle` —— 集中式评论家计算联合价值；演员策略从中更新。脚本策略改进。
-- `QMIXStyle` —— 带单调混合器的值分解。
-- `MAPPOStyle` —— 集中式价值函数；策略针对共享基线进行更新。
+- 环境: 4x4格格上的2个代理,一个奖励片. 奖励 = 1 如果任何代理达到片;任务完成.
+- `IndependentAgents`每个代理人对待其他代理人,
+- `MADDPGStyle`集中批评者计算了共同价值;演员政策从中更新.
+- `QMIXStyle`单调混合器的值分解.
+- `MAPPOStyle`集中价值函数; 政策更新与共享基线相比.
 
-四种方法运行相同的回合并报告平均步数到达目标。CTDE 变体收敛到比独立基线更短的路径。
+它们都运行相同的节目,并报告平均步骤到目标.
 
-运行：
+运行:
 
 ```
 python3 code/main.py
 ```
 
-预期输出：独立智能体平均约 6 步；CTDE 变体收敛至约 3.5 步（4x4 网格的最优值为 3）。即使使用脚本策略，模式差异依然显现。
+预期输出:独立代理平均采取6步;CTDE变体向3.5步相近 (最佳为4x4格式是3).尽管脚本的政策,但模式差异显示.
 
-## 使用它
+## 用它
 
-`outputs/skill-marl-picker.md` 是一个技能，用于为给定的多智能体任务选择 MARL 算法：合作 vs 竞争、同构 vs 异构、行动空间类型、规模、奖励信号。
+`outputs/skill-marl-picker.md`是一个选择一个MARL算法的技能,用于一个特定的多代理任务:合作与竞争,同质与异质,行动空间类型,规模,奖励信号.
 
-## 交付它
+## 运送它
 
-生产环境中的 MARL 很少见。当你确实使用它时：
+果是很少见的.
 
-- **从 MAPPO 开始。** 2022 年的论文将其确立为基线；首先复现它可以节省数周追逐花哨方法的时间。
-- **记录每个智能体的观测和行动流。** 没有每个智能体的追踪数据来调试 MARL 是绝望的。
-- **将训练代码与执行代码分离。** CTDE 是一种纪律；让执行路径真正只看到 `o_i`。
-- **奖励塑形警告。** MARL 对奖励设计极其敏感。塑形中的一个小协调 bug 就会被智能体利用。运行对抗性测试。
-- **对于 LLM Agent**，优先考虑提示层策略。仅在交互数据 + 奖励信号 + 基础设施都具备时，才投入 MARL 训练。
+- **Start with MAPPO.**报纸在2022年确定了这一点为基准; 首先将其复制,可以节省了几个星期的追求更精致的方法.
+- **Log every agent's observation and action stream.**没有任何特工的痕迹,就会无望.
+- **Separate training code from execution code.**执行路径真的只能看到`o_i`现在,我们要去.
+- **Reward shaping warning.**马尔对奖励设计非常敏感. 调整过程中有一种协调错误, 代理人学会利用它.
+- **For LLM agents**只有在互动数据+奖励信号+基础设施都存在时,才投资MARL培训.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。测量独立智能体和 MAPPO 式智能体之间到达目标的步数差距。在 6x6 网格上，这个差距是变大还是变小？
-2. 实现一个竞争变体：两个智能体，一个颗粒，只有先到达的获得奖励。哪种模式能干净地处理竞争？历史上是 MADDPG。
-3. 阅读 MADDPG（arXiv:1706.02275）第 3 节。用你自己的话，以伪代码形式写出精确的评论家更新规则。
-4. 阅读 MAPPO（arXiv:2103.01955）。为什么作者认为集中式价值+PPO 在其基准上击败了离策略 MARL？列出三个最强论点。
-5. 将 CTDE 作为设计模式应用于假设的 LLM-Agent 系统（例如：研究智能体+摘要智能体+编码智能体）。设计时可用但运行时不可用的联合信息是什么？
+1. 跑步`code/main.py`测量独立和MAPPO类代理之间的步骤到目标差距.在6×6网格上,差距是否会增加或缩小?
+2. 实施竞争型变体:两个代理,一个子,只有第一个达到的获得奖励. 哪个模式处理竞争清洁?
+3. 阅读MADDPG (arXiv:1706.02275) 第三节. 用自己的话语,用伪码符号实现精确的评论更新规则.
+4. 阅读MAPPO (arXiv:2103.01955). 为什么作者认为中心化价值+PPO在他们的基准上超过非政策 MARL?列出三个最强大的索赔.
+5. 应用CTDE作为一个假设的LLM代理系统的设计模式 (例如,研究代理+总结器+编码器).在设计时可用的联合信息是什么,而在运行时间无法使用?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| MARL | "多智能体 RL" | 面向多智能体系统的强化学习。 |
-| CTDE | "集中式训练，去中心化执行" | 用全局信息训练；用本地策略部署。 |
-| MADDPG | "多智能体 DDPG" | CTDE + 每个智能体的评论家能看到所有观测+行动。 |
-| QMIX | "值分解" | 各智能体 Q 值的单调混合。合作型。 |
-| MAPPO | "多智能体 PPO" | 带集中式价值函数的 PPO。2026 默认基线。 |
-| 值分解 | "个体 Q 值之和" | 联合 Q 表示为各智能体 Q 值的单调函数。 |
-| 非平稳性 | "移动的目标" | 每个智能体的环境随其他智能体学习而变化。核心 MARL 问题。 |
-| On-policy / Off-policy | "从当前/回放学习" | PPO 是 on-policy（MAPPO）；DDPG 和 Q-learning 是 off-policy。 |
-| SMAC | "星际争霸多智能体挑战赛" | 合作微观管理基准；QMIX 的大本营。 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| MARL | "Multi-Agent RL" | Reinforcement learning for multi-agent systems. |
+| CTDE | "Centralized Training, Decentralized Execution" | Train with global info; deploy with local policies. |
+| MADDPG | "Multi-Agent DDPG" | CTDE with per-agent critic seeing all observations + actions. |
+| QMIX | "Value decomposition" | Monotonic mixing of per-agent Qs. Cooperative. |
+| MAPPO | "Multi-Agent PPO" | PPO with centralized value function. 2026 default baseline. |
+| Value decomposition | "Sum of individual Qs" | Joint Q represented as a monotone function of per-agent Qs. |
+| Non-stationarity | "Moving targets" | Each agent's env changes as others learn. The core MARL problem. |
+| On-policy / off-policy | "Learn from current / replay" | PPO is on-policy (MAPPO); DDPG and Q-learning are off-policy. |
+| SMAC | "StarCraft Multi-Agent Challenge" | Cooperative micromanagement benchmark; QMIX's homegrown ground. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Lowe 等 —— 面向混合合作-竞争环境的多智能体演员-评论家](https://arxiv.org/abs/1706.02275) —— MADDPG；NeurIPS 2017
-- [Rashid 等 —— QMIX：用于深度多智能体强化学习的单调值函数因式分解](https://arxiv.org/abs/1803.11485) —— QMIX；ICML 2018
-- [Yu 等 —— PPO 在合作多智能体博弈中令人惊讶的有效性](https://arxiv.org/abs/2103.01955) —— MAPPO；NeurIPS 2022
-- [BAIR 关于 MAPPO 的博客文章](https://bair.berkeley.edu/blog/2021/07/14/mappo/) —— MAPPO 结果的易读阐述
-- [SMAC 仓库](https://github.com/oxwhirl/smac) —— 星际争霸多智能体挑战赛
+- [Lowe et al. — Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments](https://arxiv.org/abs/1706.02275) MADDPG; 2017 年的 NeurIPS
+- [Rashid et al. — QMIX: Monotonic Value Function Factorisation for Deep Multi-Agent Reinforcement Learning](https://arxiv.org/abs/1803.11485) QMIX;ICML 2018 年
+- [Yu et al. — The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games](https://arxiv.org/abs/2103.01955)MAPPO;神经系统2022年
+- [BAIR blog post on MAPPO](https://bair.berkeley.edu/blog/2021/07/14/mappo/)可读的MAPPO结果框架
+- [SMAC repository](https://github.com/oxwhirl/smac)星际飞行多代理挑战

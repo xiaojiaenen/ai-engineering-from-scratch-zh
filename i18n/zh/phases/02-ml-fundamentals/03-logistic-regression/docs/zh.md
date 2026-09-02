@@ -1,181 +1,181 @@
-# 逻辑回归
+# 后勤回归
 
-> 逻辑回归将一条直线弯曲成 S 形曲线，用概率回答"是/否"类问题。
+> 逻辑回归将直线曲线成S曲线,以回答与概率的"是"或"没有"问题.
 
-**类型：** Build（构建）
-**语言：** Python
-**前置知识：** Phase 2 第 1-2 课（什么是机器学习、线性回归）
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 2 Lesson 1-2 (What Is ML, Linear Regression)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 使用 sigmoid 函数和二元交叉熵损失从零实现逻辑回归
-- 计算并解读精确率、召回率、F1 分数以及混淆矩阵（用于二分类）
-- 解释为什么 MSE 在分类任务上失败，以及为什么二元交叉熵产生凸代价曲面
-- 构建用于多分类的 softmax 回归模型，并评估阈值调优的权衡
+- 通过使用sigmoid函数和二进制交叉缩损失从零开始实现物流回归
+- 计算和解释精度,回忆,F1分数和二进制分类的混矩阵
+- 解释为什么MSE未能进行分类,以及为什么二进制交叉能产生曲的成本表面
+- 建立多类分类的软max回归模型,并评估值调整权衡
 
-## 问题描述
+## 问题
 
-给定肿瘤的直径，你想预测它是恶性还是良性。你尝试了线性回归，它输出类似 0.3、1.7 或 -0.5 这样的数值。这些值代表什么？1.7 是"非常恶性"吗？-0.5 是"非常良性"吗？线性回归的输出是无界的；分类问题需要 0 到 1 之间有界的概率，以及一个明确的判断：是或否。
+根据其大小,你想预测瘤是否恶性或良性.你试图线性回归.它输出0.3或1.7或0.5等数字.这些数字意味着什么?1.7是"非常恶性"吗?0.5是"非常良性"吗?线性回归输出无限数量.分类需要0到1之间的有限概率,并明确决定:是否.
 
-逻辑回归解决了这个问题。它采用与线性回归相同的线性组合（wx + b），再将其通过 sigmoid 函数，该函数可以将任意数值压缩到 (0, 1) 范围内。输出即为一个概率。设定一个阈值（通常为 0.5），即可做出决策。
+逻辑回归解决了这个问题.它采用相同的线性组合 (wx + b) 并通过sigmoid函数,将任何数量压缩到范围 (0, 1).输出是概率.你设定一个门 (通常是0.5) 并做出决定.
 
-这是实践中使用最广泛的算法之一。尽管名称中带有"回归"，逻辑回归实际上是一种分类算法，而非回归算法。名称来源于它所使用逻辑（sigmoid）函数。
+尽管其名称,物流回归是一种分类算法,而不是回归算法.这个名称来自它使用的物流 (sigmoid) 函数.
 
-## 概念讲解
+## 概念
 
-### 为什么线性回归不适合分类
+### 为什么线性回归不能分类
 
-假设根据学习小时数预测及格/不及格（1/0）。线性回归会拟合一条穿过数据的直线：
+设想根据学习时间预测通过/失败 (1/0) 线性回归通过数据符合一个线:
 
 ```
-小时数：  1   2   3   4   5   6   7   8   9   10
-实际标签：0   0   0   0   1   1   1   1   1   1
+hours:  1   2   3   4   5   6   7   8   9   10
+actual: 0   0   0   0   1   1   1   1   1   1
 ```
 
-线性拟合可能会产生如下预测值：小时 1 时为 -0.2，小时 10 时为 1.3。这些值并非概率，它们会低于 0 或高于 1。更糟糕的是，一个单独的异常点（比如学习了 50 小时的人）会把整条直线拖偏，从而改变所有人的预测结果。
+线性合适可能会产生 -0.2在1小时和1.3在10小时等预测.这些值不是概率.它们低于0和以上 1.更糟糕的是,一个单个异常值 (有人研究了50小时) 将拖着整个线,改变预测对每个人都有.
 
-分类任务需要一个满足以下条件的函数：
-- 输出 0 到 1 之间的值（概率）
-- 形成明显的突变（决策边界）
-- 不受远离边界的异常点影响
+类别需要一个函数:
+- 输出值在0到1之间 (概率)
+- 创造一个急剧的转型 (决定的边界)
+- 没有被远离边界的异常值扭曲
 
-### Sigmoid 函数
+### 赛格莫ид功能
 
-Sigmoid 函数恰好满足上述要求：
+状函数的作用是这样的:
 
 ```
 sigmoid(z) = 1 / (1 + e^(-z))
 ```
 
-性质：
-- 当 z 为正且很大时，sigmoid(z) 趋近于 1
-- 当 z 为负且很小时，sigmoid(z) 趋近于 0
-- 当 z = 0 时，sigmoid(z) = 0.5
-- 输出始终在 0 到 1 之间
-- 函数处处光滑且可导
+性能:
+- 当z是大且正的时,sigmoid(z) 接近1
+- 当z是大且负的时,sigmoid(z) 接近0
+- 当z=0时,sigmoid(z) =0.5时
+- 输出总是0到1之间
+- 功能在任何地方都很平滑,可区分
 
-其导数形式非常简洁：sigmoid'(z) = sigmoid(z) * (1 - sigmoid(z))。这使得梯度计算更加高效。
+衍生物具有方便的形式:sigmoid'(z) =sigmoid(z) * (1 - sigmoid(z)). 这使得梯度计算效率高.
 
-### 逻辑回归 = 线性模型 + Sigmoid
+### 后勤回归 =线性模型 + 形
 
-模型先计算 z = wx + b（与线性回归相同），再应用 sigmoid：
+模型计算z = wx + b (与线性回归相同),然后应用sigmoid:
 
 ```mermaid
 flowchart LR
-    X[输入特征 x] --> L["线性层：z = wx + b"]
-    L --> S["Sigmoid 层：p = 1/(1+e^-z)"]
+    X[Input features x] --> L["Linear: z = wx + b"]
+    L --> S["Sigmoid: p = 1/(1+e^-z)"]
     S --> D{"p >= 0.5?"}
-    D -->|是| P[预测为 1]
-    D -->|否| N[预测为 0]
+    D -->|Yes| P[Predict 1]
+    D -->|No| N[Predict 0]
 ```
 
-输出 p 被解释为 P(y=1 | x)，即该输入属于类别 1 的概率。决策边界出现在 wx + b = 0 处，此时 sigmoid 输出恰好为 0.5。
+输出 p 解释为 P ((y=1 个 x),输入属于类1 的概率. 决策边界是wx + b = 0,这使得sigmoid输出完全是0.5.
 
-### 二元交叉熵损失
+### 双边交叉缩损失
 
-逻辑回归不能直接使用 MSE。MSE 配合 sigmoid 会产生非凸的代价曲面，存在多个局部极小值。应改用二元交叉熵（对数损失）：
+对于物流回归,不能使用MSE.使用sigmoid的MSE创建了一个不曲的成本表面,具有许多本地最小值.
 
 ```
 Loss = -(1/n) * sum(y * log(p) + (1-y) * log(1-p))
 ```
 
-为什么这样有效：
-- 当 y=1 且 p 接近 1 时：log(1) = 0，损失接近 0（预测正确，代价低）
-- 当 y=1 且 p 接近 0 时：log(0) 趋近负无穷，损失极大（预测错误，代价高）
-- 当 y=0 且 p 接近 0 时：log(1) = 0，损失接近 0（预测正确，代价低）
-- 当 y=0 且 p 接近 1 时：log(0) 趋近负无穷，损失极大（预测错误，代价高）
+为什么这能有效:
+- 当 y=1 和 p 接近 1: log(1) = 0,所以损失接近 0 (正确,低成本)
+- 当 y=1 和 p 接近 0: log(0) 接近负无限时,因此损失是巨大的 (错误,高成本)
+- 当 y=0 和 p 接近 0: log(1) = 0,所以损失接近 0 (正确,成本低)
+- 当 y=0 和 p 接近 1: log(0) 接近负无限时,因此损失是巨大的 (错误,高成本)
 
-该损失函数在逻辑回归中是凸的，保证了全局唯一最优解。
+由于这种损失函数是逻辑回归的曲,确保了单一的全球最低值.
 
-### 逻辑回归的梯度下降
+### 后勤回归的逐渐下降
 
-对于 sigmoid 配合二元交叉熵，梯度具有简洁的形式：
+双向交叉透的梯度与sigmoid具有清洁的形式:
 
 ```
 dL/dw = (1/n) * sum((p - y) * x)
 dL/db = (1/n) * sum(p - y)
 ```
 
-这与线性回归的梯度看起来完全相同。区别在于 p = sigmoid(wx + b) 而非 p = wx + b。非线性由 sigmoid 引入，但梯度更新规则保持不变。
+这些看起来与线性回归梯度相同.区别是p = sigmoid(wx + b) 而不是p = wx + b.sigmoid引入非线性,但梯度更新规则保持不变.
 
 ```mermaid
 flowchart TD
-    A[初始化 w=0, b=0] --> B[前向传播：z = wx+b, p = sigmoid z]
-    B --> C[计算损失：二元交叉熵]
-    C --> D["计算梯度：dw = (1/n) * sum((p-y)*x)"]
-    D --> E[更新参数：w = w - lr*dw, b = b - lr*db]
-    E --> F{收敛？}
-    F -->|否| B
-    F -->|是| G[模型训练完成]
+    A[Initialize w=0, b=0] --> B[Forward pass: z = wx+b, p = sigmoid z]
+    B --> C[Compute loss: binary cross-entropy]
+    C --> D["Compute gradients: dw = (1/n) * sum((p-y)*x)"]
+    D --> E[Update: w = w - lr*dw, b = b - lr*db]
+    E --> F{Converged?}
+    F -->|No| B
+    F -->|Yes| G[Model trained]
 ```
 
-### 决策边界
+### 决策的界限
 
-对于二维输入（两个特征），决策边界是满足以下条件的直线：
+对于2D输入 (两个特征),决策边界是:
 
 ```
 w1*x1 + w2*x2 + b = 0
 ```
 
-边界一侧的点被分类为 1，另一侧的点被分类为 0。逻辑回归始终产生线性决策边界。如果需要曲线边界，要么添加多项式特征，要么使用非线性模型。
+一边的点被分为1,另一边的点被分为0.物流回归总是产生线性决策边界.如果你需要一个曲线边界,你要么添加多项式特性,要么使用非线性模型.
 
-### 使用 Softmax 进行多分类
+### 多类分类与Softmax
 
-二值逻辑回归处理两个类别。对于 k 个类别，使用 softmax 函数：
+对于k类,使用软max函数:
 
 ```
 softmax(z_i) = e^(z_i) / sum(e^(z_j) for all j)
 ```
 
-每个类别拥有独立的权重向量。模型为每个类别计算得分 z_i，再由 softmax 将得分转换为和为 1 的概率分布。预测结果为概率最高的类别。
+每个类都有自己的权重向量.模型为每个类计算一个分数z_i,然后softmax将分数转换为概率,总数为1.预测的类是具有最高概率的类.
 
-损失函数变为类别交叉熵：
+损失函数变成了类型的交叉:
 
 ```
 Loss = -(1/n) * sum(sum(y_k * log(p_k)))
 ```
 
-其中 y_k 在真实类别时为 1，其余类别为 0（one-hot 编码）。
+在此, y_k 为真类的1个,所有其他类型的0个 (单热编码).
 
 ### 评估指标
 
-仅看准确率是不够的。对于 95% 负样本、5% 正样本的数据集，一个始终预测负样本的模型能达到 95% 的准确率，但实际上毫无用处。
+对于一个数据集的95%负和5%正,一个总是预测负的模型得到了95%的准确性,但是无用的.
 
-**混淆矩阵**：
+**Confusion Matrix**其他:
 
-| | 预测为正 | 预测为负 |
+| | Predicted Positive | Predicted Negative |
 |---|---|---|
-| 实际为正 | 真正例 (TP) | 假负例 (FN) |
-| 实际为负 | 假正例 (FP) | 真负例 (TN) |
+| Actually Positive | True Positive (TP) | False Negative (FN) |
+| Actually Negative | False Positive (FP) | True Negative (TN) |
 
-**精确率（Precision）**：在所有被预测为正样本中，真正为正的比例是多少？
+**Precision**预测的积极因素中,实际上有多少是积极的?
 ```
 Precision = TP / (TP + FP)
 ```
 
-**召回率（Recall，灵敏度）**：在所有真实正样本中，模型捕捉到了多少？
+**Recall**(敏感性):从所有实际的积极因素中,我们抓到了多少?
 ```
 Recall = TP / (TP + FN)
 ```
 
-**F1 分数**：精确率和召回率的调和平均数，兼顾两者。
+**F1 Score**调整两个指标.
 ```
 F1 = 2 * (Precision * Recall) / (Precision + Recall)
 ```
 
-何时优先使用：
-- **精确率**：假正例代价高昂时（垃圾邮件过滤器，你不希望拦截正常邮件）
-- **召回率**：假负例代价高昂时（癌症筛查，你不希望漏掉肿瘤）
-- **F1**：需要一个综合平衡的指标时
+什么时候优先考虑:
+- **Precision**:假阳性数据成本高昂 (垃圾邮件过器,你不想阻止合法电子邮件)
+- **Recall**:假消极结果成本高昂 (癌症查,你不想错过瘤)
+- **F1**:当你需要一个平衡的指标
 
 ```figure
 logistic-sigmoid
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：Sigmoid 函数与数据生成
+### 步骤1:Sigmoid函数和数据生成
 
 ```python
 import random
@@ -205,14 +205,14 @@ X, y = zip(*combined)
 X = list(X)
 y = list(y)
 
-print(f"已生成 {N} 个样本（2 个类别，2 个特征）")
-print(f"类别 0 中心：(2, 2)，类别 1 中心：(5, 5)")
-print(f"前 5 个样本：")
+print(f"Generated {N} samples (2 classes, 2 features)")
+print(f"Class 0 center: (2, 2), Class 1 center: (5, 5)")
+print(f"First 5 samples:")
 for i in range(5):
-    print(f"  特征：[{X[i][0]:.2f}, {X[i][1]:.2f}]，标签：{y[i]}")
+    print(f"  Features: [{X[i][0]:.2f}, {X[i][1]:.2f}], Label: {y[i]}")
 ```
 
-### 步骤 2：从零实现逻辑回归
+### 步骤2:从零开始的物流回归
 
 ```python
 class LogisticRegression:
@@ -268,17 +268,17 @@ split = int(0.8 * N)
 X_train, X_test = X[:split], X[split:]
 y_train, y_test = y[:split], y[split:]
 
-print("\n=== 训练逻辑回归 ===")
+print("\n=== Training Logistic Regression ===")
 model = LogisticRegression(n_features=2, learning_rate=0.1)
 model.fit(X_train, y_train, epochs=1000, print_every=200)
 
-print(f"\n训练集准确率：{model.accuracy(X_train, y_train):.4f}")
-print(f"测试集准确率： {model.accuracy(X_test, y_test):.4f}")
-print(f"权重：[{model.weights[0]:.4f}, {model.weights[1]:.4f}]")
-print(f"偏置：{model.bias:.4f}")
+print(f"\nTrain accuracy: {model.accuracy(X_train, y_train):.4f}")
+print(f"Test accuracy:  {model.accuracy(X_test, y_test):.4f}")
+print(f"Weights: [{model.weights[0]:.4f}, {model.weights[1]:.4f}]")
+print(f"Bias: {model.bias:.4f}")
 ```
 
-### 步骤 3：从零实现混淆矩阵与评估指标
+### 步骤3:从零开始的混矩阵和指标
 
 ```python
 class ClassificationMetrics:
@@ -306,37 +306,37 @@ class ClassificationMetrics:
         return 2 * p * r / (p + r) if (p + r) > 0 else 0
 
     def print_confusion_matrix(self):
-        print(f"\n  混淆矩阵：")
-        print(f"                  预测")
-        print(f"                  正    负")
-        print(f"  实际为正        {self.tp:4d}  {self.fn:4d}")
-        print(f"  实际为负        {self.fp:4d}  {self.tn:4d}")
+        print(f"\n  Confusion Matrix:")
+        print(f"                  Predicted")
+        print(f"                  Pos   Neg")
+        print(f"  Actual Pos     {self.tp:4d}  {self.fn:4d}")
+        print(f"  Actual Neg     {self.fp:4d}  {self.tn:4d}")
 
     def print_report(self):
         self.print_confusion_matrix()
-        print(f"\n  准确率：   {self.accuracy():.4f}")
-        print(f"  精确率：   {self.precision():.4f}")
-        print(f"  召回率：   {self.recall():.4f}")
-        print(f"  F1 分数：  {self.f1():.4f}")
+        print(f"\n  Accuracy:  {self.accuracy():.4f}")
+        print(f"  Precision: {self.precision():.4f}")
+        print(f"  Recall:    {self.recall():.4f}")
+        print(f"  F1 Score:  {self.f1():.4f}")
 
 
 y_pred_test = [model.predict(x) for x in X_test]
-print("\n=== 分类报告（测试集）===")
+print("\n=== Classification Report (Test Set) ===")
 metrics = ClassificationMetrics(y_test, y_pred_test)
 metrics.print_report()
 ```
 
-### 步骤 4：决策边界分析
+### 步骤4:决策边界分析
 
 ```python
-print("\n=== 决策边界 ===")
+print("\n=== Decision Boundary ===")
 w1, w2 = model.weights
 b = model.bias
-print(f"决策边界：{w1:.4f}*x1 + {w2:.4f}*x2 + {b:.4f} = 0")
+print(f"Decision boundary: {w1:.4f}*x1 + {w2:.4f}*x2 + {b:.4f} = 0")
 if abs(w2) > 1e-10:
-    print(f"解出 x2：    x2 = {-w1/w2:.4f}*x1 + {-b/w2:.4f}")
+    print(f"Solved for x2:     x2 = {-w1/w2:.4f}*x1 + {-b/w2:.4f}")
 
-print("\n边界附近的样本预测：")
+print("\nSample predictions near the boundary:")
 test_points = [
     [3.0, 3.0],
     [3.5, 3.5],
@@ -347,10 +347,10 @@ test_points = [
 for point in test_points:
     prob = model.predict_proba(point)
     pred = model.predict(point)
-    print(f"  [{point[0]}, {point[1]}] -> 概率={prob:.4f}，类别={pred}")
+    print(f"  [{point[0]}, {point[1]}] -> prob={prob:.4f}, class={pred}")
 ```
 
-### 步骤 5：使用 Softmax 进行多分类
+### 步骤5:多级软max
 
 ```python
 class SoftmaxRegression:
@@ -399,7 +399,7 @@ class SoftmaxRegression:
                     self.weights[k][j] -= self.lr * (grad_w[k][j] / n)
                 self.biases[k] -= self.lr * (grad_b[k] / n)
             if epoch % print_every == 0:
-                print(f"  Epoch {epoch:4d} | 损失：{total_loss / n:.4f}")
+                print(f"  Epoch {epoch:4d} | Loss: {total_loss / n:.4f}")
         return self
 
     def accuracy(self, X, y):
@@ -429,27 +429,27 @@ y_train_3 = y_3class[:split_3]
 X_test_3 = X_3class[split_3:]
 y_test_3 = y_3class[split_3:]
 
-print("\n=== 多分类 Softmax 回归（3 个类别）===")
+print("\n=== Multi-class Softmax Regression (3 classes) ===")
 softmax_model = SoftmaxRegression(n_features=2, n_classes=3, learning_rate=0.1)
 softmax_model.fit(X_train_3, y_train_3, epochs=1000, print_every=200)
-print(f"\n训练集准确率：{softmax_model.accuracy(X_train_3, y_train_3):.4f}")
-print(f"测试集准确率： {softmax_model.accuracy(X_test_3, y_test_3):.4f}")
+print(f"\nTrain accuracy: {softmax_model.accuracy(X_train_3, y_train_3):.4f}")
+print(f"Test accuracy:  {softmax_model.accuracy(X_test_3, y_test_3):.4f}")
 
-print("\n样本预测示例：")
+print("\nSample predictions:")
 for i in range(5):
     probs = softmax_model.predict_proba(X_test_3[i])
     pred = softmax_model.predict(X_test_3[i])
-    print(f"  真实标签：{y_test_3[i]}，预测：{pred}，概率：[{', '.join(f'{p:.3f}' for p in probs)}]")
+    print(f"  True: {y_test_3[i]}, Predicted: {pred}, Probs: [{', '.join(f'{p:.3f}' for p in probs)}]")
 ```
 
-### 步骤 6：阈值调优
+### 步骤 6: 调整门
 
 ```python
-print("\n=== 阈值调优 ===")
-print("默认阈值为 0.5。调整阈值会在精确率与召回率之间进行权衡。\n")
+print("\n=== Threshold Tuning ===")
+print("Default threshold: 0.5. Adjusting the threshold trades precision for recall.\n")
 
 thresholds = [0.3, 0.4, 0.5, 0.6, 0.7]
-print(f"{'阈值':>10} {'准确率':>10} {'精确率':>10} {'召回率':>10} {'F1':>10}")
+print(f"{'Threshold':>10} {'Accuracy':>10} {'Precision':>10} {'Recall':>10} {'F1':>10}")
 print("-" * 52)
 
 for t in thresholds:
@@ -458,9 +458,9 @@ for t in thresholds:
     print(f"{t:>10.1f} {m.accuracy():>10.4f} {m.precision():>10.4f} {m.recall():>10.4f} {m.f1():>10.4f}")
 ```
 
-## 实战应用
+## 用它
 
-下面使用 scikit-learn 完成同样的任务。
+现在,与子学习同样.
 
 ```python
 from sklearn.linear_model import LogisticRegression as SklearnLR
@@ -486,41 +486,41 @@ lr = SklearnLR()
 lr.fit(X_tr_sc, y_tr)
 y_pred = lr.predict(X_te_sc)
 
-print("=== Scikit-learn 逻辑回归 ===")
-print(f"准确率：  {accuracy_score(y_te, y_pred):.4f}")
-print(f"精确率： {precision_score(y_te, y_pred):.4f}")
-print(f"召回率：   {recall_score(y_te, y_pred):.4f}")
-print(f"F1：        {f1_score(y_te, y_pred):.4f}")
-print(f"\n混淆矩阵：\n{confusion_matrix(y_te, y_pred)}")
-print(f"\n分类报告：\n{classification_report(y_te, y_pred)}")
+print("=== Scikit-learn Logistic Regression ===")
+print(f"Accuracy:  {accuracy_score(y_te, y_pred):.4f}")
+print(f"Precision: {precision_score(y_te, y_pred):.4f}")
+print(f"Recall:    {recall_score(y_te, y_pred):.4f}")
+print(f"F1:        {f1_score(y_te, y_pred):.4f}")
+print(f"\nConfusion Matrix:\n{confusion_matrix(y_te, y_pred)}")
+print(f"\nClassification Report:\n{classification_report(y_te, y_pred)}")
 ```
 
-从零实现的版本能够产生相同的决策边界和评估指标。Scikit-learn 额外提供了求解器选项（liblinear、lbfgs、saga）、自动正则化、多分类策略（one-vs-rest、multinomial）以及数值稳定性优化。
+您从零开始实现的决策界限和指标相同. Scikit-learn 添加解决方案 (liblinear, lbfgs, saga),自动规范化,多类策略 (one vs rest, multomial),以及数值稳定优化.
 
-## 交付成果
+## 运送它
 
-本课结束后你将拥有：
-- `code/logistic_regression.py` — 从零实现逻辑回归及评估指标
+这一课产生了:
+- `code/logistic_regression.py`- 从零开始的物流回归,使用指标
 
-## 练习题
+## 运动
 
-1. 生成一个**非线性可分**的数据集（例如两个同心圆）。训练逻辑回归并观察其失败之处。然后添加多项式特征（x1^2、x2^2、x1*x2）并重新训练，展示准确率的提升。
-2. 为 3 分类 softmax 模型实现多分类混淆矩阵，计算每个类别的精确率和召回率。哪个类别最难分类？
-3. 从零构建 ROC 曲线。对于 0 到 1 之间取 100 个阈值，分别计算真正例率和假正例率，并使用梯形法则计算 AUC（曲线下面积）。
+1. 生成一个线性不可分离的数据集 (例如,两个集中圆).训练物流回归并观察其失败.然后添加多项函数 (x1^2, x2^2, x1*x2) 并再次训练. 显示精度提高.
+2. 实现3级软max模型的多类混矩阵.计算每个类的精度和回忆.哪个类是最难分类的?
+3. 建立一个ROC曲线从零开始.为100个从0到1的门值计算真正率和虚假正率.使用拖式规则计算AUC (曲线下面的区域).
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
-|------|------------|----------|
-| 逻辑回归 | "用于分类的回归" | 线性模型后接 sigmoid 函数，输出类别概率 |
-| Sigmoid 函数 | "S 形曲线" | 函数 1/(1+e^(-z))，将任意实数映射到 (0, 1) 区间 |
-| 二元交叉熵 | "对数损失" | 损失函数 -[y*log(p) + (1-y)*log(1-p)]，对自信的错预测施加重罚 |
-| 决策边界 | "分割线" | 模型输出概率等于 0.5 的分界面，用于划分预测类别 |
-| Softmax | "多分类版 sigmoid" | 将一组得分转换为和为 1 的概率分布的函数 |
-| 精确率 | "选中了多少相关的" | TP / (TP + FP)，预测为正例中真正为正的比例 |
-| 召回率 | "召回了多少相关的" | TP / (TP + FN)，真实正例中被模型正确识别的比例 |
-| F1 分数 | "平衡的准确率" | 精确率和召回率的调和平均数：2*P*R / (P+R) |
-| 混淆矩阵 | "错误分解表" | 展示每个类别对的 TP、TN、FP、FN 计数的表格 |
-| 阈值 | "截止点" | 概率高于此值时模型预测为类别 1（默认 0.5，可调） |
-| One-hot 编码 | "类别的二进制列" | 将类别 k 表示为在位置 k 处为 1、其余为 0 的向量 |
-| 类别交叉熵 | "多分类对数损失" | 二元交叉熵在多类别场景下的扩展，使用 one-hot 编码标签 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Logistic regression | "Regression for classification" | A linear model followed by a sigmoid function that outputs class probabilities |
+| Sigmoid function | "The S-curve" | The function 1/(1+e^(-z)) that maps any real number to the range (0, 1) |
+| Binary cross-entropy | "Log loss" | The loss function -[y*log(p) + (1-y)*log(1-p)] that penalizes confident wrong predictions severely |
+| Decision boundary | "The dividing line" | The surface where the model's output probability equals 0.5, separating predicted classes |
+| Softmax | "Multi-class sigmoid" | A function that converts a vector of scores into probabilities that sum to 1 |
+| Precision | "How many selected are relevant" | TP / (TP + FP), the fraction of positive predictions that are actually positive |
+| Recall | "How many relevant are selected" | TP / (TP + FN), the fraction of actual positives that the model correctly identifies |
+| F1 score | "Balanced accuracy" | The harmonic mean of precision and recall: 2*P*R / (P+R) |
+| Confusion matrix | "The error breakdown" | A table showing TP, TN, FP, FN counts for each class pair |
+| Threshold | "The cutoff" | The probability value above which the model predicts class 1 (default 0.5, tunable) |
+| One-hot encoding | "Binary columns for categories" | Representing class k as a vector of zeros with a 1 at position k |
+| Categorical cross-entropy | "Multi-class log loss" | The extension of binary cross-entropy to k classes using one-hot encoded labels |

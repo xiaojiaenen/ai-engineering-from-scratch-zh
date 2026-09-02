@@ -1,25 +1,25 @@
-# 端到端 RAG 系统
+# 终端到终端的RAG系统
 
-> 六个组件章节。一个流水线。一个评估循环。一个自终止演示。这就是你要交付的系统。
+> 六个组件课程,一个管道,一个评估循环,一个自动终结的演示.这是你发送的系统.
 
-**类型：** Build
-**语言：** Python
-**前置要求：** Phase 11 lessons 06 (RAG), 10 (evaluation); Phase 19 Track B foundations (lessons 20-29); Phase 19 lessons 64, 65, 66, 67, 68
-**时间：** ~90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 11 lessons 06 (RAG), 10 (evaluation); Phase 19 Track B foundations (lessons 20-29); Phase 19 lessons 64, 65, 66, 67, 68
+**Time:** ~90 minutes
 
 ## 学习目标
-- 将 chunker、hybrid retriever、query rewriter、cross-encoder reranker 和 answer generator 组合成单一的端到端 pipeline。
-- 实现一个按 chunk anchor 引用其主张的 answer generator，并在低置信度时触发 refuse-on-low-confidence 回退。
-- 针对组装后的 pipeline 运行 lesson 68 的 eval，并证明该分阶段构建的 pipeline 在每项指标上均优于各组件孤立运行时的表现。
-- 构建一个自终止的 CLI demo，用于 ingest fixture corpus，运行固定 query set，并以摘要报告 zero exit code 退出。
+- 组建一个单个端到端管道,
+- 执行一个答案生成器, 引用其要求的断片, 拒绝对低信心的回归.
+- 通过对合组管道进行第68课程评估, 证明每个测量量量度的阶段构建在同一组件上单独获胜.
+- 建立一个自动终结的CLI演示,它吞了一个固定器件,运行一个固定查询集,并以总结报告离开零.
 
-## The Problem
+## 问题
 
-孤立的六个组件证明不了任何东西。chunker 可能在 corpus 的 recall@5 上获胜，但在系统的 recall@5 上失败，因为 retriever 无法对 chunker 输出的内容进行有效排序。reranker 可能提升 synthetic candidate pool 上的 MRR，但在真实的 bi-encoder candidates 上失败，因为 bi-encoder 在 rerank budget 内的 recall 太低。query rewriter 可能在一个 query 上提升 gold doc，却在下一个 query 上崩溃，因为 LLM mock 返回了退化的 hypothetical。
+六个单独的组件都没有证明任何事. 克可以在回忆@5上赢得对象,而在系统回忆@5上输掉,因为回收器无法排名克所发射的东西. 重新排名器可以在合成候选人池上提升MRR,而在真正的双编码候选人上失败,因为重新排名预算中的双编码者召回量太低. 查询重写器可以在一个查询上推广黄金文档,然后在下一个查询上打破,因为LLM模拟返回了退化假设.
 
-集成测试是整个 pipeline 针对相同的 fixture qrels、相同的 metric、由一个 orchestrator 文件统一 wiring 后端到端的运行。这正是本课所构建的内容。如果集成 pipeline 的指标优于每个 stage 孤立 demo 的指标，你就已经证明了该系统。
+整合测试是整个管道的终端运行,与相同的固定式,同样的测量,一个管弦器文件,将所有东西连接在一起.这就是这个课程的构建.如果整合管道的测量量超过每个阶段的单独演示的测量,你已经证明了系统.
 
-## The Concept
+## 概念
 
 ```mermaid
 flowchart LR
@@ -36,9 +36,9 @@ flowchart LR
   Eval --> Report[Self-Terminating Demo Report]
 ```
 
-### Wiring choices
+### 电缆选择
 
-Pipeline 是一个小型图。每个 stage 都是一个具有清晰 signature 的函数。
+管道是一个小图,每个阶段都是一个有明确的签名的函数.
 
 | Stage | Input | Output |
 |-------|-------|--------|
@@ -48,18 +48,18 @@ Pipeline 是一个小型图。每个 stage 都是一个具有清晰 signature �
 | Reranker | Query, candidates | Top-K Chunk records with cross scores |
 | Generator | Query, top-K Chunk records | Answer string with citations |
 
-当每个 signature 稳定时，composition 非常直接。本课的 `Pipeline` 类持有这五个 stage 和一个 `query` 方法，按顺序执行它们。每个 stage 均可替换：传入不同的 chunker、retriever、rewriter、reranker 或 generator，pipeline 仍可正常运行。
+只有一个字符,每一个字符都稳定.`Pipeline`课程包含五个阶段,`query`每个阶段都可交换:通过不同的器,检索器,重写器,重排器或发电机,
 
-### Answer generator with citations
+### 答案生成器
 
-Generator 是最后一个 stage，也最容易 break。本课提供一个 deterministic mock generator，其行为如下：
+课程中,一个决定性模拟生成器:
 
-1. 接收 top-K reranked chunks。
-2. 选取最多两个 chunks，使其 text 与 query 的 content-token overlap 最高。
-3. 生成由每个 selected chunk 中的一句话拼接而成的 answer，每个句子后跟 `[doc_id:chunk_index]` anchor。
-4. 如果没有 chunk 的 overlap 超过 refuse threshold，则输出 "I do not know" 且不带 citation。
+1. 取了K级重排的部分.
+2. 选择最多两个部分,其文本包含最高内容标记与查询重叠.
+3. 发出一个答案,是从每一个选定的部分中连接一个句子,每个句子都会被一个句子所接下来.`[doc_id:chunk_index]`着.
+4. 如果没有一块超过垃圾门,则发出"我不知道"没有引用.
 
-在生产环境中，你将用实际的 LLM call 替换 mock，prompt template 如下：
+在制作中,你用提示模板换取真实LLM电话:
 
 ```
 You are answering a question using only the snippets below.
@@ -74,86 +74,86 @@ Snippets:
 Answer:
 ```
 
-refuse-on-low-confidence path 正是记录 cross-encoder rank-1 score 的全部原因。如果该分数低于 corpus threshold，generator 将拒绝回答。这是防止 hallucinated answers 的安全阀。
+拒绝对低信心的路径是跨编码器级-1分数记录的全部原因.如果它位于体积门以下,发电机拒绝.这是对幻觉答案的安全门.
 
-### The self-terminating demo
+### 自我灭绝的演示
 
-该 demo 端到端运行所有内容。它会打印单个 query 的 per-stage breakdown，在四个 fixture qrels 上运行 eval，打印 metrics table，并在所有 lesson 68 metrics 达到 demo 中设定的 thresholds 时以 status zero 退出。如果任何 metric 低于 threshold，demo 将以非 zero status 退出，并输出一条指明失败 metric 的消息。
+演示程序运行一切,以结束.它打印一个查询的阶段分类,运行四个固定式 qrels的 eval,打印一个指标表,如果所有课程68指标都符合演示中设定的门值,则出局状态为零.如果任何指标都低于门值,则演示程序将以非零状态和一个命名失败指标的消息出局.
 
-这就是 CI smoke test 的形态。Pipeline 离线运行，速度快、deterministic。Thresholds 在 fixture 上刻意设置得较严格，以便任意一个先前 lesson 的 regression 都能导致 demo 失败。
+通过测试,我们可以看到一个测试的结果, 测试的结果是这样的. 测试的结果是这样的. 测试的结果是快速的,快速的,决定性的. 值是故意紧张的,
 
 ```figure
 rag-pipeline-flow
 ```
 
-## Build It
+## 建立它
 
-`code/main.py` 实现了：
+`code/main.py`执行:
 
-- `Chunk` - 贯穿所有 stage 的 record（在 lesson 64 的 shape 基础上增加了 chunk_index 和 source doc_id）。
-- `Chunker` - 从 lesson 64 中选择一种 strategy（默认 recursive split）。
-- `HybridIndex` - 捆绑了 lesson 65 的 BM25 + dense + RRF。
-- `Rewriter`（optional）- 根据 query length 和 conjunctions 存在情况，从 lesson 67 中选择 HyDE、multi-query 或 decomposition 之一。
-- `Reranker` - lesson 66 的训练 cross-encoder，使用较小的 fixture training set 以便在数秒内收敛。
-- `Generator` - 带有 citations 和 refuse-on-low-confidence 的 deterministic mock generator。
-- `Pipeline` - 组合五个 stage，并提供一个返回 `Result(answer, top_k, latency_ms_per_stage)` 的 `query(question)` 方法。
-- `run_demo()` - ingest corpus，运行三个 fixture queries，运行 eval，打印 results，并根据 threshold 设置 exit code。
+- `Chunk`- 经过所有阶段进行的记录 (通过一个chunk_index和源doc_id扩展了第64课的形状).
+- `Chunker`-从第64课中选择一个策略 (默认递归分区).
+- `HybridIndex`- 课65的BM25+密集+RRF包.
+- `Rewriter`(可选) - 选择一个HyDE,多查询,按查询长度和连接存在,从67课程分解.
+- `Reranker`- 训练有素的交叉编码器,从第66课中,具有较小的固定训练集,
+- `Generator`- 具有引用和低信心的决定性假设生成器.
+- `Pipeline`- 组建五个阶段`query(question)`返回方法`Result(answer, top_k, latency_ms_per_stage)`现在,我们要去.
+- `run_demo()`- 摄入体积,执行三个固定查询,执行评估,打印结果,按门设置出口代码.
 
-运行方式：
+运行它:
 
 ```bash
 python3 code/main.py
 ```
 
-输出包括：一个打印的 query trace、完整的 eval table 以及最终的 pass/fail status。在 fixture 上返回 exit code 0。
+输出是打印一个查询痕迹,完整的评估表,以及最后的通过/失败状态. 返回出口代码0在固定.
 
-## Failure modes the demo will hide
+## 失败模式的演示将隐藏
 
-**Chunker boundary drift.** 如果你在 eval qrels labeling pass 和 demo 之间切换 chunker strategy，gold doc ids 将无法对齐。锁定 qrels 文件中的 chunker strategy。demo 包含一个命名 chunker 的 header。
+**Chunker boundary drift.**如果您在 eval qrels标签通过和演示中交换了 chunker 策略,黄金文档ID不再排列. 锁定了 chunker 策略在 qrels 文件中.演示包含一个标题,以标题的 chunker.
 
-**Reranker training set leaks into the eval.** lesson 66 的 14 个 training triples 包含与 eval queries 相似的查询。在生产中，必须严格 hold out eval queries。本 demo 的 eval queries 已与 rerank training set 刻意保持 disjoint。
+**Reranker training set leaks into the eval.**在课66中,14个训练三重中包含类似于评估查询的查询.在制作中,严格地进行评估查询.演示的评估查询是故意与重排训练集分离的.
 
-**Mock generator hides hallucination risk.** mock 不会产生 hallucination，因为它只输出从 retrieved chunks 中提取的文本。本课已注明此点，并指出了切换到真实 model 的生产 swap-in 路径。
+**Mock generator hides hallucination risk.**假冒不能幻觉,因为它只发出来自检索的部分的文字.
 
-**No streaming.** pipeline 在每个 stage 结束后返回完整 answer。生产系统会 stream generator 的输出。Streaming 不在本课题范围；无论哪种方式，answer-grade metrics 都作用于 final string。
+**No streaming.**管道在每个阶段结束时返回完整的答案.一个生产系统将流出发电机的输出.流出是不适用的;答案级的指标在最后的字符串上无论是如何工作.
 
-**Latency is offline.** mock LLM calls 是 constant time。真实 LLM calls 占主导。应在 request scope 内规划 latency budget；本课的 per-stage timing 仅测量 CPU work。
+**Latency is offline.**假 LLM 电话是持续时间.真正的 LLM 电话占主导地位. 在请求范围内规划延迟预算;课程的每个阶段时间仅仅衡量CPU工作.
 
-## Use It
+## 用它
 
-Production patterns:
+生产模式:
 
-- 将 pipeline 文件作为单个 orchestrator 交付，stage interfaces 明确。避免将 wiring 逻辑分散在整个 repo 中。
-- 在每次触及 stage 的 merge 前运行 eval。如果 eval 下降，该 merge 不得 landing。
-- 持久化每次 CI run 的 metric trace，以便将 regressions 归因于 stage swap。
-- 添加一组 20 个 queries 的 smoke set（regression set 的子集），可在 30 秒内完成；完整 regression set 每晚运行。
+- 通过一个管道导体,将管道文件运送到一个管道导体下,并使用明确的舞台接口.
+- 如果评估下降, 合并不会降落.
+- 按CI运行的指标追踪保持,以便您可以将回归归归因于阶段交换.
+- 加入一个由20个查询 (回归集的子集) 组成的烟集,该集在30秒内运行;全回归集每晚运行.
 
-## Ship It
+## 运送它
 
-本课的 pipeline 文件是 Phase 19 其余 Track F lessons 所依赖的形态。后续课程将在此基础上添加 ingestion automation、incremental re-index、telemetry 和 serving layer。retrieval、rerank、rewrite 和 eval 部分在此均已完整。
+在本课程中,管道文件是19期F轨道课程的其他部分课程所承受的形状.随后的课程将增加摄入自动化,增量重新索引,远程测量和服务层.查询,重新排名,重写和评估的部分在这里完成.
 
-## Exercises
+## 运动
 
-1. 在 rewriter 内部添加 per-query strategy selector：使用 lesson 67 的启发式规则（length、conjunctions、jargon ratio）来选择 HyDE、multi-query 或 decomposition。
-2. 通过 env flag 为 generator 添加真实的 LLM call。默认仍使用 mock。测量 latency delta。
-3. 扩展 demo 以接受 `--corpus path` flag 加载真实 corpus。重新运行 eval 和 threshold check。
-4. 为 chunker 添加 `--strategy` flag。测量每种 strategy 对端到端 recall 的贡献。
-5. 添加 streaming generator interface 并接入 eval。确认 faithfulness 是基于 final string 计算而非 streamed prefix。
+1. 在重写器内添加一个每查询策略选择器:从67课中 (长度,连接,语法比) 选择HyDE,多查询或分解.
+2. 加入一个真正的LLM电话来发电机后面的 env旗. 默认的模拟. 测量延迟三角形.
+3. 扩展演示,以进行一个`--corpus path`检查和值检查.
+4. 添加一个`--strategy`测量每个战略对端到端召回的贡献.
+5. 添加一个流通生成器接口,然后将其输入到 eval 中. 确认信任是计算在最后的字符串上,而不是在流通的前.
 
-## Key Terms
+## 关键词
 
 | Term | What people say | What it actually means |
 |------|-----------------|------------------------|
-| Pipeline | "RAG pipeline" | 从 ingestion 到 cited answer 的 composed stages |
-| Citation anchor | "Source link" | 附加到每个 claim 的 (doc_id, chunk_index) reference |
-| Refuse-on-low-confidence | "I do not know" | 当 reranker top-1 score 低于 threshold 时，generator 不返回 answer |
-| Smoke set | "CI eval" | 在每次 PR check 中运行的最小 qrels subset |
-| Stage interface | "Function signature" | 每个 pipeline stage 稳定的 input 和 output type |
+| Pipeline | "RAG pipeline" | The composed stages from ingestion to cited answer |
+| Citation anchor | "Source link" | The (doc_id, chunk_index) reference attached to each claim |
+| Refuse-on-low-confidence | "I do not know" | Generator returns no answer when the reranker top-1 score sits below threshold |
+| Smoke set | "CI eval" | The minimal qrels subset that runs in every PR check |
+| Stage interface | "Function signature" | The stable input and output type of each pipeline stage |
 
-## Further Reading
+## 进一步阅读
 
 - [Anthropic, Building search and retrieval](https://www.anthropic.com/news/contextual-retrieval)
-- [Pinterest, MCP internal search](https://medium.com/pinterest-engineering) - reference production architecture
+- [Pinterest, MCP internal search](https://medium.com/pinterest-engineering)- 参考生产架构
 - [Ragas: Automated Evaluation of RAG Pipelines](https://docs.ragas.io)
-- Phase 11 lesson 06 - RAG fundamentals
-- Phase 19 lessons 64-68 - the components composed here
+- 第十一阶段第六课 - RAG基本面
+- 第19阶段课程 64-68 - - 这里所组成的组件

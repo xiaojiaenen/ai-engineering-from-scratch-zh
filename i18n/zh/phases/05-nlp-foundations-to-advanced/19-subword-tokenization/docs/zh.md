@@ -1,49 +1,49 @@
-# 子词分词 — BPE、WordPiece、Unigram、SentencePiece
+# 字母标记 BPE,WordPiece,单字体,句子Piece
 
-> 词级分词器遇到生僻词会卡壳。字符级分词器会让序列长度爆炸。子词分词器折中两者。所有现代 LLM 都基于其中之一。
+> 字符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符符
 
-**类型：** Learn
-**语言：** Python
-**前置知识：** Phase 5 · 01（文本处理）、Phase 5 · 04（GloVe / FastText / 子词）
-**预计时间：** 约 60 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 5 · 01 (Text Processing), Phase 5 · 04 (GloVe / FastText / Subword)
+**Time:** ~60 minutes
 
-## 问题所在
+## 问题
 
-你的词表有 5 万个词。用户输入了 `"untokenizable"`。你的分词器返回 `[UNK]`。模型对这个词没有任何信号。更糟的是：你语料库中第 90 百分位的文档包含 40 个生僻词，这意味着每个文档会丢失 40 比特的信息。
+你的词汇有5万个词.一个用户输入"不可代码化".你的代码化器返回.`[UNK]`现在模型没有任何信号,更糟糕的是,您的文件中90个百分比的文件包含40个罕见的词,这意味着每文件中丢掉的信息是40个.
 
-子词分词解决了这个问题。常见词保持为单个 token。罕见词分解为有意义的片段：`untokenizable` → `un`、`token`、`izable`。训练数据能覆盖一切，因为任何字符串最终都是一系列字节。
+常见词语保持单个标记.罕见词语分解成有意义的部分:`untokenizable`其他`un`现在`token`现在`izable`训练数据涵盖了一切,因为任何字符串最终都是字节的序列.
 
-2026 年所有前沿 LLM 都基于三种算法之一（BPE、Unigram、WordPiece），并打包在三种库之一中（tiktoken、SentencePiece、HF Tokenizers）。不选一种就无法交付语言模型。
+2026年每一个跨境LLM都使用三个算法 (BPE,UniGram,WordPiece) 运行,包裹在三个图书馆 (tiktoken,SentencePiece,HF Tokenizers) 中.
 
 ## 概念
 
-![BPE vs Unigram vs WordPiece，逐字符对比](../assets/subword-tokenization.svg)
+![BPE vs Unigram vs WordPiece, character-by-character](../assets/subword-tokenization.svg)
 
-**BPE（Byte-Pair Encoding，字节对编码）。** 从字符级词表开始。统计所有相邻词对。将最高频的词对合并为新 token。重复直到达到目标词表大小。主流算法：GPT-2/3/4、Llama、Gemma、Qwen2、Mistral。
+**BPE (Byte-Pair Encoding).**开始一个字符级词汇. 计算每一个相邻的对. 融合最频繁的对 into a new token. 重复直到你达到目标词汇尺寸. 主导算法:GPT-2/3/4,Llama,Gemma,Qwen2,Mistral.
 
-**字节级 BPE。** 算法相同，但操作对象是原始字节（256 个基础 token）而非 Unicode 字符。保证零 `[UNK]` token——任何字节序列都能编码。GPT-2 使用 50,257 个 token（256 个字节 + 50,000 次合并 + 1 个特殊 token）。
+**Byte-level BPE.**虽然它是无码的,但它是无码的.`[UNK]`代币 任何字节序列编码.GPT-2使用了50,257个代币 (256字节+50,000合并+1个特殊).
 
-**Unigram。** 从超大词表开始。为每个 token 分配一个 Unigram 概率。迭代剪枝那些移除后对语料库对数似然增加最小的 token。推理时具有概率性：可以采样分词结果（用于通过子词正则化进行数据增强）。T5、mBART、ALBERT、XLNet、Gemma 使用。
+**Unigram.**开始一个巨大的词汇库. 赋予每个代币一个单数概率. 偶尔切割代币,其删除至少增加了体积日志概率. 推断可能:可以样本代币化 (通过子词规范化来增强数据). T5, mBART, ALBERT, XLNet, Gemma 使用.
 
-**WordPiece。** 合并使训练语料库似然最大化的词对，而非原始频率。BERT、DistilBERT、ELECTRA 使用。
+**WordPiece.**结合对,最大化了训练体的可能性,而不是原始频率.
 
-**SentencePiece vs tiktoken。** SentencePiece 是直接在原始 Unicode 文本上*训练*词表的库（BPE 或 Unigram），将空白编码为 `▁`。tiktoken 是 OpenAI 针对预构建词表的快速*编码器*；它不训练。
+**SentencePiece vs tiktoken.**文本Piece是直接在原始的Unicode文本上训练语文库 (BPE或Unigram),编码白色空间为`▁`提克是OpenAI的快速*编码器*对待预先构建的词汇库;它不训练.
 
-经验法则：
+基本规则:
 
-- **训练新词表：** SentencePiece（多语言，无需预分词）或 HF Tokenizers。
-- **针对 GPT 词表快速推理：** tiktoken（cl100k_base、o200k_base）。
-- **两者兼顾：** HF Tokenizers——一个库搞定训练和服务。
+- **Training a new vocabulary:**语句Piece (多语言,没有预先代币化) 或HF代币化器.
+- **Fast inference against GPT vocab:**投资者:
+- **Both:**一本图书馆,培训+服务.
 
 ```figure
 bpe-merge
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：从零实现 BPE
+### 步骤1:从零开始的BPE
 
-见 `code/main.py`。核心循环：
+看到`code/main.py`循环:
 
 ```python
 def train_bpe(corpus, num_merges):
@@ -62,9 +62,9 @@ def train_bpe(corpus, num_merges):
     return merges
 ```
 
-算法编码了三个要点。`</w>` 标记单词结尾，使 `"low"`（后缀）和 `"lower"`（前缀）保持区分。频率加权使高频词对优先胜出。合并列表是有顺序的——推理时按训练顺序应用合并。
+算法编码的三个事实.`</w>`标记词尾,所以"低" (后) 和"低" (前) 保持分别.频率权重使高频对得早. 合并列表是顺序的推理应用合并在训练顺序.
 
-### 步骤 2：用学到的合并规则编码
+### 步骤2:使用学习的合并编码
 
 ```python
 def encode_bpe(word, merges):
@@ -79,9 +79,9 @@ def encode_bpe(word, merges):
     return symbols
 ```
 
-朴素实现是 O(n·|merges|)。生产级实现（tiktoken、HF Tokenizers）使用合并秩查找和优先级队列，运行时间接近线性。
+无的O  时代 (N 时代) 制作实现,HF 托克尼斯人使用与优先排列的并列排列搜索,运行在近线性时间.
 
-### 步骤 3：SentencePiece 实战
+### 步骤3:实践中的句子
 
 ```python
 import sentencepiece as spm
@@ -90,8 +90,8 @@ spm.SentencePieceTrainer.train(
     input="corpus.txt",
     model_prefix="my_tokenizer",
     vocab_size=8000,
-    model_type="bpe",          # 或 "unigram"
-    character_coverage=0.9995, # CJK 语言可降低（例如英文 0.9995，日文 0.995）
+    model_type="bpe",          # or "unigram"
+    character_coverage=0.9995, # lower for CJK (e.g. 0.9995 for English, 0.995 for Japanese)
     normalization_rule_name="nmt_nfkc",
 )
 
@@ -100,9 +100,9 @@ print(sp.encode("untokenizable", out_type=str))
 # ['▁un', 'token', 'izable']
 ```
 
-注意：无需预分词，空格被编码为 `▁`，`character_coverage` 控制稀有字符是被保留还是映射为 `<unk>` 的激进程度。
+通知:不需要预先进行代币化,空间编码为 `▁`现在`character_coverage`控制如何保护和映射到`<unk>`现在,我们要去.
 
-### 步骤 4：使用 tiktoken 处理 OpenAI 兼容词表
+### 步骤4:为OpenAI兼容的词汇的Tik Token
 
 ```python
 import tiktoken
@@ -111,76 +111,76 @@ print(enc.encode("untokenizable"))        # [127340, 101028]
 print(len(enc.encode("Hello, world!")))   # 4
 ```
 
-仅编码。快速（Rust 后端）。与 GPT-4/5 的分词精确匹配，用于字节计数、成本估算、上下文窗口预算。
+仅编码,快速 (结后台).与GPT-4/5代码化完全匹配,用于字节计数,成本估计,文本窗口预算.
 
-## 2026 年仍会踩坑的点
+## 陷在2026年仍存在
 
-- **分词器漂移。** 用词表 A 训练，却针对词表 B 部署。Token ID 不同；模型输出变成乱码。在 CI 中检查 `tokenizer.json` 的哈希值。
-- **空白歧义。** BPE 中 `"hello"` 和 `" hello"` 会产生不同的 token。务必显式指定 `add_special_tokens` 和 `add_prefix_space`。
-- **多语言欠训练。** 以英文为主的语料库产生的词表会把非拉丁字母脚本拆成 5-10 倍的 token。在 GPT-3.5 上，同一提示词用日语/阿拉伯语的成本是英语的 5-10 倍。o200k_base 部分解决了这个问题。
-- **表情符号拆分。** 单个 emoji 可能占用 5 个 token。预算化上下文时需检查 emoji 处理方式。
+- **Tokenizer drift.**标记识别不同,模型输出垃圾.查看`tokenizer.json`鱼在CI.
+- **Whitespace ambiguity.**您的位置: 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页 首页`add_special_tokens`其他`add_prefix_space`显然.
+- **Multilingual undertraining.**对于GPT-3.5的阿拉伯语,这个提示成本是5-10倍.
+- **Emoji splits.**检查点处理当预算背景.
 
-## 使用指南
+## 用它
 
-2026 年的技术栈：
+现在,我们要做什么?
 
-| 场景 | 选择 |
-|------|------|
-| 从头训练单语模型 | HF Tokenizers（BPE） |
-| 训练多语言模型 | SentencePiece（Unigram，`character_coverage=0.9995`） |
-| 服务 OpenAI 兼容 API | tiktoken（GPT-4+ 用 `o200k_base`） |
-| 领域特定词表（代码、数学、蛋白质） | 在领域语料上训练自定义 BPE，再与基础词表合并 |
-| 边缘推理、小模型 | Unigram（较小词表效果更好） |
+| Situation | Pick |
+|-----------|------|
+| Training a monolingual model from scratch | HF Tokenizers (BPE) |
+| Training a multilingual model | SentencePiece (Unigram, `character_coverage=0.9995`) |
+| Serving an OpenAI-compatible API | tiktoken (`o200k_base` for GPT-4+) |
+| Domain-specific vocab (code, math, protein) | Train custom BPE on domain corpus, merge with base vocab |
+| Edge inference, small model | Unigram (smaller vocabularies work better) |
 
-词表大小是扩展决策，不是固定常数。粗略经验法则：<1B 参数用 32k，1-10B 参数用 50-100k，多语言/前沿模型用 200k+。
+词汇大小是扩展决定,而不是常数.粗略的论: <1B参数的32k, 1-10B的50-100k,多语言/边界的200k+.
 
-## 交付物
+## 运送它
 
-保存为 `outputs/skill-bpe-vs-wordpiece.md`：
+保存如`outputs/skill-bpe-vs-wordpiece.md`其他:
 
 ```markdown
 ---
 name: tokenizer-picker
-description: 根据给定语料和部署目标，选择分词算法、词表大小、库。
+description: Pick tokenizer algorithm, vocab size, library for a given corpus and deployment target.
 version: 1.0.0
 phase: 5
 lesson: 19
 tags: [nlp, tokenization]
 ---
 
-给定语料（规模、语言、领域）和部署目标（从头训练 / 微调 / API 兼容推理），输出：
+Given a corpus (size, languages, domain) and deployment target (training from scratch / fine-tuning / API-compatible inference), output:
 
-1. 算法。BPE、Unigram 或 WordPiece。一句话理由。
-2. 库。SentencePiece、HF Tokenizers 或 tiktoken。理由。
-3. 词表大小。四舍五入到最近的 1k。理由与模型大小和语言覆盖率相关。
-4. 覆盖率设置。`character_coverage`、`byte_fallback`、特殊 token 列表。
-5. 验证方案。保留集中的平均词 token 数、OOV 率、压缩比、往返解码相等性。
+1. Algorithm. BPE, Unigram, or WordPiece. One-sentence reason.
+2. Library. SentencePiece, HF Tokenizers, or tiktoken. Reason.
+3. Vocab size. Rounded to nearest 1k. Reason tied to model size and language coverage.
+4. Coverage settings. `character_coverage`, `byte_fallback`, special-token list.
+5. Validation plan. Average tokens-per-word on held-out set, OOV rate, compression ratio, round-trip decode equality.
 
-拒绝在含有稀有脚本内容的语料上训练 character_coverage <0.995 的分词器。拒绝在 CI 中没有冻结的 `tokenizer.json` 哈希检查的词表上交付。将词表低于 16k 的单语分词器标记为可能规格不足。
+Refuse to train a character-coverage <0.995 tokenizer on corpora with rare-script content. Refuse to ship a vocab without a frozen `tokenizer.json` hash check in CI. Flag any monolingual tokenizer under 16k vocab as likely under-spec.
 ```
 
-## 练习题
+## 运动
 
-1. **简单。** 在 `code/main.py` 的小型语料上训练 500 次合并的 BPE。编码三个保留词。多少个恰好产生 1 个 token，多少个产生 >1 个 token？
-2. **中等。** 在 100 个英文维基百科句子上比较 `cl100k_base`、`o200k_base` 和你用 vocab=32k 训练的 SentencePiece BPE 的 token 数量。报告各自的压缩比。
-3. **困难。** 用 BPE、Unigram 和 WordPiece 分别训练同一语料。在每个分词器上用于小型情感分类器时测量下游准确率。选择是否让 F1 分数提升超过 1 个点？
+1. **Easy.**起500个合式BPE`code/main.py`如何将一个代币与一个代币相比产生?
+2. **Medium.**比较100个英语维基百科句子中的代币数量`cl100k_base`现在`o200k_base`报道每一个压缩比率.
+3. **Hard.**练习相同的体积,使用BPE,Unigram和WordPiece.在使用小情感分类器时,测量下游精度.选择是否将针移动超过1点F1?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| BPE | Byte-Pair Encoding | 贪婪合并最高频字符对，直到达到目标词表大小。 |
-| Byte-level BPE | 永远不会有未知 token | 对原始 256 字节进行 BPE；GPT-2 / Llama 使用此方式。 |
-| Unigram | 概率分词器 | 使用对数似然从大量候选集中剪枝；T5、Gemma 使用。 |
-| SentencePiece | 那个处理空白的 | 直接在原始文本上训练 BPE/Unigram 的库；空格编码为 `▁`。 |
-| tiktoken | 那个快速的 | OpenAI 基于 Rust 的 BPE 编码器，用于预构建词表。不训练。 |
-| Merge list | 魔法数字 | 有序的 `(a, b) → ab` 合并列表；推理时按顺序应用。 |
-| Character coverage | 多稀有算稀有？ | 分词器必须覆盖的训练语料中字符比例；通常约 0.9995。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| BPE | Byte-Pair Encoding | Greedy merge of most-frequent character pairs until target vocab size hit. |
+| Byte-level BPE | No unknown tokens ever | BPE over raw 256 bytes; GPT-2 / Llama use this. |
+| Unigram | Probabilistic tokenizer | Prunes from a large candidate set using log-likelihood; used by T5, Gemma. |
+| SentencePiece | The whitespace one | Library that trains BPE/Unigram on raw text; space encoded as `▁`. |
+| tiktoken | The fast one | OpenAI's Rust-backed BPE encoder for pre-built vocabs. No training. |
+| Merge list | The magic numbers | Ordered list of `(a, b) → ab` merges; inference applies in order. |
+| Character coverage | How rare is too rare? | Fraction of characters in training corpus the tokenizer must cover; ~0.9995 typical. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Sennrich, Haddow, Birch (2015). Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909) — BPE 论文。
-- [Kudo (2018). Subword Regularization with Unigram Language Model](https://arxiv.org/abs/1804.10959) — Unigram 论文。
-- [Kudo, Richardson (2018). SentencePiece: A simple and language independent subword tokenizer](https://arxiv.org/abs/1808.06226) — 库论文。
-- [Hugging Face — Summary of the tokenizers](https://huggingface.co/docs/transformers/tokenizer_summary) — 简明参考。
-- [OpenAI tiktoken repo](https://github.com/openai/tiktoken) — 食谱 + 编码列表。
+- [Sennrich, Haddow, Birch (2015). Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)BPE纸
+- [Kudo (2018). Subword Regularization with Unigram Language Model](https://arxiv.org/abs/1804.10959) 单机报纸
+- [Kudo, Richardson (2018). SentencePiece: A simple and language independent subword tokenizer](https://arxiv.org/abs/1808.06226)图书馆
+- [Hugging Face — Summary of the tokenizers](https://huggingface.co/docs/transformers/tokenizer_summary)简要的参考.
+- [OpenAI tiktoken repo](https://github.com/openai/tiktoken)厨房书 +编码列表.

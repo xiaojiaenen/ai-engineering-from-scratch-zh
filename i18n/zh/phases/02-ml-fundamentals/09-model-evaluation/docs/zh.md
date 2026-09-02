@@ -1,154 +1,154 @@
 # 模型评估
 
-> 模型的好坏取决于你如何衡量它。
+> 模型只能像你测量的方式一样好.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 第 1 阶段（概率与分布、机器学习统计），第 2 阶段课程 1-8
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 1 (Probability & Distributions, Statistics for ML), Phase 2 Lessons 1-8
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 从零实现 K 折交叉验证和分层 K 折交叉验证，并解释为何对不均衡数据需要分层
-- 从零计算精确率、召回率、F1、AUC-ROC 以及回归指标（MSE、RMSE、MAE、R²）
-- 解读学习曲线以诊断模型是存在高偏差还是高方差
-- 识别常见的评估错误，包括数据泄漏、指标选择和测试集污染
+- 从零开始实施K-fold和层次化K-fold交叉验证,并解释为什么对不平衡数据来说层次化是重要的
+- 从零开始计算精度,回忆,F1,AUC-ROC和回归指标 (MSE,RMSE,MAE,R-平方)
+- 解释学习曲线,以诊断模型是否存在高度偏见或高度差异性
+- 识别包括数据泄漏,误选指标和测试组污染等常见的评估错误
 
 ## 问题
 
-你训练了一个模型，它在你的数据上获得了 95% 的准确率。它好吗？
+你训练了一个模型,它可以在你的数据上获得95%的准确性.
 
-也许好，也许不好。如果 95% 的数据属于同一个类别，一个总是预测该类别的模型也能获得 95% 的准确率，但实际上完全没用。如果你在用于训练的数据上做了评估，那 95% 的数字毫无意义，因为模型只是记住了答案。如果你的数据集有时间成分且在划分前进行了随机打乱，模型可能会利用未来的数据来预测过去。
+没有什么可能. 也许没有. 如果您的数据的95%属于一个类,一个模型总是预测该类得到95%的准确性,同时完全无用的. 如果您根据您训练的数据进行评估, 95% 的数字是无意义的,因为模型只记住了答案. 如果你的数据集有时间组件,然后在分开之前随机混动,
 
-模型评估是大多数 ML 项目出错的地方。错误的指标会让坏模型看起来不错。错误的划分会让模型作弊。错误的比较会让你选择更差的模型。评估做对不是可选项，它是模型在生产环境中正常工作与一见到真实数据就失败之间的区别。
+模型评估是大多数 ML 项目错误的.错误的指标使一个坏模型看起来好.错误的分化让一个模型欺骗.错误的比较让你选择更糟糕的模型.正确的评估不是可选的.这是生产中运行的模型和真正数据看到时失败的模型之间的区别.
 
 ## 概念
 
-### 训练集、验证集、测试集
+### 训练,验证,测试
 
 ```mermaid
 flowchart LR
-    A[完整数据集] --> B[训练集 60-70%]
-    A --> C[验证集 15-20%]
-    A --> D[测试集 15-20%]
-    B --> E[拟合模型]
+    A[Full Dataset] --> B[Train Set 60-70%]
+    A --> C[Validation Set 15-20%]
+    A --> D[Test Set 15-20%]
+    B --> E[Fit Model]
     E --> C
-    C --> F[调参]
+    C --> F[Tune Hyperparameters]
     F --> E
-    F --> G[最终模型]
+    F --> G[Final Model]
     G --> D
-    D --> H[报告性能]
+    D --> H[Report Performance]
 ```
 
-三个划分，三种用途：
+只有三个分区,三个目的:
 
-- **训练集**：模型从这些数据中学习。训练期间模型会看到这些样本。
-- **验证集**：用于调参和模型选择。模型不会在上面训练，但你的决策会受到它的影响。
-- **测试集**：只在最后被触碰一次，用来报告最终性能。如果你看了测试集性能后又回去改模型，它就不再是测试集了，它变成了第二个验证集。
+- **Training set**模型从这些数据中学习.
+- **Validation set**模型从来没有根据这些数据进行训练,但你的决定受到影响.
+- **Test set**检测结果,然后再回去改变模型,它不再是测试集,它已经成为第二个验证集.
 
-测试集是你最后的保证，确保报告的性能反映的是模型在真正未见过的数据上的表现。
+测试组是您的保证,报告的性能反映了模型在真正未见的数据上表现如何.
 
-### K 折交叉验证
+### 基折叠交叉验证
 
-对于小规模数据集，单一的 train/validation 划分会浪费数据且给出嘈杂的估计。K 折交叉验证让所有数据都同时用于训练和验证：
+通过小数据集,单一的火车/验证分断浪费数据并提供噪音估计.K-fold交叉验证使用所有数据用于培训和验证:
 
 ```mermaid
 flowchart TB
-    subgraph Fold1["折 1"]
+    subgraph Fold1["Fold 1"]
         direction LR
-        V1["验证"] --- T1a["训练"] --- T1b["训练"] --- T1c["训练"] --- T1d["训练"]
+        V1["Val"] --- T1a["Train"] --- T1b["Train"] --- T1c["Train"] --- T1d["Train"]
     end
-    subgraph Fold2["折 2"]
+    subgraph Fold2["Fold 2"]
         direction LR
-        T2a["训练"] --- V2["验证"] --- T2b["训练"] --- T2c["训练"] --- T2d["训练"]
+        T2a["Train"] --- V2["Val"] --- T2b["Train"] --- T2c["Train"] --- T2d["Train"]
     end
-    subgraph Fold3["折 3"]
+    subgraph Fold3["Fold 3"]
         direction LR
-        T3a["训练"] --- T3b["训练"] --- V3["验证"] --- T3c["训练"] --- T3d["训练"]
+        T3a["Train"] --- T3b["Train"] --- V3["Val"] --- T3c["Train"] --- T3d["Train"]
     end
-    subgraph Fold4["折 4"]
+    subgraph Fold4["Fold 4"]
         direction LR
-        T4a["训练"] --- T4b["训练"] --- T4c["训练"] --- V4["验证"] --- T4d["训练"]
+        T4a["Train"] --- T4b["Train"] --- T4c["Train"] --- V4["Val"] --- T4d["Train"]
     end
-    subgraph Fold5["折 5"]
+    subgraph Fold5["Fold 5"]
         direction LR
-        T5a["训练"] --- T5b["训练"] --- T5c["训练"] --- T5d["训练"] --- V5["验证"]
+        T5a["Train"] --- T5b["Train"] --- T5c["Train"] --- T5d["Train"] --- V5["Val"]
     end
-    Fold1 --> R["平均分数"]
+    Fold1 --> R["Average scores"]
     Fold2 --> R
     Fold3 --> R
     Fold4 --> R
     Fold5 --> R
 ```
 
-1. 将数据划分为 K 个等大小的折
-2. 对于每个折，在 K-1 个折上训练，在剩余的一个折上验证
-3. 对 K 个验证分数求平均
+1. 分成K等级的折叠
+2. 对于每一,将K-1列列在其余列上验证
+3. 平均K验证分数
 
-K=5 或 K=10 是标准选择。每个数据点都会被用作验证数据恰好一次。平均分数比任何单一划分都更稳定。
+平均分数比任何单个分数更稳定的估计.
 
-**分层 K 折**：保留每个折中的类别分布。如果数据集 70% 是 A 类、30% 是 B 类，那么每个折都会有大致相同的比例。这对不均衡数据集很重要，因为随机划分可能会把所有少数类样本放在同一个折里。
+**Stratified K-fold**您的数据集如果是70%A类和30%B类,每个 Fold 将大致相同的比例. 这对于不平衡的数据集来说很重要,随机分区可能将所有少数样本放在一个 Fold.
 
-### 分类指标
+### 类别指标
 
-**混淆矩阵**：基础。对于二分类：
+**Confusion matrix**对于二元分类:
 
-|  | 预测为正 | 预测为负 |
+|  | Predicted Positive | Predicted Negative |
 |--|---|---|
-| 实际为正 | 真阳性 (TP) | 假阴性 (FN) |
-| 实际为负 | 假阳性 (FP) | 真阴性 (TN) |
+| Actually Positive | True Positive (TP) | False Negative (FN) |
+| Actually Negative | False Positive (FP) | True Negative (TN) |
 
-从这个矩阵出发，所有其他指标都随之而来：
+根据此矩阵,其他所有指标是:
 
-- **准确率（Accuracy）** = (TP + TN) / (TP + TN + FP + FN)。正确预测的占比。当类别不均衡时会误导。
-- **精确率（Precision）** = TP / (TP + FP)。在所有被预测为正的东西中，有多少真的是正类？当假阳性代价很高时使用（如垃圾邮件过滤器把正常邮件判为垃圾邮件）。
-- **召回率（Recall，灵敏度）** = TP / (TP + FN)。在所有真正的正例中，我们抓到了多少？当假阴性代价很高时使用（如癌症筛查漏掉肿瘤）。
-- **F1 分数** = 2 * precision * recall / (precision + recall)。精确率和召回率的调和平均。当两者都没有明显占优时平衡二者。
-- **AUC-ROC**：受试者工作特征曲线下面积。在不同分类阈值下绘制真阳性率与假阳性率的关系。AUC = 0.5 表示随机猜测，AUC = 1.0 表示完美分离。与阈值无关：它衡量的是模型将正类排到负类之上的能力，而不管你选取哪个截断点。
+- **Accuracy**= (TP + TN) / (TP + TN + FP + FN).正确预测的部分.在类不平衡时误导.
+- **Precision**假正值是昂贵的 (例如,垃圾邮件过器标记真实电子邮件为垃圾邮件).
+- **Recall**(敏感性) =TP/ (TP+FN).我们从所有实际阳性中,我们发现了多少?
+- **F1 score**精度和回忆的和平均值. 任何一个都明显主导.
+- **AUC-ROC**接收器操作特征曲线下的区域.在各种分类门上绘制真正率与假正率.AUC = 0.5意味着随机猜测,AUC = 1.0意味着完美的分离. 门独立:它测量模型在哪个切割中如何排名正面比负面.
 
-### 回归指标
+### 退缩指标
 
-- **MSE（均方误差）** = mean((y_true - y_pred)²)。对大误差进行平方惩罚。对异常值敏感。
-- **RMSE（均方根误差）** = sqrt(MSE)。与目标变量单位相同。比 MSE 更容易解释。
-- **MAE（平均绝对误差）** = mean(|y_true - y_pred|)。对所有误差线性处理。比 MSE 对异常值更稳健。
-- **R²（决定系数）** = 1 - SS_res / SS_tot，其中 SS_res = sum((y_true - y_pred)²)，SS_tot = sum((y_true - y_mean)²)。模型解释的方差比例。R² = 1.0 为完美。R² = 0.0 意味着模型不比总是预测均值更好。如果模型比均值还差，R² 可以为负。
+- **MSE**平均平方错误 = 平均 y_true - y_pred) ^2). 处罚大错误方形. 敏感异常.
+- **RMSE**根平均平方错误 = 平方MSE. 与目标变量相同的单位.比MSE更容易解释.
+- **MAE**平均误差 (mean absolute error) =平均误差 (y_true - y_pred = 误差) 均为线性.比MSE更强到异常.
+- **R-squared**模型的变化分数是完美的.R^2 = 1.0. R^2 = 0.0意味着模型不比总是预测平均值更好.R^2可以是负的,如果模型比平均值差.
 
 ### 学习曲线
 
-以训练集大小为横轴，绘制训练分数和验证分数：
+根据培训集体规模,训练和验证分数:
 
-- **高偏差（欠拟合）**：两条曲线都收敛到较低的分数。增加更多数据不会有帮助。你需要一个更复杂的模型。
-- **高方差（过拟合）**：训练分数很高但验证分数低很多。两者之间的差距很大。增加更多数据应该会有帮助。
+- **High bias (underfitting)**两个曲线都会接近低分数. 添加更多数据就不会有帮助. 你需要一个更复杂的模型.
+- **High variance (overfitting)**培训成绩高,但验证成绩低得多.
 
 ### 验证曲线
 
-以超参数为横轴，绘制训练分数和验证分数：
+根据超参数的功能的插图训练和验证分数:
 
-- 低复杂度时：两条分数都低（欠拟合）
-- 合适的复杂度时：两条分数都高且接近
-- 高复杂度时：训练分数保持高位但验证分数下降（过拟合）
+- 复杂度低:两分均低 (不适合)
+- 在正确的复杂性下:两个分数都很高,
+- 高复杂性:培训分数保持高,但验证分数下降 (过度适应)
 
-最优超参数值是验证分数达到峰值的位置。
+验证分数达到最高的最佳超参数值.
 
-### 常见评估错误
+### 评估常见错误
 
-**数据泄漏**：测试集的信息泄漏到了训练中。例子：在划分之前对整个数据集拟合标准化器、时间序列预测中包含未来数据、使用从目标派生的特征。始终先划分，再预处理。
+**Data leakage**测试集中的信息泄露到训练中. 举例:在分开之前将扩展器安装在整个数据集上,包括未来数据在时间序列预测中,使用从目标中衍生的功能. 总是分开先,然后进行预处理.
 
-**类别不均衡**：99% 的交易是合法的，1% 是欺诈。总是预测"合法"的模型能获得 99% 的准确率。改用精确率、召回率、F1 或 AUC-ROC。
+**Class imbalance**交易的99%是合法,1%是欺诈.一个总是预测"合法"的模型得到99%的准确性.使用精度,召回,F1,或AUC-ROC.
 
-**错误的指标**：本应优化召回率时却优化准确率（医学诊断），或本应使用 MAE 时却优化 RMSE（数据有重尾异常值）。
+**Wrong metric**您需要优化召回 (医疗诊断) 的准确性,或者优化RMSE,当数据有重异值 (使用MAE代替).
 
-**未使用分层划分**：对于不均衡数据，随机划分可能会让验证折中少数类样本极少，导致估计不稳定。
+**Not using stratified splits**随机分区可能会使验证文件中很少的少数样本,从而产生不稳定的估计.
 
-**频繁测试**：每次查看测试集性能并调整，都会导致对测试集的过拟合。测试集只能使用一次。
+**Testing too often**测试组的使用量:每次检查测试性能和调整,你会过度适应测试组.
 
 ```figure
 precision-recall-threshold
 ```
 
-## 动手实现
+## 建立它
 
-### 步骤 1：训练/验证/测试集划分
+### 步骤1: 列车/验证/测试分区
 
 ```python
 import random
@@ -178,7 +178,7 @@ def train_val_test_split(X, y, train_ratio=0.6, val_ratio=0.2, seed=42):
     return X_train, y_train, X_val, y_val, X_test, y_test
 ```
 
-### 步骤 2：K 折和分层 K 折交叉验证
+### 步骤2:K-fold和层次的K-fold 交叉验证
 
 ```python
 def kfold_split(n, k=5, seed=42):
@@ -252,7 +252,7 @@ def cross_validate(X, y, model_fn, k=5, metric_fn=None, stratified=False):
     return scores
 ```
 
-### 步骤 3：混淆矩阵与分类指标
+### 步骤3:混矩阵和分类指标
 
 ```python
 def confusion_matrix(y_true, y_pred):
@@ -323,7 +323,7 @@ def auc_roc(y_true, y_scores):
     return area
 ```
 
-### 步骤 4：回归指标
+### 步骤4:退缩指标
 
 ```python
 def mse(y_true, y_pred):
@@ -349,7 +349,7 @@ def r_squared(y_true, y_pred):
     return 1.0 - ss_res / ss_tot
 ```
 
-### 步骤 5：学习曲线
+### 步骤5:学习曲线
 
 ```python
 def learning_curve(X, y, model_fn, metric_fn, train_sizes=None, val_ratio=0.2, seed=42):
@@ -388,7 +388,7 @@ def learning_curve(X, y, model_fn, metric_fn, train_sizes=None, val_ratio=0.2, s
     return train_sizes, train_scores, val_scores
 ```
 
-### 步骤 6：一个简单的分类器用于测试，以及完整演示
+### 步骤 6: 简单的测试分类器,加上完整的演示
 
 ```python
 class SimpleLogistic:
@@ -504,29 +504,29 @@ def make_imbalanced_data(n=300, minority_ratio=0.05, seed=42):
 if __name__ == "__main__":
     X_clf, y_clf = make_classification_data(300)
 
-    print("=== 训练/验证/测试集划分 ===")
+    print("=== Train/Validation/Test Split ===")
     X_train, y_train, X_val, y_val, X_test, y_test = train_val_test_split(X_clf, y_clf)
-    print(f"  训练集: {len(X_train)}，验证集: {len(X_val)}，测试集: {len(X_test)}")
-    print(f"  训练集类别分布: {sum(y_train)}/{len(y_train)} 正例")
-    print(f"  验证集类别分布: {sum(y_val)}/{len(y_val)} 正例")
+    print(f"  Train: {len(X_train)}, Val: {len(X_val)}, Test: {len(X_test)}")
+    print(f"  Train class distribution: {sum(y_train)}/{len(y_train)} positive")
+    print(f"  Val class distribution: {sum(y_val)}/{len(y_val)} positive")
 
     model = SimpleLogistic(lr=0.1, epochs=200)
     model.fit(X_train, y_train)
 
-    print("\n=== 分类指标 ===")
+    print("\n=== Classification Metrics ===")
     y_pred = [model.predict(x) for x in X_test]
     tp, tn, fp, fn = confusion_matrix(y_test, y_pred)
-    print(f"  混淆矩阵: TP={tp}, TN={tn}, FP={fp}, FN={fn}")
-    print(f"  准确率:  {accuracy(y_test, y_pred):.4f}")
-    print(f"  精确率: {precision(y_test, y_pred):.4f}")
-    print(f"  召回率:    {recall(y_test, y_pred):.4f}")
-    print(f"  F1 分数:  {f1_score(y_test, y_pred):.4f}")
+    print(f"  Confusion matrix: TP={tp}, TN={tn}, FP={fp}, FN={fn}")
+    print(f"  Accuracy:  {accuracy(y_test, y_pred):.4f}")
+    print(f"  Precision: {precision(y_test, y_pred):.4f}")
+    print(f"  Recall:    {recall(y_test, y_pred):.4f}")
+    print(f"  F1 Score:  {f1_score(y_test, y_pred):.4f}")
 
     y_scores = [model.predict_proba(x) for x in X_test]
     auc = auc_roc(y_test, y_scores)
     print(f"  AUC-ROC:   {auc:.4f}")
 
-    print("\n=== K 折交叉验证 (K=5) ===")
+    print("\n=== K-Fold Cross-Validation (K=5) ===")
     cv_scores = cross_validate(
         X_clf, y_clf,
         model_fn=lambda: SimpleLogistic(lr=0.1, epochs=200),
@@ -535,10 +535,10 @@ if __name__ == "__main__":
     )
     mean_cv = sum(cv_scores) / len(cv_scores)
     std_cv = math.sqrt(sum((s - mean_cv) ** 2 for s in cv_scores) / len(cv_scores))
-    print(f"  各折分数: {[round(s, 4) for s in cv_scores]}")
-    print(f"  均值: {mean_cv:.4f} (+/- {std_cv:.4f})")
+    print(f"  Fold scores: {[round(s, 4) for s in cv_scores]}")
+    print(f"  Mean: {mean_cv:.4f} (+/- {std_cv:.4f})")
 
-    print("\n=== 分层 K 折交叉验证 (K=5) ===")
+    print("\n=== Stratified K-Fold Cross-Validation (K=5) ===")
     strat_scores = cross_validate(
         X_clf, y_clf,
         model_fn=lambda: SimpleLogistic(lr=0.1, epochs=200),
@@ -548,32 +548,32 @@ if __name__ == "__main__":
     )
     strat_mean = sum(strat_scores) / len(strat_scores)
     strat_std = math.sqrt(sum((s - strat_mean) ** 2 for s in strat_scores) / len(strat_scores))
-    print(f"  各折分数: {[round(s, 4) for s in strat_scores]}")
-    print(f"  均值: {strat_mean:.4f} (+/- {strat_std:.4f})")
+    print(f"  Fold scores: {[round(s, 4) for s in strat_scores]}")
+    print(f"  Mean: {strat_mean:.4f} (+/- {strat_std:.4f})")
 
-    print("\n=== 不均衡数据：准确率为何会骗人 ===")
+    print("\n=== Imbalanced Data: Why Accuracy Lies ===")
     X_imb, y_imb = make_imbalanced_data(300, minority_ratio=0.05)
     positives = sum(y_imb)
-    print(f"  类别分布: {positives} 正例, {len(y_imb) - positives} 负例 ({positives/len(y_imb)*100:.1f}% 正例)")
+    print(f"  Class distribution: {positives} positive, {len(y_imb) - positives} negative ({positives/len(y_imb)*100:.1f}% positive)")
 
     always_negative = [0] * len(y_imb)
-    print(f"  总是预测负类基线:")
-    print(f"    准确率:  {accuracy(y_imb, always_negative):.4f}")
-    print(f"    精确率: {precision(y_imb, always_negative):.4f}")
-    print(f"    召回率:    {recall(y_imb, always_negative):.4f}")
-    print(f"    F1 分数:  {f1_score(y_imb, always_negative):.4f}")
+    print(f"  Always-negative baseline:")
+    print(f"    Accuracy:  {accuracy(y_imb, always_negative):.4f}")
+    print(f"    Precision: {precision(y_imb, always_negative):.4f}")
+    print(f"    Recall:    {recall(y_imb, always_negative):.4f}")
+    print(f"    F1 Score:  {f1_score(y_imb, always_negative):.4f}")
 
     X_tr_i, y_tr_i, X_v_i, y_v_i, X_te_i, y_te_i = train_val_test_split(X_imb, y_imb)
     model_imb = SimpleLogistic(lr=0.5, epochs=500)
     model_imb.fit(X_tr_i, y_tr_i)
     y_pred_imb = [model_imb.predict(x) for x in X_te_i]
-    print(f"\n  在不均衡数据上训练的模型:")
-    print(f"    准确率:  {accuracy(y_te_i, y_pred_imb):.4f}")
-    print(f"    精确率: {precision(y_te_i, y_pred_imb):.4f}")
-    print(f"    召回率:    {recall(y_te_i, y_pred_imb):.4f}")
-    print(f"    F1 分数:  {f1_score(y_te_i, y_pred_imb):.4f}")
+    print(f"\n  Trained model on imbalanced data:")
+    print(f"    Accuracy:  {accuracy(y_te_i, y_pred_imb):.4f}")
+    print(f"    Precision: {precision(y_te_i, y_pred_imb):.4f}")
+    print(f"    Recall:    {recall(y_te_i, y_pred_imb):.4f}")
+    print(f"    F1 Score:  {f1_score(y_te_i, y_pred_imb):.4f}")
 
-    print("\n=== 回归指标 ===")
+    print("\n=== Regression Metrics ===")
     X_reg, y_reg = make_regression_data(200)
 
     col0 = [x[0] for x in X_reg]
@@ -590,24 +590,24 @@ if __name__ == "__main__":
     print(f"  MSE:       {mse(y_te_r, y_pred_r):.4f}")
     print(f"  RMSE:      {rmse(y_te_r, y_pred_r):.4f}")
     print(f"  MAE:       {mae(y_te_r, y_pred_r):.4f}")
-    print(f"  R²:        {r_squared(y_te_r, y_pred_r):.4f}")
+    print(f"  R-squared: {r_squared(y_te_r, y_pred_r):.4f}")
 
     mean_baseline = [sum(y_tr_r) / len(y_tr_r)] * len(y_te_r)
-    print(f"\n  均值基线:")
+    print(f"\n  Mean baseline:")
     print(f"    MSE:       {mse(y_te_r, mean_baseline):.4f}")
-    print(f"    R²:        {r_squared(y_te_r, mean_baseline):.4f}")
+    print(f"    R-squared: {r_squared(y_te_r, mean_baseline):.4f}")
 
-    print("\n=== 学习曲线 ===")
+    print("\n=== Learning Curve ===")
     sizes, train_sc, val_sc = learning_curve(
         X_clf, y_clf,
         model_fn=lambda: SimpleLogistic(lr=0.1, epochs=200),
         metric_fn=accuracy,
     )
-    print(f"  {'大小':>6} {'训练集':>8} {'验证集':>8}")
+    print(f"  {'Size':>6} {'Train':>8} {'Val':>8}")
     for s, tr, va in zip(sizes, train_sc, val_sc):
         print(f"  {s:>6} {tr:>8.4f} {va:>8.4f}")
 
-    print("\n=== 统计模型比较 ===")
+    print("\n=== Statistical Model Comparison ===")
     model_a_scores = cross_validate(
         X_clf, y_clf,
         model_fn=lambda: SimpleLogistic(lr=0.1, epochs=100),
@@ -622,16 +622,16 @@ if __name__ == "__main__":
     mean_diff = sum(diffs) / len(diffs)
     std_diff = math.sqrt(sum((d - mean_diff) ** 2 for d in diffs) / len(diffs))
     t_stat = mean_diff / (std_diff / math.sqrt(len(diffs))) if std_diff > 0 else 0.0
-    print(f"  模型 A（100 轮）均值: {sum(model_a_scores)/len(model_a_scores):.4f}")
-    print(f"  模型 B（500 轮）均值: {sum(model_b_scores)/len(model_b_scores):.4f}")
-    print(f"  均值差异: {mean_diff:.4f}")
-    print(f"  配对 t 统计量: {t_stat:.4f}")
-    print(f"  （df=4 时 |t| > 2.78 表示 p<0.05 显著）")
+    print(f"  Model A (100 epochs) mean: {sum(model_a_scores)/len(model_a_scores):.4f}")
+    print(f"  Model B (500 epochs) mean: {sum(model_b_scores)/len(model_b_scores):.4f}")
+    print(f"  Mean difference: {mean_diff:.4f}")
+    print(f"  Paired t-statistic: {t_stat:.4f}")
+    print(f"  (|t| > 2.78 for significance at p<0.05 with df=4)")
 ```
 
-## 在实际中使用
+## 用它
 
-借助 scikit-learn，评估已内置于工作流程中：
+通过 scikit-learn,评估是工作流程中内置的:
 
 ```python
 from sklearn.model_selection import cross_val_score, StratifiedKFold, learning_curve
@@ -645,35 +645,35 @@ model = LogisticRegression()
 scores = cross_val_score(model, X, y, cv=StratifiedKFold(5), scoring="f1")
 ```
 
-从零实现的版本展示了交叉验证做了什么（没有魔法，就是 for 循环和索引追踪）、每个指标是如何计算的（就是数 TP/FP/TN/FN）、以及为何分层很重要（保留每个折中的类别比例）。库版本增加了并行化、更多评分选项和管道集成。
+从零开始的版本显示了交叉验证的作用 (没有魔法,只是前循环和指数跟踪),每个指标是如何计算的 (仅计算TP/FP/TN/FN),以及为什么层次化是重要的 (保留每个折叠中的类比).图书馆版本增加了平行性,更多的得分选项和与管道的集成.
 
-## 交付物
+## 运送它
 
-本课产出：
-- `outputs/skill-evaluation.md` — 涵盖分类与回归模型评估策略的技能文档
+这一课产生了:
+- `outputs/skill-evaluation.md`- 对于分类和回归模型的评估战略的技能
 
-## 练习
+## 运动
 
-1. 实现精确率-召回率曲线：在不同阈值下绘制精确率 vs 召回率。计算平均精确率（PR 曲线下面积）。在不均衡数据集上将 PR 曲线与 ROC 曲线比较，并解释何时每个曲线更有信息量。
-2. 构建嵌套交叉验证循环：外循环评估模型性能，内循环调参。用它在不泄漏验证数据到评估中的前提下公平比较两个模型。
-3. 实现模型比较的置换检验：打乱标签、重新训练并测量性能。重复 100 次以构建零分布。针对该分布计算观测模型性能的 p 值。
+1. 执行精度回忆曲线:图形精度与不同门的回忆.计算平均精度 (PR曲线下的区域).在不平衡的数据集上将PR曲线与ROC曲线进行比较,并解释每一个曲线在何时更有信息性.
+2. 建立一个嵌入式交叉验证循环:外部循环评估模型性能,内部循环调整超参数. 使用它来公平地比较两个模型,而不会泄露验证数据到评估中.
+3. 执行模型比较的变量测试:混动标签,重训,测量性能.重复100次构建零分布.计算观察模型性能的p值与这种分布.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们通常的说法 | 它的真实含义 |
-|------|----------------|----------------|
-| 过拟合 | "背下了训练数据" | 模型捕捉了训练数据中的噪声，在训练集上表现良好但在未见数据上表现差 |
-| 交叉验证 | "在不同子集上测试" | 系统地轮换哪部分数据用于验证，对全部轮换结果取平均 |
-| 精确率 | "预测为正的那些有多少是对的" | TP / (TP + FP)：正预测中实际为正的比例 |
-| 召回率 | "我们找到了多少真正的正例" | TP / (TP + FN)：真正正例中被正确识别的比例 |
-| AUC-ROC | "模型区分类别的能力有多好" | 在所有阈值下，真阳性率与假阳性率曲线的下面积，范围从 0.5（随机）到 1.0（完美） |
-| R² | "解释了多少方差" | 1 - (残差平方和 / 总平方和)：模型捕获的目标方差比例 |
-| 数据泄漏 | "模型作弊了" | 在训练时使用了预测时不可用的信息，导致评估结果过于乐观 |
-| 学习曲线 | "性能如何随更多数据变化" | 训练和验证分数对训练集大小的曲线图，揭示欠拟合或过拟合 |
-| 分层划分 | "保持类别比例均衡" | 划分数据使得每个子集具有与全数据集相同的各类别比例 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Overfitting | "Memorizing the training data" | The model captures noise in the training data, performing well on training but poorly on unseen data |
+| Cross-validation | "Testing on different subsets" | Systematically rotating which portion of data is used for validation, averaging results across all rotations |
+| Precision | "How many predicted positives are correct" | TP / (TP + FP): the fraction of positive predictions that are actually positive |
+| Recall | "How many actual positives we found" | TP / (TP + FN): the fraction of actual positives that were correctly identified |
+| AUC-ROC | "How well the model separates classes" | The area under the curve of true positive rate vs false positive rate across all thresholds, from 0.5 (random) to 1.0 (perfect) |
+| R-squared | "How much variance is explained" | 1 - (sum of squared residuals / total sum of squares): the fraction of target variance captured by the model |
+| Data leakage | "The model cheated" | Using information during training that would not be available at prediction time, leading to optimistic evaluation |
+| Learning curve | "How performance changes with more data" | A plot of training and validation scores vs training set size, revealing underfitting or overfitting |
+| Stratified split | "Keeping class ratios balanced" | Splitting data so each subset has the same proportion of each class as the full dataset |
 
-## 延伸阅读
+## 进一步阅读
 
-- [scikit-learn 模型选择指南](https://scikit-learn.org/stable/model_selection.html) — 交叉验证、指标和超参数调优的综合参考
-- [超越准确率：精确率与召回率（Google ML Crash Course）](https://developers.google.com/machine-learning/crash-course/classification/precision-and-recall) — 配有交互式示例的清晰讲解
-- [交叉验证程序综述（Arlot & Celisse，2010）](https://projecteuclid.org/journals/statistics-surveys/volume-4/issue-none/A-survey-of-cross-validation-procedures-for-model-selection/10.1214/09-SS054.full) — 对不同 CV 策略为何有效及其适用条件的严谨论述
+- [scikit-learn Model Selection Guide](https://scikit-learn.org/stable/model_selection.html)- 综合参考跨验证,指标和超参数调整
+- [Beyond Accuracy: Precision and Recall (Google ML Crash Course)](https://developers.google.com/machine-learning/crash-course/classification/precision-and-recall)- 通过互动示例进行清晰的解释
+- [A Survey of Cross-Validation Procedures (Arlot & Celisse, 2010)](https://projecteuclid.org/journals/statistics-surveys/volume-4/issue-none/A-survey-of-cross-validation-procedures-for-model-selection/10.1214/09-SS054.full)- 严格处理不同简历策略的有效性以及为什么

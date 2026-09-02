@@ -1,61 +1,61 @@
-# 多智能体强化学习
+# 多代理的RL
 
-> 单智能体强化学习假设环境是平稳的。将两个正在学习的智能体放入同一个世界，该假设就会被打破：每个智能体都是对方环境的一部分，且双方都在不断变化。多智能体强化学习是一组在马尔可夫假设不再成立时使学习收敛的技巧。
+> 单代理RL假设环境静止.把两个学习代理放在同一世界,这个假设就会破裂:每个代理是另一个环境的一部分,两者都在改变.多代理RL是让学习融合的技巧,当马科夫假设不再适用时.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 阶段 9 · 04（Q-learning）、阶段 9 · 06（REINFORCE）、阶段 9 · 07（Actor-Critic）
-**时间：** 约 45 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 9 · 04 (Q-learning), Phase 9 · 06 (REINFORCE), Phase 9 · 07 (Actor-Critic)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-一个学习在房间里导航的机器人是一个单智能体 RL 问题。一支足球队则不是。AlphaStar 对战《星际争霸》对手不是。一个由竞价智能体组成的市场不是。两辆车在四向停车标志处协商也不是。许多现实世界中的多人问题都不是。
+机器人学习导航一个房间是一个单机机器人RL问题.一个足球队不是.阿尔法星vs星际飞行器对手不是.一个竞标代理的市场不是.两个汽车谈判四方停车不是.许多现实世界的问题不是.
 
-在多智能体的每一种场景中，从任何一个智能体的视角来看，其他智能体*都是*环境的一部分。随着它们的学习和行为改变，环境变得非平稳。马尔可夫性——"下一状态只取决于当前状态和我的动作"——被违反了，因为下一状态还取决于*其他*智能体的选择，而它们的策略是移动目标。
+在每一个多代理环境中,从任何一个代理人的角度来看,其他代理人都是环境的一部分. 随着他们学习和改变行为,环境变得不稳定. 马科夫的属性"下一个状态只取决于当前状态和我的行动"被侵犯,因为下一个状态也取决于其他代理选择什么,
 
-这打破了表格式收敛证明（Q-learning 的 guarantees 假设环境是平稳的）。它也击穿了朴素深度 RL：智能体互相追逐形成循环，永远无法收敛到稳定策略。你需要多智能体特定的技术：集中训练/分布式执行、反事实基线、联盟对战、自对弈。
+这打破了表式融合证明 (Q-学习的保证假设是一个静止的环境).它打破了天真的深度RL:代理人在循环中追逐彼此,从来没有收到稳定的政策.你需要多代理特定技术:集中训练/分散执行,反事实基线,联赛比赛,自动比赛.
 
-2026 年应用：机器人集群、交通路由、自动驾驶车队、市场模拟器、多智能体 LLM 系统（第 16 阶段），以及任何拥有多于一个智能玩家的博弈。
+2026年应用:机器人群,交通路由,自动驾驶车队,市场模拟器,多代理的LLM系统 (16期),以及任何游戏中多个智能玩家.
 
-## 核心概念
+## 概念
 
-![四种 MARL 范式：独立、集中式 critic、自对弈、联盟](../assets/marl.svg)
+![Four MARL regimes: indep, centralized critic, self-play, league](../assets/marl.svg)
 
-**形式化：马尔可夫博弈。** MDP 的推广：状态 `S`、联合动作 `a = (a_1, …, a_n)`、转移 `P(s' | s, a)`，以及每个智能体的奖励 `R_i(s, a, s')`。每个智能体 `i` 在其自身策略 `π_i` 下最大化自身的回报。如果奖励相同，则是**完全合作**。如果是零和，则是**对抗**。如果是混合的，则是**一般和**。
+**Formalism: Markov Game.**总体化MDP:国家`S`共同行动`a = (a_1, …, a_n)`过渡`P(s' | s, a)`并且每位代理人收取奖励`R_i(s, a, s')`每个代理人`i`根据自己的政策,最大化自己的回报.`π_i`如果奖励是相同的,那么它是**fully cooperative**如果是零和,那就算是**adversarial**如果混合,它是**general-sum**现在,我们要去.
 
-**核心挑战：**
+**Core challenges:**
 
-- **非平稳性。** 从智能体 `i` 的视角看 `P(s' | s, a_i)` 依赖于 `π_{-i}`，而 `π_{-i}` 在变化。
-- **信用分配。** 共享奖励时，哪个智能体造成了它？
-- **探索协调。** 智能体必须探索互补策略，而不是冗余地探索相同的状态。
-- **可扩展性。** 联合动作空间随 `n` 指数增长。
-- **部分可观测性。** 每个智能体只能看到自己的观测；全局状态被隐藏。
+- **Non-stationarity.** `P(s' | s, a_i)`经纪人`i`视角取决于`π_{-i}`现在,我们正在改变.
+- **Credit assignment.**谁造成了这个?
+- **Exploration coordination.**代理人必须探索互补的策略,而不是冗余地探索同一个状态.
+- **Scalability.**共同行动空间在`n`现在,我们要去.
+- **Partial observability.**每个代理只能看到自己的观察; 全球状态是隐藏的.
 
-**四种主流范式：**
+**Four dominant regimes:**
 
-**1. 独立 Q-learning / 独立 PPO（IQL、IPPO）。** 每个智能体学习自己的 Q 或策略，将其他智能体视为环境的一部分。简单，有时有效（尤其是在经验回放起到平滑的智能体建模技巧时）。理论收敛性：无。实践中：松散耦合的任务尚可，紧密耦合的任务很差。
+**1. Independent Q-learning / independent PPO (IQL, IPPO).**每个代理学习自己的Q或政策,把他人视为环境的一部分.简单,有时它会发挥作用 (特别是经验重演作为一个平滑的代理模型技巧).理论融合:没有.实践中:宽松关联任务很好,密切关联任务很糟糕.
 
-**2. 集中式训练，分布式执行（CTDE）。** 最常见的现代范式。每个智能体拥有自己的*策略* `π_i`，它根据局部观测 `o_i` 进行决策——在部署时标准地分布式执行。在*训练*期间，一个集中式 critic `Q(s, a_1, …, a_n)` 依赖完整的全局状态和联合动作。示例：
-- **MADDPG**（Lowe 等 2017）：带每个智能体集中式 critic 的 DDPG。
-- **COMA**（Foerster 等 2017）：反事实基线——问"如果我采取动作 `a'` 而不是当前动作，我的奖励会是多少？"——隔离我的贡献。
-- **MAPPO** / **IPPO** 共享 critic（Yu 等 2022）：带集中式价值函数的 PPO。2026 年合作式 MARL 的主流方法。
-- **QMIX**（Rashid 等 2018）：价值分解——`Q_tot(s, a) = f(Q_1(s, a_1), …, Q_n(s, a_n))`，使用单调混合。
+**2. Centralized training, decentralized execution (CTDE).**现在,我们要做什么?`π_i`地方观察的条件`o_i`标准的分散执行在部署. 在*培训*期间,一个集中批评者`Q(s, a_1, …, a_n)`关于全球全面状态和联合行动的条件.
+- **MADDPG**(Lowe et al. 2017):每位代理人均有集中批评者.
+- **COMA**问问"如果我采取行动,我的奖励会是什么?"`a'`分离了我的贡献.
+- **MAPPO**现在,**IPPO**具有共享批评者 (Yu及其他2022):具有集中价值功能的PPO.2026年为合作社MARL占主导地位.
+- **QMIX**值分解  `Q_tot(s, a) = f(Q_1(s, a_1), …, Q_n(s, a_n))`的混合.
 
-**3. 自对弈。** 同一智能体的两个副本相互对战。对手的策略*就是*我过去某个快照的策略。AlphaGo / AlphaZero / MuZero。OpenAI Five。在零和博弈中效果最佳；训练信号是对称的。
+**3. Self-play.**两个副本的同一代理玩彼此.对手的政策是我从过去的快照的政策.AlphaGo / AlphaZero / MuZero.OpenAI五.最适合零总数游戏;训练信号是对称.
 
-**4. 联盟对战。** 自对弈对一般和/对抗环境的扩展：维护一个过去和当前策略的人口池，从联盟中采样对手进行训练。加入破解者（专门针对当前最优策略的特化智能体）和主破解者（专门针对破解者的特化智能体）。AlphaStar（《星际争霸 II》）。当博弈存在"石头-剪刀-布"策略循环时需要此方法。
+**4. League play.**扩展自动游戏到总和/对抗环境:保持过去和当前政策的人口,从联盟中样本对手,训练对抗他们. 增加剥削者 (专注于击败当前最好的) 和主要剥削者 (专注于击败剥削者). AlphaStar (StarCraft II). 当游戏允许"岩石纸刀刀"战略周期时需要.
 
-**通信。** 允许智能体之间发送学习型消息 `m_i`。在合作场景中有效。Foerster 等（2016）证明可微分的智能体间通信可以被端到端训练。今天的基于 LLM 的多智能体系统（第 16 阶段）本质上用自然语言通信。
+**Communication.**让代理人发送学习信息`m_i`福斯特等人 (2016) 表明可以从端到端培训可分化的代理间通信.今天的基于LLM的多代理系统 (阶段16) 基本上以自然语言进行通信.
 
 ```figure
 f3-marl-orbit
 ```
 
-## 动手实现
+## 建立它
 
-本课使用一个 6×6 网格世界，包含两个合作智能体。它们从对角出发，必须到达共同目标。共享奖励：任一智能体仍在移动时每一步 `-1`，两者都到达时 `+10`。参见 `code/main.py`。
+这一课使用一个6×6格里德世界,两个合作代理. 他们从相反的角落开始,必须达到共同的目标.`-1`任何代理人仍在移动,`+10`当他们两个人到达的时候.`code/main.py`现在,我们要去.
 
-### 步骤 1：多智能体环境
+### 步骤1:多代理环境
 
 ```python
 class CoopGridWorld:
@@ -64,7 +64,7 @@ class CoopGridWorld:
         self.goal = (5, 5)
 
     def reset(self):
-        return ((0, 0), (5, 0))  # 两个智能体
+        return ((0, 0), (5, 0))  # two agents
 
     def step(self, state, actions):
         a1, a2 = state
@@ -75,11 +75,11 @@ class CoopGridWorld:
         return (new1, new2), reward, done
 ```
 
-*联合*动作空间为 `|A|² = 16`。全局状态是两个位置。
+共同的行动空间是`|A|² = 16`全球状态是两个位置.
 
-### 步骤 2：独立 Q-learning
+### 步骤2:独立的Q学习
 
-每个智能体维护自己的 Q 表，键为联合状态。每一步：双方各自选择 ε-贪婪动作，收集联合转移，各自用共享奖励更新自己的 Q 表。
+每个代理运行自己的Q表,按联合状态键. 在每一步:两个选择 ε-贪的行动,收集联合过渡,每个更新自己的Q与共享奖励.
 
 ```python
 def independent_q(env, episodes, alpha, gamma, epsilon):
@@ -97,92 +97,92 @@ def independent_q(env, episodes, alpha, gamma, epsilon):
             s = s_next
 ```
 
-在此任务上可以工作，因为奖励是稠密且对齐的。但在紧密耦合任务上会失败（例如其中一个智能体必须*等待*另一个的情况）。
+工作于这个任务,因为奖励密集和一致. 失败于紧密关联的任务 (例如,一个代理必须 *等*另一个).
 
-### 步骤 3：带分解值更新的集中式 Q
+### 步骤3: 集中式Q,并更新分解值
 
-使用覆盖联合动作的一个 Q 表 `Q(s, a_1, a_2)`。从共享奖励更新。在执行时通过边缘化实现去中心化：`π_i(s) = argmax_{a_i} max_{a_{-i}} Q(s, a_1, a_2)`。用正确的全局视图换取对指数级联合动作空间的分解。
+使用一个Q而不是联合行动`Q(s, a_1, a_2)`通过边缘化: `π_i(s) = argmax_{a_i} max_{a_{-i}} Q(s, a_1, a_2)`交易指数式的联合行动空间以获得一个*正确*的全球观.
 
-### 步骤 4：简单自对弈（对抗式双智能体）
+### 步骤4:简单的自动玩法 (对抗性二代)
 
-同一智能体，两种角色。训练智能体 A 对战智能体 B；经过 `K` 轮后，将 A 的权重复制到 B。对称训练，持续进步。AlphaZero 配方的微缩版。
+列车代理A与B后`K`随着A的重量转换为B的重量,对称训练,持续进步,
 
-## 常见陷阱
+## 陷
 
-- **非平稳经验回放。** 独立智能体的经验回放比单智能体更差，因为旧转移是由早已过时的对手生成的。修复：按近期性重新标记或加权。
-- **信用分配歧义。** 长 episode 后的共享奖励；没有明确方式说明哪个智能体做出了贡献。修复：反事实基线（COMA），或按智能体进行奖励塑形。
-- **策略漂移/追逐。** 每个智能体的最优响应随对方每次更新而变化。修复：集中式 critic、慢学习率，或交替固定一方。
-- **通过协调作弊。** 智能体发现设计师未预见的协作漏洞。拍卖智能体收敛到零竞价。修复：精心设计的奖励、行为约束。
-- **探索冗余。** 两个智能体探索相同的状态-动作对。修复：每个智能体的熵正则，或角色条件化。
-- **联盟循环。** 纯自对弈可能陷入支配循环。修复：使用多样化对手的联盟对战。
-- **样本爆炸。** `n` 个智能体 × 状态空间 × 联合动作。用函数近似近似；分解动作空间（每个智能体一个策略输出头）。
+- **Non-stationary replay.**经验重复与独立代理更糟糕于单机代理,因为旧的转变是由现在过时的对手所生成的.
+- **Credit assignment ambiguity.**经过长期的剧情后共享奖励;没有明确的方法来说哪个代理贡献.
+- **Policy drift / chasing.**解决问题是:集中批评,学习速度缓慢,或者一次性结.
+- **Reward hacking via coordination.**经纪人发现设计师没有预料的协调性exploits.拍卖代理收购零. 解决:谨慎的奖励设计,行为限制.
+- **Exploration redundancy.**两位代理都探索着相同的状态行动对.
+- **League cycles.**清纯的自主游戏可以陷入统治周期.
+- **Sample explosion.** `n`函数近似式; 因素化行动空间 (每个函数的出口头均为一个政策).
 
-## 应用场景
+## 用它
 
-2026 年 MARL 应用地图：
+2026年 MARL 应用地图:
 
-| 领域 | 方法 | 说明 |
+| Domain | Method | Notes |
 |--------|--------|-------|
-| 合作导航/操控 | MAPPO / QMIX | CTDE；共享 critic + 分布式 actor。 |
-| 双人对战游戏（国际象棋、围棋、扑克） | 带 MCTS 的自对弈（AlphaZero） | 零和；对称训练。 |
-| 复杂多人游戏（Dota、星际争霸） | 联盟对战 + 模仿预训练 | OpenAI Five、AlphaStar。 |
-| 自动驾驶车队 | CTDE MAPPO / 带注意力的 PPO | 部分可观测；可变团队规模。 |
-| 拍卖市场 | 博弈论均衡 + RL | 当 `n` → ∞ 时使用均值场 RL。 |
-| LLM 多智能体系统（第 16 阶段） | 自然语言通信 + 角色条件化 | RL 循环位于智能体规划层。 |
+| Cooperative navigation / manipulation | MAPPO / QMIX | CTDE; shared critic + decentralized actors. |
+| Two-player games (chess, Go, poker) | Self-play with MCTS (AlphaZero) | Zero-sum; symmetric training. |
+| Complex multiplayer (Dota, StarCraft) | League play + imitation pretraining | OpenAI Five, AlphaStar. |
+| Autonomous-vehicle fleets | CTDE MAPPO / PPO with attention | Partial obs; variable team sizes. |
+| Auction markets | Game-theoretic equilibrium + RL | Mean-field RL when `n` → ∞. |
+| LLM multi-agent systems (Phase 16) | Natural-language comm + role conditioning | RL loop at the agent-planning layer. |
 
-2026 年，MARL 增长最快的领域是基于 LLM 的：谈判、辩论、构建软件的語言模型智能体集群。RL 表现为对*轨迹级*输出的偏好优化，而非 token 级（第 16 阶段 · 03）。
+2026年,马尔尔最大的增长领域是基于LLM:语言模型代理商的群体进行谈判,辩论,构建软件.
 
-## 交付物
+## 运送它
 
-保存为 `outputs/skill-marl-architect.md`：
+保存如`outputs/skill-marl-architect.md`其他:
 
 ```markdown
 ---
 name: marl-architect
-description: 为给定任务选择合适的多智能体 RL 范式（IPPO、CTDE、自对弈、联盟对战）。
+description: Pick the right multi-agent RL regime (IPPO, CTDE, self-play, league) for a given task.
 version: 1.0.0
 phase: 9
 lesson: 10
 tags: [rl, multi-agent, marl, self-play]
 ---
 
-给定一个包含 `n` 个智能体的任务，输出：
+Given a task with `n` agents, output:
 
-1. 范式分类。合作 / 对抗 / 一般和。给出理由。
-2. 算法。IPPO / MAPPO / QMIX / 自对弈 / 联盟对战。理由与耦合紧密度和奖励结构相关联。
-3. 信息访问。集中式训练（哪些全局信息进入 critic）？分布式执行？
-4. 信用分配。反事实基线、价值分解或奖励塑形。
-5. 探索计划。每智能体熵、基于种群的训练或联盟对战。
+1. Regime classification. Cooperative / adversarial / general-sum. Justify.
+2. Algorithm. IPPO / MAPPO / QMIX / self-play / league. Reason tied to coupling tightness and reward structure.
+3. Information access. Centralized training (what global info goes to the critic)? Decentralized execution?
+4. Credit assignment. Counterfactual baseline, value decomposition, or reward shaping.
+5. Exploration plan. Per-agent entropy, population-based training, or league.
 
-在紧密耦合的合作任务上拒绝推荐独立 Q-learning。在存在循环风险的一般和场景上拒绝推荐自对弈。标记任何缺乏固定对手评估的 MARL 流水线（ cherry-picked 自对弈数字很常见）。
+Refuse independent Q-learning on tightly-coupled cooperative tasks. Refuse to recommend self-play for general-sum with cycle risks. Flag any MARL pipeline without a fixed-opponent eval (cherry-picked self-play numbers are common).
 ```
 
-## 练习
+## 运动
 
-1. **简单。** 在 2 智能体合作网格世界上训练独立 Q-learning。平均回报 > 0 需要多少轮？绘制联合学习曲线。
-2. **中等。** 增加一个"协调"任务：仅当两个智能体在同一回合踏入目标时才算到达。独立 Q 是否仍能收敛？什么会失败？
-3. **困难。** 为 MAPPO 式训练实现一个集中式 critic，并与独立 PPO 在协调任务上的收敛速度进行比较。
+1. **Easy.**在2个代理合作社GridWorld上训练独立Q学习. 平均回报>0之前有多少集? 绘制联合学习曲线.
+2. **Medium.**添加一个"协调"任务:只有当两个代理在同一拐角处踏上目标时才达到目标.独立的Q仍然相汇?什么断裂?
+3. **Hard.**实施一个集中式的MAPPO类型培训批评器,并对协调任务进行独立的PPO与化速度进行比较.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| 马尔可夫博弈 | "多智能体 MDP" | `(S, A_1, …, A_n, P, R_1, …, R_n)`；每个智能体有自己的奖励。 |
-| CTDE | "集中式训练，分布式执行" | 训练时有联合 critic；每个智能体的策略仅使用局部观测。 |
-| IPPO | "独立 PPO" | 每个智能体独立运行 PPO。简单基线；常被低估。 |
-| MAPPO | "多智能体 PPO" | 带依赖全局状态的集中式价值函数的 PPO。 |
-| QMIX | "单调价值分解" | `Q_tot = f_monotone(Q_1, …, Q_n)` 允许去中心化 argmax。 |
-| COMA | "反事实多智能体" | 优势 = 我的 Q 减去对我动作边缘化后的期望 Q。 |
-| 自对弈 | "智能体对战过去的自己" | 单个智能体，两种角色；零和博弈的标准做法。 |
-| 联盟对战 | "人口训练" | 缓存历史策略，从种群中采样对手；处理策略循环。 |
+| Markov game | "Multi-agent MDP" | `(S, A_1, …, A_n, P, R_1, …, R_n)`; each agent has its own reward. |
+| CTDE | "Centralized training, decentralized execution" | Joint critic at training time; each agent's policy uses only local obs. |
+| IPPO | "Independent PPO" | Each agent runs PPO separately. Simple baseline; often underrated. |
+| MAPPO | "Multi-agent PPO" | PPO with a centralized value function conditioned on global state. |
+| QMIX | "Monotonic value decomposition" | `Q_tot = f_monotone(Q_1, …, Q_n)` allows decentralized argmax. |
+| COMA | "Counterfactual multi-agent" | Advantage = my Q minus expected Q marginalizing over my action. |
+| Self-play | "Agent vs past self" | Single agent, two roles; standard for zero-sum games. |
+| League play | "Population training" | Cache past policies, sample opponents from the pool; handles strategy cycles. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Lowe et al. (2017). Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments (MADDPG)](https://arxiv.org/abs/1706.02275) — 带集中式 critic 的 CTDE。
-- [Foerster et al. (2017). Counterfactual Multi-Agent Policy Gradients (COMA)](https://arxiv.org/abs/1705.08926) — 用于信用分配的反事实基线。
-- [Rashid et al. (2018). QMIX: Monotonic Value Function Factorisation](https://arxiv.org/abs/1803.11485) — 带单调性的价值分解。
-- [Yu et al. (2022). The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games (MAPPO)](https://arxiv.org/abs/2103.01955) — PPO 在 MARL 中效果惊人地好。
-- [Vinyals et al. (2019). Grandmaster level in StarCraft II using multi-agent reinforcement learning (AlphaStar)](https://www.nature.com/articles/s41586-019-1724-z) — 大规模联盟对战。
-- [Silver et al. (2017). Mastering the game of Go without human knowledge (AlphaGo Zero)](https://www.nature.com/articles/nature24270) — 零和博弈中的纯自对弈。
-- [Sutton & Barto (2018). 第 15 章 — 神经科学 & 第 17 章 — 前沿](http://incompleteideas.net/book/RLbook2020.pdf) — 包含教科书对多智能体场景的简要介绍，以及 CTDE 旨在解决的"非平稳性"问题。
-- [Zhang, Yang & Başar (2021). Multi-Agent Reinforcement Learning: A Selective Overview](https://arxiv.org/abs/1911.10635) — 涵盖合作、竞争和混合 MARL 及其收敛性结果的综述。
+- [Lowe et al. (2017). Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments (MADDPG)](https://arxiv.org/abs/1706.02275) CTDE与一个集中批评者.
+- [Foerster et al. (2017). Counterfactual Multi-Agent Policy Gradients (COMA)](https://arxiv.org/abs/1705.08926)抵消信用转让的基线.
+- [Rashid et al. (2018). QMIX: Monotonic Value Function Factorisation](https://arxiv.org/abs/1803.11485)值分解与单调性.
+- [Yu et al. (2022). The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games (MAPPO)](https://arxiv.org/abs/2103.01955)PPO对马尔来说是惊人的强大.
+- [Vinyals et al. (2019). Grandmaster level in StarCraft II using multi-agent reinforcement learning (AlphaStar)](https://www.nature.com/articles/s41586-019-1724-z)在规模上进行联赛比赛.
+- [Silver et al. (2017). Mastering the game of Go without human knowledge (AlphaGo Zero)](https://www.nature.com/articles/nature24270)在零积分游戏中纯粹的自动游戏.
+- [Sutton & Barto (2018). Ch. 15 — Neuroscience & Ch. 17 — Frontiers](http://incompleteideas.net/book/RLbook2020.pdf)包括教科书中对多代理设置的简短处理以及CTDE旨在解决的非静止性问题.
+- [Zhang, Yang & Başar (2021). Multi-Agent Reinforcement Learning: A Selective Overview](https://arxiv.org/abs/1911.10635) 调查涉及合作,竞争性和混合 MARL,并有收成性结果.

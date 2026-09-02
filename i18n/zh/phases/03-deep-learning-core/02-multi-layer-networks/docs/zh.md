@@ -1,53 +1,53 @@
-# 多层网络与正向传播
+# 多层网络和前行通行
 
-> 一个神经元画一条线。堆叠它们，你就能画出任何东西。
+> 一个神经元画出一个线,堆叠它们,你可以画任何东西.
 
-**类型：** 构建
-**语言：** Python
-**前置知识：** 阶段 01（数学基础），课程 03.01（感知机）
-**时间：** 约 90 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 01 (Math Foundations), Lesson 03.01 (The Perceptron)
+**Time:** ~90 minutes
 
 ## 学习目标
 
-- 从零开始使用 Layer 和 Network 类构建多层网络，实现完整的正向传播
-- 追踪矩阵维度在网络各层中的变化，识别形状不匹配的问题
-- 解释堆叠非线性激活函数如何使网络能够学习弯曲的决策边界
-- 使用 2-2-1 架构和手工调优的 sigmoid 权重解决 XOR 问题
+- 创建一个多层网络从零开始,使用一个完整的前进传输的层和网络类
+- 通过网络的每个层进行跟踪矩阵尺寸,并确定形状不匹配
+- 解释如何堆叠非线性激活使网络能够学习曲线决策界限
+- 使用手调sigmoid权重的2-2-1架构解决XOR问题
 
-## 问题所在
+## 问题
 
-单个神经元只能画直线。就是这样。在你的数据中画一条直线。AI 中的每一个真实问题——图像识别、语言理解、下围棋——都需要曲线。将神经元堆叠成层，你就能获得曲线。
+一个神经元就是一个线条抽.就这样. 一条直线通过数据.人工智能的每一个真正的问题 - - 识别图像,语言理解,玩GO - - 都需要曲线.
 
-1969 年，Minsky 和 Papert 证明了这种局限性是致命的：单层网络无法学习 XOR。不是"难以学习"——是数学上不可能。XOR 的真值表将 [0,1] 和 [1,0] 放在一边，[0,0] 和 [1,1] 放在另一边。没有任何一条直线能将它们分开。
+1969年,明斯基和帕珀特证明了这种限制是致命的:单层网络不能学习XOR.不是"努力学习" - - 数学上不能.XOR真相表在一边放置[0,1]和[1,0],在另一边放置[0,0]和[1,1].没有单一线分离它们.
 
-这让神经网络的研究经费中断了十多年。 hindsight 看来的解决方案很明显：停止只使用一层。将神经元堆叠成层。让第一层将输入空间雕刻成新的特征，让第二层将这些特征组合成任何单一线条都无法做出的决策。
+这导致了超过十年的神经网络资金被削减. 后来看,解决方案很明显:停止使用一个层. 堆叠神经元成层. 让第一层将输入空间切割成新功能,让第二层将这些功能结合成决策,没有单一线可以做出的.
 
-这种堆叠就是多层网络。它是当今生产环境中所有深度学习模型的基础。正向传播——数据从输入经过隐藏层流向输出——是你需要构建的第一件事。
+这堆是多层网络.它是今天生产的每一个深度学习模型的基础.前进传输 - - 从输入到输出的数据从隐藏层流到输出 - - 是你需要建立的第一件事,
 
-## 概念解析
+## 概念
 
-### 层：输入层、隐藏层、输出层
+### 层:输入,隐藏,输出
 
-多层网络有三种类型的层：
+多层网络有三个层:
 
-**输入层**——严格来说不算真正的层。它存储你的原始数据。两个特征意味着两个输入节点。这里不发生任何计算。
+**Input layer**两个功能意味着两个输入节点.这里没有计算.
 
-**隐藏层**——工作发生的地方。每个神经元接收来自上一层的所有输出，应用权重和偏置，然后将结果通过激活函数传递。称为"隐藏"是因为你在训练数据中永远不会直接看到这些值。
+**Hidden layers**每个神经元从前层中取出每一个输出,应用重量和偏差,然后通过激活函数传递结果. "隐藏",因为你从来没有直接看到这些值在训练数据中.
 
-**输出层**——最终答案。对于二分类，使用一个带有 sigmoid 的神经元。对于多分类，每个类别一个神经元。
+**Output layer**对于二进制分类,一个神经元与sigmoid.对于多类,一个神经元每个类.
 
 ```mermaid
 graph LR
-    subgraph Input["输入层"]
+    subgraph Input["Input Layer"]
         x1["x1"]
         x2["x2"]
     end
-    subgraph Hidden["隐藏层（3个神经元）"]
+    subgraph Hidden["Hidden Layer (3 neurons)"]
         h1["h1"]
         h2["h2"]
         h3["h3"]
     end
-    subgraph Output["输出层"]
+    subgraph Output["Output Layer"]
         y["y"]
     end
     x1 --> h1
@@ -61,100 +61,100 @@ graph LR
     h3 --> y
 ```
 
-这是一个 2-3-1 网络。两个输入，三个隐藏神经元，一个输出。每条连接都携带一个权重。每个神经元（除了输入层）都携带一个偏置。
+这是一个2-3-1网络.两个输入,三个隐藏的神经元,一个输出.每个连接都带有重量.每个神经元 (除输入) 都带有偏见.
 
-每一层产生一个称为隐藏状态的数值向量。对于文本，隐藏状态增加维度——用 768 个数字编码一个词以捕捉语义含义。对于图像，它们降低维度——将数百万像素压缩为可管理的表示。隐藏状态是学习发生的地方。
+每层都产生一个数字向量,称为隐藏状态.对于文本来说,隐藏状态增加了维度 - - 编码一个词为768个数字来捕捉语义意义.对于图像来说,它们减少了维度 - - 压缩了数百万像素成为可管理的表示.隐藏状态是学习生活的地方.
 
-### 神经元与激活函数
+### 神经元和激活
 
-每个神经元做三件事：
+每个神经元都能做三个事情:
 
-1. 将每个输入乘以其对应的权重
-2. 求所有乘积之和并加上偏置
-3. 将总和通过激活函数传递
+1. 乘以其相应的重量
+2. 总结所有产品,并添加一个偏见
+3. 通过激活函数传递总数
 
-目前，激活函数是 sigmoid：
+现在,激活是sigmoid:
 
 ```
 sigmoid(z) = 1 / (1 + e^(-z))
 ```
 
-Sigmoid 将任意数值压缩到 (0, 1) 范围内。大的正输入推向 1。大的负输入推向 0。零映射到 0.5。这条平滑曲线使学习成为可能——与感知机的硬性阶跃不同，sigmoid 处处都有梯度。
+sigmoid将任何数量压缩到范围 (0,1). 大量的正进口向1推进. 大量的负进口向0推进.零地图到0.5. 这种光滑的曲线是使学习成为可能的 - - 与感知器的硬步骤不同,sigmoid在任何地方都有梯度.
 
-### 正向传播：数据如何流动
+### 往前通行:数据流动方式
 
-正向传播将输入数据逐层推过网络，直到到达输出。正向传播过程中不会发生学习。它是纯计算：乘法、加法、激活、重复。
+进口传输通过网络,层次推进输入数据,直到它达到输出.进口传输过程中没有学习发生.这是纯计算:乘以,添加,激活,重复.
 
 ```mermaid
 graph TD
-    X["输入: [x1, x2]"] --> WH["乘以权重矩阵 W1 (2x3)"]
-    WH --> BH["加上偏置向量 b1 (3,)"]
-    BH --> AH["对每个元素应用 sigmoid"]
-    AH --> H["隐藏输出: [h1, h2, h3]"]
-    H --> WO["乘以权重矩阵 W2 (3x1)"]
-    WO --> BO["加上偏置向量 b2 (1,)"]
-    BO --> AO["应用 sigmoid"]
-    AO --> Y["输出: y"]
+    X["Input: [x1, x2]"] --> WH["Multiply by Weight Matrix W1 (2x3)"]
+    WH --> BH["Add Bias Vector b1 (3,)"]
+    BH --> AH["Apply sigmoid to each element"]
+    AH --> H["Hidden Output: [h1, h2, h3]"]
+    H --> WO["Multiply by Weight Matrix W2 (3x1)"]
+    WO --> BO["Add Bias Vector b2 (1,)"]
+    BO --> AO["Apply sigmoid"]
+    AO --> Y["Output: y"]
 ```
 
-在每一层，三个操作按顺序发生：
+在每个层次上,有三个操作发生:
 
 ```
-z = W * input + b       (线性变换)
-a = sigmoid(z)           (激活)
+z = W * input + b       (linear transformation)
+a = sigmoid(z)           (activation)
 ```
 
-前一层的输出成为下一层的输入。这就是整个正向传播。
+一层输出成为下一个层输入.
 
-### 矩阵维度
+### 矩阵尺寸
 
-追踪维度是深度学习中最重要的调试技能。以下是 2-3-1 网络：
+追踪维度是深度学习中最重要的调试技能.
 
-| 步骤 | 操作 | 维度 | 结果形状 |
+| Step | Operation | Dimensions | Result Shape |
 |------|-----------|------------|-------------|
-| 输入 | x | -- | (2,) |
-| 隐藏层线性 | W1 * x + b1 | W1: (3, 2), b1: (3,) | (3,) |
-| 隐藏层激活 | sigmoid(z1) | -- | (3,) |
-| 输出层线性 | W2 * h + b2 | W2: (1, 3), b2: (1,) | (1,) |
-| 输出层激活 | sigmoid(z2) | -- | (1,) |
+| Input | x | -- | (2,) |
+| Hidden linear | W1 * x + b1 | W1: (3, 2), b1: (3,) | (3,) |
+| Hidden activation | sigmoid(z1) | -- | (3,) |
+| Output linear | W2 * h + b2 | W2: (1, 3), b2: (1,) | (1,) |
+| Output activation | sigmoid(z2) | -- | (1,) |
 
-规则：第 k 层的权重矩阵 W 形状为 (第k层神经元数, 第k-1层神经元数)。行匹配当前层。列匹配前一层。如果形状不匹配，你有 bug。
+规则:在层 k 的重量矩阵 W 有形状 (神经元_in_layer_k,神经元_in_layer_k_minus_1). 排列与当前层匹配.列表与前层匹配.如果形状不排列,则你有错误.
 
-### 通用近似定理
+### 全球近似定理
 
-1989 年，George Cybenko 证明了某件非凡的事情：具有单个隐藏层和足够多神经元的神经网络可以将任何连续函数逼近到任意所需的精度。
+1989年,乔治·赛本科证明了一些非凡的东西:一个隐藏的单层和足够的神经元的神经网络可以接近任何连续的功能,
 
-这并不意味着一个隐藏层总是最好的。它意味着架构在理论上是可行的。在实践中，更深的网络（更多层，每层更少神经元）比浅而宽的网络用 far fewer total parameters 学习相同的函数。这就是深度学习有效的原因。
+这并不意味着一个隐藏的层面总是最好.这意味着架构理论上是有能力的.实际上,更深层的网络 (每个层有更多层次,每个层有更少的神经元) 与浅层网络相比学习的总参数要少得多.这就是为什么深层学习工作的原因.
 
-直觉：隐藏层的每个神经元学习一个"凸起"或特征。足够多的凸起放置在正确的位置可以逼近任何平滑曲线。更多神经元，更多凸起，更好的逼近。
+感觉:隐藏的每个神经元都学会了一个""或特征. 足够的放在正确的地方可以接近任何平滑的曲线.更多的神经元,更多的,更好的接近.
 
 ```mermaid
 graph LR
-    subgraph FewNeurons["4个隐藏神经元"]
-        A["粗略逼近"]
+    subgraph FewNeurons["4 Hidden Neurons"]
+        A["Rough approximation"]
     end
-    subgraph MoreNeurons["16个隐藏神经元"]
-        B["接近逼近"]
+    subgraph MoreNeurons["16 Hidden Neurons"]
+        B["Close approximation"]
     end
-    subgraph ManyNeurons["64个隐藏神经元"]
-        C["近乎完美拟合"]
+    subgraph ManyNeurons["64 Hidden Neurons"]
+        C["Near-perfect fit"]
     end
     FewNeurons --> MoreNeurons --> ManyNeurons
 ```
 
-### 可组合性
+### 复合性
 
-神经网络是可组合的。你可以堆叠它们、串联它们、并行运行它们。Whisper 模型使用编码器网络处理音频，使用独立的解码器网络生成文本。现代 LLM 是仅解码器。BERT 是仅编码器。T5 是编码器-解码器。架构选择决定了模型能做什么。
+网络可以组合.你可以堆叠它们,链接它们,并行它们.一个Whisper模型使用编码网络来处理音频,并使用单独的编码网络来生成文本.现代的LLM仅使用编码器.BERT仅使用编码器.T5是编码器-解码器.建筑选择定义模型能做什么.
 
 ```figure
 mlp-forward
 ```
 
-## 构建它
+## 建立它
 
-纯 Python。不使用 numpy。每个矩阵操作都从零编写。
+纯粹的Python,没有,每一个矩阵操作都从头开始.
 
-### 步骤 1：Sigmoid 激活函数
+### 步骤1:Sigmoid激活
 
 ```python
 import math
@@ -164,13 +164,13 @@ def sigmoid(x):
     return 1.0 / (1.0 + math.exp(-x))
 ```
 
-钳制到 [-500, 500] 防止溢出。`math.exp(500)` 是大但有限的。`math.exp(1000)` 是无穷大。
+到500500,防止过.`math.exp(500)`它们是大但有限的.`math.exp(1000)`无限性.
 
-### 步骤 2：Layer 类
+### 步骤2:层级
 
-深度学习中最重要的操作是矩阵乘法。每一层、每个注意力头、每次正向传播——全是矩阵乘法。线性层接收输入向量，将其乘以权重矩阵，然后加上偏置向量：y = Wx + b。这个单一方程占据了神经网络 90% 的计算量。
+深度学习中最重要的操作是矩阵乘法. 每一个层,每一个注意力头,每一个前进传递,都是矩阵. 一个线性层取出输入向量,乘以重量矩阵,并添加一个偏差向量: y = Wx + b.
 
-层持有权重矩阵和偏置向量。其 forward 方法接收输入向量并返回激活后的输出。
+一层包含一个重量矩阵和一个偏向向量.它的前进方法采用一个输入向量,返回了激活的输出.
 
 ```python
 class Layer:
@@ -200,11 +200,11 @@ class Layer:
         return self.last_output
 ```
 
-权重矩阵的形状为 (n_neurons, n_inputs)。每行是一个神经元在所有输入上的权重。forward 方法遍历神经元，计算加权和加上偏置，应用 sigmoid，并收集结果。
+体重矩阵有形状 (n_neurons, n_inputs).每个行是所有输入中一个神经元的重量.前进方法通过神经元循环,计算加重的总和加偏差,应用sigmoid,收集结果.
 
-### 步骤 3：Network 类
+### 步骤3:网络类
 
-网络是层的列表。正向传播将它们串联：第 k 层的输出 feeds into 第 k+1 层。
+网络是层次列表.前进传递链接它们:层 k的输出输入到层 k+1.
 
 ```python
 class Network:
@@ -218,11 +218,11 @@ class Network:
         return current
 ```
 
-这就是整个正向传播。四行逻辑。数据进去，流经每一层，从另一侧出来。
+数据进入,流过每个层,从另一边出.
 
-### 步骤 4：用手调权重解决 XOR
+### 步骤4:XOR与手调重量
 
-在第 01 课中，我们通过组合 OR、NAND 和 AND 感知机解决了 XOR。现在用我们的 Layer 和 Network 类做同样的事情。2-2-1 架构：两个输入，两个隐藏神经元，一个输出。
+在第01课中,我们通过结合OR,NAND和AND感知符号来解决XOR.现在我们用我们的层和网络类做同样的事情. 2-2-1架构:两个输入,两个隐藏的神经元,一个输出.
 
 ```python
 hidden = Layer(
@@ -254,11 +254,11 @@ for inputs, expected in xor_data:
     print(f"  {inputs} -> {result[0]:.6f} (rounded: {predicted}, expected: {expected})")
 ```
 
-大的权重（20，-20）使 sigmoid 表现得像阶跃函数。第一个隐藏神经元近似 OR。第二个近似 NAND。输出神经元将它们组合成 AND，这就是 XOR。
+由于大重量 (20, -20) 让西格莫ид作为步骤函数.第一个隐藏的神经元接近OR.第二个接近NAND.输出神经元将它们结合为AND,这就是XOR.
 
-### 步骤 5：圆分类
+### 步骤5:圆的分类
 
-更困难的问题：将 2D 点分类为在半径为 0.5 的中心在原点的圆内或外。这需要弯曲的决策边界——对单个感知机是不可能的。
+复杂的问题是:将二维点分类为一个半径0.5的圆体内或外面,以中心于源头.这需要一个曲线的决定边界,
 
 ```python
 import random
@@ -279,7 +279,7 @@ circle_net = Network([
 ])
 ```
 
-使用随机权重，网络将无法良好分类。但正向传播仍然运行。这就是重点——正向传播只是计算。学习正确的权重是反向传播，将在课程 03 中讲解。
+随机权重的网络不会进行好分类.但前进的传递仍然运行.这是点--前进的传递只是计算.学习正确的权重是背后传播,进入课3.
 
 ```python
 correct = 0
@@ -292,11 +292,11 @@ for inputs, expected in data:
 print(f"Accuracy with random weights: {correct}/{len(data)} ({100*correct/len(data):.1f}%)")
 ```
 
-随机权重给出较差的准确率——通常比猜测多数类还差。经过训练（课程 03）后，具有 8 个隐藏神经元的相同架构将绘制一条分离内外的弯曲边界。
+随机重量给出了差的准确性,通常比估算多数类更糟. 训练后 (课3) 这个同样的结构有8个隐藏的神经元将绘制一个曲线的边界,将内部与外部分开.
 
-## 使用它
+## 用它
 
-PyTorch 用四行代码完成上述所有操作：
+皮托奇在四行中完成了以上所有工作:
 
 ```python
 import torch
@@ -314,48 +314,48 @@ output = model(x)
 print(output)
 ```
 
-`nn.Linear(2, 8)` 就是你的 Layer 类：形状为 (8, 2) 的权重矩阵，形状为 (8,) 的偏置向量。`nn.Sigmoid()` 是你的 sigmoid 函数逐元素应用。`nn.Sequential` 就是你的 Network 类：按顺序串联层。
+`nn.Linear(2, 8)`是你的层类:形状的重量矩阵 (8, 2),形状的偏向向量 (8,). `nn.Sigmoid()`它们的元素是指它们的元素.`nn.Sequential`链层顺序.
 
-区别在于速度 and 规模。PyTorch 在 GPU 上运行，处理包含数百万样本的批次，并自动计算反向传播的梯度。但正向传播逻辑与你刚刚从零构建的完全相同。
+差别在于速度和规模. PyTorch 运行在GPU上,处理数百万个样本,并自动计算向后传播的梯度.
 
-## 交付成果
+## 运送它
 
-本课程产出可用于设计网络架构的可重用 prompt：
+这一课程提供了可重复使用的网络架构设计提示:
 
 - `outputs/prompt-network-architect.md`
 
-当你需要决定给定问题应该使用多少层、每层多少神经元以及哪些激活函数时，使用它。
+需要决定每层有多少层,每个层有多少神经元,以及在特定问题上使用哪些激活功能时使用它.
 
-## 练习
+## 运动
 
-1. 构建一个 2-4-2-1 网络（两个隐藏层），并使用随机权重在 XOR 数据上运行正向传播。打印中间隐藏层的输出，观察表示如何在每一层变换。
+1. 建立一个 2-4-2-1 网络 (两个隐藏层) 并运行随机重量 XOR 数据的前传.打印中间隐藏层输出,以查看每个层中的表示如何转换.
 
-2. 将圆分类器中的隐藏层大小从 8 改为 2，然后改为 32。每次都使用随机权重运行正向传播。隐藏神经元的数量是否改变输出范围 or 分布？为什么？
+2. 通过随机重量运行前进传输. 隐藏的神经元的数量是否改变输出范围或分布? 为什么?
 
-3. 在 Network 类上实现一个 `count_parameters` 方法，返回可训练权重和偏置的总数。在 784-256-128-10 网络（经典的 MNIST 架构）上测试它。它有多少参数？
+3. 实施一个`count_parameters`网络类的方法,返回可训练的总数重量和偏差. 在784-256-128-10网络 (经典的MNIST架构) 上测试它. 它有多少参数?
 
-4. 为 3-4-4-2 网络构建正向传播。输入 RGB 颜色值（归一化到 0-1），观察两个输出。这是具有两个类别的简单颜色分类器的架构。
+4. 建立一个前进传输器为 3-4-4-2 网络. 输入它 RGB 颜色值 (正常化为 0-1) 并观察两个输出.这是一个简单的颜色分类器的架构,有两个类.
 
-5. 用"泄漏阶跃"函数替换 sigmoid：如果 z < 0 则返回 0.01 * z，否则返回 1.0。使用步骤 4 中相同的 hand-tuned 权重在 XOR 上运行正向传播。它还能工作吗？为什么平滑的 sigmoid 优于硬截断？
+5. 替换sigmoid用"漏洞步骤"函数:返回0.01 * z 如果z < 0,否则1.0.在XOR上运行前进传输,使用从步骤4的相同手调权重.它是否仍然有效?为什么更喜欢滑的sigmoid而不是硬的切断?
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|----------------|----------------------|
-| 正向传播 | "运行模型" | 将输入逐层推过——乘以权重，加偏置，激活——以产生输出 |
-| 隐藏层 | "中间部分" | 输入和输出之间的任何层，其值在数据中未直接观察 |
-| 多层网络 | "深度神经网络" | 逐序列堆叠的神经元层，每层的输出 feeds into 下一层的输入 |
-| 激活函数 | "非线性" | 在线性变换后应用的函数，在决策边界中引入曲线 |
-| Sigmoid | "S 形曲线" | sigma(z) = 1/(1+e^(-z))，将任意实数压缩到 (0,1)，处处平滑且可微 |
-| 权重矩阵 | "参数" | 形状为 (当前层神经元数, 前一层神经元数) 的矩阵 W，包含可学习的连接强度 |
-| 偏置向量 | "偏移" | 矩阵乘法后添加的向量，使神经元即使所有输入为零也能激活 |
-| 通用近似 | "神经网络能学习任何东西" | 具有足够多神经元的单个隐藏层可以逼近任何连续函数——但"足够多"可能意味着数十亿 |
-| 线性变换 | "矩阵乘法步骤" | z = W * x + b，激活前的计算，将输入映射到新空间 |
-| 决策边界 | "分类器切换的位置" | 网络输出穿越分类阈值的输入空间中的表面 |
+| Forward pass | "Running the model" | Pushing input through every layer -- multiply by weights, add bias, activate -- to produce an output |
+| Hidden layer | "The middle part" | Any layer between input and output whose values are not directly observed in the data |
+| Multi-layer network | "A deep neural network" | Layers of neurons stacked sequentially, where each layer's output feeds the next layer's input |
+| Activation function | "The nonlinearity" | A function applied after the linear transformation that introduces curves into the decision boundary |
+| Sigmoid | "The S-curve" | sigma(z) = 1/(1+e^(-z)), squashes any real number to (0,1), smooth and differentiable everywhere |
+| Weight matrix | "The parameters" | A matrix W of shape (current_layer_neurons, previous_layer_neurons) containing learnable connection strengths |
+| Bias vector | "The offset" | A vector added after the matrix multiply that lets neurons activate even when all inputs are zero |
+| Universal approximation | "Neural nets can learn anything" | A single hidden layer with enough neurons can approximate any continuous function -- but "enough" can mean billions |
+| Linear transformation | "The matrix multiply step" | z = W * x + b, the computation before activation, which maps inputs to a new space |
+| Decision boundary | "Where the classifier switches" | The surface in input space where the network output crosses the classification threshold |
 
-## 延伸阅读
+## 进一步阅读
 
-- Michael Nielsen，《Neural Networks and Deep Learning》，第 1-2 章 (http://neuralnetworksanddeeplearning.com/)——正向传播和网络结构最清晰免费的解释，配有交互式可视化
-- Cybenko，《Approximation by Superpositions of a Sigmoidal Function》(1989)——原始通用近似定理论文，出人意料地易读
-- 3Blue1Brown，《But what is a neural network?》(https://www.youtube.com/watch?v=aircAruvnKk)——20 分钟可视化逐层讲解，涵盖层、权重和正向传播，构建正确的心理模型
-- Goodfellow、Bengio、Courville，《Deep Learning》，第 6 章 (https://www.deeplearningbook.org/)——多层网络的标准参考，免费在线
+- 迈克尔·尼尔森"神经网络和深度学习",1-2章 (http://neuralnetworksanddeeplearning.com/) -- 通过前进通行和网络结构的最清晰的自由解释,
+- 赛本科,"Sigmoidal函数的超置式近似" (1989) - - 原始的普遍近似定理论文,令人惊的是可读
+- 蓝色1棕色",但神经网络是什么?"https://www.youtube.com/watch?v=aircAruvnKk通过20分钟的视觉步行,
+- 善良的同事,Bengio, Courville,"深度学习",第6章 (https://www.deeplearningbook.org/) - - 对于多层网络的标准参考,免费在线

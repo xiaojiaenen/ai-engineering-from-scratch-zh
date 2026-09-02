@@ -1,65 +1,65 @@
-# 语音活动检测与话轮控制 — Silero、Cobra 与 Flush 技巧
+# 声活动检测和转移 西勒罗,科布拉和流动技巧
 
-> 每一个语音助手都取决于两个决策：用户现在是否在说话？他们是否说完了？VAD 回答第一个问题。话轮检测（VAD + 静音延后 + 语义端点模型）回答第二个问题。任何一个出错，你的助手要么打断用户，要么喋喋不休。
+> 每个语音代理都根据两个决定生活或死亡:用户现在在说话,他们已经完成了吗?VAD回答第一个.转发检测 (VAD +沉默-置 +语义终点模型) 回答第二个.要么错误,你的助理要么关闭用户,要么永远不关闭嘴.
 
-**类型：** 构建
-**语言：** Python
-**前置要求：** 第 6 阶段 · 11（实时音频），第 6 阶段 · 12（语音助手）
-**时间：** 约 45 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 6 · 11 (Real-Time Audio), Phase 6 · 12 (Voice Assistant)
+**Time:** ~45 minutes
 
-## 问题所在
+## 问题
 
-语音助手在每个 20 ms 的音频块上做出三个独立决策：
+语音代理每20毫米分钟就会做出三个不同的决定:
 
-1. **这一帧是语音吗？** — VAD。逐帧的二元判断。
-2. **用户是否开始了新的语句？** — 起始检测。
-3. **用户是否说完了？** — 终止检测（话轮结束）。
+1. **Is this frame speech?**VAD,双式,每一个框架.
+2. **Has the user started a new utterance?** 发病的检测.
+3. **Has the user finished?**终点指向 (转向).
 
-朴素的答案（能量阈值）在任何噪声下都会失效 — 交通声、键盘声、人群嘈杂声。2026 年的答案：Silero VAD（开源、深度学习）+ 话轮检测模型（语义端点）+ 经 VAD 校准的静音延后。
+简单的答案 (能量门) 在任何噪音,键盘,人群语上都失败了. 2026 答案:Silero VAD (开放,深入学习) + 转向检测模型 (语义终点指标) + VAD校准的沉默.
 
-## 概念解析
+## 概念
 
-![VAD 级联：能量 → Silero → 话轮检测器 → flush 技巧](../assets/vad-turn-taking.svg)
+![VAD cascade: energy → Silero → turn-detector → flush trick](../assets/vad-turn-taking.svg)
 
-### 三层 VAD 级联
+### 排列三的VAD
 
-**第一层：能量门控。** 最便宜。阈值设为 -40 dBFS 的 RMS。过滤明显的静音，但会在超过阈值的任何噪声时触发。
+**Tier 1: energy gate.**最便宜的,门RMS在 -40 dBFS. 过明显的沉默,但在门以上的任何噪音上,
 
-**第二层：Silero VAD**（2020-2026，MIT 协议）。1M 参数。在 6000+ 种语言上训练。在单个 CPU 线程上运行约 30 ms 的块仅需 ~1 ms。在 5% FPR 下达到 87.7% TPR。开源默认选择。
+**Tier 2: Silero VAD**运行在一个CPU线程上每30ms块的1ms. 87.7%的TPR在5%的FPR.开源默认.
 
-**第三层：语义话轮检测器。** LiveKit 的话轮检测模型（2024-2026）或你自己的小型分类器。区分"句子中间的停顿"和"说完了"。使用语言上下文（语调 + 最近的词汇），而不仅仅是静音。
+**Tier 3: semantic turn detector.**动Kit的轮回检测模型 (2024-2026) 或您自己的小分类器. 区分"语句中暂停"和"做完谈话". 使用语言背景 (语法 + 最近的词),而不仅仅是沉默.
 
-### 关键参数及其默认值
+### 关键参数及其默认设置
 
-- **阈值。** Silero 输出概率；在 > 0.5（默认）或 > 0.3（敏感）时分类为语音。较低的阈值 = 更少的首字裁剪，更多的误报。
-- **最小语音时长。** 拒绝短于 250 ms 的语音 — 通常是咳嗽或椅子噪音。
-- **静音延后（终止检测）。** VAD 返回 0 后，等待 500-800 ms 再宣告话轮结束。太短 → 打断用户。太长 → 感觉迟钝。
-- **前滚缓冲区。** 保留 VAD 触发前 300-500 ms 的音频。防止"嘿"被截断。
+- **Threshold.**希勒罗输出一个概率;将语音分为&gt;0.5 (默认) 或&gt;0.3 (敏感).较低的门 = 减少第一词剪辑,更多的虚假积极.
+- **Minimum speech duration.**拒绝超过250 ms的语音 通常咳或椅子噪音.
+- **Silence hangover (end-pointing).**在VAD返回0后,等待500-800ms,然后宣布转换结束.太短 →打断用户.太长 →感觉缓慢.
+- **Pre-roll buffer.**在VAD发射之前保持300-500ms的音频,防止""被剪切.
 
-### Flush 技巧（Kyutai 2025）
+### 鱼的技巧 (九台2025年)
 
-流式 STT 模型具有前瞻延迟（Kyutai STT-1B 为 500 ms，STT-2.6B 为 2.5 s）。通常你需要在语音结束后等待那么长时间才能获得转录。Flush 技巧：当 VAD 触发语音结束信号时，**向 STT 发送 flush 信号**强制立即输出。STT 以约 4 倍实时速度处理，因此 500 ms 缓冲区只需约 125 ms 即可完成。
+流媒体STT模型的前进延迟 (Kyutai STT-1B的500ms,STT-2.6B的2.5s). 通常你会等待这么长时间后的演讲结束.**send a flush signal to the STT**通过4×实时处理,所以500ms缓冲器在125ms内完成.
 
-端到端：125 ms VAD + flush STT = 对话式延迟。
+终端到终端:125 ms VAD + 流动STT = 对话延迟.
 
-### 2026 年 VAD 对比
+### 2026 年的VAD比较
 
-| VAD | 5% FPR 下的 TPR | 延迟 | 许可证 |
+| VAD | TPR @ 5% FPR | Latency | License |
 |-----|--------------|---------|---------|
-| WebRTC VAD（Google，2013） | 50.0% | 30 ms | BSD |
-| Silero VAD（2020-2026） | 87.7% | ~1 ms | MIT |
-| Cobra VAD（Picovoice） | 98.9% | ~1 ms | 商业 |
-| pyannote segmentation | 95% | ~10 ms | MIT 类 |
+| WebRTC VAD (Google, 2013) | 50.0% | 30 ms | BSD |
+| Silero VAD (2020-2026) | 87.7% | ~1 ms | MIT |
+| Cobra VAD (Picovoice) | 98.9% | ~1 ms | commercial |
+| pyannote segmentation | 95% | ~10 ms | MIT-ish |
 
-Silero 是正确的默认选择。Cobra 是合规性 / 精度的升级。仅靠能量的 VAD 在 2026 年的生产环境中没有立足之地。
+果是正确的默认. 科布拉是合规性/精度升级. 仅能VAD在2026年生产没有地方.
 
 ```figure
 sp-vad-cascade
 ```
 
-## 构建它
+## 建立它
 
-### 步骤 1：能量门控
+### 步骤1:能源门
 
 ```python
 def energy_vad(chunk, threshold_dbfs=-40.0):
@@ -68,7 +68,7 @@ def energy_vad(chunk, threshold_dbfs=-40.0):
     return dbfs > threshold_dbfs
 ```
 
-### 步骤 2：Python 中的 Silero VAD
+### 步骤 2: 在 Python 中使用 Silero VAD
 
 ```python
 from silero_vad import load_silero_vad, get_speech_timestamps
@@ -86,7 +86,7 @@ for s in segments:
     print(f"{s['start']/16000:.2f}s - {s['end']/16000:.2f}s")
 ```
 
-### 步骤 3：话轮结束状态机
+### 步骤3:转端状态机
 
 ```python
 class TurnDetector:
@@ -113,7 +113,7 @@ class TurnDetector:
         return None
 ```
 
-### 步骤 4：flush 技巧骨架
+### 步骤4: 鱼技巧骨架
 
 ```python
 def flush_on_end(stt_client, audio_buffer):
@@ -122,56 +122,56 @@ def flush_on_end(stt_client, audio_buffer):
     return stt_client.recv_transcript(timeout_ms=150)
 ```
 
-STT（Kyutai、Deepgram、AssemblyAI）必须支持 flush 才能正常工作。Whisper 流式处理不支持 — 它是基于块的，总是等待块完成。
+为了实现这一目标,STT (Kyutai,Deepgram,AssemblyAI) 必须支持flush.
 
-## 使用它
+## 用它
 
-| 场景 | VAD 选择 |
+| Situation | VAD choice |
 |-----------|-----------|
-| 开源、快速、通用场景 | Silero VAD |
-| 商业呼叫中心 | Cobra VAD |
-| 设备端（手机） | Silero VAD ONNX |
-| 研究 / 说话人分离 | pyannote segmentation |
-| 零依赖回退方案 | WebRTC VAD（遗留） |
-| 需要高质量话轮终止 | Silero + LiveKit 话轮检测器分层 |
+| Open, fast, general | Silero VAD |
+| Commercial call center | Cobra VAD |
+| On-device (phone) | Silero VAD ONNX |
+| Research / diarization | pyannote segmentation |
+| Zero-dependency fallback | WebRTC VAD (legacy) |
+| Need turn-ending quality | Silero + LiveKit turn-detector layered |
 
-经验法则：除非真的没有其他选择，否则不要发布仅靠能量的 VAD。
+指规则:除非你真的没有其他选择,否则,永远不要运送纯能动的VAD.
 
-## 陷阱
+## 陷
 
-- **固定阈值。** 在安静环境下有效，在嘈杂环境下失效。要么在设备上校准，要么切换到 Silero。
-- **静音延后太短。** 助手在句子中间打断用户。500-800 ms 是对话式语音的最佳区间。
-- **静音延后太长。** 感觉迟钝。与目标用户进行 A/B 测试。
-- **没有前滚缓冲区。** 用户音频的前 200-300 ms 丢失。始终保留滚动前滚缓冲区。
-- **忽略语义端点检测。** "嗯，让我想想..." 包含长停顿。用户讨厌被中途打断。使用 LiveKit 的话轮检测器或类似方案。
+- **Fixed threshold.**机器在安静状态下工作,噪音时失败.
+- **Too-short silence hangover.**代理打断句子中. 500-800ms是谈话的最好地方.
+- **Too-long hangover.**对于目标用户来说,A/B测试.
+- **No pre-roll buffer.**首先,用户的音频输出200-300ms,总是保持滚动前滚动.
+- **Ignoring semantic endpointing.**"让我思考"...包含长时间的暂停.用户讨厌被停留在思考中.使用LiveKit的转换探测器或类似.
 
-## 交付
+## 运送它
 
-保存为 `outputs/skill-vad-tuner.md`。为特定工作负载选择 VAD 模型、阈值、延后时间、前滚缓冲区和话轮检测策略。
+保存如`outputs/skill-vad-tuner.md`选择VAD模型,门,,预滚和转变检测策略.
 
-## 练习
+## 运动
 
-1. **简单。** 运行 `code/main.py`。它模拟了语音 + 静音 + 语音 + 咳嗽的序列，并测试三个 VAD 层级。
-2. **中等。** 安装 `silero-vad`，处理 5 分钟录音，调整阈值以最小化首字裁剪和误触发。报告精确率和召回率。
-3. **困难。** 构建一个迷你话轮检测器：Silero VAD + 基于最近 10 个词嵌入的 3 层 MLP（使用 sentence-transformers）。在手标注的话轮结束数据集上训练。以 10% F1 超过仅用 Silero 的方案。
+1. **Easy.**跑步`code/main.py`它模拟了语音+沉默+语音+咳序列,并测试了三个VAD级别.
+2. **Medium.**安装`silero-vad`通过5分钟的录音,调整门以尽量减少第一字剪辑和错误触发.
+3. **Hard.**建立一个小型转换检测器:Silero VAD + 在最后10个字的嵌入式上进行3层MLP (使用句子转换器).使用手动标记的转换端数据集训练.仅打败Silero-F110%
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们常说的 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|-----------------------|
-| VAD | 语音检测器 | 逐帧二元判断：这是语音吗？ |
-| 话轮检测 | 终止检测 | VAD + 静音延后 + 语义端点。 |
-| 静音延后 | 说话后的等待 | 宣告话轮结束前等待的时间；500-800 ms。 |
-| 前滚 | 语音前缓冲区 | 在 VAD 触发前保留 300-500 ms 音频。 |
-| Flush 技巧 | Kyutai 黑魔法 | VAD → flush-STT → 125 ms 而非 500 ms 延迟。 |
-| 语义端点 | "他们是想停下来吗？" | ML 分类器，看的是词汇而不仅仅是静音。 |
-| 5% FPR 下的 TPR | ROC 点 | 标准 VAD 基准测试；Silero 为 87.7%，WebRTC 为 50%。 |
+| VAD | Voice detector | Binary per-frame: is this speech? |
+| Turn detection | End-pointing | VAD + silence-hangover + semantic endpoint. |
+| Silence hangover | Wait-after-speech | Time to wait before declaring turn end; 500-800 ms. |
+| Pre-roll | Pre-speech buffer | Keep 300-500 ms audio before VAD fires. |
+| Flush trick | Kyutai hack | VAD → flush-STT → 125 ms instead of 500 ms delay. |
+| Semantic endpoint | "Did they mean to stop?" | ML classifier that looks at words, not just silence. |
+| TPR @ FPR 5% | ROC point | Standard VAD benchmark; 87.7% for Silero, 50% WebRTC. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Silero VAD](https://github.com/snakers4/silero-vad) — 参考开源 VAD。
-- [Picovoice Cobra VAD](https://picovoice.ai/products/cobra/) — 商业精度领先者。
-- [Kyutai — Unmute + flush 技巧](https://kyutai.org/stt) — 亚 200 ms 工程技巧。
-- [LiveKit — 话轮检测](https://docs.livekit.io/agents/logic/turns/) — 生产环境中的语义端点检测。
-- [WebRTC VAD](https://webrtc.googlesource.com/src/) — 遗留基线。
-- [pyannote segmentation](https://github.com/pyannote/pyannote-audio) — 说话人分离级分段。
+- [Silero VAD](https://github.com/snakers4/silero-vad) 参考开放的VAD.
+- [Picovoice Cobra VAD](https://picovoice.ai/products/cobra/)商业精度领先者.
+- [Kyutai — Unmute + flush trick](https://kyutai.org/stt)200ms下级工程技巧.
+- [LiveKit — turn detection](https://docs.livekit.io/agents/logic/turns/)生产中的语义终点.
+- [WebRTC VAD](https://webrtc.googlesource.com/src/)遗产基线.
+- [pyannote segmentation](https://github.com/pyannote/pyannote-audio)日记级分类.

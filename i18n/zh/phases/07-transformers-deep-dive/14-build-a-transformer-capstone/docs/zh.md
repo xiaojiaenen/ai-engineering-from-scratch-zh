@@ -1,95 +1,95 @@
-# 从零构建 Transformer —— 最终项目
+# 创建一个变压器从零开始  石头
 
-> 十三节课。一个模型。不走捷径。
+> 十三课,一个模型,没有快捷方式.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** Phase 7 · 01 至 13。不要跳过。
-**时间：** 约 120 分钟
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 7 · 01 through 13. Don't skip.
+**Time:** ~120 minutes
 
 ## 问题
 
-你已经读完了所有论文。你已经实现了注意力机制、多头分解、位置编码、编码器和解码器块、BERT 和 GPT 损失、MoE、KV cache。现在把它们组合起来，在一个真实任务上协同工作。
+你已经读过每篇论文,你已经实现了注意力,多头分区,位置编码,编码和解码区块,BERT和GPT损失,MoE,KV缓存.现在让它们一起完成一个真正的任务.
 
-最终项目：在字符级语言建模任务上端到端训练一个小型 decoder-only transformer。它阅读莎士比亚，它生成新的莎士比亚文本。它足够小，可以在笔记本电脑上 10 分钟内完成训练。它足够正确，换用更大的数据集和更长的训练时间，你就能得到一个真正的语言模型。
+终点:训练一个小的单独解码器变压器端到端进行角色级语言建模任务.它读出莎士比亚.它生成了新的莎士比亚.它足够小,以在10分钟内在笔记本电脑上训练.它足够正确,更大的数据集和更长的训练交换给你一个真正的LM.
 
-这就是本课程的"nanoGPT"。它并非原创——Karpathy 的 2023 nanoGPT 教程是每个学生至少会写一次的参考实现。我们拔高了难度并围绕已讲内容重新设计。
+卡帕蒂的2023年纳米GPT教程是每个学生至少写一次的参考实现.我们把形状抬起,重新整理了我们所覆盖的内容.
 
 ## 概念
 
-![从零构建 Transformer 框图](../assets/capstone.svg)
+![Transformer-from-scratch block diagram](../assets/capstone.svg)
 
-带标注的架构：
+建筑,注释:
 
 ```
-输入 token (B, N)
+input tokens (B, N)
    │
    ▼
-token embedding + positional embedding  ◀── 第 04 课 (可选 RoPE)
+token embedding + positional embedding  ◀── Lesson 04 (RoPE option)
    │
    ▼
 ┌──── block × L ────────────────────┐
-│  RMSNorm                          │  ◀── 第 05 课
-│  MultiHeadAttention (causal)      │  ◀── 第 03 课 + 第 07 课 (causal mask)
+│  RMSNorm                          │  ◀── Lesson 05
+│  MultiHeadAttention (causal)      │  ◀── Lesson 03 + 07 (causal mask)
 │  residual                         │
 │  RMSNorm                          │
-│  SwiGLU FFN                       │  ◀── 第 05 课
+│  SwiGLU FFN                       │  ◀── Lesson 05
 │  residual                         │
 └────────────────────────────────── ┘
    │
    ▼
-最终 RMSNorm
+final RMSNorm
    │
    ▼
-lm_head（与 token embedding 共享权重）
+lm_head (tied to token embedding)
    │
    ▼
 logits (B, N, V)
    │
    ▼
-移位一位交叉熵                  ◀── 第 07 课
+shift-by-one cross-entropy            ◀── Lesson 07
 ```
 
-### 我们将交付
+### 我们运送的东西
 
-- `GPTConfig` —— 一个地方配置所有超参数。
-- `MultiHeadAttention` —— causal，batched，可选 Flash-style 路径（PyTorch 的 `scaled_dot_product_attention`）。
-- `SwiGLUFFN` —— 现代 FFN。
-- `Block` —— pre-norm，残差包裹的 attention + FFN。
-- `GPT` —— embeddings，堆叠 blocks，LM head，generate()。
-- 带 AdamW、cosine LR、梯度裁剪的训练循环。
-- Shakespeare 文本上的字符级 tokenizer。
+- `GPTConfig`一个配置所有超参数的地方.
+- `MultiHeadAttention`因果性,批量,可选的闪光式路径 (PyTorch的) `scaled_dot_product_attention`)
+- `SwiGLUFFN`现代的FFN.
+- `Block`预规,残留包装注意力+FFN.
+- `GPT`嵌入式,堆积式块,LM头,生成().
+- 训练循环与亚当W,数 LR,梯度剪切.
+- 对于莎士比亚的文字.
 
-### 我们不交付
+### 我们不送什么东西
 
-- RoPE —— 在第 04 课中已在概念上实现。这里为简单起见使用学习型位置编码。练习要求你换入 RoPE。
-- 生成时的 KV cache —— 每个生成步骤都对完整前缀重新计算 attention。较慢但更简单。练习要求你添加 KV cache。
-- Flash Attention —— PyTorch 2.0+ 在输入匹配时会自动分派；我们使用 `F.scaled_dot_product_attention`。
-- MoE —— 每个 block 使用单一 FFN。你在第 11 课已见过 MoE。
+- 在课程04中概念上实现了 RoPE.在这里我们使用学习的位置嵌入式来简单化.
+- 随着生成的过程中,每个生成步骤重新计算注意力.慢慢,但更简单.练习要求你添加一个KV缓存.
+-  PyTorch 2.0+ 自动发送,如果输入相匹配,我们使用`F.scaled_dot_product_attention`现在,我们要去.
+- 单个FFN每块.你在第11课中看过MoE.
 
 ### 目标指标
 
-在 Mac M2 笔记本电脑上，一个 4 层、4 头、d_model=128 的 GPT，在 `tinyshakespeare.txt` 上训练 2,000 步：
+在MacM2笔记本电脑上,一个四层,四头,d_model=128GPT训练了2000步`tinyshakespeare.txt`其他:
 
-- 训练损失从 ~4.2（随机）收敛到约 ~1.5，耗时约 6 分钟。
-- 采样输出看起来有莎士比亚风格：古语、换行、"ROMEO:" 等proper names 会浮现。
-- 验证损失（留出的最后 10% 文本）与训练损失紧密跟踪；在此规模/预算下不过拟合。
+- 训练损失约6分钟内从4.2 (随机) 降至1.5分钟.
+- 采样产品看起来像莎士比亚:古老的词,线条断裂,像"ROMEO:"这样的名字出现.
+- 值损失 (最后10%的文本被保留) 密切跟踪训练损失;在这个规模/预算上没有过度适应.
 
 ```figure
 n5-block-stack
 ```
 
-## 构建
+## 建立它
 
-本课使用 PyTorch。安装 `torch`（CPU 版本即可）。见 `code/main.py`。脚本处理：
+这堂课使用PyTorch.`torch`现在,我们可以在这个地方做什么?`code/main.py`剧本处理:
 
-- 缺失时下载 `tinyshakespeare.txt`（或读取本地副本）。
-- Byte-level 字符 tokenizer。
-- 90/10 的 train/val 划分。
-- 在支持硬件上使用 bf16 autocast 的训练循环。
-- 训练完成后采样。
+- 下载`tinyshakespeare.txt`如果没有 (或阅读本地副本).
+- 字节级卡标记器.
+- 列车/车间分为90/10.
+- 训练循环,在支持的硬件上自动播放 bf16.
+- 训练结束后,
 
-### 步骤 1：数据
+### 步骤1:数据
 
 ```python
 text = open("tinyshakespeare.txt").read()
@@ -100,15 +100,15 @@ encode = lambda s: [stoi[c] for c in s]
 decode = lambda xs: "".join(itos[x] for x in xs)
 ```
 
-65 个独特字符。极小词汇表。4 字节 vocab_size 足够。不需要 BPE，不需要 tokenizer 折腾。
+只有65个字符,有很小的词汇,可以用4字节的词汇,没有BPE,没有标记器戏剧.
 
-### 步骤 2：模型
+### 步骤2:模型
 
-见 `code/main.py`。block 来自第 05 课的教科书实现 —— pre-norm，RMSNorm，SwiGLU，causal MHA。4/4/128 的参数规模约 800K。
+看到`code/main.py`区块是课05 预规,RMSNorm,SwiGLU,因果MHA的教科书.
 
-### 步骤 3：训练循环
+### 步骤3:训练循环
 
-取一个长度为 256 的随机 token 窗口批次。前向传播。移位一位交叉熵。反向传播。AdamW step。记录。重复。
+随机取长度-256个标志窗户,向前,转变为一个,反向,亚当W步骤,记录,重复.
 
 ```python
 for step in range(max_steps):
@@ -121,13 +121,13 @@ for step in range(max_steps):
     opt.zero_grad()
 ```
 
-### 步骤 4：采样
+### 步骤4:样本
 
-给定 prompt，反复前向传播，从 top-p logits 中采样，追加并继续。500 个 token 后停止。
+给出提示,反复转发,从顶部p登录中取样,添加,然后继续.
 
-### 步骤 5：阅读输出
+### 步骤5:读取输出
 
-训练 2,000 步后：
+在2000步后:
 
 ```
 ROMEO:
@@ -136,43 +136,43 @@ The chief that well shame and hath been his friends,
 ...
 ```
 
-不是莎士比亚。但具有莎士比亚形态。对于约 800K 参数和笔记本电脑上 6 分钟的训练来说，这是一个明显的胜利。
+没有莎士比亚,但莎士比亚形状, 赢得了800万个参数和6分钟的笔记本电脑.
 
-## 使用
+## 用它
 
-这个最终项目是一个参考架构。三个扩展方向让它变得真实：
+这块顶石是参考架构,有三个扩展,
 
-1. **换掉 tokenizer。** 使用 BPE（如 `tiktoken.get_encoding("cl100k_base")`）。词汇量从 65 跳到约 50,000。模型容量需要相应放大以弥补。
-2. **在更大的语料上训练。** 使用 `OpenWebText` 或 `fineweb-edu`（HuggingFace）。在单卡 A100 上，125M 参数的 GPT 训练 10B token 约需 24 小时。
-3. **加入 RoPE + KV cache + Flash Attention。** 下面的练习会逐步引导你完成每项。
+1. **Swap the tokenizer.**使用BPE (例如:`tiktoken.get_encoding("cl100k_base")`字母尺寸从65升至5万. 模型容量需要扩大,以补偿.
+2. **Train on a bigger corpus.**使用`OpenWebText`或`fineweb-edu`单个A100上的10B代币需要24小时才能实现125M的GPT.
+3. **Add RoPE + KV cache + Flash Attention.**下面的练习将你通过每一个.
 
-最终成为一个 125M 参数的 GPT，生成流畅英语。不是前沿模型。但相同的代码路径——只是更大——就是 Karpathy、EleutherAI 和 Allen Institute 在 2026 年训练研究 checkpoint 所用的代码。
+这最终成为一个125M参数GPT,产生流利的英语.不是一个边界模型.但同样的代码路径只是更大是卡帕蒂,埃勒艾伊和艾伦研究所在2026年用来训练研究检查站.
 
-## 交付
+## 运送它
 
-见 `outputs/skill-transformer-review.md`。该 skill review 评估从头构建的 transformer 实现是否在所有 13 节先修课上都正确。
+看到`outputs/skill-transformer-review.md`技能检查了所有13个上课的变压器从零开始实施的正确性.
 
-## 练习
+## 运动
 
-1. **简单。** 运行 `code/main.py`。验证你的训练模型最终步的验证损失低于 2.0。将 `max_steps` 从 2,000 改为 5,000 —— val loss 是否持续下降？
-2. **中等。** 用 RoPE 替换学习型位置编码。在 `MultiHeadAttention` 内部对 Q 和 K 施加旋转。训练并验证 val loss 至少相当。
-3. **中等。** 在采样循环中实现 KV cache。有和无 cache 各生成 500 个 token。在笔记本电脑上 wall-clock 时间应提升 5–20 倍。
-4. **困难。** 为模型添加第二个头，预测 next-plus-one token（MTP —— 来自 DeepSeek-V3 的多令牌预测）。联合训练。是否有帮助？
-5. **困难。** 用 4-expert MoE 替换每个 block 的单一 FFN。Router + top-2 routing。观察在匹配 active parameters 下 val loss 的变化。
+1. **Easy.**跑步`code/main.py`检查您训练有素的模型最后一步验证损失低于2.0. 改变`max_steps`                                                                                                                                                                                                                                                              
+2. **Medium.**取代学习的位置嵌入式用RoPE. 应用转换到Q和K内部`MultiHeadAttention`列车和验证的值损失至少同样低.
+3. **Medium.**通过测试,在测试循环中实现KV缓存. 生成500个代币,无论是没有缓存. 笔记本电脑的墙钟应该提高520x.
+4. **Hard.**加入第二个头到模型中,预测下一个加一个代币 (MTP 从DeepSeek-V3的多代币预测).
+5. **Hard.**换取每块单个FFN用4个专家MoE.路由器+顶-2路由器.看看在匹配的活跃参数时的值损失变化.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| nanoGPT | "Karpathy 的教程仓库" | 最小化 decoder-only transformer 训练代码，约 300 行；标准参考实现。 |
-| tinyshakespeare | "标准玩具语料库" | 约 1.1 MB 文本；2015 年以来的每个 character-LM 教程都使用它。 |
-| Tied embeddings | "共享输入/输出矩阵" | LM head 权重 = token embedding 矩阵的转置；节省参数，提升质量。 |
-| bf16 autocast | "训练精度技巧" | 前向/反向在 bf16 下运行，优化器状态保持在 fp32；2021 年以来的标准做法。 |
-| Gradient clipping | "阻止尖峰" | 将全局梯度范数上限设为 1.0；防止训练爆炸。 |
-| Cosine LR schedule | "2020+ 默认选择" | LR 线性上升（warmup）后按余弦形状衰减至峰值的 10%。 |
-| MFU | "模型 FLOP 利用率" | 实际 FLOPs / 理论峰值；2026 年 40% dense、30% MoE 算是不错。 |
-| Val loss | "留集损失" | 模型从未见过的数据上的交叉熵；过拟合检测器。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| nanoGPT | "Karpathy's tutorial repo" | Minimal decoder-only transformer training code, ~300 LOC; the canonical reference. |
+| tinyshakespeare | "The standard toy corpus" | ~1.1 MB of text; every character-LM tutorial since 2015 uses it. |
+| Tied embeddings | "Share input/output matrix" | LM head weight = transpose of token embedding matrix; saves parameters, improves quality. |
+| bf16 autocast | "Training precision trick" | Run forward/back in bf16, keep optimizer state in fp32; standard since 2021. |
+| Gradient clipping | "Stops spikes" | Cap global grad norm at 1.0; prevents training blowups. |
+| Cosine LR schedule | "The 2020+ default" | LR ramps up linearly (warmup) then decays cosine-shaped to 10% of peak. |
+| MFU | "Model FLOP Utilization" | Achieved FLOPs / theoretical peak; 40% dense, 30% MoE is strong in 2026. |
+| Val loss | "Held-out loss" | Cross-entropy on data the model never saw; overfit detector. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [The Annotated Transformer (Harvard NLP)](https://nlp.seas.harvard.edu/annotated-transformer/) —— 经典标注实现。
+- [The Annotated Transformer (Harvard NLP)](https://nlp.seas.harvard.edu/annotated-transformer/)经典的注释实施.

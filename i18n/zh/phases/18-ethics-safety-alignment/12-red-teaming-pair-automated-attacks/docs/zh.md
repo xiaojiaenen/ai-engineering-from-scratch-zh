@@ -1,111 +1,111 @@
-# 红队测试：PAIR 与自动化攻击
+# 红队:双重和自动攻击
 
-> Chao, Robey, Dobriban, Hassani, Pappas, Wong (NeurIPS 2023, arXiv:2310.08419)。PAIR——Prompt Automatic Iterative Refinement（提示自动迭代优化）——是规范的自动化黑盒越狱方法。攻击者 LLM 携带红队系统提示，迭代为被攻击目标 LLM 生成越狱提示，并在自身对话历史中累积尝试与响应，作为上下文反馈。PAIR 通常在 20 次查询内即可成功，比 GCG（Zou 等人的词元级梯度搜索）高效数量级，且无需白盒访问。PAIR 现已成为 JailbreakBench（arXiv:2404.01318）和 HarmBench 中的标准基线，与 GCG、AutoDAN、TAP 和 Persuasive Adversarial Prompt（说服性对抗提示）并列。
+> 查奥,罗贝,多布里班,哈萨尼,帕帕斯, (NeurIPS 2023, arXiv:2310.08419). 简单自动反复精炼是可行的自动黑盒 jailbreak. 攻击者 LLM 具有红队系统提示,反复提出了目标 LLM 的 jailbreaks, 积累了尝试和回应在自己的聊天历史作为在背景反.  PAIR 通常在20个查询内成功,比GCG更有效率的大小顺序 (Zou等的代币级梯度搜索) 现在,PAIR是JailbreakBench (arXiv:2404.01318) 和HarmBench的标准基线,与GCG,AutoDAN,TAP和说服性对抗提示一起.
 
-**类型：** 构建
-**语言：** Python（标准库，针对玩具目标模拟 PAIR 循环）
-**前置要求：** 第 18 阶段 · 01（指令遵循）、第 14 阶段（智能体工程）
-**时间：** 约 75 分钟
+**Type:** Build
+**Languages:** Python (stdlib, mock PAIR loop against a toy target)
+**Prerequisites:** Phase 18 · 01 (instruction-following), Phase 14 (agent engineering)
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 描述 PAIR 算法：攻击者系统提示、迭代优化、上下文反馈。
-- 解释为何在目标为黑盒时 PAIR 严格优于 GCG。
-- 列举四种其他自动化攻击基线（GCG、AutoDAN、TAP、PAP）并说明各自的区分特征。
-- 描述 JailbreakBench 和 HarmBench 的评估协议，以及"攻击成功率"在各自协议下的含义。
+- 描述PAIR算法:攻击者系统提示,反复精炼,在文本中的反.
+- 解释为什么PAIR在黑盒中具有更高效效率,而不是GCG.
+- 举个其他四个自动攻击基线 (GCG,AutoDAN,TAP,PAP) 并列出每个基线的一个特征.
+- 描述JailbreakBench和HarmBench评估协议以及"攻击成功率"在每个协议中意味着什么.
 
-## 问题背景
+## 问题
 
-红队测试曾是手工活动。少量专家测试员构造对抗性提示并记录哪些有效。这无法扩展：攻击成功率需要统计样本，且每次模型发布目标都会变化。PAIR 将红队测试转化为对黑盒目标的优化问题。
+红团队使用的是手动活动.少数专家测试人员构建了对抗提示,并跟踪了哪些提示有效.这并不扩展:攻击成功率需要统计样本,目标每次发布模型都会是移动目标. PAIR将红团队作为一个黑盒目标的优化问题.
 
 ## 概念
 
-### PAIR 算法
+### 双价算法
 
-输入：
-- 目标 LLM T（被攻击的模型）。
-- 裁判 LLM J（评分判断响应是否构成越狱）。
-- 攻击者 LLM A（红队优化器）。
-- 目标字符串 G："以 [有害指令] 作答。"
-- 预算 K（通常为 20 次查询）。
+输入:
+- 目标是我们攻击的模型.
+- 法官LLMJ (评分是否是逃犯).
+- 攻击者LLMA (红队优化器).
+- 目标字符串G: "用 [有害指令] 响应".
+- 预算K (通常是20个查询).
 
-循环，k 从 1 到 K：
-1. 向 A 输入目标 G 及迄今为止的（提示，响应）对历史。
-2. A 生成新提示 p_k。
-3. 将 p_k 提交给 T；收到响应 r_k。
-4. J 对目标对 (p_k, r_k) 进行评分。
-5. 若评分 >= 阈值，停止——找到越狱。
-6. 否则，将 (p_k, r_k) 追加到 A 的历史中；继续。
+循环,为 k 在 1..K:
+1. 提示A是目标G和迄今为止 (快速,反应) 对的历史.
+2. 发出一个新的提示.
+3. 提交p_k到T;收到回复r_k.
+4. 进球的J得分 (p_k,r_k).
+5. 如果得分 >= 门,停止被发现的 jailbreak.
+6. 否则,将 (p_k, r_k) 添加到A的历史记录中;继续.
 
-实证结果（NeurIPS 2023）：对 GPT-3.5-turbo、Llama-2-7B-chat 的攻击成功率 >50%；平均成功查询次数在 10-20 范围内。
+经验结果 (NeurIPS 2023):针对GPT-3.5-turbo,Llama-2-7B-chat的攻击成功率超过50%;平均查询在10-20范围内的成功.
 
-### 为何 PAIR 高效
+### 为什么PAIR有效
 
-GCG（Zou 等，2023）通过对对抗性词元后缀进行梯度搜索；需要白盒模型访问，且生成不可读的后缀。PAIR 是黑盒的，生成自然语言攻击并可跨模型迁移。PAIR 的上下文反馈让攻击者能从每次拒绝中学习；GCG 没有等效机制（每次新的词元更新必须重新发现先前进展）。
+GCG (Zou et al. 2023) 根据梯度搜索对抗代币后;它需要白盒模型访问并产生不可读的后. PAIR 是黑盒,并产生跨模型传输的自然语言攻击. PAIR 的文本反使攻击者从每个拒绝中学习; GCG 没有等效 (每个新的代币更新都必须重新发现以前的进展).
 
-### 相关自动化攻击
+### 相关自动攻击
 
-- **GCG（Zou 等，2023，arXiv:2307.15043）**。词元级梯度搜索对抗性后缀。白盒、可迁移、生成不可读字符串。
-- **AutoDAN（Liu 等，2023）**。在提示上执行进化搜索，由分层目标引导。
-- **TAP（Mehrotra 等，2024）**。带剪枝的攻防树——分支多个 PAIR 式 rollout。
-- **PAP（Zeng 等，2024）**。说服性对抗提示——将人类说服技术编码为提示模板。
+- **GCG (Zou et al. 2023, arXiv:2307.15043).**对于对抗后的代码,代码级梯度搜索. 白盒,可转移,产生不可读的字符串.
+- **AutoDAN (Liu et al. 2023).**进化搜索提示,由一个层次性的目标指导.
+- **TAP (Mehrotra et al. 2024).**枝的树攻击,多个 PAIR 式推广.
+- **PAP (Zeng et al. 2024).**强迫对抗提示 编码人类说服技术作为强迫模板.
 
-### JailbreakBench 与 HarmBench
+### 监狱破裂 和
 
-两者（2024）标准化评估：
+两者 (2024) 均标准化评估:
 
-- JailbreakBench（arXiv:2404.01318）。10 个 OpenAI 政策类别下的 100 种有害行为。攻击成功率（ASR）作为主要指标。需要裁判（GPT-4-turbo、Llama Guard 或 StrongREJECT）。
-- HarmBench（Mazeika 等，2024）。7 个类别下的 510 种行为，含语义和功能危害测试。比较 18 种攻击与 33 个模型。
+- 监狱破裂Bench (arXiv:2404.01318). 100 种有害行为在 10 种OpenAI政策类别中.攻击成功率 (ASR) 作为主要指标.需要法官 (GPT-4-turbo,Llama Guard或StrongREJECT).
+- 哈姆本奇 (Mazeika et al. 2024). 通过语义和功能损害测试,在7个类别中进行了510项行为.
 
-ASR 通常在固定查询预算下报告。比较攻击需匹配预算；200 次查询下 90% 的 ASR 与 20 次查询下 85% 的 ASR 不可比。
+对于比较攻击,需要相匹配的预算;在200个查询中,90%的ASR与20个中,85%的ASR是不相比的.
 
-### 为何对 2026 年部署重要
+### 对于2026年部署重要原因
 
-每个前沿实验室现在都在模型发布前对生产模型运行 PAIR 和 TAP。ASR 轨迹出现在模型卡片（第 26 课）和安全案例附录（第 18 课）中。该攻击并非特例——已是标准基础设施。
+现在每个边境实验室都在发布前对生产模型进行了PAIR和TAP.ASR轨迹在模型卡 (课 26) 和安全案例附件 (课 18) 中出现.攻击不是异国主义的.
 
-### 本内容在第 18 阶段中的位置
+### 在这个阶段的第18阶段
 
-第 12 课是自动化攻击基础。第 13 课（多 shot 越狱）是互补的长度利用方法。第 14 课（ASCII 艺术/视觉）是编码攻击。第 15 课（间接提示注入）是 2026 年生产攻击面。第 16 课涵盖防御工具对应方案（Llama Guard、Garak、PyRIT）。
+课12是自动攻击的基础.课13 (多枪打开监狱) 是一个补充长度利用.课14 (ASCII艺术/视觉) 是一个编码攻击.课15 (间接即时注射) 是2026年生产攻击表面.课16涵盖防御工具对手 (Llama Guard,Garak,PyrIT).
 
 ```figure
 al-pair-loop
 ```
 
-## 使用它
+## 用它
 
-`code/main.py` 构建了一个玩具 PAIR 循环。目标是拟分类器，拒绝"明显"有害提示（关键词过滤）。攻击者是基于规则的优化器，尝试改写、角色扮演框架和编码。观察攻击者在 ~5-15 次迭代中突破关键词过滤器，但对语义过滤器失败。
+`code/main.py`攻击者是基于规则的精炼器,试图对外表,角色扮演框架和编码.法官评分响应.你看着攻击者成功在关键词过器的5-15次反复,而失败在语义过器的反复.
 
-## 交付产物
+## 运送它
 
-本课产出 `outputs/skill-attack-audit.md`。给定一份红队评估报告，审计：运行了哪些攻击（PAIR、GCG、TAP、AutoDAN、PAP），每种攻击的预算是多少，使用哪个裁判，针对哪组有害行为（JailbreakBench、HarmBench、内部数据集）。
+这一课产生了`outputs/skill-attack-audit.md`根据红队评估报告,它审计了哪些攻击 (PAIR,GCG,TAP,AutoDAN,PAP),每一次攻击的预算,哪个法官,哪些危害行为 (JailbreakBench,HarmBench,内部).
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。测量三种内置攻击策略的平均成功查询次数。解释每种策略利用了哪种目标防御假设。
+1. 跑步`code/main.py`测量三个内置攻击策略的平均求成绩. 解释每个目标防御假设是什么.
 
-2. 实现第四种攻击策略（例如，翻译为其他语言、base64 编码）。报告针对关键词过滤器目标和语义过滤器目标的新平均成功查询次数。
+2. 执行第四个攻击策略 (例如,翻译到另一个语言,Base64编码). 报告新的平均成功查询与关键字过目标和语义过目标.
 
-3. 阅读 Chao 等 2023 Figure 5（PAIR 与 GCG 对比）。描述两种即使在 PAIR 效率优势下仍优先选择 GCG 的场景。
+3. 阅读查奥等人. 2023 年 5 张 (PAIR 与 GCG 比较).描述了尽管 PAIR 效率优势,但 GCG 偏好的两个场景.
 
-4. JailbreakBench 针对固定目标集报告 ASR。设计一个衡量攻击多样性（成功提示的方差）的附加指标。解释为何多样性对防御评估重要。
+4. 根据该数据,该数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据的数据.
 
-5. TAP（Mehrotra 2024）在 PAIR 基础上增加了分支 + 剪枝。草图化 TAP 式扩展到 `code/main.py`，并描述计算成本与成功率之间的权衡。
+5. 通过分支+剪切,TAP (Mehrotra 2024) 扩展 PAIR.`code/main.py`描述计算成本与成功率的交换.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
-|------|-------------------|-------------------|
-| PAIR | "自动化越狱" | Prompt Automatic Iterative Refinement；攻击者 LLM + 裁判 LLM 循环 |
-| GCG | "梯度越狱" | 白盒词元级梯度搜索对抗性后缀 |
-| 攻击成功率（ASR） | "k 次查询下的越狱百分比" | 主要指标；必须附带查询预算和裁判身份报告 |
-| 裁判 LLM | "评分器" | 评分响应是否满足有害目标的 LLM |
-| JailbreakBench | "评估基准" | 带标签类别的标准有害行为集 |
-| HarmBench | "更广泛的基准" | 510 种行为，功能 + 语义危害测试 |
-| TAP | "攻击树" | 带分支 + 剪枝的 PAIR；更高计算量下更好的 ASR |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| PAIR | "automated jailbreak" | Prompt Automatic Iterative Refinement; attacker-LLM + judge-LLM loop |
+| GCG | "gradient jailbreak" | White-box token-level gradient search for adversarial suffixes |
+| Attack success rate (ASR) | "% jailbreaks at k queries" | Primary metric; must be reported with query budget and judge identity |
+| Judge LLM | "the scorer" | LLM that grades whether a response satisfies the harmful goal |
+| JailbreakBench | "the evaluation" | Standardized harmful-behaviour set with tagged categories |
+| HarmBench | "the broader bench" | 510 behaviours, functional + semantic harm tests |
+| TAP | "tree of attacks" | PAIR with branching + pruning; better ASR at higher compute |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Chao 等 — 在二十次查询内越狱黑盒 LLM（arXiv:2310.08419）](https://arxiv.org/abs/2310.08419) — PAIR 论文，NeurIPS 2023
-- [Zou 等 — 通用且可迁移的对齐 LLM 对抗攻击（arXiv:2307.15043）](https://arxiv.org/abs/2307.15043) — GCG 论文
-- [Chao 等 — JailbreakBench（arXiv:2404.01318）](https://arxiv.org/abs/2404.01318) — 标准化评估
-- [Mazeika 等 — HarmBench（ICML 2024）](https://arxiv.org/abs/2402.04249) — 更广泛的评估
+- [Chao et al. — Jailbreaking Black Box LLMs in Twenty Queries (arXiv:2310.08419)](https://arxiv.org/abs/2310.08419) 双双论文,NURIPS 2023
+- [Zou et al. — Universal and Transferable Adversarial Attacks on Aligned LLMs (arXiv:2307.15043)](https://arxiv.org/abs/2307.15043) GCG 纸
+- [Chao et al. — JailbreakBench (arXiv:2404.01318)](https://arxiv.org/abs/2404.01318)标准化评估
+- [Mazeika et al. — HarmBench (ICML 2024)](https://arxiv.org/abs/2402.04249)更广泛的评估

@@ -1,147 +1,147 @@
-# 基于评估的 Agent 开发
+# 基于Eval驱动的代理开发
 
-> Anthropic 的指导原则："从简单提示词开始，通过全面的评估进行优化，仅在必要时才添加多步 Agent 系统。"评估不是最后一步。它是驱动第 14 阶段所有其他选择的**外循环**。
+> 国际娱乐平台注册平台"在线娱乐平台注册平台"在线娱乐平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册平台注册
 
-**类型：** 学习 + 构建
-**语言：** Python (stdlib)
-**前置要求：** 第 14 阶段全部内容
-**耗时：** ~60 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib)
+**Prerequisites:** All of Phase 14.
+**Time:** ~60 minutes
 
 ## 学习目标
 
-- 说出三层评估——静态基准、自定义离线、在线生产——及其各自用途。
-- 解释评估器-优化器紧密循环。
-- 描述 2026 最佳实践：评估代码与源代共存，在 CI 中运行，以 PR 门禁为界。
-- 将第 14 阶段的每一课与它生成的评估用例联系起来。
+- 列出三个评估层静态基准,定制离线,在线生产以及每个层的目的.
+- 解释评估者-优化器紧密循环.
+- 描述2026年最佳实践:评估在代码旁边进行,运行在CI中,关口 PR.
+- 连接每个阶段14课程到它生成的评估案例.
 
-## 问题所在
+## 问题
 
-Agent 能通过演示。但它们在生产环境中以演示无法预测的方式失败。基准测试回答的是"这个模型是否总体具备能力？"而非"这个 Agent 是否为我的产品提交了正确的补丁？"解决方案：在三个层面上的评估，持续运行，并将每条护栏和已学习的规则映射到对应的评估用例。
+代理通过演示.他们无法预测的方法无法生产.基准答案是"这个模型是否广泛的?"而不是"这个代理是否为我的产品发送正确的补丁?"答案是:在三个层次的评估,连续运行,每个防护和学习规则都被映射到一个评估案例.
 
 ## 概念
 
-### 三层评估
+### 评估三层
 
-1. **静态基准** —— SWE-bench Verified（代码，第 19 课）、WebArena/OSWorld（浏览/桌面，第 20 课）、GAIA（通用，第 19 课）、BFCL V4（工具使用，第 6 课）。用于跨模型比较和回归门禁。污染是真实存在的：SWE-bench+ 发现 32.67% 的解决方案存在泄露。始终报告 Verified / +-已审计分数。
+1. **Static benchmarks**SWE-bench 验证代码 (课时19),WebArena/OSWorld 浏览/桌面 (课时20),GAIA 对于一般主义者 (课时19),BFCL V4用于工具使用 (课时06).用于跨模型比较和回归盖特.污染是真实的:SWE-bench+发现了32.67%的解决方案泄漏.总是报告验证/+审计得分.
 
-2. **自定义离线评估** —— 以你产品的形态为准：
-   - LLM 即裁判（Langfuse、Phoenix、Opik — 第 24 课）
-   - 基于执行的评估（运行补丁，检查测试）
-   - 基于轨迹的评估（将操作序列与黄金标准对比；OSWorld-Human 显示顶级 Agent 的表现是黄金标准的 1.4-2.7 倍）
+2. **Custom offline evals**产品的形状:
+   - 作为法官的LLM (Langfuse,城,Opik 课 24).
+   - 基于执行 (运行补丁,检查测试).
+   - 基于轨迹 (比较与黄金的行动序列;OSWorld-Human显示黄金的顶级代理人1.4-2.7倍).
 
-3. **在线评估** —— 生产环境：
-   - 会话回放（Langfuse）
-   - 护栏触发告警（第 16、21 课）
-   - 每步成本/延迟追踪（第 23 课 OTel spans）
+3. **Online evals**生产:
+   - 会议重播 (长).
+   - 警报警报 (课 16,21).
+   - 逐步成本/延迟追踪 (课程23 OTel范围).
 
-### 评估器-优化器（Anthropic）
+### 评价器优化器 (人类)
 
-紧密循环：
+紧密的循环:
 
-1. 提议者生成输出。
-2. 评估器进行评判。
-3. 迭代优化直到评估器通过。
+1. 发射器产生输出.
+2. 评价员评审员.
+3. 在评估员通过之前,再精炼.
 
-这是自改进（第 5 课）的泛化。任何你关心的 Agent 流程都可以包装成评估器-优化器以获得可靠性。
+任何你关心的代理流量都可以用评估器优化,以确保可靠性.
 
-### 2026 最佳实践
+### 2026 年最佳实践
 
-- 评估代码与源代码共存。
-- 每个 PR 时在 CI 中运行。
-- 以评估分数作为合并门禁（例如"与 main 分支相比回归不超过 5%"）。
-- 每条护栏都映射到一个评估用例。
-- 每条已学习的规则（Reflexion、pro-workflow learn-rule）都映射到一个失败用例。
+- 子住在代码旁边.
+- 报警每次公关.
+- 通过测试结果,关口结合 (例如"没有回归>5%与主要").
+- 每个护都会给一个评估案例.
+- 每个学到的规则 (反思,工作流动支持学习规则) 都将一个失败案例映射出来.
 
-### 串联第 14 阶段
+### 结合14期
 
-第 14 阶段的每一课都会生成评估用例：
+阶段14的每一个课程都会产生评估案例:
 
-| 课程 | 生成的评估用例 |
-|------|----------------|
-| 01 Agent 循环 | 预算耗尽、无限循环护栏 |
-| 02 ReWOO | 当工具失败时规划器正确重规划 |
-| 03 Reflexion | 学到的反思在重试时生效 |
-| 05 自改进/CRITIC | 裁判通过改进后的输出 |
-| 06 工具使用 | 参数 coerce 有效；未知工具被拒绝 |
-| 07-10 记忆 | 检索引用与来源匹配；陈旧事实导致失效 |
-| 12 工作流模式 | 每种模式产生正确输出 |
-| 13 LangGraph | 恢复后状态完全一致 |
-| 14 AutoGen Actors | DLQ 捕获崩溃的处理程序 |
-| 16 OpenAI Agents SDK | 护栏在正确的输入上触发 |
-| 17 Claude Agent SDK | 子 Agent 结果返回给编排器 |
-| 19-20 基准测试 | SWE-bench Verified 分数、WebArena 成功率、OSWorld 效率 |
-| 21 计算机使用 | 每步安全检查注入 DOM |
-| 23 OTel | Spans 发出所需属性 |
-| 26 故障模式 | 检测器标记已知故障 |
-| 27 提示注入 | PVE 拒绝投毒的检索结果 |
-| 28 编排 | 主管路由到正确的专家 |
-| 29 运行时形状 | DLQ 处理 N% 的故障 |
+| Lesson | Eval case it generates |
+|--------|------------------------|
+| 01 Agent Loop | Budget-exhausted, infinite-loop guard |
+| 02 ReWOO | Planner replans correctly when a tool fails |
+| 03 Reflexion | Learned reflections apply on retry |
+| 05 Self-Refine/CRITIC | Judge passes refined output |
+| 06 Tool Use | Argument coercion works; unknown tools rejected |
+| 07-10 Memory | Retrieval citations match sources; stale facts invalidate |
+| 12 Workflow Patterns | Each pattern produces correct output |
+| 13 LangGraph | Resume reproduces state exactly |
+| 14 AutoGen Actors | DLQ catches crashed handlers |
+| 16 OpenAI Agents SDK | Guardrail trips on the right inputs |
+| 17 Claude Agent SDK | Subagent results return to orchestrator |
+| 19-20 Benchmarks | SWE-bench Verified score, WebArena success rate, OSWorld efficiency |
+| 21 Computer Use | Per-step safety catches injected DOM |
+| 23 OTel | Spans emit required attributes |
+| 26 Failure Modes | Detectors tag known failures |
+| 27 Prompt Injection | PVE refuses poisoned retrievals |
+| 28 Orchestration | Supervisor routes to the right specialist |
+| 29 Runtime Shapes | DLQ handles N% failure |
 
-如果你的评估套件包含每个课程的用例，你就覆盖了第 14 阶段。
+如果你的评估套件中每个案例都有病例,你已经覆盖了14阶段.
 
-### 基于评估的开发为何会失败
+### 没有评估驱动的开发
 
-- **缺少基线。** 没有"上一次已知良好版本"的评估是无法解读的。存储基线。
-- **LLM 裁判缺乏落地依据。** 裁判本身也会幻觉。CRITIC 模式（第 5 课）——裁判基于外部工具落地。
-- **过度拟合评估。** 针对评估进行优化会偏离生产实用性。轮换用例。
-- **不稳定的评估。** 非确定性用例会导致误报。固定随机种子，快照状态。
+- **No baseline.**没有最后一个已知的东西的等值是不可读的.
+- **LLM-judge without grounding.**评判模式 (课05) 评判理由在外部工具上.
+- **Over-fitting to evals.**优化评估与生产有用性不同.
+- **Flaky evals.**没有确定性的情况会引起虚假报警.
 
 ```figure
 ae-eval-three-layers
 ```
 
-## 构建它
+## 建立它
 
-`code/main.py` 是一个 stdlib 评估工具：
+`code/main.py`是一个 stdlib eval 带:
 
-- 带分类的测试用例注册表（benchmark、custom、online）
-- 被测的脚本化 Agent
-- 评估器-优化器循环：提议、评判、改进直到通过或达到最大轮数
-- CI 门禁：聚合通过率 + 与基线的回归对比
+- 类别的案例登记簿 (标准标志,定制,在线).
+- 一个经过测试的经纪人.
+- 评估者-优化者循环:提出,判断,完善到通过或最大轮.
+- 关口:总通过率+与基线相反的回归.
 
-运行方式：
+运行它:
 
-```python
+```
 python3 code/main.py
 ```
 
-输出：每个用例的通过/失败、回归标记、CI 门禁判定。
+输出:每案合格/失败,退缩标志,CI门判决.
 
-## 使用它
+## 用它
 
-- 在与 Agent 代码相同的仓库中编写评估用例。
-- 通过 CI 在每个 PR 上运行。
-- 出现回归时构建失败。
-- 追踪通过率的趋势。
-- 将每条生产故障关联到新用例。
+- 写出评估案例与代理代码相同的备忘录.
+- 通过信息通讯,查看他们每一个公关.
+- 没有回归的基础.
+- 随着时间的推移.
+- 连接每一个生产失败到一个新的案例.
 
-## 交付
+## 运送它
 
-`outputs/skill-eval-suite.md` 为 Agent 产品构建三层评估套件，包含 CI 门禁和回归追踪。
+`outputs/skill-eval-suite.md`建立一个为代理产品的三层评估套件,具有CI门和回归跟踪.
 
-## 练习
+## 运动
 
-1. 选取一个生产故障。编写一个能复现它的评估用例。你的 Agent 现在能通过吗？
-2. 为你的领域构建一个 LLM 裁判评分标准，包含三个维度（事实性、语气、范围）。对 50 个会话进行评分。
-3. 将评估套件接入 CI。当回归 >= 5% 时使构建失败。
-4. 增加轨迹效率指标：Agent 走了多少步，与黄金轨迹相比？
-5. 将第 14 阶段的每一课映射到你套件中的评估用例。有遗漏的吗？那就是需要补齐的缺口。
+1. 写一个复制的评估案例,你的代理现在通过了吗?
+2. 建立一个为您的领域的LLM法官分类,以三个维度 (事实,语调,范围).
+3. 输入评估套件到CI. 输出在>=5%回归.
+4. 添加一个轨迹效率指标:代理采取了多少步骤?
+5. 给你一个评估案例,每一个14阶段的课程.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| 静态基准 | "现成的评估" | SWE-bench、GAIA、AgentBench、WebArena、OSWorld |
-| 自定义离线评估 | "领域评估" | 针对你产品形态的 LLM 裁判/执行/轨迹评估 |
-| 在线评估 | "生产评估" | 会话回放、护栏告警、成本/延迟追踪 |
-| 评估器-优化器 | "提议-评判-改进" | 迭代直到裁判通过 |
-| CI 门禁 | "合并阻碍" | 评估出现回归时使构建失败 |
-| 基线 | "上次已知良好版本" | 用于检测回归的参考分数 |
-| 轨迹效率 | "步数比黄金多" | Agent 步数除以人类专家最少步数 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Static benchmark | "Off-the-shelf eval" | SWE-bench, GAIA, AgentBench, WebArena, OSWorld |
+| Custom offline eval | "Domain eval" | LLM-as-judge / exec / trajectory on your product shape |
+| Online eval | "Production eval" | Session replay, guardrail alerts, cost/latency tracking |
+| Evaluator-optimizer | "Propose-judge-refine" | Iterate until judge passes |
+| CI gate | "Merge blocker" | Fail the build on eval regression |
+| Baseline | "Last-known-good" | Reference score to detect regression |
+| Trajectory efficiency | "Steps over gold" | Agent step count divided by human expert minimum |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Anthropic, Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) —— "从简单开始，用评估优化"
-- [OpenAI, SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/) —— 精选基准测试
-- [Berkeley Function Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html) —— 工具使用基准测试
-- [Langfuse 文档](https://langfuse.com/) —— 实践中如何用评估 + 会话回放
+- [Anthropic, Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)"开始简单,优化使用评估"
+- [OpenAI, SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/) 评选的基准指数
+- [Berkeley Function Calling Leaderboard](https://gorilla.cs.berkeley.edu/leaderboard.html)工具使用基准
+- [Langfuse docs](https://langfuse.com/)评估+实践中重播会议

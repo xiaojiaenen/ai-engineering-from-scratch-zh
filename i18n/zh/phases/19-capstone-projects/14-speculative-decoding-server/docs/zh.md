@@ -1,142 +1,142 @@
-# Capstone 14 — 推测解码推理服务器
+#  投机解码输入服务器
 
-> 推测解码 —— 廉价的草稿模型提出 token，目标模型一次性验证 —— 现已成为生产就绪的优化手段，而非研究技巧。vLLM 0.7 中的 EAGLE-3 在实际流量下实现了 2.5-3x 的吞吐量提升。P-EAGLE（AWS 2026）进一步推动了并行推测。SGLang 的 SpecForge 实现了大规模训练草稿头。Red Hat 的 Speculators hub 为常见开源模型发布了已对齐的草稿。TensorRT-LLM 使 NVIDIA 上的推测解码成为一等公民。2026 年的生产服务栈是 vLLM 或 SGLang 搭配 EAGLE 家族草稿、FP8 或 INT4 量化，以及基于队列等待的 HPA。本次 Capstone 的目标是以 2.5x+ 的基线吞吐量服务两个开源模型，并输出完整的尾部延迟报告。
+> 投机解码 一个廉价的草案提出代币,目标模型在一个通行中验证它们 现在是一个准备生产的优化,而不是一个研究技巧. -3在vLLM 0.7 船舶 2.5-3x 吞吐量在实际交通. 鱼 (AWS 2026) 进一步推动了平行投机. 格兰特种培训了规模的征兵负责人. 红帽的投机中心发布了对普通开放模型的调整草案. 讯RT-LLM在NVIDIA上做了先进的测量解码. 2026年生产服务堆是vLLM或SGLang,EagLE家族草案,FP8或INT4量化,HPA在排队等待. 总结石头将为2.5倍以上的基线吞吐量提供两个开放型号,并提供完整的尾延迟报告.
 
-**类型：** Capstone
-**语言：** Python（服务）、C++ / CUDA（内核检查）、YAML（配置）
-**先决条件：** Phase 3（深度学习）、Phase 7（Transformer）、Phase 10（从零实现 LLM）、Phase 17（基础设施）
-**涉及的阶段：** P3 · P7 · P10 · P17
-**时间：** 30 小时
+**Type:** Capstone
+**Languages:** Python (serving), C++ / CUDA (kernel inspection), YAML (configs)
+**Prerequisites:** Phase 3 (deep learning), Phase 7 (transformers), Phase 10 (LLMs from scratch), Phase 17 (infrastructure)
+**Phases exercised:**子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子子
+**Time:** 30 hours
 
 ## 问题
 
-推测解码在 2026 年已成为大宗商品。EAGLE-3 草稿头在目标模型的隐藏状态上训练，可提前预测 N 个 token；目标模型单次前向传播即可验证。60-80% 的接受率可转化为 2-3x 的端到端吞吐量。vLLM 0.7 已原生集成此功能。SGLang + SpecForge 提供训练管线。Red Hat 的 Speculators 为 Llama 3.3 70B、Qwen3-Coder-30B MoE、GPT-OSS-120B 发布了对齐草稿。
+投机解码在2026年成为商品. 3的预稿主管训练目标模型的隐藏状态,预测N代币前进;目标模型通过一次验证. 接受率为60至80%,这意味着端到端的吞吐量2到3倍. 它们是完全可以实现的. 您可以使用SGLang + SpecForge来进行训练. 红帽投机者发布了Llama 3.3 70B,Qwen3-Coder-30B MoE,GPT-OSS-120B的调整草案.
 
-关键在于服务运维，而非模型本身。接受率会随流量分布（ShareGPT vs 代码 vs 领域数据）而漂移。拒绝情况下的尾部延迟比不使用推测时更差 —— 你必须在多个 batch size 下报告 p99，而非仅仅稳态 tokens/sec。与 Anthropic / OpenAI API 相比的每 1M token 成本是关键的可信度指标。
+随着流量分布 (ShareGPT与代码与域数据) 变化,接收率变化.拒绝后尾延迟比没有投机更糟. 您必须在多批量量报告p99,而不仅仅是稳定状态代币/秒.每100万代币的成本与人类/OpenAI API是信誉杆.
 
 ## 概念
 
-推测解码有两层。一个 **草稿** 模型（EAGLE-3 头、ngram 或较小的目标对齐模型）在每个步骤提出 k 个候选 token。**目标** 模型在一次前向中验证所有 k 个；任何前缀被接受后即可替换贪心路径。接受率取决于草稿 - 目标对齐程度和输入分布。
+设想解码有两个层次.**draft**3头,ngram或较小的目标一致模型) 每一步提出 k 候选代币.**target**模型验证所有 k 通过一个通行;任何被接受的预写都取代了贪的路径. 接受率取决于草案目标的配线和输入分布.
 
-EAGLE-3 在大多数流量上优于 ngram 草稿。P-EAGLE 运行并行推测以实现更深的草稿树。权衡在于：拒绝时的 P99 延迟更高，因为验证前向更大。服务配置必须按 batch size 桶化延迟报告以揭示这一问题。
+3在大多数流量上超过了ngram草案.P-EAGLE对更深的草图树进行了并行猜测.交易:拒绝时P99延迟较高,因为验证通过较大.服务配置必须报告批量容量缓存才能表现出这一点.
 
-部署使用 Kubernetes。vLLM 0.7 每个 GPU 运行一个副本或 tensor-parallel 分片。HPA 基于队列等待而非 CPU 进行自动扩缩容。FP8（Marlin）和 INT4（AWQ）量化将 GPU 显存控制在 H100 / H200 范围内。端到端报告包括吞吐量、接受率、batch 1/8/32 下的 p50/p99，以及 $/1M token 成本。
+部署是Kubernetes. vLLM 0.7每 GPU 或子平行片段运行一个复制. HPA 自动量度在排队等待而不是CPU. FP8 (Marlin) 和 INT4 (AWQ) 量子保持 GPU 内存在 H100 / H200 封筒. 端到端报告是吞吐量,接受率,p50/p99在批量 1/8/32,和 $/1M 代币.
 
-## 架构
+## 建筑
 
 ```
-请求入口
+request ingress
     |
     v
-vLLM 服务器 (0.7) 或 SGLang (0.4)
+vLLM server (0.7) or SGLang (0.4)
     |
-    +-- 草稿：EAGLE-3 头 | P-EAGLE 并行 | ngram 回退
-    +-- 目标：Llama 3.3 70B | Qwen3-Coder-30B | GPT-OSS-120B
-    |     量化为 FP8-Marlin 或 INT4-AWQ
-    |
-    v
-验证前向：将 k 个草稿 token 批量通过目标模型
-    |
-    v（接受前缀；对被拒绝的后缀重新采样）
-    v
-token 流返回客户端
+    +-- draft: EAGLE-3 heads | P-EAGLE parallel | ngram fallback
+    +-- target: Llama 3.3 70B | Qwen3-Coder-30B | GPT-OSS-120B
+    |     quantized FP8-Marlin or INT4-AWQ
     |
     v
-Prometheus 指标：吞吐量、接受率、队列等待、延迟 p50/p99
+verify pass: batch k draft tokens through target
+    |
+    v (accept prefix; resample for rejected suffix)
+    v
+token stream back to client
     |
     v
-基于队列等待指标的 HPA
+Prometheus metrics: throughput, acceptance rate, queue wait, latency p50/p99
+    |
+    v
+HPA on queue-wait metric
 ```
 
-## 技术栈
+## 堆
 
-- 服务框架：vLLM 0.7 或 SGLang 0.4
-- 推测方法：EAGLE-3 草稿头、P-EAGLE 并行推测、ngram 回退
-- 草稿训练：SpecForge（SGLang）或 Red Hat Speculators
-- 目标模型：Llama 3.3 70B、Qwen3-Coder-30B MoE、GPT-OSS-120B
-- 量化：FP8（Marlin）、INT4 AWQ
-- 部署：Kubernetes + NVIDIA device plugin；基于队列等待指标的 HPA
-- 评测：ShareGPT、MT-Bench-v2、GSM8K、HumanEval 用于跨领域接受率测量
-- 参考：TensorRT-LLM 推测解码用于厂商基线对比
+- 服务:vLLM 0.7或SGLang 0.4
+- 投机方法:Eagle-3预测头,P-Eagle平行投机,ngram倒退
+- 项目培训:SpecForge (SGLang) 或Red Hat投机者
+- 目标模型:Llama 3.3 70B,Qwen3-Coder-30B MoE,GPT-OSS-120B
+- 量化:FP8 (马林),INT4 AWQ
+- 部署:Kubernetes + NVIDIA设备插件; HPA 在排队等待量度上
+- 标准:ShareGPT,MT-Bench-v2,GSM8K,HumanEval用于域域分布接受度测量
+- 参考:供应商基线的TensorRT-LLM投机解码
 
 ```figure
 cf-spec-decode
 ```
 
-## 构建指南
+## 建立它
 
-1. **目标模型准备。** 选择 Llama 3.3 70B。通过 Marlin 量化为 FP8。在 1xH100（或 2x tensor-parallel）上的 vLLM 0.7 下部署。
+1. **Target model prep.**选择Llama 3.3 70B.通过Marlin对FP8进行量化.在1xH100 (或2x子平行) 上部署在vLLM 0.7下.
 
-2. **草稿来源。** 从 Red Hat Speculators 拉取已对齐的 EAGLE-3 草稿头（或通过 SpecForge 自行训练）。加载到 vLLM 的推测解码配置中。
+2. **Draft source.**通过 SpecForge 拉出 Red Hat Speculators 的一个符合 EAGLE-3 草案头 (或训练一个).
 
-3. **基线数据。** 启用推测前：记录 batch 1/8/32 下的 tokens/s、p50/p99 延迟、GPU 利用率。发布基线。
+3. **Baseline numbers.**在投机之前:批量1/8/32,p50/p99延迟,GPU利用率.
 
-4. **启用 EAGLE-3。** 切换配置；重新运行相同基准测试。报告加速比、接受率、p99 尾部延迟变化。
+4. **Enable EAGLE-3.**转换配置,重复相同的基准,报告速度,接受率,p99尾延迟三角形.
 
-5. **P-EAGLE。** 启用并行推测；测量更深草稿树与串行 EAGLE-3 的对比。报告 P-EAGLE 由益转损的拐点。
+5. **P-EAGLE.**允许平行推测; 测量深层的草木与连续的.
 
-6. **领域流量。** 将 ShareGPT vs HumanEval vs 特定领域流量通过同一服务器。测量每种分布下的接受率。识别草稿漂移何时发生。
+6. **Domain traffic.**通过同一服务器运行ShareGPT与HumanEval与域名特定流量. 测量每次分发的接受率. 确定草稿漂移时.
 
-7. **第二个目标模型。** 在 Qwen3-Coder-30B MoE 上运行相同管线。草稿更棘手（MoE 路由噪声）。报告结果。
+7. **Second target model.**运行Qwen3-Coder-30B MoE的同一个管道. 草案更复杂 (MoE路由噪音). 报告.
 
-8. **K8s HPA。** 在 K8s 下部署，HPA 跟踪 `queue_wait_ms`。演示负载三倍时的自动扩缩容。
+8. **K8s HPA.**部署在K8中,HPA跟踪`queue_wait_ms`装载量增加三倍时,展示规模.
 
-9. **成本对比。** 在同一评测集上计算 $/1M token 与 Anthropic Claude Sonnet 4.7 和 OpenAI GPT-5.4 的对比。发布报告。
+9. **Cost comparison.**在同一评估中计算1万美元代币与人类克劳德·索尼特4.7和OpenAIGPT-5.4
 
-## 使用方式
+## 用它
 
 ```
 $ curl https://infer.example.com/v1/chat/completions -d '{"messages":[...]}'
-[serve]     vLLM 0.7, Llama 3.3 70B FP8, EAGLE-3 已启用
-[decode]    bs=8, 每步接受 token 数=3.2, 接受率=0.76
-[latency]   首 token 延迟 42ms, 完整响应 980ms（620 tokens）
-[cost]      持续吞吐量下每 1M 输出 token $0.34
+[serve]     vLLM 0.7, Llama 3.3 70B FP8, EAGLE-3 active
+[decode]    bs=8, accepted_tokens_per_step=3.2, acceptance_rate=0.76
+[latency]   first-token 42ms, full-response 980ms (620 tokens)
+[cost]      $0.34 per 1M output tokens at sustained throughput
 ```
 
-## 交付物
+## 运送它
 
-`outputs/skill-inference-server.md` 描述交付内容。包含带推测解码的实测服务栈、完整基准测试报告及 K8s 部署。
+`outputs/skill-inference-server.md`测量服务堆,投机解码,完整的基准报告和K8部署.
 
-| 权重 | 标准 | 测量方式 |
+| Weight | Criterion | How it is measured |
 |:-:|---|---|
-| 25 | 相对于基线的实测加速比 | 两个模型在质量匹配下实现 2.5x+ 吞吐量 |
-| 20 | 真实流量下的接受率 | 按分布的报告接受率 |
-| 20 | P99 尾部延迟规范 | 有/无推测时 batch 1/8/32 的 p99 |
-| 20 | 运维能力 | K8s 部署、队列等待 HPA、平滑发布 |
-| 15 | 文档与方法论 | 清晰说明变化内容与原因 |
+| 25 | Measured speedup vs baseline | 2.5x+ throughput at matched quality on two models |
+| 20 | Acceptance rate on realistic traffic | Per-distribution acceptance-rate report |
+| 20 | P99 tail-latency discipline | p99 at batch 1/8/32 with and without speculation |
+| 20 | Ops | K8s deploy, HPA on queue-wait, rollout smooth |
+| 15 | Write-up and methodology | Clear explanation of what changed and why |
 | **100** | | |
 
-## 练习
+## 运动
 
-1. 测量草稿比目标模型晚一个版本时的接受率退化（如 Llama 3.3 -> 3.4 漂移）。构建监控告警。
+1. 测量在草案落后一个版本时的接受率下降 (例如,Llama 3.3 -> 3.4漂移).建立监测警报.
 
-2. 实现 ngram 回退：当 EAGLE-3 接受率低于阈值时切换到 ngram 草稿。报告可靠性提升。
+2. 实施ngram-fallback:如果EAGLE-3的接受率低于门值,请转向ngram草案. 报告可靠性改善.
 
-3. 运行受控的 MoE 实验：相同 Qwen3-Coder-30B 分别注入与不注入路由噪声。测量草稿接受率敏感性。
+3. 运行一个控制的MoE实验:相同的Qwen3-Coder-30B, 输入与输入的路由噪音.
 
-4. 扩展至 H200（141 GB）。报告每个副本可获得的模型容量余量，以及是否能服务未量化的 Llama 3.3 70B。
+4. 报告获得的模型尺寸/复制品头部空间,以及您是否可以提供未量化Llama 3.3 70B.
 
-5. 在同一 H100 硬件上对 TensorRT-LLM 推测解码进行基准测试。报告其相对于 vLLM 的优势场景。
+5. 测量TensorRT-LLM在同一H100硬件上进行了测量解码.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
+| Term | What people say | What it actually means |
 |------|-----------------|------------------------|
-| 草稿模型 | "Speculator" | 提出 N 个 token 供目标模型验证的小型模型 |
-| EAGLE-3 | "2026 草稿架构" | 在目标隐藏状态上训练的草稿头；约 75% 接受率 |
-| P-EAGLE | "并行推测" | 一批草稿分支在一次目标前向中验证 |
-| 接受率 | "命中率" | 无需重采样即被接受的草稿 token 比例 |
-| 量化 | "FP8 / INT4" | 降低精度以在 GPU 显存中容纳更大模型 |
-| 队列等待 | "HPA 指标" | 请求在推理开始前于待处理队列中等待的时间 |
-| Speculators hub | "对齐草稿" | Red Hat Neural Magic 的 EAGLE 草稿 hub，覆盖常见开源模型 |
+| Draft model | "Speculator" | Small model that proposes N tokens for the target to verify |
+| EAGLE-3 | "2026 draft architecture" | Draft head trained on target hidden states; ~75% acceptance |
+| P-EAGLE | "Parallel speculation" | Tree of draft branches verified in one target pass |
+| Acceptance rate | "Hit rate" | Fraction of drafted tokens accepted without resampling |
+| Quantization | "FP8 / INT4" | Lower-precision weights to fit more model in GPU memory |
+| Queue wait | "HPA metric" | Time a request waits in the pending queue before inference starts |
+| Speculators hub | "Aligned drafts" | Red Hat Neural Magic hub of EAGLE drafts for common open models |
 
-## 延伸阅读
+## 进一步阅读
 
-- [vLLM EAGLE 和 P-EAGLE 文档](https://docs.vllm.ai) — 参考服务栈
-- [P-EAGLE（AWS 2026）](https://aws.amazon.com/blogs/machine-learning/p-eagle-faster-llm-inference-with-parallel-speculative-decoding-in-vllm/) — 并行推测解码论文与集成
-- [SGLang SpecForge](https://github.com/sgl-project/SpecForge) — 草稿头训练管线
-- [Red Hat Speculators](https://github.com/neuralmagic/speculators) — 对齐草稿 hub
-- [TensorRT-LLM 推测解码](https://nvidia.github.io/TensorRT-LLM/) — 厂商替代方案
-- [Fireworks.ai 服务架构](https://fireworks.ai/blog) — 商业参考
-- [EAGLE-3 论文（arXiv:2503.01840）](https://arxiv.org/abs/2503.01840) — 方法论文
-- [vLLM 仓库](https://github.com/vllm-project/vllm) — 代码与基准测试
+- [vLLM EAGLE and P-EAGLE documentation](https://docs.vllm.ai)参考服务堆
+- [P-EAGLE (AWS 2026)](https://aws.amazon.com/blogs/machine-learning/p-eagle-faster-llm-inference-with-parallel-speculative-decoding-in-vllm/)平行投机解码纸 + 整合
+- [SGLang SpecForge](https://github.com/sgl-project/SpecForge) 项目头训练管道
+- [Red Hat Speculators](https://github.com/neuralmagic/speculators) 配线的草稿中心
+- [TensorRT-LLM speculative decoding](https://nvidia.github.io/TensorRT-LLM/)供应商替代品
+- [Fireworks.ai serving architecture](https://fireworks.ai/blog)商业参考
+- [EAGLE-3 paper (arXiv:2503.01840)](https://arxiv.org/abs/2503.01840)方法论文
+- [vLLM repository](https://github.com/vllm-project/vllm)代码和基准

@@ -1,241 +1,241 @@
 # 异常检测
 
-> 正常易于定义，异常则是不符合任何规则的事物。
+> 正常是很容易定义的,异常是不合适的东西.
 
-**类型：** Build
-**语言：** Python
-**前置条件：** Phase 2，第 01-09 课
-**时间：** 约 75 分钟
+**Type:** Build
+**Language:**字符串
+**Prerequisites:** Phase 2, Lessons 01-09
+**Time:** ~75 minutes
 
 ## 学习目标
 
-- 从零实现 Z-score、IQR 和 Isolation Forest 异常检测方法
-- 区分点异常、上下文异常和集体异常，并为每种类型选择合适的检测方法
-- 解释为什么异常检测被框架化为建模正常数据而非分类异常
-- 比较无监督异常检测与有监督分类，并评估新型异常覆盖率与精确度之间的权衡
+- 从零开始实施Z-score,IQR和隔离森林异常检测方法
+- 区分点,背景和集体异常,并选择适合每个异常的检测方法
+- 解释为什么异常检测是以正常数据的模型而不是分类异常的框架
+- 进行监督性分类的非监督性异常检测和监督性分类的比较,并评估新异常覆盖率和精度之间的差距
 
-## 问题所在
+## 问题
 
-一张信用卡下午 2 点在纽约使用，然后在下午 2:05 在东京使用。工厂传感器读数为 150 度，而正常范围是 80-120 度。一台服务器每秒发送 50,000 次请求，而日平均值仅为 200。
+在纽约晚上2点,然后在东京晚上2点05点使用信用卡.一个工厂传感器在正常范围为80到120度时读取150度.
 
-这些都是异常。发现它们很重要。欺诈损失数十亿美元。设备故障导致停机。网络入侵造成数据泄露。
+这些都是异常,找到它们是重要的,欺诈成本数十亿,设备故障成本停机时间,网络入侵成本数据.
 
-挑战在于：你几乎没有异常的训练标签。欺诈只占交易的 0.1%。设备故障一年只发生几次。你无法训练标准分类器，因为"异常"类中几乎没有可学习的内容。即使你有了一些标签，见过的异常类型也不全是你会遇到的。明天的欺诈方案看起来与今天不同。
+挑战是:你很少标记出异常的例子. 欺诈占交易的0.1%. 设备故障每年发生几次. 由于"异常"类几乎没有什么可以学习的. 尽管你有一些标签,但你看到的异常并不是唯一的类型. 明天的欺诈计划与今天的不同.
 
-异常检测翻转了问题。与其学习什么是异常的，不如学习什么是正常的。任何偏离正常的都是可疑的。这种方法无需标签即可工作，能适应新型异常，且能扩展到大规模数据集。
+异常检测会扭转问题. 取而代之的是学习异常,学习正常.任何偏离正常的东西都是可疑的. 这无需标签,适应新的类型的异常,并扩展到大规模的数据集.
 
 ## 概念
 
 ### 异常类型
 
-并非所有异常都相同：
+不是所有的异常都是一样的:
 
-- **点异常（Point anomalies）。** 无论上下文如何都是异常的单个数据点。500 度的温度读数。一个通常消费 50 美元的账户发生了 50,000 美元的交易。
-- **上下文异常（Contextual anomalies）。** 给定其上下文时显得异常的数据点。90 度在夏天是正常的，在冬天是异常的。相同的值，不同的上下文。
-- **集体异常（Collective anomalies）。** 作为一个整体显得异常的连续数据点，尽管每个单独的点可能都是正常的。5 次登录失败是正常的。50 次连续失败则是暴力攻击。
+- **Point anomalies.**单个数据点,不论环境如何,都是不寻常的.$50,000 from an account that normally spends $现在,我们要去.
+- **Contextual anomalies.**根据环境来看,一个不寻常的数据点. 90度温度是夏天正常的,冬天是异常的.同样的价值,不同的环境.
+- **Collective anomalies.**连续5次登录失败是正常的. 连续50次是粗暴的攻击.
 
-大多数方法检测点异常。上下文异常需要时间或位置特征。集体异常需要序列感知方法。
+许多方法都能检测到点异常. 背景异常需要时间或位置特征. 集体异常需要序列意识的方法.
 
 ```mermaid
 flowchart TD
-    A[异常类型] --> B[点异常]
-    A --> C[上下文异常]
-    A --> D[集体异常]
+    A[Anomaly Types] --> B[Point Anomaly]
+    A --> C[Contextual Anomaly]
+    A --> D[Collective Anomaly]
 
-    B --> B1["单个异常值<br/>温度：500°F"]
-    C --> C1["在上下文中异常<br/>1月中的 90°F"]
-    D --> D1["异常序列<br/>50 次登录失败"]
+    B --> B1["Single unusual value<br/>Temperature: 500F"]
+    C --> C1["Unusual in context<br/>90F in January"]
+    D --> D1["Unusual sequence<br/>50 failed logins"]
 
     style B fill:#fdd,stroke:#333
     style C fill:#ffd,stroke:#333
     style D fill:#fdf,stroke:#333
 ```
 
-### 无监督框架
+### 无监督的制
 
-在标准分类中，你对两个类都有标签。在异常检测中，你通常面临以下三种情况之一：
+在标准分类中,你有两个类的标签. 在异常检测中,你通常有三个情况之一:
 
-1. **完全无监督。** 完全没有标签。你在所有数据上训练检测器，并希望异常足够稀少而不会破坏"正常"模型。
-2. **半监督。** 你只有干净的正常数据集。你在该干净集上拟合，然后对其他所有数据评分。这是可能的最强设置。
-3. **弱监督。** 你有一些带标签的异常。将它们用于评估而非训练。无监督训练，然后在带标签子集上测量精确率和召回率。
+1. **Fully unsupervised.**没有标签,你将检测器放在所有数据上,希望异常是不够罕见的,
+2. **Semi-supervised.**你只能使用正常数据,你能在这个清洁的数据集中进行测量,然后得到其他数据.
+3. **Weakly supervised.**您有几个标记的异常. 运用它们来评估,而不是训练. 训练不受监督,然后在标记的子集上测量精度/回忆.
 
-关键洞察：异常检测从根本上不同于分类。你在建模正常数据的分布，而非两个类之间的决策边界。
+基本的见解是:异常检测与分类基本不同.你正在模拟正常数据的分布,而不是两个类之间的决策界限.
 
-### 有监督 vs 无监督：权衡
+### 监督与未监督:交易
 
-如果你有带标签的异常，应该用它们来训练（有监督分类）还是仅用于评估（无监督检测）？
+如果您确实有标记异常,您应该使用它们用于训练 (监督分类) 或仅用于评估 (未监督检测)?
 
-**有监督（当作分类）：**
-- 能检测到之前见过的确切类型的异常
-- 对已知异常类型的精确度更高
-- 完全错过新型异常
-- 新异常类型出现时需要重新训练
-- 需要足够的异常样本（通常太少）
+**Supervised (treat as classification):**
+- 捕捉到你以前见过的异常的确切类型
+- 已知异常类型的更高精度
+- 完全缺少了新奇的异常类型
+- 需要在出现新的异常类型时重新培训
+- 需要足够的异常例 (通常太少)
 
-**无监督（建模正常，标记偏离）：**
-- 能检测任何偏离正常的事物，包括新型异常
-- 不需要带标签的异常
-- 假阳性率更高（并非所有异常事物都是坏的）
-- 对分布漂移更鲁棒
+**Unsupervised (model normal, flag deviations):**
+- 捕获任何与正常的偏差,包括新型
+- 没有标记异常的要求
+- 较高的假阳性率 (不是不寻常的都是坏的)
+- 更强的分配转移
 
-在实践中，最好的系统结合两者：无监督检测用于广泛覆盖，有监督模型用于已知的优先级高的异常类型，人工审核用于模棱两可的案例。
+实际上,最好的系统结合了两种:无监督检测,以广泛报道,监督模型,以确定已知优先级异常类型,以及对模糊的案件的人类审查.
 
-### Z-score 方法
+### Z-Score方法
 
-最简单的方法。计算每个特征的均值和标准差。标记任何距离均值超过 k 个标准差的数据点。
+计算每个特征的平均和标准偏差. 标记任何比平均标准偏差的点.
 
 ```text
 z_score = (x - mean) / std
-若 |z_score| > threshold 则为异常
+anomaly if |z_score| > threshold
 ```
 
-默认阈值为 3.0（对于高斯分布，99.7% 的正常数据落在 3 个标准差内）。
+默认门为3.0 (99.7%的正常数据在高斯分布的标准偏差3个范围内).
 
-**优点：** 简单。快速。可解释（"该值距离正常 4.5 个标准差"）。
+**Strengths:**简单,快速,可解释 ("这个值是4.5标准偏差).
 
-**缺点：** 假设数据呈正态分布。对训练数据中的异常值敏感（异常值会偏移均值并膨胀标准差，使它们更难检测）。在多峰分布上失效。
+**Weaknesses:**假设数据通常分布. 对于训练数据中的异常值敏感 (异常值改变平均值并膨胀STD,使其更难检测).
 
-**适用场景：** 数据大致呈钟形的单特征监控。服务器响应时间、制造公差、具有稳定基线的传感器读数。
+**When it works well:**服务器响应时间,制造容量,稳定基线的传感器读数.
 
-**失效场景：** 多簇数据（两个办公地点有不同的基线温度）、偏斜数据（1000 美元的交易罕见但不算异常）、训练集中存在异常值的数据。
+**When it fails:**多集群数据 (两个不同基线温度的办公地点),偏差数据 (交易额为1000美元,但不异常),训练集中异常值的数据.
 
-### IQR 方法
+### 智能化检测方法
 
-比 Z-score 更鲁棒。使用四分位距而非均值和标准差。
+采用中位数范围而不是平均和标准偏差.
 
 ```
-Q1 = 第 25 百分位数
-Q3 = 第 75 百分位数
+Q1 = 25th percentile
+Q3 = 75th percentile
 IQR = Q3 - Q1
-下界 = Q1 - factor * IQR
-上界 = Q3 + factor * IQR
-若 x < 下界 或 x > 上界 则为异常
+lower_bound = Q1 - factor * IQR
+upper_bound = Q3 + factor * IQR
+anomaly if x < lower_bound or x > upper_bound
 ```
 
-默认 factor 为 1.5。
+默认的因素是1.5.
 
-**优点：** 对异常值鲁棒（百分位数不受极端值影响）。适用于偏斜分布。无需正态性假设。
+**Strengths:**强度到异常值 (百分比不受到极端值的影响). 处理偏差分布. 没有正常性假设.
 
-**缺点：** 仅单变量（独立应用于每个特征）。无法检测仅在特征联合考虑时才异常的异常（一个点在单个特征上可能正常，但在联合空间中异常）。
+**Weaknesses:**只有单变 (单个特性独立适用).只有当考虑特征在一起时才能检测到异常的异常 (每个特征的点可能是正常的,但在关联空间中是异常的).
 
-**实践提示：** IQR 中的 1.5 因子对应箱线图的须线。须线外的点可能是异常值。使用 3.0 而非 1.5 会使检测器更保守（更少的标记，更少的假阳性）。合适的因子取决于你对误报的容忍度。
+**Practical note:**智能指数率为1.5的因子,与盒子图中的胡须相符.胡须之外的点是潜在的异常值.使用3.0而不是1.5使探测器更保守 (少的信号,更少的假阳性).正确的因子取决于你对假报警的容忍度.
 
-### Isolation Forest
+### 孤立森林
 
-关键洞察：异常是少数且不同的。在数据的随机划分中，异常更容易被隔离——它们需要更少的随机分割就能与其余数据分开。
+基本的见解是:异常很少,而且很不同. 在随机分区数据中,异常更容易分离,
 
 ```mermaid
 flowchart TD
-    A[所有数据点] --> B{随机特征 + 随机分割}
-    B --> C[左分区]
-    B --> D[右分区]
-    C --> E{随机特征 + 随机分割}
-    E --> F[正常点 - 在树深处]
-    E --> G[需要更多分割...]
-    D --> H["异常 - 快速隔离（短路径）"]
+    A[All Data Points] --> B{Random Feature + Random Split}
+    B --> C[Left Partition]
+    B --> D[Right Partition]
+    C --> E{Random Feature + Random Split}
+    E --> F[Normal Point - deep in tree]
+    E --> G[More splits needed...]
+    D --> H["Anomaly - isolated quickly (short path)"]
 
     style H fill:#fdd,stroke:#333
     style F fill:#dfd,stroke:#333
 ```
 
-**工作原理：**
-1. 构建许多随机树（隔离森林）
-2. 在每个节点，随机选择一个特征并在该特征的最小值和最大值之间随机选择一个分割值
-3. 持续分割直到每个点都被隔离（在其各自的叶节点中）
-4. 异常在所有树中具有更短的平均路径长度
+**How it works:**
+1. 建造许多随机树木 (一个孤立森林)
+2. 在每个节点,选择一个随机特征和一个随机分值之间的特征的min和max
+3. 继续分开,直到每个点分离 (在自己的叶子中)
+4. 异常的路径平均长度较短,
 
-**为什么有效：** 正常点存在于密集区域。许多随机分割才能将一个正常点从其邻居中隔离出来。异常点存在于稀疏区域。一两个随机分割就足以将它们隔离。
+**Why it works:**常见点生活在密集区域.需要许多随机分离来隔离一个与邻居.异常点生活在稀疏区域.一个或两个随机分离足以隔离它们.
 
-异常分数基于所有树中的平均路径长度，并除以随机二叉搜索树的期望路径长度进行归一化：
+异常分数是基于所有树木的平均路径长度,以随机二进制搜索树的预期路径长度正常化:
 
 ```
 score(x) = 2^(-average_path_length(x) / c(n))
 ```
 
-其中 `c(n)` 是 n 个样本的期望路径长度。分数接近 1 表示异常。分数接近 0.5 表示正常。分数接近 0 表示非常正常（在密集簇深处）。
+在哪里?`c(n)`接近1意味着异常.接近0.5意味着正常.接近0意味着非常正常 (密集集中).
 
-**优点：** 无需分布假设。在高维中有效。可扩展性好（子线性于样本量，因为每棵树使用子样本）。处理混合特征类型。
+**Strengths:**没有分布假设. 运行在高尺寸中. 尺寸很好 (样本尺寸是线下的,因为每个树使用一个子样本). 处理混合特征类型.
 
-**缺点：** 难以处理密集区域中的异常（遮蔽效应）。当许多特征不相关时，随机分割的效果较差。
+**Weaknesses:**密集区域的异常性 (掩盖效应) 难以应对.
 
-**关键超参数：**
-- `n_estimators`：树的数量。100 通常足够。更多的树给出更稳定的分数但计算更慢。
-- `max_samples`：每棵树的样本数。原始论文中默认为 256。较小的值使单棵树精度较低但增加多样性。子采样正是 Isolation Forest 快的原因——每棵树只看到数据的一小部分。
-- `contamination`：异常的预期比例。仅用于设置阈值。不影响分数本身。
+**Key hyperparameters:**
+- `n_estimators`更多的树木会给出更稳定的分数,但计算速度更慢.
+- `max_samples`树的样本数量. 256是原始纸上的默认值.较小的值使单个树木不太准确,但增加了多样性.
+- `contamination`预期异常的小部分.仅用于设定门.不会影响分数本身.
 
-### Local Outlier Factor（LOF）
+### 地方外卖因素 (LOF)
 
-LOF 将点周围的局部密度与其邻居的密度进行比较。处于稀疏区域且周围是密集区域的点是异常的。
+ LOF将一个点周围的地方密度与邻居周围的密度进行比较.
 
-**工作原理：**
-1. 对于每个点，找到其 k 个最近邻居
-2. 计算局部可达密度（邻域有多密集）
-3. 将每个点的密度与其邻居的密度进行比较
-4. 如果某个点的密度远低于其邻居，则它是离群点
+**How it works:**
+1. 对于每个点,找到它的 k 最接近的邻居
+2. 计算当地可达度密度 (邻居密度)
+3. 比较每个点的密度与邻居的密度
+4. 如果一个点的密度比其邻居低得多,则它是异常的
 
-**LOF 分数：**
-- LOF 接近 1.0 表示与邻居密度相似（正常）
-- LOF 大于 1.0 表示密度低于邻居（可能异常）
-- LOF 远大于 1.0（如 2.0+）表示密度显著更低（很可能异常）
+**LOF score:**
+- 接近1.0的LOF意味着与邻居相似的密度 (正常)
+- 低于1.0的LOF意味着低于邻居的密度 (潜在异常)
+- 低于1.0的 LOF (例如2.0+) 表示显著低密度 (可能异常)
 
-"局部"部分至关重要。考虑一个包含两个簇的数据集：一个包含 1000 个点的密集簇和一个包含 50 个点的稀疏簇。稀疏簇边缘的点在全局意义上并不异常——它有 50 个邻居。但如果其直接邻居比它更密集，那么它在局部意义上是异常的。LOF 捕捉了全局方法所遗漏的这种细微差别。
+地方部分是关键的.考虑一个数据集,有两个集群:一个密集的集群1000点和一个稀疏的集群50点.稀疏集群边缘的一个点在全球范围内并不罕见 - 它有50个邻居. 但如果它的直接邻居比它更密集,则它在当地很不寻常. LOF捕捉到全球方法错过的这种细微差异.
 
-**优点：** 检测局部异常（在其邻域中异常的点，即使它们在全局意义上不异常）。适用于不同密度的簇。
+**Strengths:**检测到地方异常 (在邻里不寻常的点,即使它们不是全球不寻常的点).
 
-**缺点：** 在大规模数据集上慢（朴素实现为 O(n²)）。对 k 的选择敏感。在高维中效果不佳（维度灾难影响距离计算）。
+**Weaknesses:**对于非常高的维度来说,它不起作用 (维度的诅咒影响了距离计算).
 
-### 对比
+### 进行比较
 
-| 方法 | 假设 | 速度 | 处理高维 | 检测局部异常 |
-|------|------|------|----------|--------------|
-| Z-score | 正态分布 | 非常快 | 是（每特征） | 否 |
-| IQR | 无（每特征） | 非常快 | 是（每特征） | 否 |
-| Isolation Forest | 无 | 快 | 是 | 部分 |
-| LOF | 距离有意义 | 慢 | 差 | 是 |
+| Method | Assumptions | Speed | Handles High Dims | Detects Local Anomalies |
+|--------|------------|-------|-------------------|------------------------|
+| Z-score | Normal distribution | Very fast | Yes (per feature) | No |
+| IQR | None (per feature) | Very fast | Yes (per feature) | No |
+| Isolation Forest | None | Fast | Yes | Partially |
+| LOF | Distance is meaningful | Slow | Poorly | Yes |
 
 ### 评估挑战
 
-评估异常检测器比评估分类器更难：
+评估异常检测器比评估分类器更难:
 
-- **极端的类别不平衡。** 异常仅占 0.1% 时，对所有数据预测"正常"就能获得 99.9% 的准确率。准确率毫无用处。
-- **AUROC 具有误导性。** 在重度不平衡的情况下，即使在实用阈值下模型错过了大多数异常，AUROC 看起来也很好。
-- **更好的指标：** Precision@k（在前 k 个被标记的项目中，有多少是真实异常）、AUPRC（精确率-召回率曲线下面积），以及在固定假阳性率下的召回率。
+- **Extreme class imbalance.**预测"正常"的情况,就能达到99.9%的准确度.
+- **AUROC is misleading.**由于存在严重的不平衡,即使模型在实际门上错过了大多数异常,AUROC也可以看起来很好.
+- **Better metrics:**精度@k (上方k标记的项目中,有多少是真实异常),AUPRC (精度回忆曲线下的区域),并以固定的假正率回忆.
 
 ```mermaid
 flowchart LR
-    A[原始数据] --> B[仅在正常数据上训练]
-    B --> C[对所有测试数据评分]
-    C --> D[按异常分数排序]
-    D --> E[评估前 K 个被标记的项目]
-    E --> F[K 处精确率 / AUPRC]
+    A[Raw Data] --> B[Train on Normal Data Only]
+    B --> C[Score All Test Data]
+    C --> D[Rank by Anomaly Score]
+    D --> E[Evaluate Top-K Flagged Items]
+    E --> F[Precision at K / AUPRC]
 
     style A fill:#f9f,stroke:#333
     style F fill:#9f9,stroke:#333
 ```
 
-### 异常检测流程
+### 异常检测管道
 
-在实践中，异常检测遵循以下工作流：
+实际上,异常检测遵循以下工作流程:
 
-1. **收集基线数据。** 理想情况下，一个你确定没有（或极少）异常的时间段。
-2. **特征工程。** 原始特征加派生特征（滚动统计、时间特征、比率）。
-3. **训练检测器。** 在基线数据上拟合。模型学习"正常"的样子。
-4. **对新数据评分。** 每个新观测值都会获得一个异常分数。
-5. **阈值选择。** 选择分数 cutoff。这是一个业务决策：更高的阈值意味着更少的误报但更多的漏报异常。
-6. **告警并调查。** 被标记的点进入人工审核或自动响应。
-7. **反馈收集。** 记录被标记的项目是真实异常还是误报。利用这些数据评估检测器并随时间调整阈值。
+1. **Collect baseline data.**理想情况下,你知道没有 (或很少) 异常的时期.
+2. **Feature engineering.**原材料特征加上衍生特征 (滚动统计,时间特征,比率).
+3. **Train the detector.**模型可以了解"正常"的样子.
+4. **Score new data.**每次新的观察都会得到异常分数.
+5. **Threshold selection.**选择分数截止. 这是一个商业决定:较高的门意味着少的虚假报警,
+6. **Alert and investigate.**标志点将被人类审查或自动响应.
+7. **Feedback collection.**记录标记的物件是否是真实异常或是虚假报警.
 
-该流程永远"未完成"。数据分布会漂移，新的异常类型会出现，阈值需要调整。将异常检测视为一个活系统，而非一次性模型。
+数据分布发生变化,出现新的异常类型,需要调整门.
 
 ```figure
 f3-anomaly-fence
 ```
 
-## 动手实现
+## 建立它
 
-`code/anomaly_detection.py` 中的代码从零实现了 Z-score、IQR 和 Isolation Forest。
+编码在`code/anomaly_detection.py`实现Z-score,IQR和隔离森林从零开始.
 
-### Z-score 检测器
+### 测量器
 
 ```python
 def zscore_detect(X, threshold=3.0):
@@ -246,9 +246,9 @@ def zscore_detect(X, threshold=3.0):
     return z.max(axis=1) > threshold
 ```
 
-简单且向量化。如果任何特征超过阈值则标记该点。
+标记一个点,如果任何特征超过门.
 
-### IQR 检测器
+### 智能仪表检测器
 
 ```python
 def iqr_detect(X, factor=1.5):
@@ -262,9 +262,9 @@ def iqr_detect(X, factor=1.5):
     return outside.any(axis=1)
 ```
 
-### 从零实现 Isolation Forest
+### 孤立森林从零开始
 
-从零实现的版本构建随机划分特征空间的隔离树：
+从零开始实现建立了隔离树,这些树随机分区特征空间:
 
 ```python
 class IsolationTree:
@@ -292,9 +292,9 @@ class IsolationTree:
         return self
 ```
 
-隔离一个点的路径长度决定其异常分数。路径越短，异常程度越高。
+距离一个点的路径长度决定了其异常分数.
 
-`IsolationForest` 类封装了多棵树：
+其他`IsolationForest`类包裹多个树木:
 
 ```python
 class IsolationForest:
@@ -312,26 +312,26 @@ class IsolationForest:
             self.trees.append(tree)
 
     def anomaly_score(self, X):
-        avg_path = 所有树中的平均路径长度
+        avg_path = average path length across all trees
         scores = 2.0 ** (-avg_path / c(max_samples))
         return scores
 ```
 
-归一化因子 `c(n)` 是在具有 n 个元素的二叉搜索树中进行不成功搜索的期望路径长度。它等于 `2 * H(n-1) - 2*(n-1)/n`，其中 `H` 是调和数。此归一化确保跨不同大小的数据集的分数可比较。
+正常化因素`c(n)`是一个包含 n 个元素的二进制搜索树中未能搜索的预期路径长度.`2 * H(n-1) - 2*(n-1)/n`在哪里`H`这种正常化确保不同尺寸的数据集中得分可比较.
 
 ### 演示场景
 
-代码生成多个测试场景：
+代码生成多种测试场景:
 
-1. **单簇含异常值。** 带有注入远离中心的异常的 2D 高斯簇。所有方法在此都应该有效。
-2. **多模态数据。** 三个大小和密度不同的簇。簇间的点是异常的。Z-score 因每特征的取值范围较宽而表现不佳。
-3. **高维数据。** 50 个特征，但异常仅在其中的 5 个上不同。测试方法是否能在特征子集中找到异常。
+1. **Single cluster with outliers.**两个维的高斯星团, 射了离中心的异常.
+2. **Multimodal data.**集群之间点是异常的. Z 积分是因为每个特征范围很宽.
+3. **High-dimensional data.**测试方法是否能在特征子集中找到异常.
 
-每个演示使用精确率、召回率、F1 和 Precision@k 比较所有方法。
+每个演示都使用精度,召回,F1和Precision@k来比较所有方法.
 
-## 使用它
+## 用它
 
-使用 sklearn（使用库实现，而非从零实现）：
+通过 sklearn (使用图书馆实现,而不是从零开始):
 
 ```python
 from sklearn.ensemble import IsolationForest
@@ -346,24 +346,24 @@ lof.fit(X_train)
 predictions = lof.predict(X_test)
 ```
 
-注意 `contamination` 设置异常的预期比例。正确设置它很重要——太低会错过异常，太高会产生误报。
+备注`contamination`设置正确的情况是重要的--太低会错过异常,太高会产生虚假报警.
 
-`anomaly_detection.py` 中的代码在相同数据上将从零实现与 sklearn 进行比较。
+编码在`anomaly_detection.py`根据相同数据,与Skularn进行零部实施的比较.
 
-### sklearn 的 Contamination 参数
+### 污染参数
 
-sklearn 中的 `contamination` 参数决定将连续异常分数转换为二元预测的阈值。它不改变底层分数。
+其他`contamination`根据Skularn的参数,将连续异常分数转换为二进制预测的门值.
 
 ```python
 iso_5 = IsolationForest(contamination=0.05)
 iso_10 = IsolationForest(contamination=0.10)
 ```
 
-两者产生相同的异常分数。但 `iso_5` 标记前 5%，而 `iso_10` 标记前 10%。如果你不知道真实的异常比例（你通常不知道），将 contamination 设为 "auto" 并直接使用原始分数。基于假阳性和假阴性的成本权衡设置你自己的阈值。
+两者都产生相同的异常分数.`iso_5`标志着前5%的`iso_10`如果您不知道真正的异常率 (通常您不会),则设置污染为"自动"并直接处理原始分数.根据虚假正值和虚假负值之间的成本权衡,设置您自己的门.
 
-### One-Class SVM
+### 一级SVM
 
-另一个值得了解的无监督异常检测器。One-Class SVM 在高维特征空间中（使用核技巧）在正常数据周围拟合一个边界。
+另一个值得知道的未监督异常检测器. 一级SVM在高维特征空间中围绕正常数据的边界 (使用内核技巧).
 
 ```python
 from sklearn.svm import OneClassSVM
@@ -373,91 +373,91 @@ oc_svm.fit(X_train)
 predictions = oc_svm.predict(X_test)
 ```
 
-`nu` 参数近似异常的比例。One-Class SVM 在小到中等规模数据集上效果良好，但不能扩展到非常大的数据（核矩阵呈二次增长）。
+其他`nu`一级SVM在小到中等数据集上运行良好,但不会扩展到非常大的数据 (内核矩阵的增长是四分之一).
 
-### 自编码器方法（预览）
+### 自动编码方法 (预览)
 
-自编码器是学习压缩和重建数据的神经网络。在正常数据上训练。在测试时，异常具有较高的重建误差，因为网络只学会了重建正常模式。
+自动编码器是学习压缩和重建数据的神经网络.训练在正常数据上.在测试时,异常性具有高重建错误,因为网络只学会重建正常模式.
 
-这将在 Phase 3（深度学习）中介绍，但原理相同：建模什么是正常的，标记什么偏离了正常。
+这在第三阶段 (深度学习) 中涵盖,但原则是一样的:
 
-### 集成异常检测
+### 组装异常检测
 
-正如集成方法提升分类效果（第 11 课），结合多个异常检测器也能提升检测效果。最简单的方法：
+像组合方法改善分类一样 (课11),结合多个异常检测器提高了检测.
 
-1. 运行多个检测器（Z-score、IQR、Isolation Forest、LOF）
-2. 将每个检测器的分数归一化到 [0, 1]
-3. 对归一化分数取平均
-4. 标记平均分数超过阈值的点
+1. 运行多个探测器 (Z-score,IQR,隔离森林,LOF)
+2. 调整每个探测器的分数为 [0, 1]
+3. 平均正常成绩
+4. 标志点超过平均分数的门值
 
-这减少了假阳性，因为不同的方法有不同的失效模式。被所有四种方法标记的点几乎肯定是异常的。仅被一种方法标记的点可能是该方法的一个 quirks。
+这减少了假正的结果,因为不同的方法有不同的故障模式.所有四种方法标记的点几乎肯定是异常的.只有一个标记的点可能是该方法的特点.
 
-更复杂的集成根据每个检测器的估计可靠性进行加权（在有已知异常的验证集上测量，如果有可用的话）。
+较复杂的组件按每个探测器的估计可靠性 (如果有,测量在已知异常的验证组上).
 
-### 生产注意事项
+### 生产考虑
 
-1. **阈值漂移。** 随着数据分布漂移，固定阈值会过时。监控异常分数的分布并定期调整。
-2. **告警疲劳。** 太多误报会导致操作员不再关注。从高阈值开始（更少、更可靠的告警），随着信任建立再降低它。
-3. **集成方法。** 在生产环境中，结合多个检测器。仅当多种方法一致认为某点是异常时才标记它。这能显著减少假阳性。
-4. **特征工程。** 原始特征通常不够。添加滚动统计、比率、距上次事件的时间以及领域特定特征。好的特征集比检测器的选择更重要。
-5. **反馈循环。** 当操作员调查被标记的项目并确认或驳回时，将这些反馈输入系统。随时间积累带标签的数据以评估和改进检测器。
+1. **Threshold drift.**随着数据分布的转变,一个固定门变得过时.
+2. **Alert fatigue.**由于太多的虚假报警和运营商不再关注, 开始使用较高的门 (更少的,更可靠的报警) 并随着信任的增长而降低.
+3. **Ensemble approach.**在生产中,结合多个探测器. 只有多种方法同意它是异常的,才能标记一个点. 这会显著减少虚假阳性.
+4. **Feature engineering.**添加滚动统计,比率,自最后事件以来的时间,以及特定域的功能.一个好的功能比检测器的选择更重要.
+5. **Feedback loop.**当运营商检查标记的物品并确认或驳回它们时,将这些物品重新输入到系统中.
 
-## 交付
+## 运送它
 
-本课产出：
-- `outputs/skill-anomaly-detector.md` -- 选择合适检测器的决策技能
-- `code/anomaly_detection.py` -- 从零实现的 Z-score、IQR 和 Isolation Forest，以及 sklearn 对比
+这一课产生了:
+- `outputs/skill-anomaly-detector.md`选择正确的探测器的决策技能
+- `code/anomaly_detection.py`通过Skularn比较,
 
-### 选择阈值
+### 选择一个门
 
-异常分数是连续的。你需要一个阈值来进行二元决策。这是一个业务决策，而非技术决策。
+对于做出二元决策,你需要一个门.这是一个商业决策,而不是技术决策.
 
-考虑两种场景：
-- **欺诈检测。** 漏报欺诈代价高昂（chargebacks、客户信任）。误报成本是人工分析师 5 分钟的调查时间。设置较低的阈值以捕获更多欺诈，接受更多误报。
-- **设备维护。** 误报意味着不必要的停机，成本 50,000 美元。漏报故障意味着 500,000 美元的维修。设置阈值以平衡这些成本。
+考虑两个情况:
+- **Fraud detection.**错失欺诈是昂贵的 (收费回报,客户信任). 假报警花费了5分钟的时间调查.
+- **Equipment maintenance.**假报警意味着不必要的关闭成本$50,000. A missed failure means a $设定一个值值,以平衡这些成本.
 
-两种情况下，最优阈值都取决于假阳性和假阴性的成本比例。绘制不同阈值下的精确率和召回率，叠加成本函数，并选择最小成本点。
+在两种情况下,最佳门取决于虚假正值和虚假负值之间的成本比率.
 
-### 扩展到生产
+### 规模到生产
 
-对于生产环境中的实时异常检测：
+对于生产中实时异常检测:
 
-1. **批训练、在线评分。** 定期（每日、每周）在最近正常数据上训练模型。每条新观测到达时对其进行评分。
-2. **特征计算必须匹配。** 如果你在 30 天的滚动统计上训练，你需要 30 天的历史数据来计算新观测的特征。缓冲所需的历史数据。
-3. **分数分布监控。** 跟踪异常分数的分布随时间的变化。如果中位分数上升，要么数据在变化，要么模型已过时。
-4. **可解释性。** 当你标记异常时，说明原因。Z-score："特征 X 比正常高出 4.2 个标准差。"Isolation Forest："该点平均在 3.1 次分割中被隔离（正常点需要 8.5 次）。"
+1. **Batch training, online scoring.**定期 (每天,每周) 训练模型使用最近的正常数据.
+2. **Feature computation must match.**如果您使用30天的滚动统计训练,则需要30天的历史,以计算新的观察的特性.
+3. **Score distribution monitoring.**如果中位数偏向上方,则数据正在改变,或者模型已经过时.
+4. **Explainability.**标记异常时,请说明原因.Z-score: "特征X是4.2标准偏差高于正常."隔离森林:"这个点平均分为3.1分 (正常分为8.5).
 
-## 练习
+## 运动
 
-1. **阈值调优。** 使用从 1.0 到 5.0、步长为 0.5 的阈值运行 Z-score 检测器。绘制每个阈值下的精确率和召回率。你的数据的最佳甜蜜点在哪里？
+1. **Threshold tuning.**运行Z-score探测器,以0.0到5.0的步骤进行.
 
-2. **多元异常。** 创建 2D 数据，其中每个特征单独看都很正常，但组合起来是异常的（例如，远离主簇对角线的点）。展示 Z-score 逐特征会错过这些，但 Isolation Forest 能检测到。
+2. **Multivariate anomalies.**创建2D数据,每个特征单独看起来正常,但组合是异常的 (例如,距离主集群角角的点). 显示每个特征的Z分数错过这些,但隔离森林抓住它们.
 
-3. **从零实现 LOF。** 使用 k 近邻实现 Local Outlier Factor。在相同数据上与 sklearn 的 LocalOutlierFactor 进行比较。使用 k=10 和 k=50 —— k 的选择如何影响结果？
+3. **LOF from scratch.**根据相同数据,使用k-近邻实现本地外表因素.与 sklearn的本地外表因素进行比较.使用k=10和k=50 - 选择k如何影响结果?
 
-4. **流式异常检测。** 修改 Z-score 检测器以在流式设置中工作：使用 Welford 的在线算法随着新点到来更新运行均值和方差。与相同数据上的批量 Z-score 进行比较。
+4. **Streaming anomaly detection.**修改Z-score检测器以在流媒体设置中工作:随着新点的到来更新运行平均和变异 (威尔福德的在线算法).
 
-5. **真实世界评估。** 获取一个带有已知异常的数据集（例如来自 Kaggle 的信用卡欺诈数据）。使用 precision@100、precision@500 和 AUPRC 评估所有四种方法。哪种方法效果最好？为什么？
+5. **Real-world evaluation.**根据"Caggle"的信贷卡欺诈法,使用 precision@100,precision@500和AUPRC评估四种方法.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说什么 | 实际含义 |
-|------|-----------|---------|
-| 异常（Anomaly） | "离群点、异常点" | 显著偏离正常数据预期模式的数据点 |
-| 点异常（Point anomaly） | "单个奇怪的值" | 无论上下文如何都显得异常的单个观测值 |
-| 上下文异常（Contextual anomaly） | "正常的值，错误的上下文" | 给定其上下文（时间、位置等）时显得异常的观测，但在其他上下文中可能是正常的 |
-| Isolation Forest | "随机分割以查找离群点" | 由随机树组成的集成，用比正常点更少的分割隔离异常 |
-| Local Outlier Factor | "将密度与邻居比较" | 标记其局部密度远低于邻居密度的点的方法 |
-| Z-score | "距离均值的标准差数" | (x - mean) / std，衡量一个点距离中心有多少个标准差 |
-| IQR | "四分位距" | Q3 - Q1，衡量中间 50% 数据的散布，用于鲁棒离群点检测 |
-| Contamination | "异常的预期比例" | 告诉检测器应标记多少比例数据为异常的超参数 |
-| Precision@k | "在前 k 个标记中，有多少是真实的" | 仅在前 k 个最可疑点上计算的精确率，适用于不平衡的异常检测 |
-| AUPRC | "精确率-召回率曲线下的面积" | 总结所有阈值下精确率-召回率性能的指标，比 AUROC 更适合不平衡数据 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| Anomaly | "Outlier, unusual point" | A data point that deviates significantly from the expected pattern of normal data |
+| Point anomaly | "A single weird value" | An individual observation that is unusual regardless of context |
+| Contextual anomaly | "Normal value, wrong context" | An observation that is unusual given its context (time, location, etc.) but might be normal in another context |
+| Isolation Forest | "Random splits to find outliers" | An ensemble of random trees that isolates anomalies with fewer splits than normal points |
+| Local Outlier Factor | "Compare density to neighbors" | A method that flags points whose local density is much lower than their neighbors' density |
+| Z-score | "Standard deviations from mean" | (x - mean) / std, measuring how far a point is from the center in units of standard deviation |
+| IQR | "Interquartile range" | Q3 - Q1, measuring the spread of the middle 50% of data, used for robust outlier detection |
+| Contamination | "Expected fraction of anomalies" | A hyperparameter telling the detector what proportion of the data it should flag as anomalous |
+| Precision@k | "Of the top k flags, how many are real" | Precision computed on only the k most suspicious points, useful for imbalanced anomaly detection |
+| AUPRC | "Area under precision-recall curve" | A metric that summarizes precision-recall performance across all thresholds, better than AUROC for imbalanced data |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Liu et al., Isolation Forest (2008)](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/icdm08b.pdf) -- 原始 Isolation Forest 论文
-- [Breunig et al., LOF: Identifying Density-Based Local Outliers (2000)](https://dl.acm.org/doi/10.1145/342009.335388) -- 原始 LOF 论文
-- [scikit-learn Outlier Detection docs](https://scikit-learn.org/stable/modules/outlier_detection.html) -- 所有 sklearn 异常检测器概述
-- [Chandola et al., Anomaly Detection: A Survey (2009)](https://dl.acm.org/doi/10.1145/1541880.1541882) -- 异常检测方法的全面综述
-- [Goldstein and Uchida, A Comparative Evaluation of Unsupervised Anomaly Detection Algorithms (2016)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0152173) -- 在真实数据集上对 10 种方法的实证比较
+- [Liu et al., Isolation Forest (2008)](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/icdm08b.pdf)-- 原始的孤立森林纸
+- [Breunig et al., LOF: Identifying Density-Based Local Outliers (2000)](https://dl.acm.org/doi/10.1145/342009.335388)-- LOF原始纸
+- [scikit-learn Outlier Detection docs](https://scikit-learn.org/stable/modules/outlier_detection.html)-- 总体所有Skularn异常检测器
+- [Chandola et al., Anomaly Detection: A Survey (2009)](https://dl.acm.org/doi/10.1145/1541880.1541882)-- 综合调查异常检测方法
+- [Goldstein and Uchida, A Comparative Evaluation of Unsupervised Anomaly Detection Algorithms (2016)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0152173)--实实数据集的10种方法的经验性比较

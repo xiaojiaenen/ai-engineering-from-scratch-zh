@@ -1,183 +1,183 @@
-# 生产环境扩展 — 队列、检查点、持久性执行
+# 生产规模 排队,检查点,耐用性
 
-> 将多代理系统扩展到数千并发运行时，需要**持久性执行**——工作队列加检查点，这样任何 worker 都可以在任何崩溃后恢复任何运行，前提是已具备租约处理、幂等副作用和确定性重放机制。LangGraph 的运行时是参考示例：它在每个 super-step 之后写入一个以 `thread_id` 为键的检查点（默认为 Postgres）；worker 崩溃释放租约后，另一个 worker 恢复运行。代理可以无限期休眠等待人工输入。**MegaAgent**（arXiv:2408.09955）为每个代理运行了生产者-消费者队列，具有三种状态（Idle / Processing / Response）和两层协调（组内聊天 + 组间管理聊天）。**Fiber/async** 比每任务一线程更适合 LLM 流式传输：线程在等待 token 时 99% 的时间处于空闲状态，而 fiber 在 I/O 时协作式让出。反方观点：Ashpreet Bedi 的"扩展代理软件"主张在负载证实之前使用 **FastAPI + Postgres + 无其他**——简单架构能走得更远。本课构建持久性检查点日志、带状态转换的每代理工作队列、async 与线程演示，并落地实用的"从简单开始"原则。
+> 扩展多代理系统到数千次同时运行需要**durable execution**工作队列加上检查站,因此任何工人都可以在任何事故后恢复任何运行,只要租处理,无效的副作用和确定性重播都在位. 兰格拉夫的运行时间是参考例子:它在每个超级步骤后写出检查站`thread_id`工人失业后,工人重新开始租,代理人可以无限期地等待人力投入. **MegaAgent**根据该报告,该报告的内容包括:**Fiber/async**对于LLM流媒体,线程在99%的时间里停留无事,纤维在合作中输入/运输.**FastAPI + Postgres + nothing else**在负载证明不一样之前,简单的架构比预期要远.这个课程建立了一个持久的检查点日志,一个每个代理的工作队列,状态过渡,一个asyncvsthread演示,并降落实态的"开始简单"规则.
 
-**类型：** 学习 + 构建
-**语言：** Python（stdlib、`asyncio`、`sqlite3`）
-**前置知识：** Phase 16 · 09（并行群体网络）、Phase 16 · 13（共享内存）
-**时间：** 约 75 分钟
+**Type:** Learn + Build
+**Languages:** Python (stdlib, `asyncio`, `sqlite3`)
+**Prerequisites:** Phase 16 · 09 (Parallel Swarm Networks), Phase 16 · 13 (Shared Memory)
+**Time:** ~75 minutes
 
 ## 问题
 
-原型多代理系统在单台笔记本电脑上工作，包含三个代理和一个内存事件循环。当你转向生产环境时：
+一个原型多代理系统在一个笔记本电脑上运行,有三个代理在内存事件循环中.
 
-- 代理有时运行数小时（长期研究、人工参与等待）。
-- Worker 进程崩溃，重启会丢失状态。
-- 峰值负载是平均值的 10 倍；需要水平扩展。
-- 用户按代理运行付费；你需要对计费实现恰好一次语义。
+- 代理人有时会花费几个小时 (长时间的研究,
+- 工人进程崩,重新启动失去了状态.
+- 平均水平是10倍,需要水平扩展.
+- 用户每次运行都会付费,需要一次性语义来充电.
 
-内存事件循环无法处理上述任何情况。你需要底层持久性执行层。2026 年的典型选项有：
+记忆中的事件循环没有任何这些.你需要一个持久的执行层. 2026 规范的选项是:
 
-1. 带检查点的工作流引擎（Temporal、LangGraph 运行时）。
-2. 带状态存储的消息队列（Postgres + SQS/RabbitMQ）。
-3. Actor 模型框架（MegaAgent 的每代理生产者-消费者）。
-4. 手写 FastAPI + Postgres（Bedi 的主张）。
+1. 工作流动引擎,具有检查点 (时间,长图运行时间).
+2. 随着国家商店的消息排队 (Postgres + SQS/RabbitMQ).
+3. 演员模式框架 (每代理人每位MegaAgent的生产者-消费者).
+4. 手动 FastAPI + Postgres (贝迪的论点).
 
-本课将构建每种方案的微型版本。
+这一课构建了每个小图.
 
 ## 概念
 
-### 持久性执行，模式
+### 持续执行,模式
 
-持久性执行引擎在每个"步骤"（LangGraph 术语中的 super-step）之后持久化完整程序状态。崩溃时：
+长期执行引擎在每一步之后保持完整的程序状态 (在LangGraph语言中说超级步骤).
 
 ```
-worker 在步骤中间崩溃
-  -> 租约超时
-  -> 另一个 worker 拾取 thread_id
-  -> 从上次检查点恢复
-  -> 无重复副作用
+worker crashes mid-step
+  -> lease timeout
+  -> another worker picks up the thread_id
+  -> resumes from last checkpoint
+  -> no duplicate side effects
 ```
 
-使其工作的要求：
+要求:
 
-- **可序列化的状态。** 所有代理状态必须可持久化。带有活跃数据库连接的函数闭包无法存活。
-- **确定性恢复。** 给定相同状态和相同输入，代理产生相同的操作（或将 LLM 调用委托给外部确定性预言机）。
-- **幂等副作用。** 外部调用（工具调用、支付）必须是幂等的或使用去重密钥。
+- **Serializable state.**任何代理状态都必须持续. 连接数据库的功能关闭不会存活.
+- **Deterministic resume.**由于相同状态和相同的输入,代理产生相同的行动 (或将其推迟到外部确定性预言器来进行LLM调用).
+- **Idempotent side effects.**外部调用 (工具调用,支付) 必须无效或使用减倍密钥.
 
-LangGraph 在每个 super-step 后写入检查点；Temporal 在每个 activity 后写入；Restate 使用事件溯源日志。三者实现了相同的模式。
+拉格格拉夫在每一个超级步骤之后写一个检查点; 时间表在每一个活动之后写一个检查点; 重新使用事件来源的日志.所有三个都实现相同的模式.
 
-### 每步检查点运行时
+### 检查点每步运行时间
 
-LangGraph 的运行时是完整的示例：每个代理有一个 `thread_id`；状态是一个类型化字典；每个 super-step 向检查点表写入一行。恢复时，运行时从上次的检查点重放，而非从头开始。代理可以 `interrupt()` 等待人工输入；运行时持久化并释放 worker。当输入到达时，任何 worker 都可以恢复。
+运行时间是工作的例子:每个代理都有一个`thread_id`总结: 运行时间从最后一个检查点重播,而不是从零开始. 代理人可以`interrupt()`工作时间持续,释放了工人.
 
-这是 2026 年 4 月的参考生产设计。
+根据"中国"的标题,
 
-### MegaAgent 的每代理队列
+### 对于每位代理人,MegaAgent的排队
 
-arXiv:2408.09955 描述了一个规模实验：一个集群中数千个并发代理。架构：
+建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑: 建筑:
 
 ```
 agent i:
   state ∈ {Idle, Processing, Response}
-  in_queue   <- 发送给 agent i 的消息
-  out_queue  -> 回复 + 副作用
+  in_queue   <- messages addressed to agent i
+  out_queue  -> replies + side effects
 
 coordinators:
-  intra-group chat  （同组代理之间的聊天）
-  inter-group admin chat  （高级路由）
+  intra-group chat  (agents in the same group)
+  inter-group admin chat  (high-level routing)
 ```
 
-两层协调使得组内对话可以密集发生，而组间保持稀疏——这是在数千代理中保持成本线性的模式。
+两层协调使得集团内部对话发生密集,而集团间保持稀少.
 
-### Async vs 每任务线程
+### 同比对每项工作的线程
 
-LLM 调用是 I/O 绑定的。等待下一个 token 的线程 99% 的时间处于空闲状态。线程每个约消耗 ~1MB RAM；在 10,000 个并发调用时，仅栈就需要 10GB。
+电话是 I/O 绑定.一个线程等待下一个代币是置的99%.线程每一个成本 ~ 1MB RAM;在 10,000 个同时电话,这仅仅是10GB 堆.
 
-Fiber（Python `asyncio`、Go goroutines、Rust `tokio`）在 I/O 时协作式让出。相同的 10,000 个调用可以轻松适应进程内。在 LLM 代理规模下，async 不是优化——它是架构。
+纤维 (Python `asyncio`走进节日,烂`tokio`) 合作地实现I/O. 同样的10,000通话舒适地适应过程.在LLM代理规模上,async不是一个优化,而是架构.
 
-例外：CPU 绑定的后处理（嵌入、分词器技巧）仍需要线程或进程。将 I/O 层与 CPU 层分离。
+唯一的例外: CPU 相关后处理 (嵌入,代币化技巧) 仍然需要线程或进程.将您的 I/O 层与 CPU 层分开.
 
-### Bedi 的反方观点
+### 贝迪的反点
 
-"Scaling Agentic Software"（Ashpreet Bedi, 2026）认为大多数团队在测量负载之前就过度设计了。实用默认方案：
+"扩展代理软件" (Ashpreet Bedi, 2026) 认为大多数团队在测量负载之前过度工程.
 
-- FastAPI + Postgres。
-- 每个代理运行是一行；状态通过乐观并发就地更新。
-- 通过 `pg_notify` 或简单 Celery worker 运行后台任务。
-- 应用代码中的重试策略。
+- 快速API+后期.
+- 每次代理运行都是一行;状态在现场更新,同时保持乐观.
+- 通过 `pg_notify`或是一个简单的菜工人.
+- 申请代码中重新尝试.
 
-对于在可管理任务上低于 ~100 并发代理运行的负载，这通常就足够了。在测量到失败时再升级。
+对于可管理任务的负载量低于100个同时运行的代理,通常只需要这么做.
 
-原则：在你遇到简单架构无法解决的具体问题时再采用持久性执行框架。过早采用会在没有回报的仪式性工作上浪费时间为。
+规则:当你遇到一个具体的问题, 简单的建筑无法解决时, 采用持久的执行框架.
 
-### 恰好一次语义
+### 精确的语义
 
-对于付费代理运行，你需要"恰好一次有效"（至少一次投递 + 幂等消费者）。工程措施：
+对于付费代理运行,你需要"一次有效" (至少一次交付 +无权消费者).
 
-- **每个运行的去重密钥。** 包含在每个副作用调用中。
-- **出站模式。** 副作用首先写入表，然后由单独的进程执行它们。两步都是幂等的。
-- **补偿事务。** 当副作用成功但跟踪写入失败时，安排补偿。
+- **Dedup key per run.**加入每次副作用电话.
+- **Outbox pattern.**后果首先写到一个表,然后一个单独的过程执行它们.
+- **Compensating transactions.**如果副作用成功,但其追踪写失败,
 
-这些是数据库工程模式，而非 LLM 专用。LLM 的代价仅是 LLM 调用缓慢；其他一切都是标准分布式系统。
+法律法师税仅仅是法律法师调用速度缓慢;其他的一切都是标准分布式系统.
 
 ### 彩虹部署
 
-Anthropic 的多代理研究系统使用"彩虹部署"：多个版本的代理运行时并发运行，这样长期运行的代理不必在每次代码部署时都被杀死。在流量切片上渐进发布新版本；当旧版本的代理完成时退役旧版本。
+普奇的多代理研究系统使用"彩虹部署":代理运行时间的多个版本同时运行,因此长期运行的代理人不需要在每个代码部署中被杀害.卡纳里新版本在一片流量上;当他们的代理人完成时退休旧版本.
 
-这对长期运行的有状态系统是标准的；2026 年的适配是代理可以存活数小时，因此部署周期必须适应这一点。
+这对于长期运行的状态系统是标准的; 2026年适应是代理人可以活多小时,所以部署周期必须适应.
 
-### 标准生产清单
+### 标准生产检查清单
 
-- 持久性状态（检查点、快照或出站 + 可重放日志）。
-- 幂等副作用。
-- 用于 LLM 调用的异步 I/O 层。
-- 带去重的至少一次投递。
-- 用于有状态工作负载的彩虹/金丝雀部署。
-- 可观测性：每代理追踪、super-step 审计、重试计数。
+- 持久状态 (检查点,快照或输出箱+可播放日志).
+- 无效的副作用.
+- 对于LLM电话来说,Async I/O层.
+- 至少一次送货,带着.
+- 适用于工作负载的彩虹/加拿大鱼部署.
+- 观察性:每位代理的痕迹,超级审计,重试计数.
 
 ```figure
 sw-checkpoint-replay
 ```
 
-## 构建
+## 建立它
 
-`code/main.py` 实现了：
+`code/main.py`执行:
 
-- `CheckpointStore` —— 基于 SQLite 的检查点日志，带 thread-id 键。每个 super-step 追加一行。
-- `run_with_checkpoint(agent, thread_id)` —— 模拟运行中途崩溃；第二个 worker 从上次检查点恢复。
-- `AgentQueue` —— 每代理的 Idle / Processing / Response 状态机，带小型工作队列。
-- `demo_async_vs_threads()` —— 通过 asyncio 和线程运行 500 个并发模拟"LLM 调用"；报告墙钟时间和峰值内存（近似）。
+- `CheckpointStore` SQLite支持的检查点日志,有线索ID键.每个超级步骤添加了一行.
+- `run_with_checkpoint(agent, thread_id)`模拟一次中跑事故;第二名工人从最后一个检查点恢复.
+- `AgentQueue`每代理                                                                                                                                                                                                                                                             
+- `demo_async_vs_threads()`通过无线和线程运行500个同时模拟的LLM调用;报告墙钟和峰值内存 (近似).
 
-运行：
+运行:
 
 ```
 python3 code/main.py
 ```
 
-预期输出：模拟崩溃后检查点恢复成功；async 版本在 < 1 秒内处理 500 个并发调用；线程版本需要数秒且每个并发单元的内存使用高几个数量级。
+预期输出:检查点恢复在模拟崩后成功;async版本在<1s内处理500次同时调用;线程版本需要几秒钟,每次同时使用数量更高的内存.
 
-## 使用
+## 用它
 
-`outputs/skill-scaling-advisor.md` 就持久性执行选择提供建议：FastAPI + Postgres、LangGraph 运行时、Temporal 或自定义方案。根据负载、状态保留需求和部署频率进行校准。
+`outputs/skill-scaling-advisor.md`建议使用耐用执行选项:FastAPI + Postgres,LangGraph运行时间,时间或定制.按负载,状态保留需求和部署频率进行校准.
 
-## 交付
+## 运送它
 
-标准生产加固：
+制产品硬化:
 
-- **从简单开始（Bedi 原则）。** FastAPI + Postgres，直到测量到失败。
-- **在优化之前对所有内容进行仪器化。** 每运行延迟直方图、每步时间、重试计数、失败分类。
-- **副作用使用出站模式。** 尤其是支付和外部 API 调用。
-- **彩虹部署。** 部署期间绝不杀死进行中的代理运行。
-- **在遇到具体问题时分阶段采用持久性执行引擎（Temporal / LangGraph / Restate）：** 长达数小时的人工参与等待、跨地域协调、复杂的重试/补偿策略。
-- **I/O 层使用 async。** 线程仅用于 CPU 绑定的后处理。
+- **Start simple (Bedi's rule).**快API+后期,直到测量失败.
+- **Instrument everything before optimizing.**运行延迟历史图,步骤时间,重复试数,失败分类.
+- **Outbox pattern for side effects.**尤其是支付和外部API通话.
+- **Rainbow deploys.**在部署时,不要杀死飞行中的特工.
+- **Adopt durable-execution engines (Temporal / LangGraph / Restate) when**您遇到特定问题:一个小时的循环等待,跨地区协调,复杂的重试/补偿政策.
+- **Async for the I/O layer.**仅用于处理后处理.
 
-## 练习
+## 运动
 
-1. 运行 `code/main.py`。确认检查点恢复工作；测量 async 与线程并发差异。
-2. 实现一个**出站**表：每个工具调用首先写入出站表，然后由单独的 goroutine/任务执行。通过两次运行工具调用验证幂等性。
-3. 模拟一次**彩虹部署**：两个并发运行时版本；将一半新 thread_id 路由到每个版本；确认旧版本上的进行中的线程未被中断。
-4. 阅读 LangGraph 的运行时文档（链接如下）。确定运行时中哪些功能在手写 FastAPI + Postgres 版本中实现最耗时。这是采用的理由，还是可以推迟？
-5. 阅读 MegaAgent（arXiv:2408.09955）第 3 节。两层协调（组内 + 组间管理聊天）是显式的。草拟如何将此映射到带两个队列族的消息队列。
+1. 跑步`code/main.py`检查点恢复工作;测量异步与线程同步差异.
+2. 实施一个**outbox**每个工具调用首先写到输出框,然后执行一个单独的 goroutine/任务.通过两次运行工具调用来验证无效性.
+3. 模拟一个**rainbow deploy**:两个同时运行版本;将新线程_ID的半个线程向每一个;确认旧版本的飞行线程没有被打断.
+4. 阅读LangGraph的运行时间文件 (下面链接).确定运行时间的哪些功能在手动滚动的FastAPI + Postgres版本中需要最长时间复制.这是否可以采取理由,或者您可以推迟?
+5. 阅读MegaAgent (arXiv:2408.09955) 第三节. 两层协调 (组内 + 组间管理员聊天) 是明确的. 绘制一幅图,说明你如何将此映射到两个队列家庭的消息队列中.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|-----------|---------|
-| Durable execution | "持久化程序状态" | 引擎在每个 super-step 后写入状态；崩溃恢复是确定性的。 |
-| Super-step | "事务边界" | 检查点之间的工作单元。LangGraph 术语。 |
-| thread_id | "代理运行标识符" | 绑定检查点和恢复逻辑的键。 |
-| Idempotency | "安全重试" | 重复副作用与一次尝试产生相同结果。 |
-| Outbox pattern | "解耦副作用" | 写入意图到表；单独的执行器执行并标记完成。 |
-| At-least-once delivery | "可能重复" | 消息队列语义；去重密钥使消费者有效一次。 |
-| Rainbow deploy | "重叠版本" | 长期运行工作负载期间多个运行时版本并发。 |
-| Async fiber | "协作式让出" | 用户态并发；相比线程在 I/O 绑定负载下更轻量。 |
-| Checkpoint | "状态快照" | super-step 边界的序列化状态；恢复的关键。 |
+| Term | What people say | What it actually means |
+|------|----------------|------------------------|
+| Durable execution | "Persist the program state" | Engine writes state after each super-step; crash recovery is deterministic. |
+| Super-step | "Transactional boundary" | Unit of work between checkpoints. LangGraph term. |
+| thread_id | "Agent run identifier" | Key that binds checkpoints and resume logic. |
+| Idempotency | "Safe to retry" | Repeating a side effect produces the same result as one attempt. |
+| Outbox pattern | "Decouple side effects" | Write intent to a table; a separate executor performs and marks done. |
+| At-least-once delivery | "Possible duplicates" | Message queue semantics; dedup key makes consumer effective-once. |
+| Rainbow deploy | "Overlapping versions" | Multiple runtime versions concurrent during long-running workloads. |
+| Async fiber | "Cooperative yielding" | User-mode concurrency; cheap compared to threads for I/O-bound loads. |
+| Checkpoint | "State snapshot" | Serialized state at a super-step boundary; key for resume. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [LangChain — 生产深度代理背后的运行时](https://www.langchain.com/conceptual-guides/runtime-behind-production-deep-agents) — LangGraph 运行时设计
-- [MegaAgent](https://arxiv.org/abs/2408.09955) — 每代理生产者-消费者队列；数千并发代理的两层协调
-- [Matrix](https://arxiv.org/abs/2511.21686) — 以消息队列为协调基础的去中心化框架
-- [Temporal 文档](https://docs.temporal.io/) — 持久性执行的参考工作流引擎
-- [Anthropic — 多代理研究系统](https://www.anthropic.com/engineering/multi-agent-research-system) — 包括彩虹部署在内的生产经验教训
+- [LangChain — The runtime behind production deep agents](https://www.langchain.com/conceptual-guides/runtime-behind-production-deep-agents) 兰格拉夫运行时间设计
+- [MegaAgent](https://arxiv.org/abs/2408.09955)每代理生产者-消费者队列;在数千个同时代理的两层协调
+- [Matrix](https://arxiv.org/abs/2511.21686) 分离式框架,配合基层是信息队列
+- [Temporal docs](https://docs.temporal.io/) 适用于耐用执行的参考工作流动引擎
+- [Anthropic — Multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)生产课程,包括彩虹部署

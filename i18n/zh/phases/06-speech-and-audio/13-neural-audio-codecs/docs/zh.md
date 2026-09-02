@@ -1,86 +1,86 @@
-# 神经音频编解码器 —— EnCodec、SNAC、Mimi、DAC 与语义-声学分离
+# 神经音频代码器 EnCodec,SNAC,Mimi,DAC和语音分区
 
-> 2026 年的音频生成几乎全部基于 token。EnCodec、SNAC、Mimi 和 DAC 将连续波形转换为离散序列，供 Transformer 进行预测。语义与声学 token 的分离——将第一个码本就作为语义部分，其余作为声学部分——是自 Transformer 以来音频领域最重要的架构变革。
+> 2026年音频生成几乎是所有代币.EnCodec,SNAC,Mimi和DAC将连续波形转化为变压器可以预测的分离序列.语义与音响代币分为语义,休息为音响,这是自变压器以来最重要的建筑转变.
 
-**类型：** 学习
-**语言：** Python
-**前置知识：** 阶段 6 · 02（频谱图）、阶段 10 · 11（量化）、阶段 5 · 19（子词分词）
-**时间：** 约 60 分钟
+**Type:** Learn
+**Languages:** Python
+**Prerequisites:** Phase 6 · 02 (Spectrograms), Phase 10 · 11 (Quantization), Phase 5 · 19 (Subword Tokenization)
+**Time:** ~60 minutes
 
-## 问题背景
+## 问题
 
-语言模型在离散 token 上工作，而音频是连续的。如果你想要一个类 LLM 的语音/音乐模型——MusicGen、Moshi、Sesame CSM、VibeVoice、Orpheus——你首先需要一个**神经音频编解码器**：一个学习到的编码器，将音频离散化为少量 token 词汇，并配合一个匹配的分路解码器重建波形。
+语言模型在单独的代币上工作.音频是连续的.如果你想要一个语音/音乐的LLM样式模型,首先你需要一个**neural audio codec**编码器可以将音频分为小的代币词汇,
 
-已出现两大流派：
+两个家庭出现了:
 
-1. **重建优先的编解码器**——EnCodec、DAC。优化感知音频质量。token 是"声学"的——它们捕获一切，包括说话人身份、音色、背景噪声。
-2. **语义优先的编解码器**——Mimi（Kyutai）、SpeechTokenizer。强制第一个码本编码语言/语音内容（通常通过对 WavLM 进行蒸馏）。后续的码本负责声学细节。
+1. **Reconstruction-first codecs** EnCodec,DAC. 优化感知音频质量. 代币是"音响"它们捕捉到包括扬声器身份,音调,背景噪音等所有内容.
+2. **Semantic-first codecs**米米 (九泰),语音托克尼泽. 强迫第一本代码书编码语言/音响内容 (通常通过从WavLM蒸).随后的代码书是音响细节.
 
-2024-2026 年的关键洞察：**纯重建编解码器在尝试从文本生成时会产生模糊的语音。** LLM 经过编解码 token 必须同时学习语言结构和声学结构，这在同一个码本中难以扩展。将它们分离——语义码本 0、声学码本 1-N——正是 Moshi 和 Sesame CSM 可行的原因。
+2024-2026年的见解:**a pure reconstruction codec gives you blurry speech when you try to generate from text.**编码代码代码的LLM必须在同一代码书中学习语言结构和声学结构,这不会扩展.分离它们的语义代码书0,声学代码书1-N 是使莫西和芝麻CSM工作的原因.
 
-## 核心概念
+## 概念
 
-![四种编解码器概览：EnCodec、DAC、SNAC（多尺度）、Mimi（语义+声学）](../assets/codec-comparison.svg)
+![Four codec landscape: EnCodec, DAC, SNAC (multi-scale), Mimi (semantic+acoustic)](../assets/codec-comparison.svg)
 
-### 核心技巧：残差向量量化（RVQ）
+### 核心技巧:残留向量定量化 (RVQ)
 
-与其使用一个大型码本（这需要数百万个码才能实现高质量），所有现代音频编解码器都使用 **RVQ**：一系列小码本的级联。第一个码本对编码器输出进行量化；第二个码本对残差进行量化；依此类推。每个码本包含 1024 个码。8 个码本 = 等效词表大小为 1024^8 = 10^24。
+而不是一个大代码书 (需要数百万代码才能达到高质量),**RVQ**编码书的数量量:一个小编码书.第一本编码书量化编码器输出;第二本量化残余;等.每个编码书是1024个代码.
 
-在推理时，解码器按帧累加所有选定的码以重建波形。
+在推断时,解码器将每个框架中所选的所有代码总和起来,以重建.
 
-### 2026 年最关键的四种编解码器
+### 2026年有关键的四个编程器
 
-**EnCodec（Meta，2022）。** 基线方案。编码器-解码器结构作用于波形，使用 RVQ 瓶颈。24 kHz，最多支持 32 个码本，默认 4 个码本 @ 1.5 kbps。采用 `1D 卷积 + Transformer + 1D 卷积` 架构。被 MusicGen 使用。
+**EnCodec (Meta, 2022).**基线. 波形加码器-解码器,RVQ瓶. 24 kHz,32个代码库可能,默认4个代码库 @ 1.5 kbps. 使用 `1D conv + transformer + 1D conv`建筑,由音乐Gen使用.
 
-**DAC（Descript，2023）。** RVQ 配合 L2 归一化码本、周期性激活函数、改进的 loss。任何开源编解码器中重建保真度最高——有时使用 12 个码本就与原始语音难以区分。支持 44.1 kHz 全频段。
+**DAC (Descript, 2023).**随着L2标准化的代码簿,定期激活功能,损失改善. 任何开放代码的最高重建忠实度有时无法与原始语音区分,有12个代码簿. 44.1 kHz 频段.
 
-**SNAC（Hubert Siuzdak，2024）。** 多尺度 RVQ——粗粒度码本比细粒度码本具有更低的帧率。实质上对音频进行了分层建模：约 12 Hz 的粗粒度"草图"加上 50 Hz 的细节。被 Orpheus-3B 使用，因为其分层结构很好地适配了基于 LM 的生成。
+**SNAC (Hubert Siuzdak, 2024).**多尺度RVQ 粗代码书在较细的图像速度下运行.有效地以语音层次模型:粗的"sketch"在 ~ 12 Hz 加上50 Hz 细节.Orpheus-3B使用,因为层次结构很好地映射到基于LM的生成.
 
-**Mimi（Kyutai，2024）。** 2026 年的颠覆性方案。12.5 Hz 帧率（极低），8 个码本 @ 4.4 kbps。码本 0 **由 WavLM 蒸馏而来**——训练目标是预测 WavLM 的语音内容特征。码本 1-7 为声学残差。这种分离为 Moshi（第 15 课）和 Sesame CSM 提供了动力。
+**Mimi (Kyutai, 2024).**游戏变化器2026年. 12.5Hz的框架速度 (极低), 8个代码书 @ 4.4 kbps.**distilled from WavLM**训练以预测WavLM的语音内容特性.编码书1-7是声学残留物.这分类支持Moshi (课 15) 和芝麻CSM.
 
-### 帧率对语言建模的影响
+### 框架速度对于语言建模是重要的
 
-更低的帧率 = 更短的序列 = 更快的 LM。
+低的图像速度 = 短的序列 = 快的LM.
 
-| 编解码器 | 帧率 | 1 秒 = N 帧 | 适用场景 |
-|---------|-----|------------|---------|
-| EnCodec-24k | 75 Hz | 75 | 音乐、通用音频 |
-| DAC-44.1k | 86 Hz | 86 | 高保真音乐 |
-| SNAC-24k（粗粒度） | ~12 Hz | 12 | AR-LM 高效 |
-| Mimi | 12.5 Hz | 12.5 | 流式语音 |
+| Codec | Frame rate | 1 s = N frames | Good for |
+|-------|-----------|----------------|---------|
+| EnCodec-24k | 75 Hz | 75 | music, general audio |
+| DAC-44.1k | 86 Hz | 86 | high-fidelity music |
+| SNAC-24k (coarse) | ~12 Hz | 12 | AR-LM efficient |
+| Mimi | 12.5 Hz | 12.5 | streaming speech |
 
-在 12.5 Hz 下，10 秒的语音仅有 125 个编解码帧——Transformer 可以轻松预测它们。
+在12.5Hz,一个10秒的发言量只有125个编程框架一个变压器可以轻松预测它们.
 
-### 语义与声学 Token
+### 语义与声学代币
 
 ```
 frame_t → [semantic_token_t, acoustic_token_0_t, acoustic_token_1_t, ..., acoustic_token_6_t]
 ```
 
-- **语义 Token（Mimi 中的码本 0）。** 编码说了什么——音素、词汇、内容。通过辅助预测 loss 从 WavLM 蒸馏而来。
-- **声学 Token（码本 1-7）。** 编码音色、说话人身份、韵律、背景噪声、细粒度细节。
+- **Semantic token (codebook 0 in Mimi).**通过辅助预测损失从WavLM蒸.
+- **Acoustic tokens (codebooks 1-7).**编码音调,扬声器身份,音声,背景噪音,细节.
 
-AR LM 先预测语义 token（由文本条件驱动），然后预测声学 token（由语义 + 说话人参考条件驱动）。这种因式分解正是现代 TTS 能够实现零样本声音克隆的原因：语义模型处理内容，声学模型处理音色。
+亚尔LM首先预测语义代币 (基于文字),然后预测声义代币 (基于语义 +扬声器参考).这种因素化是现代TTS可以零射击克隆声音的原因:语义模型处理内容;声义模型处理音调.
 
-### 2026 年重建质量对比（每秒比特数，越低越好）
+### 2026重建质量 (每秒位,比特速率较低更好)
 
-| 编解码器 | 比特率 | PESQ | ViSQOL |
-|---------|-------|-----|--------|
+| Codec | Bitrate | PESQ | ViSQOL |
+|-------|---------|------|--------|
 | Opus-20kbps | 20 kbps | 4.0 | 4.3 |
 | EnCodec-6kbps | 6 kbps | 3.2 | 3.8 |
 | DAC-6kbps | 6 kbps | 3.5 | 4.0 |
 | SNAC-3kbps | 3 kbps | 3.3 | 3.8 |
 | Mimi-4.4kbps | 4.4 kbps | 3.1 | 3.7 |
 
-传统的编解码器如 Opus 在每比特感知质量上仍然占优。神经编解码器在**离散 token**（Opus 不产生此类输出）和**生成模型质量**（LM 能对这些 token 做什么）方面胜出。
+传统的编码器,如Opus,仍然在感知质量上获胜.**discrete tokens**(Opus不生产) 和**generative-model quality**(LM可以用这些代币做什么).
 
 ```figure
 rvq-codec-cascade
 ```
 
-## 构建实现
+## 建立它
 
-### 步骤 1：使用 EnCodec 编码
+### 步骤1:使用EnCodec编码
 
 ```python
 from encodec import EncodecModel
@@ -96,9 +96,9 @@ codes, scale = encoded[0]
 # codes: (1, n_codebooks, n_frames), dtype=int64
 ```
 
-在 6 kbps 下 `n_codebooks=8`。每个 code 的范围是 0-1023（10 bit）。
+`n_codebooks=8`每个代码是0-1023 (10位).
 
-### 步骤 2：解码并测量重建效果
+### 步骤2:解码和测量重建
 
 ```python
 with torch.no_grad():
@@ -110,7 +110,7 @@ import torch.nn.functional as F
 mse = F.mse_loss(wav_recon[:, :, :wav.shape[-1]], wav).item()
 ```
 
-### 步骤 3：语义-声学分离（Mimi 风格）
+### 步骤3:语义音分离 (Mimi式)
 
 ```python
 from moshi.models import loaders
@@ -123,67 +123,67 @@ semantic = codes[:, 0]
 acoustic = codes[:, 1:]
 ```
 
-语义码本 0 与 WavLM 对齐。你可以训练一个文本到语义的 Transformer——词汇表远小于直接到音频的方式。然后一个独立的声学到波形的解码器会在说话人参考条件的驱动下工作。
+语义代码簿0是与WavLM一致的.你可以训练一个文本到语义变换器比直接到音频更小的词汇.然后在扬声器参考上设置一个单独的声态到波形解码器.
 
-### 步骤 4：为什么 AR LM 在编解码 token 上有效
+### 步骤4:为什么AR LM超过代码代码符号工作
 
-对于 Mimi 12.5 Hz × 8 码本下的 10 秒语音片段：
+对于米米的12.5Hz × 8码书的10秒语音剪辑:
 
 ```
 N_tokens = 10 * 12.5 * 8 = 1000 tokens
 ```
 
-1000 个 token 对 Transformer 来说是 trivial 的上下文。一个 256M 参数的 Transformer 可以在现代 GPU 上以毫秒级生成 10 秒的语音。
+1000代币对于变压器来说是一个微不足道的背景. 256M参数变压器可以在现代GPU上在毫秒内产生10秒的语音.
 
-## 使用指南
+## 用它
 
-将问题映射到编解码器：
+图片问题 → 编程:
 
-| 任务 | 编解码器 |
-|------|---------|
-| 通用音乐生成 | EnCodec-24k |
-| 最高保真重建 | DAC-44.1k |
-| 语音的 AR LM（TTS） | SNAC 或 Mimi |
-| 流式全双工语音 | Mimi（12.5 Hz） |
-| 带文本的音效库 | EnCodec + T5 条件 |
-| 细粒度音频编辑 | DAC + 修复 |
+| Task | Codec |
+|------|-------|
+| General music generation | EnCodec-24k |
+| Highest-fidelity reconstruction | DAC-44.1k |
+| AR LM over speech (TTS) | SNAC or Mimi |
+| Streaming full-duplex speech | Mimi (12.5 Hz) |
+| Sound-effect library with text | EnCodec + T5 condition |
+| Fine-grained audio editing | DAC + inpainting |
 
-经验法则：**如果你在构建生成模型，从 Mimi 或 SNAC 开始。如果你在构建压缩管道，使用 Opus。**
+指规则:**if you're building a generative model, start with Mimi or SNAC. If you're building a compression pipeline, use Opus.**
 
-## 常见陷阱
+## 陷
 
-- **码本过多。** 增加码本会以线性方式提升保真度，但 LM 序列长度也会线性增长。建议在 8-12 个码本处停止。
-- **帧率不匹配。** 在 12.5 Hz Mimi 上训练 LM，然后在 50 Hz EnCodec 上微调，会静默失败。
-- **假设所有码本等价。** 在 Mimi 中，码本 0 携带内容信息；丢失它会破坏可懂度。丢失码本 7 几乎察觉不到。
-- **仅用重建质量作为评估指标。** 一个编解码器可能具有出色的重建效果，但如果语义结构不佳，在基于 LM 的生成中仍然无用。
+- **Too many codebooks.**添加代码书则将线性增强,但LM序列长度也会线性增长.
+- **Frame-rate mismatch.**训练LM在12.5Hz米米然后细调在50HzEnCodec默默失败.
+- **Assuming all codebooks equal.**在米米中,代码书0带有内容;失去它破坏了理解性.失去代码书7几乎是不明显的.
+- **Using reconstruction quality as the only metric.**如果语义结构不好,则编程器可以进行很好的重建,
 
-## 交付成果
+## 运送它
 
-保存为 `outputs/skill-codec-picker.md`。为给定的生成或压缩任务选择编解码器。
+保存如`outputs/skill-codec-picker.md`选择一个代码器用于特定的生成或压缩任务.
 
-## 练习
+## 运动
 
-1. **简单。** 运行 `code/main.py`。它实现了一个玩具标量+残差量化器，并测量随着码本增加的重建误差。
-2. **中等。** 安装 `encodec`，在预留的语音片段上比较 1、4、8、32 个码本的效果。绘制 PESQ 或 MSE 随比特率的曲线。
-3. **困难。** 加载 Mimi。编码一个片段。将码本 0 替换为随机整数后解码。然后将码本 7 同样替换。比较两种损坏——码本 0 损坏应破坏可懂度；码本 7 损坏应几乎无影响。
+1. **Easy.**跑步`code/main.py`它实现了玩具的尺度量化器+残余量化器,并测量了重建错误,
+2. **Medium.**安装`encodec`通过使用一个长时间的语音片段,将1,4,8,32个代码簿进行比较.
+3. **Hard.**装载米米.编码一段片段.用随机整数取代代代码书0;解码.然后类似地取代代码书7.比较两种腐败代码书0腐败应该破坏理解性;代码书7腐败几乎不应该改变任何东西.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们所说的 | 实际含义 |
-|------|-----------|---------|
-| RVQ | 残差量化 | 小码本的级联；每个码本量化前一个的残差。 |
-| 帧率 | 编解码器速度 | 每秒的 token 帧数。越低 = 越快的 LM。 |
-| 语义码本 | Mimi 中的码本 0 | 从 SSL 特征蒸馏的码本；编码内容。 |
-| 声学码本 | 其他所有码本 | 音色、韵律、噪声、细粒度细节。 |
-| PESQ / ViSQOL | 感知质量 | 与 MOS 相关的客观指标。 |
-| EnCodec | Meta 编解码器 | RVQ 基线；被 MusicGen 使用。 |
-| Mimi | Kyutai 编解码器 | 12.5 Hz 帧率；语义-声学分离；驱动 Moshi。 |
+| Term | What people say | What it actually means |
+|------|-----------------|-----------------------|
+| RVQ | Residual quantization | Cascade of small codebooks; each quantizes the previous residual. |
+| Frame rate | Codec speed | How many token-frames per second. Lower = faster LM. |
+| Semantic codebook | Codebook 0 (Mimi) | Codebook distilled from SSL features; encodes content. |
+| Acoustic codebooks | Everything else | Timbre, prosody, noise, fine detail. |
+| PESQ / ViSQOL | Perceptual quality | Objective metrics correlating with MOS. |
+| EnCodec | Meta codec | The RVQ baseline; used by MusicGen. |
+| Mimi | Kyutai codec | 12.5 Hz frame rate; semantic-acoustic split; powers Moshi. |
 
-## 延伸阅读
+## 进一步阅读
 
-- [Défossez et al. (2023). EnCodec](https://arxiv.org/abs/2210.13438) — RVQ 基线。
-- [Kumar et al. (2023). Descript Audio Codec (DAC)](https://arxiv.org/abs/2306.06546) — 最高保真度开源方案。
-- [Siuzdak (2024). SNAC](https://arxiv.org/abs/2410.14411) — 多尺度 RVQ。
-- [Kyutai (2024). Mimi codec](https://kyutai.org/codec-explainer) — 语义-声学分离、WavLM 蒸馏。
-- [Borsos et al. (2023). AudioLM](https://arxiv.org/abs/2209.03143) — 两阶段语义/声学范式。
-- [Zeghidour et al. (2021). SoundStream](https://arxiv.org/abs/2107.03312) — 原始的可流式 RVQ 编解码器。
+- [Défossez et al. (2023). EnCodec](https://arxiv.org/abs/2210.13438) RVQ基线.
+- [Kumar et al. (2023). Descript Audio Codec (DAC)](https://arxiv.org/abs/2306.06546)最高忠诚度开放.
+- [Siuzdak (2024). SNAC](https://arxiv.org/abs/2410.14411)多尺度的RVQ.
+- [Kyutai (2024). Mimi codec](https://kyutai.org/codec-explainer)语音分离,波蒸.
+- [Borsos et al. (2023). AudioLM](https://arxiv.org/abs/2209.03143)两阶段的语义/音声范式.
+- [Zeghidour et al. (2021). SoundStream](https://arxiv.org/abs/2107.03312)原始可播放的RVQ编程.

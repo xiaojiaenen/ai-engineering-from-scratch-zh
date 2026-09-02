@@ -1,195 +1,194 @@
-# RAG（检索增强生成）
+# 恢复增强的产物
 
-> 你的大语言模型知道截至其训练截止日期的所有知识。但它对公司文档、代码库或上周的会议记录一无所知。RAG 通过检索相关文档并将它们塞入提示中来解决这个问题。它是生产 AI 中部署最多的模式。如果你从这门课程中只构建一样东西，那就构建一个 RAG 管道。
+> 你的LLM知道一切,直到培训截止.它不知道任何关于你的公司的文件,你的代码库,或上周会议笔记.RAG通过检索相关文件和填充它们在提示中解决了这一问题.这是生产人工智能最广泛的模式.如果你从这个课程中构建一个东西,构建一个RAG管道.
 
-**类型：** 构建
-**语言：** Python
-**前置条件：** 阶段 10（从零开始的大语言模型），阶段 11 课程 01-05
-**时间：** 约 90 分钟
-**相关内容：** 阶段 5 · 23（RAG 的分块策略），了解六种分块算法及其适用场景。阶段 5 · 22（嵌入模型深入分析），用于选择嵌入器。阶段 11 · 07（高级 RAG），了解混合搜索、重排序和查询转换。
+**Type:** Build
+**Languages:** Python
+**Prerequisites:** Phase 10 (LLMs from Scratch), Phase 11 Lessons 01-05
+**Time:** ~90 minutes
+**Related:**阶段5 · 23 (RAG的缩减策略) 针对六个缩减算法,每一个算法当中获胜时.阶段5 · 22 (嵌入模型深度潜水) 选择嵌入器.阶段11 · 07 (高级RAG) 针对混合搜索,重新排名和查询转换.
 
 ## 学习目标
 
-- 构建完整的 RAG 管道：文档加载、分块、嵌入、向量存储、检索和生成
-- 使用向量数据库（ChromaDB、FAISS 或 Pinecone）通过适当的索引实现语义搜索
-- 解释为什么 RAG 在知识驱动的应用中比微调更受青睐（成本、新鲜度、可追溯性）
-- 使用检索指标（精确率、召回率）和生成指标（忠实度、相关性）来评估 RAG 质量
+- 构建完整的RAG管道:文件加载,分块化,嵌入,向量存储,检索和生成
+- 执行使用向量数据库 (ChromaDB, FAISS或Pinecone) 的语义搜索,并进行适当的索引
+- 解释为什么RAG优先于基于知识的应用程序的细节调整 (成本,新鲜性,归因)
+- 通过检索指标 (精度,召回) 和生成指标 (忠实性,相关性) 评估RAG质量
 
 ## 问题
 
-你为公司构建了一个聊天机器人。客户问：“企业计划的退款政策是什么？”大语言模型给出了一个关于典型 SaaS 退款政策的通用回答。然而，实际政策隐藏在一份 200 页的内部 Wiki 中，规定企业客户有 60 天的退款窗口，按比例退还。大语言模型从未见过这份文档。它无法知道训练中没有的内容。
+公司的客户问:"企业计划的退款政策是什么?"LLM回答了一个关于典型的SaaS退款政策的通用答案.实际的政策,埋在一个200页的内部维基,说企业客户获得60天的退款窗口.LLM从未见过这个文件.它不能知道它没有接受培训的内容.
 
-微调是一种解决方案。获取大语言模型，在其内部文档上进行训练，然后部署更新后的模型。这可行，但存在严重问题。微调需要数千美元的算力成本。模型一旦文档变更就会过时。你无法知道模型引用了哪些来源。如果公司下个月收购了另一条产品线，你就需要再次微调。
+调整是一个解决方案. 拿下LLM,训练它在你的内部文件上,并部署更新模型. 这种方法有效,但有严重的问题.调整成本数千美元的计算. 模型变得陈旧一旦文件改变. 你没有办法知道模型来源. 如果公司下个月收购了另一个产品线,你再次调整.
 
-RAG 是另一种解决方案。保持模型不变。当问题进来时，在文档库中搜索相关段落，将它们粘贴到问题之前的提示中，让模型使用这些段落作为上下文来回答。文档库可以在几分钟内更新。你可以清楚地看到检索了哪些文档。模型本身从不改变。这就是为什么 RAG 在生产环境中占主导地位：它更便宜、更新鲜、更易审计，并且适用于任何大语言模型。
+另一种解决方案是RAG. 让模型保持无损. 当一个问题出现时,请搜索文件库中相关段落,将它们粘贴在问题前的提示符中, 文件库可以在几分钟内更新. 您可以看到哪些文件被检索出来. 模型本身永远不会改变. 这就是为什么RAG是生产中的主导模式:它更便宜,更新鲜,更可审计,
 
 ## 概念
 
-### RAG 模式
+### 红色电气模式
 
-整个模式包含四个步骤：
+整个模式是四个步骤:
 
 ```mermaid
 graph LR
-    Q["用户查询"] --> R["检索"]
-    R --> A["增强提示"]
-    A --> G["生成"]
-    G --> Ans["答案"]
+    Q["User Query"] --> R["Retrieve"]
+    R --> A["Augment Prompt"]
+    A --> G["Generate"]
+    G --> Ans["Answer"]
 
-    subgraph "检索"
-        R --> Embed["嵌入查询"]
-        Embed --> Search["搜索向量库"]
-        Search --> TopK["返回 top-k 块"]
+    subgraph "Retrieve"
+        R --> Embed["Embed query"]
+        Embed --> Search["Search vector store"]
+        Search --> TopK["Return top-k chunks"]
     end
 
-    subgraph "增强"
-        TopK --> Format["将块格式化为提示"]
-        Format --> Combine["与用户问题结合"]
+    subgraph "Augment"
+        TopK --> Format["Format chunks into prompt"]
+        Format --> Combine["Combine with user question"]
     end
 
-    subgraph "生成"
-        Combine --> LLM["大语言模型生成答案"]
-        LLM --> Cite["答案基于检索到的文档"]
+    subgraph "Generate"
+        Combine --> LLM["LLM generates answer"]
+        LLM --> Cite["Answer grounded in retrieved docs"]
     end
 ```
 
-查询 -> 检索 -> 增强提示 -> 生成。每个 RAG 系统都遵循这个模式。生产级 RAG 系统之间的差异在于每个步骤的细节：如何分块、如何嵌入、如何搜索以及如何构建提示。
+查询 -> 检索 -> 增强提示 -> 生成.每个RAG系统都遵循这个模式.生产RAG系统之间的区别在于每个步骤的细节:你如何分块,如何嵌入,如何搜索,以及如何构建提示.
 
-### 为什么 RAG 优于微调
+### 为什么RAG比调整更好
 
-| 关注点 | 微调 | RAG |
+| Concern | Fine-tuning | RAG |
 |---------|------------|-----|
-| 成本 | 每次训练 $1,000-$100,000+ | 每次查询 $0.01-$0.10（嵌入 + 大语言模型） |
-| 新鲜度 | 直到重新训练前一直是旧的 | 通过重新索引文档在几分钟内更新 |
-| 可审计性 | 无法追溯答案来源 | 可以显示确切的检索段落 |
-| 幻觉 | 仍然自由地产生幻觉 | 基于检索到的文档 |
-| 数据隐私 | 训练数据固化在权重中 | 文档保留在你的向量库中 |
+| Cost | $1,000-$100,000+ per training run | $0.01-$0.10 per query (embedding + LLM) |
+| Freshness | Stale until retrained | Updated in minutes by re-indexing docs |
+| Auditability | Cannot trace answer to source | Can show exact retrieved passages |
+| Hallucination | Still hallucinates freely | Grounded in retrieved documents |
+| Data privacy | Training data baked into weights | Documents stay in your vector store |
 
-微调永久性地改变模型的权重。RAG 临时性地改变模型的上下文。对于大多数应用来说，临时上下文正是你所需要的。
+调整将模型的重量永久改变.RAG暂时改变模型的背景.对于大多数应用程序,临时背景是你想要的.
 
-微调获胜的唯一情况是：当你需要模型采用一种特定的风格、语气或推理模式，而仅通过提示无法实现时。对于事实性知识检索，RAG 每次都胜出。
+只有在调整细节的情况下,你需要模型采用特定的风格,语调或推理模式,而不能仅通过提示实现.
 
 ### 嵌入模型
 
-嵌入模型将文本转换为稠密向量。相似的文本在这个高维空间中会产生相近的向量。“如何重置我的密码？”和“我需要更改我的密码”尽管共享的词语很少，却会产生几乎相同的向量。“猫坐在垫子上”会产生完全不同的向量。
+嵌入模型将文本转换为密集的向量.类似的文本在这个高维空间中产生密集的向量. "我如何重置密码?"和"我需要更改密码"虽然分享了几个字,但几乎相同的向量. "猫坐在床上"产生了非常不同的向量.
 
-常见的嵌入模型（2026 年阵容 — 完整分析见阶段 5 · 22）：
+常见嵌入型号 (2026年排列  查看第5阶段 · 22 详细分析):
 
-| 模型 | 维度 | 提供商 | 备注 |
+| Model | Dimensions | Provider | Notes |
 |-------|-----------|----------|-------|
-| text-embedding-3-small | 1536（嵌套） | OpenAI | 大多数用例中性价比最佳 |
-| text-embedding-3-large | 3072（嵌套） | OpenAI | 更高精度，可截断至 256/512/1024 |
-| Gemini Embedding 2 | 3072（嵌套） | Google | MTEB 检索顶尖；8K 上下文 |
-| voyage-4 | 1024/2048（嵌套） | Voyage AI | 领域变体（代码、金融、法律） |
-| Cohere embed-v4 | 1024（嵌套） | Cohere | 强大的多语言能力，128K 上下文 |
-| BGE-M3 | 1024（稠密 + 稀疏 + ColBERT） | BAAI（开源权重） | 一个模型的三种视图 |
-| Qwen3-Embedding | 4096（嵌套） | 阿里巴巴（开源权重） | 开源权重检索得分顶尖 |
-| all-MiniLM-L6-v2 | 384 | 开源权重（Sentence Transformers） | 原型设计基线 |
+| text-embedding-3-small | 1536 (Matryoshka) | OpenAI | Best price/performance for most use cases |
+| text-embedding-3-large | 3072 (Matryoshka) | OpenAI | Higher accuracy, truncatable to 256/512/1024 |
+| Gemini Embedding 2 | 3072 (Matryoshka) | Google | Top MTEB retrieval; 8K context |
+| voyage-4 | 1024/2048 (Matryoshka) | Voyage AI | Domain variants (code, finance, law) |
+| Cohere embed-v4 | 1024 (Matryoshka) | Cohere | Strong multilingual, 128K context |
+| BGE-M3 | 1024 (dense + sparse + ColBERT) | BAAI (open-weight) | Three views from one model |
+| Qwen3-Embedding | 4096 (Matryoshka) | Alibaba (open-weight) | Top open-weight retrieval score |
+| all-MiniLM-L6-v2 | 384 | Open-weight (Sentence Transformers) | Prototyping baseline |
 
-在本课中，我们使用 TF-IDF 构建自己的简单嵌入。并非因为生产系统使用 TF-IDF，而是因为它使概念具体化：文本输入，向量输出，相似文本产生相似向量。
+我们使用TF-IDF构建了自己的简单嵌入式,而不是因为TF-IDF是生产系统使用的,而是因为它使这个概念成为具体的:文本进入,向量出,类似的文本产生类似的向量.
 
-### 向量相似度
+### 矢量相似性
 
-给定两个向量，如何衡量相似度？有三种选项：
+鉴于两个向量,你如何测量相似性?
 
-**余弦相似度**：两个向量之间夹角的余弦值。范围从 -1（相反）到 1（相同）。忽略幅度，只关心方向。这是 RAG 的默认选项。
+**Cosine similarity**距离为 - 1 (相反) 到 1 (相同). 忽略大小,只关心方向.这是RAG的默认标准.
 
 ```
 cosine_sim(a, b) = dot(a, b) / (||a|| * ||b||)
 ```
 
-**点积**：原始的内积。较大的向量获得更高的分数。当幅度携带信息时有用（较长的文档可能更相关）。
+**Dot product**较大的向量得到更高的分数. 很有用,当大小携带信息时 (更长的文档可能更相关).
 
 ```
 dot(a, b) = sum(a_i * b_i)
 ```
 
-**L2（欧几里得）距离**：向量空间中的直线距离。较小的距离 = 更相似。对幅度差异敏感。
+**L2 (Euclidean) distance**距离在向量空间中直线距离.较小距离 =更相似.对大小差异敏感.
 
 ```
 L2(a, b) = sqrt(sum((a_i - b_i)^2))
 ```
 
-余弦相似度是标准做法。它能优雅地处理不同长度的文档，因为它通过幅度进行归一化。当有人提到“向量搜索”时，他们几乎总是指余弦相似度。
+随着一个人说"向量搜索",他们几乎总是指随量相似.
 
-### 分块策略
+### 碎策略
 
-文档太长，无法作为单个向量嵌入。一份 50 页的 PDF 可能会产生很差的嵌入，因为它包含几十个主题。相反，你将文档分割成块并分别嵌入每个块。
+文件太长了,不能作为单个向量嵌入. 50 页的 PDF 可能会产生一个可怕的嵌入,因为它包含了几十个主题.
 
-**固定大小分块**：每 N 个 token 分割一次。简单且可预测。一个 512 token 的块，重叠 50 token，意味着块 1 是 token 0-511，块 2 是 token 462-973，依此类推。重叠确保你不会在不合适的边界处分割句子。
+**Fixed-size chunking**简单且可预测.一个512代币的部分和50代币的重叠意味着1个部分是代币0-511,2个部分是代币462-973,等等.重叠确保你不会在一个不好的边界分开句子.
 
-**语义分块**：在自然边界处分割。段落、章节或 markdown 标题。每个块都是一个连贯的意义单元。实现更复杂，但能产生更好的检索结果。
+**Semantic chunking**部分或标记标题. 每个部分是一个连贯的意义单位. 实施更复杂,但产生更好的回收.
 
-**递归分块**：首先尝试在最大的边界处分割（章节标题）。如果章节仍然太大，则在段落边界处分割。如果段落仍然太大，则在句子边界处分割。这是 LangChain RecursiveCharacterTextSplitter 方法，在实践中效果良好。
+**Recursive chunking**试图先在最大边界分开 (节目标题).如果一个节目仍然太大,则分开在段落边界.如果一个段落仍然太大,则分开在句子边界.这是LangChain RecursiveCharacterTextSplitter方法,它在实践中很好工作.
 
-分块大小比人们想象的重要得多：
+碎片的尺寸比人们想象的更重要:
 
-- 太小（64-128 token）：每个块缺乏上下文。“它在去年季度增长了 15%”，如果没有知道“它”指的是什么，这句话毫无意义。
-- 太大（2048+ token）：每个块涵盖多个主题，稀释了相关性。当你搜索收入数据时，你会得到一个 10% 关于收入、90% 关于人员数量的块。
-- 理想大小（256-512 token）：有足够的上下文自包含，又足够专注以相关。
+- 太小 (64-128个代币):每块都没有文本. "上季度增长了15%",没有什么意思,如果不知道"它"指的是什么.
+- 太大 (2048+代币):每个部分涵盖多个主题,从而稀释相关性.当你搜索收入数据时,你会得到10%的收入和90%的员工.
+- 甜点点 (256-512代币):足够的背景以保持自主性,足够的关注以保持相关性.
 
-大多数生产级 RAG 系统使用 256-512 token 的块，重叠 50 token。Anthropic 的 RAG 指南推荐这个范围。
+大多数生产RAG系统使用256-512个代币块,50个代币重叠.安тропо克的RAG指南建议使用这种范围.
 
-### 向量数据库
+### 矢量数据库
 
-一旦有了嵌入，你需要一个地方来存储和搜索它们。选项：
+一旦你有嵌入式,你需要存储和搜索它们的地方.
 
-| 数据库 | 类型 | 最佳用途 |
+| Database | Type | Best for |
 |----------|------|----------|
-| FAISS | 库（进程内） | 原型设计，小到中等数据集 |
-| Chroma | 轻量级数据库 | 本地开发，小型部署 |
-| Pinecone | 托管服务 | 无需运维开销的生产环境 |
-| Weaviate | 开源数据库 | 自托管生产 |
-| pgvector | Postgres 扩展 | 已在使用 Postgres |
-| Qdrant | 开源数据库 | 高性能自托管 |
+| FAISS | Library (in-process) | Prototyping, small to medium datasets |
+| Chroma | Lightweight DB | Local development, small deployments |
+| Pinecone | Managed service | Production without ops overhead |
+| Weaviate | Open source DB | Self-hosted production |
+| pgvector | Postgres extension | Already using Postgres |
+| Qdrant | Open source DB | High-performance self-hosted |
 
-在本课中，我们构建一个简单的内存向量存储。它在列表中存储向量并进行暴力余弦相似度搜索。这等同于使用平铺索引的 FAISS。它在扩展到大约 100,000 个向量之前会开始变慢。生产系统使用近似最近邻（ANN）算法，如 HNSW，在毫秒内搜索数百万个向量。
+对于这个课程,我们建立了一个简单的内存向量存储器.它存储在列表中的向量,并进行粗武宇宙相似性搜索.这相当于 FAISS 具有平板索引.它在放缓之前扩展到可能10万个向量.生产系统使用HNSW等近邻 (ANN) 算法在毫秒内搜索数百万个向量.
 
-### 完整管道
+### 整个管道
 
 ```mermaid
 graph TD
-    subgraph "索引（离线）"
-        D["文档"] --> C["分块"]
-        C --> E["嵌入每个块"]
-        E --> S["存储向量 + 文本"]
+    subgraph "Indexing (offline)"
+        D["Documents"] --> C["Chunk"]
+        C --> E["Embed each chunk"]
+        E --> S["Store vectors + text"]
     end
 
-    subgraph "查询（在线）"
-        Q["用户查询"] --> QE["嵌入查询"]
-        QE --> VS["向量搜索（top-k）"]
-        VS --> P["用块构建提示"]
-        P --> LLM["大语言模型生成答案"]
+    subgraph "Querying (online)"
+        Q["User query"] --> QE["Embed query"]
+        QE --> VS["Vector search (top-k)"]
+        VS --> P["Build prompt with chunks"]
+        P --> LLM["LLM generates answer"]
     end
 
-    S -.->|"同一向量空间"| VS
+    S -.->|"same vector space"| VS
 ```
 
-索引阶段针对每个文档运行一次（或当文档更新时）。查询阶段在每个用户请求上运行。在生产环境中，索引可能在几小时内处理数百万个文档。查询必须在不到一秒的时间内响应。
+索引阶段每份文件都运行一次 (或文件更新时).查询阶段运行在每个用户请求上.在生产中,索引可能会在数小时内处理数百万份文件.查询必须在不到一秒内响应.
 
-### 实际数字
+### 真实数字
 
-大多数生产级 RAG 系统使用这些参数：
+大多数生产RAG系统使用以下参数:
 
-- **k = 5 到 10** 每次查询检索的块数
-- **块大小 = 256 到 512 token**，重叠 50 token
-- **上下文预算**：每次查询 2,500-5,000 token 的检索内容
-- **总提示**：约 8,000-16,000 token（系统提示 + 检索块 + 对话历史 + 用户查询）
-- **嵌入维度**：384-3072，取决于模型
-- **索引吞吐量**：使用 API 嵌入时每秒 100-1,000 个文档
-- **查询延迟**：检索 50-200ms，生成 500-3000ms
+- **k = 5 to 10**查询中的检索分数
+- **Chunk size = 256 to 512 tokens**具有50个代币重叠
+- **Context budget**:每次查询中获取的内容的2500至5000个代币
+- **Total prompt**: ~ 8,000-16,000个代币 (系统提示 + 获取的块 + 对话历史记录 + 用户查询)
+- **Embedding dimension**: 384-3072 根据模型
+- **Indexing throughput**:每秒100-1,000份文件,包含API嵌入式
+- **Query latency**获取时间为50-200ms,生成时间为500-3000ms
 
 ```figure
 rag-chunking
 ```
 
-## 构建它
+## 建立它
 
-### 步骤 1：文档分块
+### 步骤1:文件的分化
 
 ```python
 def chunk_text(text, chunk_size=200, overlap=50):
-    # 将文本分割成块
     words = text.split()
     chunks = []
     start = 0
@@ -201,30 +200,27 @@ def chunk_text(text, chunk_size=200, overlap=50):
     return chunks
 ```
 
-### 步骤 2：TF-IDF 嵌入
+### 步骤2:TF-IDF嵌入
 
-我们构建一个简单的嵌入函数。TF-IDF（词频-逆文档频率）不是神经嵌入，但它以捕捉词重要性的方式将文本转换为向量。文档中频繁出现的词获得更高的 TF。在整个语料库中罕见的词获得更高的 IDF。乘积给出一个向量，其中重要、独特的词具有较高的值。
+我们构建了一个简单的嵌入函数.TF-IDF (Term Frequency-Inverse Document Frequency) 并不是一个神经嵌入,但它以捕捉词的重要性的方式将文本转换为向量.文档中的频繁字体获得更高的TF.体内的罕见字体获得更高的IDF.产品给出了重要的,独特的词体具有高值的向量.
 
 ```python
 import math
 from collections import Counter
 
 def build_vocabulary(documents):
-    # 构建词汇表
     vocab = set()
     for doc in documents:
         vocab.update(doc.lower().split())
     return sorted(vocab)
 
 def compute_tf(text, vocab):
-    # 计算词频
     words = text.lower().split()
     count = Counter(words)
     total = len(words)
     return [count.get(word, 0) / total for word in vocab]
 
 def compute_idf(documents, vocab):
-    # 计算逆文档频率
     n = len(documents)
     idf = []
     for word in vocab:
@@ -233,16 +229,14 @@ def compute_idf(documents, vocab):
     return idf
 
 def tfidf_embed(text, vocab, idf):
-    # 计算 TF-IDF 嵌入
     tf = compute_tf(text, vocab)
     return [t * i for t, i in zip(tf, idf)]
 ```
 
-### 步骤 3：余弦相似度搜索
+### 步骤3:寻找相似性
 
 ```python
 def cosine_similarity(a, b):
-    # 计算两个向量的余弦相似度
     dot = sum(x * y for x, y in zip(a, b))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(x * x for x in b))
@@ -251,7 +245,6 @@ def cosine_similarity(a, b):
     return dot / (norm_a * norm_b)
 
 def search(query_embedding, stored_embeddings, top_k=5):
-    # 搜索最相似的 k 个块
     scores = []
     for i, emb in enumerate(stored_embeddings):
         sim = cosine_similarity(query_embedding, emb)
@@ -260,29 +253,28 @@ def search(query_embedding, stored_embeddings, top_k=5):
     return scores[:top_k]
 ```
 
-### 步骤 4：提示构建
+### 第四步: 快速建造
 
-这就是 RAG 中“增强”发生的地方。取回检索到的块，将它们格式化为提示，并让大语言模型基于提供的上下文回答问题。
+接下来,我们将这些部分进行编程,将它们格式化为提示,并要求法师根据所提供的背景回答.
 
 ```python
 def build_rag_prompt(query, retrieved_chunks):
-    # 将检索到的块格式化为提示
     context = "\n\n---\n\n".join(
-        f"[来源 {i+1}]\n{chunk}"
+        f"[Source {i+1}]\n{chunk}"
         for i, chunk in enumerate(retrieved_chunks)
     )
-    return f"""仅基于以下上下文回答问题。
-如果上下文不包含足够的信息，请说“我没有足够的信息来回答这个问题。”
+    return f"""Answer the question based ONLY on the following context.
+If the context doesn't contain enough information, say "I don't have enough information to answer that."
 
-上下文：
+Context:
 {context}
 
-问题：{query}
+Question: {query}
 
-答案："""
+Answer:"""
 ```
 
-### 步骤 5：完整的 RAG 管道
+### 步骤5:完整的RAG管道
 
 ```python
 class RAGPipeline:
@@ -293,7 +285,6 @@ class RAGPipeline:
         self.idf = []
 
     def index(self, documents):
-        # 对文档进行索引
         all_chunks = []
         for doc in documents:
             all_chunks.extend(chunk_text(doc))
@@ -306,7 +297,6 @@ class RAGPipeline:
         ]
 
     def query(self, question, top_k=5):
-        # 查询管道
         query_emb = tfidf_embed(question, self.vocab, self.idf)
         results = search(query_emb, self.embeddings, top_k)
         retrieved = [(self.chunks[i], score) for i, score in results]
@@ -316,18 +306,17 @@ class RAGPipeline:
         return prompt, retrieved
 ```
 
-### 步骤 6：生成（模拟）
+### 步骤 6: 产物 (模拟)
 
-在生产中，这是你调用大语言模型 API 的地方。在本课中，我们通过从检索到的上下文中提取最相关的句子来模拟生成。
+在生产中,这是你称之为LLM API的位置. 在这个课程中,我们通过从中获取的文本中提取最相关的句子来模拟生成.
 
 ```python
 def simple_generate(prompt, retrieved_chunks):
-    # 简单的生成模拟
-    query_words = set(prompt.lower().split("问题：")[-1].split())
+    query_words = set(prompt.lower().split("question:")[-1].split())
     best_sentence = ""
     best_score = 0
     for chunk in retrieved_chunks:
-        for sentence in chunk.split("。"):
+        for sentence in chunk.split("."):
             sentence = sentence.strip()
             if not sentence:
                 continue
@@ -336,12 +325,12 @@ def simple_generate(prompt, retrieved_chunks):
             if overlap > best_score:
                 best_score = overlap
                 best_sentence = sentence
-    return best_sentence if best_sentence else "我没有足够的信息来回答这个问题。"
+    return best_sentence if best_sentence else "I don't have enough information."
 ```
 
-## 使用它
+## 用它
 
-使用真实的嵌入模型和大语言模型，代码几乎不变：
+通过实质的嵌入模式和LLM,
 
 ```python
 from openai import OpenAI
@@ -364,7 +353,7 @@ def generate(prompt):
     return response.choices[0].message.content
 ```
 
-或使用 Anthropic：
+或是人类:
 
 ```python
 import anthropic
@@ -380,9 +369,9 @@ def generate(prompt):
     return response.content[0].text
 ```
 
-管道是相同的。替换嵌入函数。替换生成函数。检索逻辑、分块、提示构建——无论使用哪个模型，都完全相同。
+管道是相同的. 换嵌件函数. 换生成函数. 取回逻辑,分块,快速构建 - - 所有的相同,不管你使用哪种模型.
 
-对于大规模向量存储，用合适的向量数据库替换暴力搜索：
+为了进行量级向量存储,用适当的向量数据库取代原力搜索:
 
 ```python
 import chromadb
@@ -396,52 +385,52 @@ collection.add(
 )
 
 results = collection.query(
-    query_texts=["退款政策是什么？"],
+    query_texts=["What is the refund policy?"],
     n_results=5
 )
 ```
 
-Chroma 内部处理嵌入（默认使用 all-MiniLM-L6-v2）并将向量存储在本地数据库中。相同的模式，不同的底层实现。
+克罗玛内部处理嵌入式 (默认使用全MiniLM-L6-v2) 并存储向量在本地数据库中.
 
-## 交付成果
+## 运送它
 
-本课产生：
-- `outputs/prompt-rag-architect.md` —— 为特定用例设计 RAG 系统的提示
-- `outputs/skill-rag-pipeline.md` —— 教导智能体如何构建和调试 RAG 管道的技能
+这一课产生了:
+- `outputs/prompt-rag-architect.md`-- 针对特定使用情况设计RAG系统的提示
+- `outputs/skill-rag-pipeline.md`能教导代理人如何构建和调试RAG管道
 
-## 练习
+## 运动
 
-1. 用简单的词袋方法（二进制：词存在为 1，不存在为 0）替换 TF-IDF 嵌入。比较样本文档上的检索质量。TF-IDF 应该表现更好，因为它给罕见词赋予更高权重。
+1. 替换TF-IDF嵌入式使用简单的单词包方法 (二进制:如果词存在,则1;如果没有).对样本文件的检索质量进行比较.TF-IDF应该比较高,因为它重量较高的罕见单词.
 
-2. 实验不同的块大小：在同一文档集上尝试 50、100、200 和 500 个词的块大小。对于每种大小，运行相同的 5 个查询，并计算有多少个在前 3 个结果中返回了相关块。找到检索质量达到峰值的理想大小。
+2. 试用部分大小:试用同一文件集中的50个,100个,200个,500个字.对于每个大小,运行相同的5个查询,并计算在前3个中返回相关的部分的数量.
 
-3. 为每个块添加元数据（源文档名称、块位置）。修改提示模板以包含来源归属，以便大语言模型引用其来源。
+3. 添加各部分的元数据 (来源文档名称,部分位置). 修改提示模板以包含源属性,以便LLM引用其来源.
 
-4. 实现一个简单的评估：给定 10 个问答对，将每个问题通过 RAG 管道运行，并计算检索到的块中包含答案的百分比。这是在 k 处的检索召回率。
+4. 执行一个简单的评估:给出10个问题-答案对,通过RAG管道运行每个问题,并测量检索的部分中含有多少个百分比的答案.
 
-5. 构建对话感知的 RAG 管道：维护最近 3 次交互的历史记录，并在提示中与检索到的块一起包含它们。用后续问题如询问价格后问“企业计划呢？”进行测试。
+5. 建立一个熟悉对话的RAG管道:记录过去3个交易所,并将它们与检索的部分一起添加到提示中.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们说的 | 实际含义 |
-|------|----------------------|-----------------------------------------------|
-| RAG | “阅读你文档的 AI” | 检索相关文档，将它们粘贴到提示中，并基于这些文档生成答案 |
-| 嵌入 | “将文本转换为数字” | 文本的稠密向量表示，相似含义产生相似向量 |
-| 向量数据库 | “AI 的搜索引擎” | 优化存储向量和通过相似度查找最近邻的数据存储 |
-| 分块 | “将文档分割成片段” | 将文档分解成较小的段（通常为 256-512 token），以便每个可以独立嵌入和检索 |
-| 余弦相似度 | “两个向量有多相似” | 两个向量之间夹角的余弦值；1 = 方向相同，0 = 正交，-1 = 相反 |
-| Top-k 检索 | “获取最好的 k 个匹配” | 从向量库中返回与查询最相似的 k 个块 |
-| 上下文窗口 | “大语言模型能看到多少文本” | 大语言模型在单次请求中能处理的最大 token 数；检索到的块必须适合这个窗口 |
-| 增强生成 | “使用给定上下文回答” | 使用检索到的文档作为上下文而不是仅依赖训练知识来生成响应 |
-| TF-IDF | “词重要性评分” | 词频乘以逆文档频率；根据词在语料库中的独特性对词进行加权 |
-| 索引 | “为搜索准备文档” | 离线过程，包括分块、嵌入和存储文档，以便在查询时可以搜索 |
+| Term | What people say | What it actually means |
+|------|----------------|----------------------|
+| RAG | "AI that reads your docs" | Retrieve relevant documents, paste them into the prompt, and generate an answer grounded in those documents |
+| Embedding | "Convert text to numbers" | A dense vector representation of text where similar meanings produce similar vectors |
+| Vector database | "Search engine for AI" | A data store optimized for storing vectors and finding the nearest neighbors by similarity |
+| Chunking | "Split docs into pieces" | Breaking documents into smaller segments (typically 256-512 tokens) so each can be embedded and retrieved independently |
+| Cosine similarity | "How similar are two vectors" | The cosine of the angle between two vectors; 1 = identical direction, 0 = orthogonal, -1 = opposite |
+| Top-k retrieval | "Get the k best matches" | Return the k most similar chunks to the query from the vector store |
+| Context window | "How much text the LLM can see" | The maximum number of tokens the LLM can process in a single request; retrieved chunks must fit within this |
+| Augmented generation | "Answer using given context" | Generating a response using retrieved documents as context rather than relying solely on trained knowledge |
+| TF-IDF | "Word importance scoring" | Term Frequency times Inverse Document Frequency; weights words by how distinctive they are within a corpus |
+| Indexing | "Preparing docs for search" | The offline process of chunking, embedding, and storing documents so they can be searched at query time |
 
-## 延伸阅读
+## 进一步阅读
 
-- Lewis 等人，《检索增强生成用于知识密集型 NLP 任务》（2020）—— Facebook AI Research 的原始 RAG 论文，形式化了检索然后生成的模式
-- Anthropic 的 RAG 文档（docs.anthropic.com）—— 关于块大小、提示构建和评估的实践指南
-- Pinecone 学习中心，《什么是 RAG？》—— 清晰的 RAG 管道可视化解释及生产考虑
-- Sentence-BERT：Reimers & Gurevych（2019）—— all-MiniLM 嵌入模型背后的论文，展示如何训练双编码器进行语义相似度
-- [Karpukhin 等人，《开放域问答的密集段落检索》（EMNLP 2020）](https://arxiv.org/abs/2004.04906) —— 证明密集双编码器检索在开放域 QA 上击败 BM25 的 DPR 论文，并为现代 RAG 检索器设定了模式。
-- [LlamaIndex 高级概念](https://docs.llamaindex.ai/en/stable/getting_started/concepts.html) —— 构建 RAG 管道时需要了解的主要概念：数据加载器、节点解析器、索引、检索器、响应合成器。
-- [LangChain RAG 教程](https://python.langchain.com/docs/tutorials/rag/) —— 另一种风格的编排器；相同检索然后生成模式的链式 Runnable 视图。
+- 路易斯等人",知识密集型NLP任务的恢复增强代" (2020) - - 来自Facebook人工智能研究的原始RAG论文,正式化了恢复然后生成模式
+- 关于"人类"的RAG文档 (docs.anthropic.com) - - 关于零件尺寸,快速构建和评估的实际指南
+- 松学习中心"RAG是什么?" - - 清晰的视觉解释RAG管道与生产考虑
+- 句子-BERT:Reimers & Gurevych (2019) -- 全 MiniLM 嵌入模型背后的论文,展示如何训练双码码器以实现语义相似性
+- [Karpukhin et al., "Dense Passage Retrieval for Open-Domain Question Answering" (EMNLP 2020)](https://arxiv.org/abs/2004.04906)通过DPR文件证明密集的双码码检索比BM25在开放域的QA,
+- [LlamaIndex High-Level Concepts](https://docs.llamaindex.ai/en/stable/getting_started/concepts.html)构建RAG管道时需要知道的主要概念:数据加载器,节点分类器,索引器,检索器,响应合成器.
+- [LangChain RAG tutorial](https://python.langchain.com/docs/tutorials/rag/)它们可以在一个单个模式中进行检测,然后生成.

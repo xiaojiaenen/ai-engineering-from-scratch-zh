@@ -1,150 +1,150 @@
-# Chameleon 与早期融合 Token-Only 多模态模型
+# 马龙和早期融合代币单独的多模型号
 
-> 我们迄今见过的所有 VLM 都将图像和文本分开处理。视觉 token 来自视觉编码器，流入投影层，然后在 LLM 内部与文本相遇。视觉词表和文本词表从不重叠。Chameleon（Meta，2024年5月）提出了一个问题：如果它们重叠呢？训练一个 VQ-VAE，将图像转换为来自共享词表的离散 token 序列。每个多模态文档现在都是一个序列——文本 token 和图像 token 交错排列，使用单一自回归损失。副作用：模型可以生成混合模态的输出——在单次推理调用中交替输出文本 token 和图像 token。本课程阅读早期融合论文并从头构建一个玩具版本。
+> 我们迄今为止所看到的每一个VLM都将图像和文字分开. 视觉代币来自视觉编码器,流入投影器,然后在LLM内部见到文字. 视觉和文本词汇从来没有重叠. 马龙 (Meta,2024年5月) 问:如果他们做了呢? 训练一个VQ-VAE,将图像转化为一个单独的代币的序列, 每个多元文件都是一连串的文字代币和图像代币, 副作用:模型可以在单次推断调用中生成混合模式输出交换的文本和图像代币. 这一课就读了早期融合论文,并构建了一个玩具版本.
 
-**类型：** 实践构建
-**语言：** Python（标准库、VQ-VAE tokenizer + 交错解码器）
-**先决条件：** 第12阶段 · 05，第8阶段（生成式 AI）
-**时间：** 约180分钟
+**Type:** Build
+**Languages:** Python (stdlib, VQ-VAE tokenizer + interleaved decoder)
+**Prerequisites:** Phase 12 · 05, Phase 8 (Generative AI)
+**Time:** ~180 minutes
 
 ## 学习目标
 
-- 解释为什么共享词表 + 单一损失改变了模型的能力边界。
-- 描述 VQ-VAE 如何将图像 token 化为与 transformer 的下一个 token 预测目标兼容的离散序列。
-- 列举 Chameleon 的训练稳定性技巧：QK-Norm、dropout 放置位置、LayerNorm 顺序。
-- 比较 Chameleon 与 BLIP-2 的 Q-Former 方法，并描述每种方法何时是正确选择。
+- 解释为什么共享词汇+单次损失改变模型的功能.
+- 描述一个VQ-VAE如何将图像代号化为与变压器下一个代号目标相容的单独序列.
+- 给Chameleon的训练稳定技巧命名:QK-Norm,放弃位置,LayerNorm订单.
+- 比较马龙与BLIP-2的Q-Former方法,
 
-## 问题所在
+## 问题
 
-基于 Adapter 的 VLM（LLaVA、BLIP-2、Qwen-VL）将文本和图像视为两种不同的事物。一个文本 token 经过 `embed(text_token)`；一张图像经过 `visual_encoder(image) → projector → ...伪token`。模型有两条输入路径，在中间某处合并。
+基于适配器的VLM (LLaVA,BLIP-2,Qwen-VL) 将文字和图像视为两个不同的东西.`embed(text_token)`通过一个图像`visual_encoder(image) → projector → ... pseudo_tokens`模型有两个输入路径,
 
-三个后果：
+造成的三个后果:
 
-1. LLM 只能消费图像，不能生成图像。输出只能是文本。
-2. 混合模态文档（段落和图像交替，如文章中那样）很别扭——你要么在模型外部解析多模态输入，要么进行链式生成。
-3. 分布不匹配。视觉 token 和文本 token 存在于隐藏空间的不同区域，造成微妙的对齐问题。
+1. 法律法师只能消耗图像,而不是发射它们.
+2. 混合模拟文件 (像文章中的交替段落和图像) 很难,您要么在模型之外分析多模拟输入,要么在链上生成.
+3. 视觉代币和文字代币生活在隐藏空间的不同区域,
 
-Chameleon 拒绝了这一前提：图像只是一系列来自共享词表的离散 token。在交错文档上训练模型，一个损失，一个自回归解码器，你就能免费获得混合模态生成能力。
+马莱恩拒绝了这个前提:图像只是来自共享词汇中的单独代币的序列. 训练模型在交织的文档上,一个损失,一个自动降解码器,然后你可以免费解锁混合模式生成.
 
-## 核心概念
+## 概念
 
-### VQ-VAE 作为图像 tokenizer
+### 视频标记器 VQ-VAE
 
-Tokenizer 是一个矢量量化变分自编码器。架构如下：
+标记器是一个向量定量化变量自动编码器.
 
-- 编码器：CNN + ViT，将图像映射为空间特征图，例如 32x32 维 256 的特征。
-- 码本：学习到的 K 个向量词表（Chameleon 使用 8192），同样维 256。
-- 量化：对每个空间特征，通过 L2 距离查找最近的码本条目。用整数索引替换连续特征。
-- 解码器：CNN，将量化特征还原回像素。
+- 编码器:CNN+ViT将图像映射到空间特征地图,例如32x32的特征256.
+- 编码书:K向量学会的词汇 (Chameleon使用8192),也是256的.
+- 量化:对于每个空间特征,按L2距离查找最近的代码簿入口.用整数指数取代连续特征.
+- 解码器:CNN将数量化功能转换为像素.
 
-训练：VAE 重建损失 + 承诺损失 + 码本损失。码本索引构成了图像的离散字母表。
+培训:VAE重建损失+承诺损失+代码簿损失.代码簿指标为图像形成单独的字母.
 
-对于 Chameleon：一张图像变成 32*32 = 1024 个 token，从 8192 的词表中选取。与文本 token（来自 LLM 的 BPE 词表，假设为 32000）拼接。最终词表：40192。transformer 看到一个序列，一个损失。
+对于马龙:一个图像变成32*32=1024个代币,从8192个词汇中提取.与文本代币相结合 (从LLM的BPE词汇中,说32000).最终词汇:40192.变压器看到一个序列,一个损失.
 
-### 共享词表
+### 共同的词汇库
 
-Chameleon 的词表组合了文本 token、图像 token 和模态分隔符。每个 token 都有一个唯一的 ID。输入嵌入层将每个 ID 映射到 D 维隐藏向量。输出投影层将隐藏向量映射回词表 logit。Softmax 选择下一个 token，无论其模态。
+梅伦的词汇库结合了文字代币,图像代币和模式分离器.每个代币都有单个ID.输入嵌入层将每个ID映射到D-dim隐藏的向量.输出投影地图隐藏在语音符号中.软max选择下一个代币,无论如何.
 
-分隔符很重要：`<image>` 和 `</image>` 标签包裹图像 token 序列。在生成时，如果模型发出 `<image>`，下游软件就知道接下来的 1024 个 token 是发送给解码器进行像素渲染的 VQ 索引。
+分离器的重要:`<image>`其他`</image>`标签将图像标记序列括号. 在生成时,如果模型发射`<image>`后游软件知道下1024个代币是VQ指数,
 
-### 混合模态生成
+### 混合动力发电
 
-推理是共享词表中的下一个 token 预测。示例 prompt："Draw a cat and describe it." Chameleon 输出：
+推理是分享词汇中的下一个标志预测. 举个例子提示:"画一只猫,描述它".
 
 ```
-<image> 4821 1029 2891 ...（1024个图像token）</image>
+<image> 4821 1029 2891 ... (1024 image tokens) </image>
 The cat is orange, sitting on a windowsill...
 ```
 
-模型自主选择顺序——它可以先产生图像再文本、先文本再图像，或交错。同一个解码器，同一个损失。
+模型自主选择序列它可能产生图像,然后文字,然后文字,或者插入.同一个解码器,同一个损失.
 
-与 Adapter VLM 对比，其中生成只能是纯文本。Chameleon 重新打开了关于模型输出模态的问题。
+马里昂重新打开了模型输出方式的问题.
 
-### 训练稳定性——QK-Norm、dropout、LayerNorm 顺序
+### 训练稳定性 QK-Norm,退出,LayerNorm订单
 
-早期融合的规模训练不稳定。Chameleon 论文记录了三个技巧：
+马龙的论文记录了三个技巧:
 
-- QK-Norm。在注意力内部对 query 和 key 投影应用 LayerNorm，在点积之前。防止深层中 logit 幅度爆炸。被多个 2024 年后的巨型模型采用。
-- Dropout 放置位置。在每个残差加法后都放置 dropout，不仅是在 attention 和 MLP 之后。当图像 token 的梯度可能占主导时需要更多正则化。
-- LayerNorm 顺序。残差分支上使用 Pre-LN（标准做法），并在最后一个块的跳跃连接上额外添加 LN。稳定最后一层的梯度流动。
+- 应用LayerNorm到查询和注意力内关键投影,点产品之前.防止在深度的逻辑大小爆炸.使用多个2024后的大型模型.
+- 放弃位置.每次剩余添加后放弃,不仅仅是注意力和MLP之后.当图像代币的梯度可以占主导地位时需要更多的规律化.
+- 层规则排序.在残留分支上预LN (标准),加上最后块的跳转连接上额外LN.稳定了最终层梯度流.
 
-没有这些技巧，34B 参数的 Chameleon 训练在多个 checkpoint 时发散。有了它们，它就能收敛。训练配方与架构一样都是贡献的一部分。
+没有这些技巧,34B-param马龙训练在多个检查点上分离.与他们相结合.训练配方是建筑的贡献.
 
-### Tokenizer 的重建上限
+### 标记器重建天花板
 
-VQ-VAE 是有损的。在 8192 个码本条目和每 512x512 图像 1024 个 token 的情况下，重建 PSNR 上限约为 26-28 dB。这对于可识别的图像生成是足够的，但明显差于连续空间的扩散模型（Stable Diffusion 3 可达 32+ dB）。
+复制PSNR在每512x512图像的8192个代码簿输入和1024个代码上,达到26-28 dB左右.这足以识别图像生成,但明显比持续空间扩散更差 (稳定扩散3达到32+ dB).
 
-Tokenizer 是瓶颈。更好的 tokenizer（MAGVIT-v2、IBQ、SBER-MoVQGAN）能提升上限。Emu3（第12.12课）仅通过更好的 tokenizer 就实现了 SDXL 质量的生成。
+代币化器是瓶.更好的代币化器 (MAGVIT-v2,IBQ,SBER-MoVQGAN) 提高了天花板.Emu3 (课 12.12) 通过更好的代币化器实现了SDXL质量生成.
 
-### Chameleon 与 BLIP-2 / LLaVA 对比
+### 马里昂vsBLIP-2 / LLaVA
 
-Chameleon（早期融合，共享词表）：
-- 一个损失，一个解码器。
-- 生成混合模态输出。
-- Tokenizer 是质量上限。
-- 昂贵：推理路径上每次生成图像都需要 VQ-VAE 解码。
+马龙 (早期融合,共用词语):
+- 一个失败,一个解码器.
+- 产生混合模式输出.
+- 标记器是质量上限.
+- 价格高昂:在推断路径上生成的图像每次 VQ-VAE解码器.
 
-BLIP-2 / LLaVA（后期融合，独立塔）：
-- 视觉输入，仅文本输出。
-- 复用预训练 LLM。
-- 理解方面无 tokenizer 瓶颈。
-- 廉价：单次前向传播。
+蓝光-2/LLaVA (后期融合,分开塔):
+- 视觉进入,短信出发.
+- 复制预先训练的法学士.
+- 没有标记器瓶理解.
+- 便宜:单一前进通行.
 
-根据任务选择。如果需要图像生成，选 Chameleon 家族。如果只需要理解，Adapter-VLM 更简单且复用更多预训练算力。
+如果您需要图像生成,查梅伦家族,如果您只需要理解,适配器-VLM更简单,并且使用更多预先训练的计算.
 
-### Fuyu 和 AnyGPT
+### 福和AnyGPT
 
-Fuyu（Adept，2023）是一种相关方法：完全跳过独立的视觉编码器，将原始图像 patch 直接通过 LLM 的输入投影层，就像它们是 token 一样，无需 tokenizer。比 Chameleon 更简单，但失去了共享词表的输出生成能力。
+福 (Adept, 2023) 是一个相关的方法:完全跳过单独的视觉编码器,通过LLM的输入投影输入原始图像补丁,就像它们是代币,没有代币.比Chameleon简单,失去了共享语音输出生成.
 
-AnyGPT（Zhan 等人，2024）将 Chameleon 扩展到四种模态：文本、图像、语音、音乐。每种模态使用相同的 VQ-VAE 技巧，共享 transformer。在 Lesson 12.16 中有更多覆盖。
+AnyGPT (Zhan et al., 2024) 将马里昂扩展到四种模式:文字,图像,语音,音乐.每个人都用相同的VQ-VAE技巧,共享变压器.任何一代.在课 12.16中详细介绍.
 
 ```figure
 vq-codebook
 ```
 
-## 动手实践
+## 用它
 
-`code/main.py` 构建了一个玩具端到端早期融合模型：
+`code/main.py`构建一个玩具端到端早期合模型:
 
-- 一个微小的 VQ-VAE 风格量化器，将 8x8 patch 映射到码本索引（K=16）。
-- 一个共享词表（文本 id 0..31 + 图像 id 32..47 + 分隔符 48、49）。
-- 一个在合成标题 + 图像 token 序列上训练的玩具自回归解码器（bigram 表）。
-- 采样循环，在给定 prompt 下发出交替的文本 + 图像 token。
+- 一个小的VQ-VAE式量化器,将8×8补丁映射到代码簿指数 (K=16).
+- 共有 (文字 ids 0..31) + (图像 ids 32..47) + (分隔符 48, 49).
+- 玩具自行降解器 (大图表) 训练用合成标题+图像标记序列.
+- 采样循环,以交换文字 + 图像代码发出提示.
 
-代码刻意保持 transformer 微小（bigrams），以便你可以端到端追踪信号流。
+代码故意将变压器保持小 (大小) 位,以便您可以追踪信号流程的端到端.
 
-## 交付成果
+## 运送它
 
-本课产出 `outputs/skill-tokenizer-vs-adapter-picker.md`。给定产品规格（仅需理解 vs 理解 + 生成、所需的图像质量、成本预算），它在 Chameleon 家族（早期融合）和 LLaVA 家族（后期融合）之间做出选择，并用定量经验法则进行论证。
+这一课产生了`outputs/skill-tokenizer-vs-adapter-picker.md`鉴于产品规格 (仅理解与理解+生成,所需图像质量,成本预算),它选择马龙家族 (早期融合) 和LLaVA家族 (晚融合) 之间,并通过数量规则证明了这一点.
 
-## 练习
+## 运动
 
-1. Chameleon 使用 K=8192 个码本条目和每 512x512 图像 1024 个 token。估算相对于 24-bit RGB 图像的压缩比。它是有损的吗？有多有损？
+1. 马里昂使用K=8192代码簿的输入和每512x512图片的1024个代码.估计压缩比与24位RGB图像.它是损失的吗?多么损失?
 
-2. 相同 VQ-VAE 密度下，一张 4K 图像（3840x2160）会产生多少图像 token？Chameleon 风格的模型能否在一次推理调用中生成 4K 图像？最先崩溃的是什么——上下文、tokenizer 质量还是 KV cache？
+2. 一个4K图像 (3840x2160) 与相同的VQ-VAE密度产生多少个图像代币?一个ameleon型模型可以在一个推断调用中生成4K图像吗?什么首先打破了文本,代币器质量或KV缓存?
 
-3. 用纯 Python 实现 QK-Norm。给定一个 64 维的 query 和 key，展示 LayerNorm 前后点积的变化。为什么幅度控制在深层很重要？
+3. 实现QK-Norm在纯 Python 中. 鉴于64维查询和键,显示LayerNorm前后的点产品.为什么大小控制在深度上很重要?
 
-4. 阅读 Chameleon 第 2.3 节关于训练稳定性的内容。描述论文在 34B 规模下未使用 QK-Norm 时观察到的具体失效模式。"norm explosion" 的特征是什么？
+4. 阅读马龙2.3节关于训练稳定性.描述了在34B没有QK-Norm的论文中确切的故障模式. "标准爆炸"的签名是什么?
 
-5. 扩展现有的玩具解码器，使其能够根据纯文本 prompt 发出混合模态响应。测量模型在训练数据分布为 60% 文本优先 / 40% 图像优先的情况下，选择图像优先与文本优先的频率。
+5. 扩展玩具解码器以发出混合模式响应,只需提供文本提示.测量模型如何经常选择图像-第一与文本-第一给定训练-数据分布 60% 文本-第一 / 40% 图像-第一.
 
-## 关键术语
+## 关键词
 
-| 术语 | 人们怎么说 | 实际含义 |
-|------|------------|----------|
-| 早期融合 | "统一 token" | 图像从一开始就转换为与 transformer 词表共享的离散 token |
-| VQ-VAE | "图像 tokenizer" | CNN + ViT + 码本，将图像映射为 transformer 可以预测的整数索引 |
-| 共享词表 | "一个字典" | 一个涵盖文本 + 图像 + 模态分隔符的统一 token ID 空间 |
-| QK-Norm | "注意力稳定器" | 在 query 和 key 的点积之前对其应用 LayerNorm，防止 norm 爆炸 |
-| 混合模态生成 | "文本 + 图像输出" | 推理时自主在一次传递中产生交错的文本和图像 token |
-| 码本大小 | "K 个条目" | VQ-VAE 可以量化的离散向量数量；在压缩和保真度之间权衡 |
-| Tokenizer 上限 | "重建极限" | 解码 VQ token 可实现的最高 PSNR；限制模型的图像质量 |
+| Term | What people say | What it actually means |
+|------|-----------------|------------------------|
+| Early fusion | "Unified tokens" | Images converted to discrete tokens sharing the transformer's vocabulary from step one |
+| VQ-VAE | "Image tokenizer" | CNN + ViT + codebook that maps images to integer indices the transformer can predict |
+| Shared vocabulary | "One dictionary" | A single token ID space covering text + image + modality separators |
+| QK-Norm | "Attention stabilizer" | LayerNorm applied to query and key before their dot product, prevents norm blowup |
+| Mixed-modality generation | "Text + image output" | Inference that autonomously produces interleaved text and image tokens in one pass |
+| Codebook size | "K entries" | Number of discrete vectors the VQ-VAE can quantize to; trades compression for fidelity |
+| Tokenizer ceiling | "Reconstruction limit" | Best PSNR achievable by decoding VQ tokens; bounds the model's image quality |
 
-## 延伸阅读
+## 进一步阅读
 
 - [Chameleon Team — Chameleon: Mixed-Modal Early-Fusion Foundation Models (arXiv:2405.09818)](https://arxiv.org/abs/2405.09818)
-- [Aghajanyan 等人 — CM3 (arXiv:2201.07520)](https://arxiv.org/abs/2201.07520)
-- [Yu 等人 — CM3Leon (arXiv:2309.02591)](https://arxiv.org/abs/2309.02591)
-- [Zhan 等人 — AnyGPT (arXiv:2402.12226)](https://arxiv.org/abs/2402.12226)
+- [Aghajanyan et al. — CM3 (arXiv:2201.07520)](https://arxiv.org/abs/2201.07520)
+- [Yu et al. — CM3Leon (arXiv:2309.02591)](https://arxiv.org/abs/2309.02591)
+- [Zhan et al. — AnyGPT (arXiv:2402.12226)](https://arxiv.org/abs/2402.12226)
 - [Adept — Fuyu-8B blog (adept.ai)](https://www.adept.ai/blog/fuyu-8b)
