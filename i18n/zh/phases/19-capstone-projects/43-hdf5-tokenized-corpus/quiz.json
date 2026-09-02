@@ -1,0 +1,78 @@
+{
+  "lesson": "43-hdf5-tokenized-corpus",
+  "title": "HDF5 分词语料库",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么将分词后的语料库存储在可调整大小、分块的 HDF5 数据集中，而不是 JSONL？",
+      "options": [
+        "HDF5 的标志更小",
+        "JSONL 已被弃用",
+        "随机原因",
+        "HDF5 提供分块、纯整数、内存映射读取，支持 O(1) 随机访问；JSONL 会在每次热路径读取时强制进行解析"
+      ],
+      "correct": 3,
+      "explanation": "数据加载器需要一个可寻址切片的扁平 token 流；HDF5 原生支持这一点。"
+    },
+    {
+      "stage": "check",
+      "question": "HDF5 分块大小与训练器的 window_size 之间的正确匹配规则是什么？",
+      "options": [
+        "选择能装入 RAM 的最大分块",
+        "始终选择 chunk=1",
+        "将分块大小设为 window_size 的倍数，使每个样本落在一个或两个分块内，读取保持与页面缓存对齐",
+        "选择分块大小等于文档长度"
+      ],
+      "correct": 2,
+      "explanation": "分块不匹配会使吞吐量减半，因为每个样本跨越两个分块而非一个。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么 token_count 作为 HDF5 属性存储，而不是从数据集形状推导？",
+      "options": [
+        "尾部分块可能未填满；如果没有显式属性，读取器会越过真实末尾进入零填充的 token，模型会学到预测零值",
+        "形状读取速度慢",
+        "属性是必需的",
+        "属性更美观"
+      ],
+      "correct": 0,
+      "explanation": "分块布局有时会留下尾部未填满的槽位；属性携带了真实数据。"
+    },
+    {
+      "stage": "check",
+      "question": "写入器先将 token 缓冲到 chunk_size 再执行 resize，实现了什么效果？",
+      "options": [
+        "写入是连续且与分块对齐的，避免了逐 token resize 导致的碎片化",
+        "减小词汇表大小",
+        "加快 sha256 计算",
+        "节省少量 CPU 周期"
+      ],
+      "correct": 0,
+      "explanation": "以 chunk 大小为单位先缓冲再扩展，是保持 HDF5 分块在磁盘上连续的唯一方式。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么 swmr=True 在读取端设置而不是写入端？",
+      "options": [
+        "安全性",
+        "随机偏好",
+        "性能",
+        "单写入器多读取器（SWMR）模式允许数据加载器工作进程安全共享文件；写入端无需特殊模式，因为每个进程只写入一个 shard"
+      ],
+      "correct": 3,
+      "explanation": "混用两种模式是导致「文件被锁定」错误的常见原因。"
+    },
+    {
+      "stage": "post",
+      "question": "边界 token id 的存在是为了明确什么？",
+      "options": [
+        "压缩",
+        "词汇量限制",
+        "随机数据",
+        "打包窗口内的文档边界，防止模型在无声地学习跨文档拼接内容"
+      ],
+      "correct": 3,
+      "explanation": "没有显式边界时，训练器会把边界当作噪声；有了边界标记，它才成为可用的分隔符。"
+    }
+  ]
+}

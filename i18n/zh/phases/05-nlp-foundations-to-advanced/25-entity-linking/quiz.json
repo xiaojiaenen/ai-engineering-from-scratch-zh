@@ -1,0 +1,102 @@
+{
+  "lesson": "25-entity-linking",
+  "title": "实体链接与消歧",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "实体链接在NER之上增加了什么？",
+      "options": [
+        "情感极性",
+        "词性标签",
+        "它将每个检测到的提及映射到知识库（Wikidata、Wikipedia或领域KB）中的唯一条目",
+        "翻译"
+      ],
+      "correct": 2,
+      "explanation": "实体链接（EL）将提及转换为标准KB ID，消除同名实体之间的歧义。"
+    },
+    {
+      "stage": "pre",
+      "question": "实体链接的两个主要子任务是什么？",
+      "options": [
+        "候选生成（生成合理的KB条目短列表）和消歧（根据上下文选择正确的候选）",
+        "嵌入和聚类",
+        "词性标注和词形还原",
+        "分词和句法分析"
+      ],
+      "correct": 0,
+      "explanation": "实体链接分解为提出候选然后根据上下文适配度进行排序。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么提及召回率必须与消歧准确度一起报告？",
+      "options": [
+        "消歧无法从不存在的候选中恢复；管道质量受候选生成召回率的限制",
+        "GDPR要求提及召回率",
+        "spaCy要求召回率",
+        "召回率替代精确率"
+      ],
+      "correct": 0,
+      "explanation": "如果候选遗漏了金标准实体，没有任何消歧器能修复；召回率决定了管道的质量下限。"
+    },
+    {
+      "stage": "check",
+      "question": "GENRE如何执行实体链接？",
+      "options": [
+        "在有效KB ID的trie树上通过约束解码逐token解码实体的标准名称",
+        "通过计算TF-IDF",
+        "通过BM25",
+        "通过PageRank"
+      ],
+      "correct": 0,
+      "explanation": "GENRE通过约束解码生成标准KB名称，确保ID有效。"
+    },
+    {
+      "stage": "check",
+      "question": "实体链接中的NIL处理是什么？",
+      "options": [
+        "跳过所有提及",
+        "返回整个候选列表",
+        "将输入转为小写",
+        "当没有候选是真实匹配时预测'不在KB中'标签（新兴实体、冷门人物）"
+      ],
+      "correct": 3,
+      "explanation": "NIL预测防止为KB未覆盖的实体猜测错误的KB ID。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么流行度偏差会损害领域专用实体链接？",
+      "options": [
+        "用网络数据训练的模型会过度预测高频实体（如篮球明星Jordan而非机器学习研究者Michael I. Jordan）",
+        "流行度有助于召回",
+        "它只偏向老实体",
+        "流行度消除NIL"
+      ],
+      "correct": 0,
+      "explanation": "流行度先验使预测偏离少见的、领域特定的同名实体冲突。"
+    },
+    {
+      "stage": "post",
+      "question": "2026年安全的LLM-EL模式是什么？",
+      "options": [
+        "只需提示'找实体'",
+        "跳过候选生成",
+        "自由形式生成",
+        "提供候选列表并使用约束JSON输出，LLM只能从有效KB ID中选择"
+      ],
+      "correct": 3,
+      "explanation": "将LLM约束到有效候选列表可防止捏造的KB ID，并保证输出可查询。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么实体链接要求NER的提及边界必须精确？",
+      "options": [
+        "边界误差传播：'Bank of America'被裁剪为'Bank'会引入错误候选并拉低EL召回率",
+        "边界错误会破坏Wikipedia查找",
+        "边界精确度只影响NER指标，不影响实体链接候选质量",
+        "边界改变分词"
+      ],
+      "correct": 0,
+      "explanation": "边界错误的提及会检索到错误的别名集合，将误差传播到消歧阶段。"
+    }
+  ]
+}

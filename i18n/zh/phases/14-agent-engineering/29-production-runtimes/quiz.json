@@ -1,0 +1,90 @@
+{
+  "lesson": "29-production-runtimes",
+  "title": "生产运行时：队列、事件、定时任务",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "课程列出了哪六种运行时形态？",
+      "options": [
+        "Map、filter、reduce、fold、scan、group",
+        "请求-响应、流式传输、持久化执行、基于队列、事件驱动、定时调度",
+        "REST、gRPC、GraphQL、WebSocket、SSE、MQTT",
+        "Read、write、exec、fork、exit、wait"
+      ],
+      "correct": 1,
+      "explanation": "这六种是运行时形态；在选择框架之前应先确定形态。"
+    },
+    {
+      "stage": "pre",
+      "question": "请求-响应模式在什么情况下不合适？",
+      "options": [
+        "内部服务",
+        "任务耗时超过约30秒，且用户在 Worker 积压时挂断",
+        "REST API",
+        "1秒分类任务"
+      ],
+      "correct": 1,
+      "explanation": "同步 HTTP 仅适用于短时任务；长时任务需要队列/持久化/事件形态。"
+    },
+    {
+      "stage": "check",
+      "question": "持久化执行的核心特性是什么？",
+      "options": [
+        "更低的 token 成本",
+        "更快的推理速度",
+        "原生语音支持",
+        "每一步后都会对状态进行检查点保存，以便在失败时运行时能从最后成功的步骤恢复"
+      ],
+      "correct": 3,
+      "explanation": "检查点与恢复机制是区分特征；LangGraph 是本课程的参考实现。"
+    },
+    {
+      "stage": "check",
+      "question": "Anthropic 的哪项观察结果证明了长期代理使用基于队列的运行时的合理性？",
+      "options": [
+        "任务必须同步运行",
+        "任务总在5秒内完成",
+        "Computer Use 公告：每个任务数十到数百步属正常情况",
+        "Cron 解决一切"
+      ],
+      "correct": 2,
+      "explanation": "Anthropic 指出每个任务数十到数百步属正常情况；此类工作负载需要队列或持久化运行时。"
+    },
+    {
+      "stage": "check",
+      "question": "课程所说的「可观测性是承载性的」是什么意思？",
+      "options": [
+        "供应商需要它来计费",
+        "日志很美观",
+        "磁盘会满",
+        "没有 OTel GenAI spans 和 Langfuse/Phoenix/Opik 后端，你无法调试在第40步失败的多步骤代理"
+      ],
+      "correct": 3,
+      "explanation": "对于多步骤代理而言，可观测性不是可选的；它是调试与从头重播之间的区别。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么队列工作者必须有死信队列（DLQ）？",
+      "options": [
+        "DLQ 使任务更快",
+        "没有 DLQ，失败的任务会静默消失",
+        "DLQ 是加密的",
+        "AWS 要求使用 DLQ"
+      ],
+      "correct": 1,
+      "explanation": "没有 DLQ，失败的任务会消失；DLQ 是失败任务的停车场。"
+    },
+    {
+      "stage": "post",
+      "question": "课程建议将 cron 形态的代理与什么搭配使用？",
+      "options": [
+        "持久化执行，使失败的夜间运行能在下一个 tick 恢复",
+        "WebRTC",
+        "GPU 自动伸缩器",
+        "流式 SSE"
+      ],
+      "correct": 0,
+      "explanation": "Cron + 持久化执行可以从失败的定时运行中干净地恢复。"
+    }
+  ]
+}

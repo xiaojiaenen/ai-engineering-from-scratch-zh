@@ -1,0 +1,78 @@
+{
+  "lesson": "phase-19/27-eval-harness-fixture-tasks",
+  "title": "使用Fixture任务的Eval Harness",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "阅读课程之前：一个优秀的agent eval验证器最重要的特性是什么？",
+      "options": [
+        "跨运行的一致性。",
+        "毫秒级的速度。",
+        "对判定结果的自然语言解释。",
+        "覆盖候选代码的每一行。"
+      ],
+      "correct": 0,
+      "explanation": "确定性是让回归可检测的关键。一个非确定性的验证器会让每一次红色结果都变成抛硬币。"
+    },
+    {
+      "stage": "check",
+      "question": "候选者在单个任务上5个样本中通过了3次。课程中的pass@5公式返回的值是多少（保留两位小数）？",
+      "options": [
+        "0.75",
+        "1.00",
+        "0.99",
+        "0.60"
+      ],
+      "correct": 2,
+      "explanation": "pass@k = 1 - (1 - p)^k = 1 - (1 - 0.6)^5 = 1 - 0.4^5 = 1 - 0.01024 = 0.98976，四舍五入为0.99。原始的单样本通过率（0.6）是选项（a）的数值，但公式会在k个样本上进行放大。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么课程在报告中同时包含pass@1和pass@k？",
+      "options": [
+        "pass@1是验证器注册表支持的版本；pass@k为未来的验证器保留。",
+        "pass@k可能掩盖那些仅在多次尝试中才正确的模型，而pass@1将结果锚定到首次尝试的质量。",
+        "pass@1是用户在仪表盘中看到的数值；pass@k用于内部调试。",
+        "对于k > 1的情况，pass@k和pass@1在数学上是相同的。"
+      ],
+      "correct": 1,
+      "explanation": "pass@k会让那些在多次尝试中才得到正确答案的模型看起来很强；pass@1则是首次尝试的下限。同时报告两者可以防止夸大。"
+    },
+    {
+      "stage": "check",
+      "question": "harness在每个样本前都会调用_prepare_scratch。为什么这对pass@k > 1很重要？",
+      "options": [
+        "它确保每个样本都从有bug的初始状态开始，而不是从前一个样本的输出开始。",
+        "它避免了对共享临时目录的竞态条件。",
+        "它仅与shell验证器相关。",
+        "它纯粹是一种性能优化。"
+      ],
+      "correct": 0,
+      "explanation": "如果没有干净的scratch，样本N+1会从样本N的输出开始。harness测量的是'第二次尝试的清理'而非'首次尝试的成功'。"
+    },
+    {
+      "stage": "post",
+      "question": "你添加了一个新的验证器'pytest_passes'，它在scratch目录中运行pytest。你应该基于哪个现有验证器来构建它？",
+      "options": [
+        "不可能将pytest表达为验证器。",
+        "shell_exit_zero，因为pytest通过退出码0来标记通过。",
+        "file_equals，因为pytest会写入结果文件。",
+        "regex_match，因为pytest输出中包含'passed'这个词。"
+      ],
+      "correct": 1,
+      "explanation": "pytest在通过时退出码为0，失败时为非零值。shell_exit_zero是正确的基元。生产环境的配置从第26课开始通过sandbox路由调用。"
+    },
+    {
+      "stage": "post",
+      "question": "评审者问：'这个回归是模型的问题还是harness的问题？'哪个工件能回答这个问题？",
+      "options": [
+        "每个任务的每个样本的SampleResult加上验证器的详细消息。",
+        "fixture JSON文件。",
+        "agent的思维链转录。",
+        "验证器注册表的源代码。"
+      ],
+      "correct": 0,
+      "explanation": "每个样本的延迟、验证器详情和通过/失败状态让你能够进行归因：fixtures相同但判定结果不同，说明模型发生了变化；判定结果相同但延迟不同，说明其他因素发生了变化。"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "78-zero-parameter-sharding",
+  "title": "ZeRO 优化器状态分片",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么 ZeRO 优先分片优化器状态而非模型参数？",
+      "options": [
+        "优化器状态是内存占用最大的部分，且只在 step 阶段被访问，不参与前向或反向传播",
+        "DeepSpeed 强制要求",
+        "优化器更重要",
+        "参数更容易处理"
+      ],
+      "correct": 0,
+      "explanation": "对于混合精度下的 Adam，每 rank 的 fp32 主权重加上两个动量项为 12P 字节，而 fp16 参数加梯度仅 4P。优先分片最大项能以最低复杂度换取最多内存节省。"
+    },
+    {
+      "stage": "pre",
+      "question": "ZeRO Stage 1 每个 step 的通信模式是什么？",
+      "options": [
+        "无通信",
+        "一次广播",
+        "一次 Allreduce",
+        "对梯度执行一次 Reduce_scatter，并对更新后的参数执行一次 Allgather"
+      ],
+      "correct": 3,
+      "explanation": "Reduce_scatter 使每个 rank 只收到自身的梯度分片；Allgather 将更新后的参数分片分发回各 rank。总传输字节数与 Allreduce 相同，但内存占用除以 N。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么 ZeRO 每步带宽与 DDP 相同？",
+      "options": [
+        "并不相同",
+        "巧合",
+        "ZeRO 使用了压缩",
+        "Allreduce 在带宽上等价于 Reduce_scatter 加 Allgather；ZeRO 将这一步骤拆分为作用于不同数据的两个 halves"
+      ],
+      "correct": 3,
+      "explanation": "Ring Allreduce 实现为 Reduce_scatter 后接 Allgather。ZeRO 执行相同的两步操作，但 Allgather 轮转的是更新后的参数而非求和后的梯度。"
+    },
+    {
+      "stage": "check",
+      "question": "对于 8 个 rank 上的 7B 模型（Adam + 混合精度），ZeRO 相比原始 DDP 的内存降低幅度是多少？",
+      "options": [
+        "99%",
+        "0%",
+        "10%",
+        "约 65%（原始为 16P，ZeRO-1 为 4P + 12P/N = 5.5P）"
+      ],
+      "correct": 3,
+      "explanation": "原始：2P + 2P + 4P + 4P + 4P = 16P。ZeRO-1：2P + 2P + (4P+4P+4P)/8 = 5.5P。降低幅度为 (16-5.5)/16 ≈ 65.6%。"
+    },
+    {
+      "stage": "check",
+      "question": "ZeRO-2 相比 ZeRO-1 增加了什么？",
+      "options": [
+        "移除优化器",
+        "在 Reduce_scatter 后丢弃非分片梯度部分，释放每 rank 的梯度内存；带宽保持不变",
+        "无变化",
+        "切换后端为 NCCL"
+      ],
+      "correct": 1,
+      "explanation": "ZeRO-2 在 Reduce_scatter 后将非分片梯度部分置零；与 ZeRO-1 带宽相同，但梯度内存更低。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么 ZeRO 要求优化器状态检查点记录每个 rank 拥有哪些分片？",
+      "options": [
+        "不需要",
+        "仅为装饰",
+        "为了压缩",
+        "若无 per-rank 所有权信息，保存的状态在重启时无法读取；以相同 world size 恢复时需将正确的分片放回对应的 rank"
+      ],
+      "correct": 3,
+      "explanation": "Lesson 80 构建了分片检查点清单，正是为了让 ZeRO 任务能在相同拓扑结构下恢复运行。"
+    }
+  ]
+}

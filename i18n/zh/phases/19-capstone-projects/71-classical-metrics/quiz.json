@@ -1,0 +1,78 @@
+{
+  "lesson": "71-classical-metrics",
+  "title": "经典指标",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么tokenizer在metric层选择，而不是在runner层选择？",
+      "options": [
+        "Tokenizer是模型特定的，runner无法访问模型",
+        "Tokenizer定义了什么是token匹配；更换它会改变基准测试",
+        "无论tokenizer如何选择，指标实现的复杂度都是O(n)",
+        "Numpy在导入时需要tokenizer"
+      ],
+      "correct": 1,
+      "explanation": "BLEU和F1对分词方式敏感。将tokenizer绑定到metric可以确保分数可复现，并能追溯到具体的规则。"
+    },
+    {
+      "stage": "pre",
+      "question": "modified n-gram precision与普通n-gram precision有什么不同？",
+      "options": [
+        "它将每个候选n-gram的计数上限截断到任意参考句中最高的出现次数",
+        "它比普通精度运行更快",
+        "它使用不同的对数底数",
+        "它返回0到100之间的值而不是0到1之间的值"
+      ],
+      "correct": 0,
+      "explanation": "按参考句计数上限截断可以防止候选句通过重复某个高precision的词来虚高得分。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么BLEU使用brevity penalty？",
+      "options": [
+        "长候选句会使几何平均在数值上不稳定",
+        "Brevity penalty替代了n-gram计数上限",
+        "它补偿了additive-one平滑",
+        "如果没有它，非常短的候选句只要匹配几个词就能获得高precision和不公正的高BLEU分"
+      ],
+      "correct": 3,
+      "explanation": "仅看precision会奖励短输出。BP通过exp(1 - r/c)对比参考句短的候选句进行降权。"
+    },
+    {
+      "stage": "check",
+      "question": "ROUGE-L比较什么？",
+      "options": [
+        "候选句和参考句之间的Levenshtein距离",
+        "4-gram精度与任何参考句的4-gram",
+        "候选句和参考句token序列的最长公共子序列",
+        "字符级的Jaccard指数"
+      ],
+      "correct": 2,
+      "explanation": "ROUGE-L使用LCS长度，然后计算precision（LCS/候选长度）和recall（LCS/参考长度），再结合F-beta。"
+    },
+    {
+      "stage": "check",
+      "question": "Token-level F1在哪种情况下返回1.0？",
+      "options": [
+        "预测和目标句恰好共享一个token时",
+        "预测是目标的超集且包含额外噪声时",
+        "预测为空而目标非空时",
+        "预测和目标都为空时"
+      ],
+      "correct": 3,
+      "explanation": "按约定，空对空视为完美匹配。任何非空目标配上空预测则得分为0.0。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么在score函数中按metric_name分发，而不是按category分发？",
+      "options": [
+        "runner无法访问category字段",
+        "这让同一category在不同任务中使用不同指标，同时保持分发器与具体指标解耦",
+        "Category比metric_name更难验证",
+        "metric_name比category更短"
+      ],
+      "correct": 1,
+      "explanation": "metric_name才是契约。一个summary任务可以在一条记录上用rouge_l，在另一条上用bleu_4；分发器不需要关心这些细节。"
+    }
+  ]
+}

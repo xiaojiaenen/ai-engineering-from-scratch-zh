@@ -1,0 +1,102 @@
+{
+  "lesson": "16-text-generation-pre-transformer",
+  "title": "Transformer 之前的文本生成——N-gram 语言模型",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "N-gram 语言模型估计的是什么？",
+      "options": [
+        "文档嵌入（Document embeddings）",
+        "词之间的编辑距离",
+        "基于词频统计的 P(下一个词 | 前 n-1 个词)",
+        "P(标签 | 文档)"
+      ],
+      "correct": 2,
+      "explanation": "N-gram 语言模型通过词频统计来建模 P(当前词 | 前 n-1 个词)。"
+    },
+    {
+      "stage": "pre",
+      "question": "平滑在 n-gram 模型中解决了什么问题？",
+      "options": [
+        "数值精度",
+        "为训练集中未出现的 n-gram 分配零概率，导致整句似然直接坍缩为零",
+        "内存占用",
+        "分词不匹配"
+      ],
+      "correct": 1,
+      "explanation": "平滑重新分配概率质量，使未观测到的 n-gram 获得非零概率。"
+    },
+    {
+      "stage": "check",
+      "question": "Kneser-Ney 平滑比朴素绝对折扣平滑更优的关键洞察是什么？",
+      "options": [
+        "它使用更大的 n",
+        "它使用 TF-IDF",
+        "它使用梯度下降",
+        "它用继续概率（即某词作为后项出现过的不同上下文数量）来估计低阶分布，而非直接使用原始词频"
+      ],
+      "correct": 3,
+      "explanation": "继续概率考察的是上下文的多样性，而不仅仅是原始出现次数。"
+    },
+    {
+      "stage": "check",
+      "question": "困惑度（perplexity）衡量的是什么？",
+      "options": [
+        "不同 n-gram 的数量",
+        "验证集上每个 token 的平均负对数似然的指数；值越低越好",
+        "标签的交叉熵",
+        "生成吞吐量"
+      ],
+      "correct": 1,
+      "explanation": "困惑度 = exp(-平均 log P)；值越低说明模型对测试文本的\"意外程度\"越小。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么比较困惑度时训练集和测试集必须使用相同的分词方案？",
+      "options": [
+        "为了避免 OOV",
+        "困惑度依赖于分词方案；分词不一致会导致分数不可比",
+        "梯度下降的要求",
+        "控制批次大小"
+      ],
+      "correct": 1,
+      "explanation": "不同的分词会改变 token 数量和似然值，使困惑度数值无法直接比较。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么生成的三元语言模型句子感觉局部流畅但全局不连贯？",
+      "options": [
+        "局部三元上下文指导了下一个词的选择，但模型缺乏超过 n-1 个 token 的长期记忆",
+        "它们会丢弃标点符号",
+        "它们使用了拉普拉斯平滑",
+        "束搜索失败"
+      ],
+      "correct": 0,
+      "explanation": "仅依赖最后 n-1 个 token 进行条件生成，使得长程连贯性只能碰运气。"
+    },
+    {
+      "stage": "post",
+      "question": "到了 2026 年，n-gram 模型还在哪些生产场景中落地？",
+      "options": [
+        "多语言翻译",
+        "文本摘要",
+        "开放域聊天机器人",
+        "对延迟敏感的场景，如语音识别重排序和基于 KenLM 等库的端侧自动补全"
+      ],
+      "correct": 3,
+      "explanation": "KenLM 类 n-gram 模型仍然作为快速的端侧组件或重排序模块在服务。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么在判定神经语言模型\"效果良好\"之前，仍建议先计算 n-gram 基线？",
+      "options": [
+        "可以加速训练",
+        "ROUGE 指标的要求",
+        "可以消除 OOV",
+        "如果 Transformer 模型在相同分词下没有大幅超越调优后的 Kneser-Ney 基线，说明训练流程可能存在问题"
+      ],
+      "correct": 3,
+      "explanation": "Kneser-Ney 基线往往出人意料地强；神经模型应显著优于它，否则可能存在 bug。"
+    }
+  ]
+}

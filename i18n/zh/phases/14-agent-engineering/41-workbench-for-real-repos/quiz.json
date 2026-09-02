@@ -1,0 +1,90 @@
+{
+  "lesson": "41-workbench-for-real-repos",
+  "title": "The Workbench on a Real Repo",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "通过仅提示词和使用workbench引导的流水线执行同一任务的目的是什么？",
+      "options": [
+        "对GPU进行基准测试",
+        "比较模型",
+        "生成一份前后对比报告，用数字而非辩论来说服持怀疑态度的人",
+        "选择供应商"
+      ],
+      "correct": 2,
+      "explanation": "数字会说话；这个案例基于一个真实感强的任务，而非玩具任务。"
+    },
+    {
+      "stage": "pre",
+      "question": "哪个不是所测量的五个结果之一？",
+      "options": [
+        "files_outside_scope",
+        "model_perplexity",
+        "acceptance_met",
+        "tests_actually_run"
+      ],
+      "correct": 1,
+      "explanation": "这五个指标是tests_actually_run、acceptance_met、files_outside_scope、handoff_quality、reviewer_total。"
+    },
+    {
+      "stage": "check",
+      "question": "LangChain的Anatomy of an Agent Harness在Terminal Bench 2.0上测量到了什么结果？",
+      "options": [
+        "顶级模型排名下降了25位",
+        "所有模型都收敛在前三位",
+        "Harness变更未改变排名",
+        "仅更改harness，同一模型的排名从30名外提升到第五名"
+      ],
+      "correct": 3,
+      "explanation": "同一模型上25个排名的差异，正是harness对比模型的核心证据。"
+    },
+    {
+      "stage": "check",
+      "question": "preprints.org上的论文引用的企业级agent项目的失败率是多少？",
+      "options": [
+        "8%",
+        "约88%的项目无法上线生产，失败主要集中在运行阶段而非推理阶段",
+        "约50%",
+        "没有失败的"
+      ],
+      "correct": 1,
+      "explanation": "《Harness Engineering for Language Agents》预印本将失败归因于运行时问题（状态过时、重试机制脆弱、上下文膨胀）。"
+    },
+    {
+      "stage": "check",
+      "question": "在长上下文条件下，WebAgent基线准确率会发生什么变化？",
+      "options": [
+        "保持平稳",
+        "从40-50%降至10%以下，主要是由于无限循环和目标丢失",
+        "提升30%",
+        "减半但保持在30%以上"
+      ],
+      "correct": 1,
+      "explanation": "长上下文崩溃正是Ralph Loop和交接包存在的意义。"
+    },
+    {
+      "stage": "post",
+      "question": "课程中关于假阴性（仅提示词更快的情况）的说法是什么？",
+      "options": [
+        "单步事实查询、单行lint检查、格式化器运行等任务用prompt-only更快；如实列出这些情况，避免将workbench塑造为过度设计",
+        "它们证明workbench失败",
+        "它们不存在",
+        "它们否定了harness的论点"
+      ],
+      "correct": 0,
+      "explanation": "诚实地枚举prompt-only更快的案例，能让harness的论证更具可信度。"
+    },
+    {
+      "stage": "post",
+      "question": "在哪些场合应该引用本课的报告？",
+      "options": [
+        "内部HR审查",
+        "仅在黑客松活动",
+        "当有人想为当前sprint'临时跳过'验证环节，或新agent产品发布需要可移植的时间节省基准时",
+        "仅在营销演示文稿"
+      ],
+      "correct": 2,
+      "explanation": "数据比解释更有说服力；当压力试图绕过验证流程时，引用这份报告。"
+    }
+  ]
+}

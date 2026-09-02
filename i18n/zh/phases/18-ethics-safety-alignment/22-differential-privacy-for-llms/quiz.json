@@ -1,0 +1,78 @@
+{
+  "lesson": "22-differential-privacy-for-llms",
+  "title": "大语言模型的差分隐私",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "(epsilon, delta)-差分隐私为随机算法 M 提供了什么保证？",
+      "options": [
+        "对于任意仅相差一个样本的两个数据集 D 和 D'，以及任意事件 S，有 P(M(D) ∈ S) ≤ e^epsilon * P(M(D') ∈ S) + delta，即无法可靠推断出任何单个个体的贡献",
+        "M 被证明等价于一个非隐私保护算法",
+        "M 永远不会记忆任何训练数据",
+        "M 在加噪后是确定性的"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "根据 Abadi et al. 2016 的描述，下列哪项不是 DP-SGD 的步骤？",
+      "options": [
+        "在步骤之间重新随机化模型的 tokenizer",
+        "将每个样本的梯度裁剪到阈值 C",
+        "对裁剪后的梯度求和并添加缩放为 sigma * C 的高斯噪声",
+        "采样 mini-batch 并计算每个样本的梯度"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么 LoRA + DP-SGD 是 2025 年的常见配置？",
+      "options": [
+        "LoRA 设计上会增大 epsilon",
+        "LoRA 消除了对 accountant 的需求",
+        "对前沿模型直接运行完整 DP-SGD 成本过高；LoRA 将梯度更新限制在小型适配器上，减少每个样本梯度的存储量，同时仍为适配器提供差分隐私保证",
+        "它使用 LoRA 作为 tokenizer"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "2025 年 3 月的审计（arXiv:2503.06808）如何解决了 canary-MIA 与训练数据提取之间的张力？",
+      "options": [
+        "它完全消除了对 canary 的需求",
+        "它表明两者测量的是同一性质",
+        "它证明了 DP-SGD 是不必要的",
+        "它表明两者测量的是不同性质：在已插入 canary 上的 MIA 会低估记忆化程度，因为 canary 并非针对那些真正关乎隐私、最容易被提取的样本进行优化"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "PMixED（arXiv:2403.15638）作为 DP 训练的替代方案提供了什么？",
+      "options": [
+        "一种用于 Renyi DP 的新型 accountant",
+        "通过基于专家混合的推理时差分隐私，对 next-token 分布进行聚合并添加噪声；完全避免 DP 训练",
+        "一种仅从 epsilon-delta accounting 计算 epsilon 的方法",
+        "一种更快的 DP-SGD 变体"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "什么是基于 LLM 反馈的差分隐私逆转攻击（Differential Privacy Reversal via LLM Feedback）？",
+      "options": [
+        "对 tokenizer 熵的攻击",
+        "针对 canary 插入的防御手段",
+        "利用经过 DP 训练的模型的置信度分数作为预言机，即使输出未直接泄露，也能重新识别个体",
+        "一种将 epsilon 重置为零的方法"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

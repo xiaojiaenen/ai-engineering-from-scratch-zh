@@ -1,0 +1,66 @@
+{
+  "lesson": "15-prompt-caching",
+  "title": "提示缓存与上下文缓存",
+  "questions": [
+    {
+      "stage": "post",
+      "question": "Anthropic对缓存读取相对于基础输入费率给予多少折扣？",
+      "options": [
+        "25%折扣",
+        "90%折扣",
+        "75%折扣",
+        "50%折扣"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为什么动态时间戳必须放在缓存断点之下，而不是之上？",
+      "options": [
+        "Anthropic明确拒绝缓存块中使用时间戳",
+        "时间戳会混淆分词器",
+        "它们比静态文本消耗更多token",
+        "只有前缀完全字节匹配时才能命中缓存；变化的时间戳会破坏其后所有内容匹配"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "OpenAI的提示缓存如何配置？",
+      "options": [
+        "一个按项目切换的系统级标志",
+        "无需配置的自动前缀匹配",
+        "一个你需要创建并引用的CachedContent API",
+        "显式的cache_control标记"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "对于Anthropic，1小时扩展TTL相比5分钟默认值，写入溢价是多少？",
+      "options": [
+        "4倍写入溢价",
+        "2倍写入溢价（超出基线50%）",
+        "无写入溢价",
+        "相同"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "在Anthropic的25%写入溢价下，需要多少次重用才能回本？",
+      "options": [
+        "5",
+        "10",
+        "1",
+        "2"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

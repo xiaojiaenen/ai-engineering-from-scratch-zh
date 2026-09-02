@@ -1,0 +1,90 @@
+{
+  "lesson": "15-crewai-role-based-crews",
+  "title": "基于角色的智能体团队 — Roles、Tasks、Processes",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "CrewAI 的四个基础组件是什么？",
+      "options": [
+        "Tool, Prompt, Model, Memory",
+        "Agent, Task, Crew, Process",
+        "Node, Edge, Reducer, Checkpointer",
+        "Actor, Message, Inbox, Runtime"
+      ],
+      "correct": 1,
+      "explanation": "Agent、Task、Crew 和 Process 是四个基础组件。"
+    },
+    {
+      "stage": "pre",
+      "question": "根据 CrewAI 文档，推荐的产线起点是什么？",
+      "options": [
+        "Sequential process",
+        "Flow",
+        "Crew",
+        "Hierarchical process"
+      ],
+      "correct": 1,
+      "explanation": "文档建议用 Flows 来启动产线应用；当自治证明其成本合理时，将 Crews 作为子步骤整合进来。"
+    },
+    {
+      "stage": "check",
+      "question": "Crew 和 Flow 有什么区别？",
+      "options": [
+        "Flow 不含 Agent",
+        "Crew 收费，Flow 免费",
+        "Crew 是自治且由 LLM 驱动的；Flow 是事件驱动、由代码控制、确定性和可测试的",
+        "Crew 只能在 GPU 上运行"
+      ],
+      "correct": 2,
+      "explanation": "Crew 以自治优先；Flow 以确定优先。"
+    },
+    {
+      "stage": "check",
+      "question": "以下哪项不是 CrewAI 提供的四种记忆类型之一？",
+      "options": [
+        "Quantized",
+        "Entity",
+        "Long-term",
+        "Short-term"
+      ],
+      "correct": 0,
+      "explanation": "短期、长期、实体和上下文是四种记忆。量化记忆（Quantized memory）不是 CrewAI 的概念。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是 backstory bloat（背景故事膨胀），课程建议如何处理？",
+      "options": [
+        "2000 词的 agent 背景故事会挤占上下文预算；保持精简",
+        "存储了太多 crew；归档旧 crew",
+        "Bedrock 调用太慢；切换区域",
+        "工具太多；删除一些"
+      ],
+      "correct": 0,
+      "explanation": "背景故事塑造语气和判断，但过大时会消耗上下文预算。"
+    },
+    {
+      "stage": "post",
+      "question": "什么时候 Hierarchical process 比 Sequential 更值得选用？",
+      "options": [
+        "当你有 4 个以上的专家 agent，需要一个 manager agent 在其中进行路由时",
+        "始终使用",
+        "当你只有一个 task 时",
+        "当你没有任何工具时"
+      ],
+      "correct": 0,
+      "explanation": "Hierarchical 会新增一个 manager Agent；仅在多个专家需要动态路由时才有价值。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么课程建议在产线中避免使用 free-form Crew？",
+      "options": [
+        "输出可变性高，且没有 Flow 包装器时调试困难",
+        "Crews 不受支持",
+        "Crews 比 Flows 更贵",
+        "Crews 缺乏记忆功能"
+      ],
+      "correct": 0,
+      "explanation": "Crew 的自治特性使得产线回放和审计变得困难；发布时应将其包装在 Flow 中。"
+    }
+  ]
+}

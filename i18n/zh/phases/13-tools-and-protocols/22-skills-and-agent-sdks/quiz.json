@@ -1,0 +1,78 @@
+{
+  "lesson": "22-skills-and-agent-sdks",
+  "title": "Agent Skills: Portable Contract and Runtime Boundary",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "团队拥有一个可复用的审查方法和一个提供 pull request 数据的现有 API。根据运行时策略，哪种设计将各关注点分配给正确的原语？",
+      "options": [
+        "将审查方法放入 Agent Skill，并通过 MCP 工具暴露该 API",
+        "用更长的用户 prompt 替换该 API",
+        "将方法和 API 实现都放入 AGENTS.md",
+        "使用 lifecycle hook 作为唯一的审查指令来源"
+      ],
+      "correct": 0,
+      "explanation": "Skill 承载可复用的过程性知识，而 MCP 暴露外部能力，两者可以组合。AGENTS.md 更适合用于仓库范围的默认配置，而 hook 响应生命周期事件，并非替代任一层次。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么验证器要求 SKILL.md 的名称与其所在目录匹配？",
+      "options": [
+        "确保每个 host 都支持相同的调用语法",
+        "为发现和打包提供单一稳定的身份标识，而非两个冲突的名称",
+        "使 Markdown 标题能够正确渲染",
+        "允许 skill 绕过 host 权限"
+      ],
+      "correct": 1,
+      "explanation": "发现工具通常同时通过文件夹和 frontmatter 对 skill 编入索引。两者匹配可避免目录条目歧义和安装路径断裂。它不会授予权限，也不会标准化 host 的调用 UI。"
+    },
+    {
+      "stage": "check",
+      "question": "SKILL.md 包含一个仅某个 runtime 能理解的字段。其可移植性应如何解读？",
+      "options": [
+        "将该字段移入 skill 名称",
+        "将其视为 host 扩展，仅在显式 host 策略下进行验证",
+        "该字段静默成为核心标准的一部分",
+        "每个 runtime 在加载该 skill 前都必须实现该字段"
+      ],
+      "correct": 1,
+      "explanation": "可移植的核心元数据与 host runtime 扩展属于不同的契约。适配器可能识别某扩展，但核心验证器不应声称该字段具有通用语义。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种原语最能代表必须在每次 tool 调用后执行的检查？",
+      "options": [
+        "一个 MCP resource",
+        "一次性的 prompt",
+        "仓库术语表",
+        "一个 lifecycle hook"
+      ],
+      "correct": 3,
+      "explanation": "核心要求是事件时机，因此 lifecycle hook 是合适的机制。skill 可以说明工作流，MCP 可以暴露能力，但两者都不会在每次 tool 调用后自动触发。"
+    },
+    {
+      "stage": "post",
+      "question": "AGENTS.md 比 Agent Skill 更适合作为存放位置的情况是什么？",
+      "options": [
+        "当外部服务需要鉴权 API 调用时",
+        "当脚本需要在 workspace jail 外部执行时",
+        "当规范应应用于仓库内全部工作时",
+        "当指令仅需为罕见的专业任务加载时"
+      ],
+      "correct": 2,
+      "explanation": "AGENTS.md 用于传达仓库的持久性上下文，如构建命令和编码规范。任务特定的流程适合 skill，外部操作适合 tool，且不应使用任何指令文件来逃逸 sandbox。"
+    },
+    {
+      "stage": "post",
+      "question": "一个有效的 Agent Skill 本身授予什么？",
+      "options": [
+        "在所有 agent host 中通用的斜杠命令",
+        "可供发现的过程性指令，受 host runtime 的策略约束",
+        "执行所有捆绑脚本的权限",
+        "自动网络访问"
+      ],
+      "correct": 1,
+      "explanation": "可移植的制品提供元数据和指令。发现、调用 UI、tool 访问、审批和脚本执行仍由 runtime 负责，因此有效性并不等同于授权。"
+    }
+  ]
+}

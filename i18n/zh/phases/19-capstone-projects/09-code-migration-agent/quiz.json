@@ -1,0 +1,90 @@
+{
+  "lesson": "09-code-migration-agent",
+  "title": "综合项目 09 — 代码迁移智能体（仓库级语言/运行时升级）",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么流水线将确定性底层与智能体层相结合，而不是仅使用其中一种？",
+      "options": [
+        "仅靠智能体比配方更快",
+        "OpenRewrite 或 libcst 安全且低成本地处理 70-80% 的机械性重写，将模糊的长尾问题留给智能体",
+        "确定性仅对构建系统有需求",
+        "确定性配方比大语言模型慢"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "流水线用什么信号作为迁移成功的真实依据？",
+      "options": [
+        "智能体根据评分量规自行打分",
+        "审查者在 PR 上的批准",
+        "Diff 大小低于硬性限制",
+        "沙箱中 CI 通过，且覆盖率退化未超过较小阈值"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "智能体循环为每个仓库强制执行哪些预算上限？",
+      "options": [
+        "30 分钟墙钟时间、8 美元成本和 20 轮智能体交互",
+        "1 小时墙钟时间和 100 轮交互",
+        "时间和成本无限制；仅在出错时中止",
+        "无交互轮数限制，100 美元上限"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "迁移后覆盖率下降约 2% 以上时，哪个闸门会被触发？",
+      "options": [
+        "确定性底层重新执行其配方",
+        "该仓库被归入 coverage_regression 失败类别，而非开启一个干净的 PR",
+        "智能体自动强制推送修复",
+        "绕过审查者"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么失败分类被视作交付物而非附属产物？",
+      "options": [
+        "它替代了测试套件",
+        "GitHub 分支保护要求",
+        "满足合规清单",
+        "按类别对失败的仓库进行分组，以便未来的配方作者针对主要的失败模式进行优化"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "该项目以哪个公开基准测试作为 Java 8 到 17 迁移的目标？",
+      "options": [
+        "MMLU-Pro",
+        "Amazon 的 MigrationBench",
+        "ViDoRe v3",
+        "SWE-bench Pro"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "智能体集成评分量规衡量修复分布的哪些方面？",
+      "options": [
+        "锁定的依赖项数量",
+        "每个仓库的强制推送次数",
+        "由 OpenRewrite 处理的修复与由智能体层编写的修复所占的比例",
+        "源文件的分词速度"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

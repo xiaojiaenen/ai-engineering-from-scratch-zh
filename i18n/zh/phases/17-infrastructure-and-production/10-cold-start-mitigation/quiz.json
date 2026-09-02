@@ -1,0 +1,78 @@
+{
+  "lesson": "10-cold-start-mitigation",
+  "title": "Serverless LLM 冷启动缓解方案",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在不采取缓解措施的情况下，全新节点上 70B 模型的冷启动通常需要多长时间？",
+      "options": [
+        "3-8 分钟",
+        "超过 1 小时",
+        "不足 10 秒",
+        "30-60 秒"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "课程推荐哪个 AWS 端功能来预置容器镜像，从而使步骤 2 的镜像拉取消失？",
+      "options": [
+        "从 EC2NodeClass 引用过的 Bottlerocket 双卷架构",
+        "Spot 集群放置",
+        "仅 EBS 卷快照",
+        "ECS 任务定义"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪个 Modal 功能能最接近实现“秒级 GPU 热启动”，将加载后的状态直接反序列化进 HBM？",
+      "options": [
+        "GPU 内存快照（checkpoints）",
+        "分层 NVMe 到 DRAM 加载",
+        "Run:ai Model Streamer",
+        "实时迁移"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么实时迁移传输的是输入 token 而非 KV cache？",
+      "options": [
+        "KV cache 已加密，无法移动",
+        "实时迁移是 GDPR 的要求",
+        "输入 token 具有更大的熵",
+        "在目标节点重新计算 KV 比通过网络传输 GB 级的 KV cache 成本更低"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "哪个 serverless 层通过保留至少一个副本处于运行状态，以可预测的准备工作换取代直接 GPU 成本？",
+      "options": [
+        "分层加载",
+        "实时迁移",
+        "热池（min_workers >= 1）",
+        "Bottlerocket 预置"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为什么课程说冷启动缓解方案必须在多个层面叠加，而非选择单一工具？",
+      "options": [
+        "Modal 拥有整个技术栈",
+        "五个层面都捆绑在 vLLM 中",
+        "这是监管要求",
+        "没有任何单一层面能消除所有步骤（节点供应、镜像拉取、权重加载、引擎初始化）；叠加多个层面可压缩每个步骤的时间"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

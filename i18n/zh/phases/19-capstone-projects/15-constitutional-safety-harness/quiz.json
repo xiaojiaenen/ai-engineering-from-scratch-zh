@@ -1,0 +1,90 @@
+{
+  "lesson": "15-constitutional-safety-harness",
+  "title": "Capstone 15 — 宪法安全护栏 + 红队测试范围",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "本 Capstone 中的分层安全是什么意思？",
+      "options": [
+        "在输入清洗、策略护栏、分类器门禁、模型、输出过滤和人工审核（HITL）各层进行纵深防御",
+        "仅在输入上使用单一强分类器",
+        "对输出使用单条基于规则的正则表达式",
+        "对每条响应进行人工审查"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "哪个分类器可覆盖约132种语言的检测？",
+      "options": [
+        "Llama Guard 4",
+        "Nemotron 3 Content Safety",
+        "X-Guard",
+        "ShieldGemma-2"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为何要在 XSTest 等良性套件上衡量过度拒绝？",
+      "options": [
+        "以追踪误报拦截，使模型在提升无害性的同时保持有用性",
+        "用于认证护栏框架",
+        "用于替代红队评分",
+        "用于基准测试 token 吞吐量"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "本 Capstone 中的宪法自我评审循环是什么？",
+      "options": [
+        "从零训练的 RLHF 奖励模型",
+        "评审 LLM 依据成文宪法对草稿打分，提示模型对有异议的输出进行改写，然后对改进后的配对进行 SFT",
+        "Llama Guard 4 的单次前向传播",
+        "对候选越狱提示的重排序器"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "成功越狱在报告中如何按严重程度评分？",
+      "options": [
+        "由生成该响应的模型评定",
+        "使用 CVSS 4.0 计算攻击向量、复杂度与影响度，并附上披露时间线",
+        "按提示词原始 token 数量",
+        "由操作员手工选定 1-10 分制"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "红队测试范围运行哪六个攻击家族？",
+      "options": [
+        "PSI、KL、MMD、KS、JS 和 Wasserstein",
+        "PAIR、TAP、GCG、编码攻击（ASCII/base64/rot13）、多轮角色扮演讲话术、多语言代码切换",
+        "暴力破解、字典攻击、重放攻击、MITM、网络钓鱼和 CSRF",
+        "BLEU、ROUGE、METEOR、BERTScore、CometKiwi 和 chrF"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为何范围自动化（cron + 告警）是评分标准的一部分？",
+      "options": [
+        "cron 是调用 OPA 的唯一方式",
+        "自动化用于禁用 Llama Guard 4",
+        "明确要求手动运行",
+        "持续定时探测可在一段时间内发现攻击成功率漂移和过度拒绝退化的情况"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

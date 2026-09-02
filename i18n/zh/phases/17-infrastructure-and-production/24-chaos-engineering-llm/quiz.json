@@ -1,0 +1,78 @@
+{
+  "lesson": "24-chaos-engineering-llm",
+  "title": "面向LLM生产环境的混沌工程",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在生产环境运行混沌工程之前，课程要求哪五个前提条件？",
+      "options": [
+        "Slack channel, sticker pack, mascot, hashtag, blog post",
+        "仅向量数据库",
+        "SLI/SLO、可观测性、自动回滚、结构化运行手册、值班安排",
+        "三个前沿模型"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "混沌架构有哪四个平面，加上反馈回路？",
+      "options": [
+        "Frontend, backend, mobile, web",
+        "Ingest, transform, store, serve",
+        "Train, eval, deploy, archive",
+        "控制、目标、安全、可观测性——并将反馈应用于SLO调整"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "在混沌实验期间，燃尽率警报护栏有什么作用？",
+      "options": [
+        "当日错误预算燃尽率超过预期的约2倍时暂停实验",
+        "将实验自动提升到生产环境",
+        "禁用可观测性",
+        "加速实验"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "课程中列出的哪个是特定于LLM的混沌实验？",
+      "options": [
+        "随机降低风扇速度",
+        "重启整个数据中心",
+        "导致vLLM块预算饱和的KV驱逐风暴",
+        "丢弃所有DNS"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程推荐混沌练习的频率是多少？",
+      "options": [
+        "仅每年一次",
+        "每日全生产环境停机",
+        "从不",
+        "每周小型金丝雀发布，每月游戏日并附事后分析，每季度跨团队韧性审计"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "畸形提示词实验会暴露哪种特定于LLM的故障模式？",
+      "options": [
+        "深度嵌套Unicode或巨大UTF-8码点等输入导致的分词器停滞，锁定工作进程",
+        "GPU欠压",
+        "网络丢包",
+        "磁盘I/O争用"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

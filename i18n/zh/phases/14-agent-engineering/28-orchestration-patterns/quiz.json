@@ -1,0 +1,90 @@
+{
+  "lesson": "28-orchestration-patterns",
+  "title": "编排模式：主管、Swarm、分层",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "课程列出了哪四种编排模式？",
+      "options": [
+        "推送、拉取、批处理、流式",
+        "主管-worker、swarm/点对点、分层、辩论",
+        "顺序、并行、分布式、联邦",
+        "计划、行动、反思、优化"
+      ],
+      "correct": 1,
+      "explanation": "主管-worker、swarm、分层和辩论在2026年的框架中反复出现。"
+    },
+    {
+      "stage": "pre",
+      "question": "关于监督，2026年LangChain的建议是什么？",
+      "options": [
+        "始终使用create_supervisor",
+        "完全避免监督",
+        "优先使用直接工具调用而非create_supervisor，以获得更精细的上下文工程控制",
+        "在GPU上运行主管"
+      ],
+      "correct": 2,
+      "explanation": "基于工具调用的监督让你能够精确控制每个专家能看到的内容。"
+    },
+    {
+      "stage": "check",
+      "question": "Swarm与主管-worker拓扑有何区别？",
+      "options": [
+        "Swarm仅运行于cron调度",
+        "Swarm没有中央路由器；代理通过共享的工具表面直接交接",
+        "Swarm使用GPU",
+        "Swarm是单代理"
+      ],
+      "correct": 1,
+      "explanation": "Swarm是对等网络；主管通过一个LLM集中路由。"
+    },
+    {
+      "stage": "check",
+      "question": "什么时候应该使用分层编排？",
+      "options": [
+        "从不使用；它属于反模式",
+        "仅配合GPU使用",
+        "当单个主管的上下文预算无法容纳所有专家的描述时",
+        "始终使用；它能免费扩展"
+      ],
+      "correct": 2,
+      "explanation": "嵌套主管适用于专家数量超过单个主管上下文预算的大型场景。"
+    },
+    {
+      "stage": "check",
+      "question": "Anthropic推荐的决策顺序是什么？",
+      "options": [
+        "从单个代理加工作流模式开始；仅在必要时添加拓扑；先主管后swarm再分层；当准确度胜过成本时才使用辩论",
+        "从辩论开始",
+        "始终从分层多代理开始",
+        "从swarm开始并向单代理收缩"
+      ],
+      "correct": 0,
+      "explanation": "Anthropic的指导是构建适合你需求的系统，而非最复杂的系统。"
+    },
+    {
+      "stage": "post",
+      "question": "本课程中的虚假分层是什么意思？",
+      "options": [
+        "只有两个实际团队却套用三层主管；应将其合并",
+        "用TypeScript编写的编排器",
+        "被错误标记的YAML",
+        "测试夹具"
+      ],
+      "correct": 0,
+      "explanation": "与实际团队不对应的层级只会增加运营复杂度而没有任何收益。"
+    },
+    {
+      "stage": "post",
+      "question": "如何缓解swarm中的反弹式交接（A -> B -> A -> B）？",
+      "options": [
+        "将温度固定为0",
+        "降低速率限制",
+        "添加跳数计数器并在N次跳转后拒绝",
+        "禁用追踪"
+      ],
+      "correct": 2,
+      "explanation": "跳数计数器可在swarm无限循环之前限制其运行次数。"
+    }
+  ]
+}

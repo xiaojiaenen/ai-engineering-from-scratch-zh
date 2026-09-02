@@ -1,0 +1,64 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "ViT 如何将一张图像转换为 token 序列？",
+      "options": [
+        "使用 kernel_size = stride = patch_size 的卷积操作，将图像分割为不重叠的 patch，并在线性投影为 token embedding",
+        "将整个图像展平为单一向量",
+        "先运行 CNN 并以其特征图作为 tokens",
+        "对像素强度排序"
+      ],
+      "correct": 0,
+      "explanation": "ViT 的第一层是 kernel_size = stride = 16 的卷积，将 224x224 的图像转换为 14x14 网格的 16x16 patch，每个 patch 投影到 dim=768。该单层卷积同时完成 patchification 和投影，最终得到 196 个 token，可由标准 transformer encoder 处理。"
+    },
+    {
+      "stage": "pre",
+      "question": "ViT 中的 [CLS] token 是什么？为什么需要它？",
+      "options": [
+        "缺失数据的占位符",
+        "特殊像素值",
+        "dropout 遮罩",
+        "预置于 token 序列之前、可学习的向量；经过 N 层 transformer 后，其输出聚合整张图像信息并输入分类头"
+      ],
+      "correct": 3,
+      "explanation": "ViT 沿用了 BERT 的约定：在 patch 序列前prepend一个可学习向量（即 CLS token）。自注意力使每个 token 都能看到其他所有 token，因此 CLS token 能够聚合来自所有 patch 的全局信息。分类器仅读取 CLS 的输出。另一些设计会对所有 patch token 做平均池化（ConvNeXt 及许多后续模型采用此方案）。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么原始 ViT 论文需要 JFT-300M 预训练才能击败 ResNet，而 DeiT 不需要？",
+      "options": [
+        "DeiT 使用了不同的注意力机制",
+        "ViT 论文有误",
+        "ViT 相比 CNN 缺乏归纳偏置；数据不足时容易过拟合。DeiT 表明，配合强数据增强（RandAugment、Mixup、CutMix）、stochastic depth，以及可选的 CNN 蒸馏，ViT 仅用 ImageNet-1k 即可正常训练",
+        "ViT 没有 JFT-300M 就无法工作"
+      ],
+      "correct": 2,
+      "explanation": "ViT 缺少归纳偏置（未内嵌局部性和平移等变性），因此必须从数据中学习这些特性。仅有 100 万张 ImageNet 图像时学习难度大；而 3 亿张 JFT 图像则绰绰有余。DeiT 通过改进训练配方弥补了这一不足：大量数据增强、stochastic depth 以及从 CNN 教师模型的蒸馏，从而补偿了先验信息的缺失。"
+    },
+    {
+      "stage": "post",
+      "question": "Pre-LayerNorm（`x = x + sublayer(LN(x))`）与 Post-LayerNorm（`x = LN(x + sublayer(x))`）——现代 transformer 使用哪一种？为什么？",
+      "options": [
+        "Post-LN；它更简单",
+        "两者都不；现代 transformer 会跳过 LayerNorm",
+        "Pre-LN；它能稳定训练更深网络，无需 learning-rate warmup，并避免了 post-LN 在超过约 6 层后出现的梯度不稳定性问题",
+        "两者等价"
+      ],
+      "correct": 2,
+      "explanation": "Post-LN 是原始 transformer（2017）的做法，在超过 6–8 层后需要精细的 warmup 策略和较小的学习率。Pre-LN（Xiong et al., 2020；被 ViT、GPT-2+ 及所有现代 LLM 采用）数值上更稳定：残差流在不经过 LN 的情况下累积，每个 sublayer 接收归一化后的输入。所有超过 12 层的 transformer 均使用 pre-LN。"
+    },
+    {
+      "stage": "post",
+      "question": "Swin Transformer 引入了窗口化注意力（windowed attention）。它解决了什么问题？",
+      "options": [
+        "不支持 BatchNorm",
+        "对纹理过拟合",
+        "梯度消失",
+        "全局注意力的计算复杂度为 O((H*W)^2)；Swin 将注意力限制在 7x7 patch 的局部窗口内，将复杂度降至 O(H*W * window^2)。交替块中窗口偏移半个窗口大小，使信息最终跨图像混合"
+      ],
+      "correct": 3,
+      "explanation": "对 224x224 图像使用 4x4 patch 会得到 56*56 = 3136 个 token；全注意力每层需处理 3136^2 ≈ 10M 对。Swin 仅在 7x7 窗口内计算注意力，每窗口 49^2 = 2401 对（加上窗口数量）。交替块中的 shifted window 机制让信息在几层内跨窗口混合。这样在保留注意力机制的同时，重新引入了类似 CNN 的局部性先验。"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "你对模型进行了基准测试并报告'在4090上每张图像平均12ms'。缺少了什么？",
+      "options": ["数据集名称", "模型参数量", "没有缺少；这是一个完整的基准测试", "百分位数（p50/p95/p99）、预热规范和CUDA同步；仅用平均值会隐藏尾部延迟，且可能测量的是内核分发而非内核执行"],
+      "correct": 3,
+      "explanation": "生产环境延迟使用百分位数来衡量，因为实时系统是在尾部失败而非平均值。没有预热，JIT编译会使前几次测量结果偏高。没有torch.cuda.synchronize，GPU内核启动会在内核完成之前返回，所以测量的是分发而非执行。这三个方面都必须正确，数值才有意义。"
+    },
+    {
+      "stage": "pre",
+      "question": "FLOPs与设备延迟并不完全相关。为什么？",
+      "options": ["不同操作对硬件的友好程度各不相同；深度可分离卷积可能FLOPs更低，但在GPU上受内存带宽限制，而稠密卷积能高效利用Tensor Core。除了原始FLOPs，内存带宽、内核启动开销和缓存行为也会影响延迟", "FLOPs计数器有问题", "FLOPs忽略了批大小", "PyTorch计算FLOPs的方式不正确"],
+      "correct": 0,
+      "explanation": "FLOPs只是一个廉价的代理指标。墙钟延迟取决于操作与硬件优势的匹配程度：稠密矩阵乘法充分利用Tensor Core；深度可分离卷积受内存带宽限制；注意力机制因序列长度的平方级内存读取而停滞。FLOPs在架构搜索中有用，但部署决策应在目标设备上测量。"
+    },
+    {
+      "stage": "post",
+      "question": "在ImageNet类视觉模型上，训练后静态INT8量化通常损失多少精度？",
+      "options": ["完全不损失；这是无损的", "损失20+个百分点；不可用", "损失5-10个百分点", "正确校准后可保持0.1-1个百分点的精度；批归一化融合卷积模型在INT8下表现尤为稳定"],
+      "correct": 3,
+      "explanation": "对充分校准的视觉模型进行静态PTQ通常损失不到一个点或约1个点。主要的精度损失模式包括：(a)校准数据不足，(b)量化具有极端离群值的激活（通过逐通道量化或截断来解决），(c)未融合的BatchNorm层。处理这些问题后，INT8几乎不会造成明显损失。"
+    },
+    {
+      "stage": "post",
+      "question": "你的移动应用需要一个小于10MB且延迟低于10ms的视觉模型。你选择哪个骨干网络？",
+      "options": ["ResNet-50", "ConvNeXt-Large", "ViT-Base", "MobileNetV3-Small或EfficientNet-Lite-B0量化为INT8；两者都针对此预算设计，并能干净地编译为TFLite / Core ML格式"],
+      "correct": 3,
+      "explanation": "2026年移动视觉部署仍以MobileNetV3和EfficientNet-Lite变体为主，因为它们从设计之初就针对这个预算：深度可分离卷积、h-swish激活、squeeze-excite模块，以及从一开始就具备量化感知能力。ResNet-50在FP32下超过100MB，INT8下仍超25MB，在测量延迟之前就已超出大小预算。"
+    },
+    {
+      "stage": "post",
+      "question": "你将PyTorch模型以opset 17导出为ONNX时遇到'Unsupported operator'错误。最可能的原因是什么？",
+      "options": ["模型参数过多", "输入形状错误", "ONNX库已过时", "(1) 没有ONNX映射的自定义算子；(2) 追踪无法捕获的非确定性控制流路径；(3) Python中隐式但无ONNX等价物的张量-标量交互。修复方法：替换算子、对控制流使用`torch.jit.script`，或升级opset"],
+      "correct": 3,
+      "explanation": "ONNX导出默认是追踪模式，因此追踪无法捕获的任何内容——运行时控制流、Python级别的分支、自定义CUDA算子——都会失败。大多数失败都是某个没有ONNX等价物的单个节点（通常是一个小型自定义算子或对torch.special.*的调用）。修复方法要么是替换算子，要么切换到`torch.jit.script`，要么迁移到该算子已存在的新opset。"
+    }
+  ]
+}

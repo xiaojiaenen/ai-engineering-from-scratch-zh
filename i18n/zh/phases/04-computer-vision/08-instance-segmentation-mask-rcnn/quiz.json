@@ -1,0 +1,39 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Mask R-CNN 为什么用 RoIAlign 替换 RoIPool？",
+      "options": ["RoIPool 在多个步骤中将边界框坐标四舍五入为整数，导致特征图与输入像素的错位最高可达一个特征图像素；RoIAlign 使用双线性采样且不做四舍五入，从而保留定位精度", "RoIPool 存在版权问题", "RoIPool 只能在 CPU 上运行", "RoIAlign 在 GPU 上更快"],
+      "correct": 0,
+      "explanation": "RoIPool 的四舍五入最多会造成一个 stride 大小的错位（例如在 stride-32 的特征图上就是 32 像素）。RoIAlign 通过双线性插值在精确的浮点坐标处进行采样。原始论文中这一改动使 COCO 上的 mask AP 提升了 3-4 个点，如今已成为所有注重定位精度的检测器的标准做法。"
+    },
+    {
+      "stage": "pre",
+      "question": "Mask R-CNN 的 mask head 对每个 proposal 的每个类别输出一个 28x28 的 mask。为什么要按类别分开输出？",
+      "options": ["论文要求这样做", "二值 mask 在单个通道中会溢出", "将 mask 预测与分类解耦：mask head 只需分别学习每个类别的形状，因此分类器的决策不会影响生成的 mask，只会影响推理时读取哪个通道", "因为二值 mask 需要按类别分配通道以支持反向传播"],
+      "correct": 2,
+      "explanation": "为每个 proposal 的每个类别生成独立的 mask 可以解耦 mask 形状学习与分类任务。推理时只需读取与预测类别对应的通道即可。这种多任务解耦很重要，因为 mask 形状和类别概率是不同的目标，训练时使用的是不同的梯度。"
+    },
+    {
+      "stage": "post",
+      "question": "torchvision 的 Mask R-CNN 预测结果字典中 `labels` 从 1 开始而不是 0。为什么？",
+      "options": ["torchvision 全程使用 1-based 索引", "类别 0 保留给背景；用户类别始终从 1 开始，这样分类 head 可以将背景视为一个真实类别，拥有自己的 logit 和梯度", "训练数据决定的", "遗留的 bug"],
+      "correct": 1,
+      "explanation": "大多数检测器将背景视为类别 0，而将明确的前景类别设为 1..C。对 (C+1) 个类别进行 softmax 运算可以让网络学会主动预测'此处无目标'，而不仅仅是在所有类别上都输出低置信度。当替换预测头时，一个包含 4 个真实类别的数据集需要设置 num_classes = 5。"
+    },
+    {
+      "stage": "post",
+      "question": "你在一个包含 500 张图片的数据集上微调 Mask R-CNN，验证集 mAP 达到平台期，但训练损失仍在下降。首先应该尝试什么？",
+      "options": ["增加更多训练轮数", "使用更高的学习率", "切换到分割 U-Net", "冻结 backbone 和 FPN，让模型只微调 RPN 和 heads；500 张图片太少，不足以在不发生过拟合的情况下更新 23M 参数的 backbone"],
+      "correct": 3,
+      "explanation": "在小型数据集上，你没有足够的信号来微调所有参数。冻结预训练的 backbone 和 FPN（ImageNet + COCO 特征），只训练 RPN 的 objectness head 以及两个分类器/mask head，这是标准做法，通常可以在一次训练中解决这个平台期问题。"
+    },
+    {
+      "stage": "post",
+      "question": "Mask R-CNN 内部的 FPN 有四个层级（P2、P3、P4、P5），stride 分别为 4、8、16、32。为什么不全用同一个层级？",
+      "options": ["为了减少参数量", "四个层级是随意决定的", "自然图像中的目标跨越多尺度；将每个 proposal 路由到与其尺寸匹配的 FPN 层级，可以让 head 获得与该目标最匹配的感受野，这比始终使用单一尺度要好得多", "为了使用更多 GPU 显存"],
+      "correct": 2,
+      "explanation": "在小尺寸目标上，stride-32 的特征图只占据一个单元格，几乎没有任何空间信息。FPN 将小目标路由到高分辨率的浅层（P2），将大目标路由到低分辨率的深层（P5），从而使感受野与目标尺寸相匹配。这就是为什么每个现代检测器都拥有金字塔结构的原因。"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "temperature < 1.0 对语言模型的输出分布有什么影响？",
+      "options": [
+        "只保留概率最高的一个 token",
+        "对输出没有影响",
+        "使分布更均匀（更随机）",
+        "使分布更尖锐，使最高概率的 token 更可能出现"
+      ],
+      "correct": 3,
+      "explanation": "Temperature < 1.0 会将 logit 除以一个小于 1 的数，从而放大 logit 之间的差异。经过 softmax 后，最高概率的 token 获得的概率份额更大。当 temperature 趋近于 0 时，会得到贪婪（argmax）解码。"
+    },
+    {
+      "stage": "pre",
+      "question": "top-k 和 top-p（nucleus）采样的关键区别是什么？",
+      "options": [
+        "Top-k 比 top-p 更快",
+        "Top-k 保留固定数量的 token；top-p 根据累积概率保留可变数量的 token",
+        "Top-p 仅在 temperature = 1.0 时有效",
+        "Top-k 作用于 logit，而 top-p 作用于概率"
+      ],
+      "correct": 1,
+      "explanation": "Top-k 无论概率分布如何，始终恰好保留 k 个 token。Top-p 自适应地保留累积概率超过 p 的最小 token 集合。当模型有把握时，top-p 保留少量 token；当模型不确定时，它保留较多 token。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么不能通过标准采样操作 z ~ N(mu, sigma^2) 进行反向传播？",
+      "options": [
+        "采样操作是非确定性的，且对 mu 和 sigma 没有定义良好的导数",
+        "PyTorch 不支持正态分布",
+        "正态分布没有梯度",
+        "梯度总是恰好为零"
+      ],
+      "correct": 0,
+      "explanation": "采样引入了随机不连续性——无法计算随机抽取的 d(sample)/d(mu)。重参数化技巧通过将 z 写为 z = mu + sigma * epsilon（其中 epsilon ~ N(0,1)）来解决此问题，使 z 成为 mu 和 sigma 的确定性、可微函数。"
+    },
+    {
+      "stage": "post",
+      "question": "在 Metropolis-Hastings MCMC 中，如果提议标准差设置得过大，会发生什么？",
+      "options": [
+        "链收敛更快，因为它采取更大的步长",
+        "大多数提议落在低概率区域并被拒绝，因此链几乎不移动",
+        "退火期变为零",
+        "平稳分布变为均匀分布"
+      ],
+      "correct": 1,
+      "explanation": "使用较大的提议标准差时，提议点距离当前位置很远，很可能落在低概率区域。这些点会被拒绝，导致链被困在当前点。对于高维高斯提议，最佳接受率约为 23%。"
+    },
+    {
+      "stage": "post",
+      "question": "在拒绝采样中，随着目标分布维度增加，接受率会发生什么变化？",
+      "options": [
+        "接受率呈指数下降，因为大部分提议体积被拒绝",
+        "无论维度如何，接受率保持不变",
+        "接受率上升，因为有更多维度可以接受",
+        "在所有情况下接受率趋近于 50%"
+      ],
+      "correct": 0,
+      "explanation": "在高维空间中，与目标分布重叠的提议分布体积呈指数级缩小。边界 M 增大，接受率（1/M）呈指数下降。这就是拒绝采样中的维度灾难。"
+    }
+  ]
+}

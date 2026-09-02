@@ -1,0 +1,78 @@
+{
+  "lesson": "14-model-context-protocol",
+  "title": "模型上下文协议",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在 MCP 2026-07-28 中，客户端在哪里发送其协议版本和能力？",
+      "options": [
+        "仅在 HTTP cookie 中",
+        "仅在初始化请求中",
+        "在每个请求的 params._meta 中",
+        "在服务器端会话记录中"
+      ],
+      "correct": 2,
+      "explanation": "现代 MCP 是无状态的。每个请求在 params._meta 中携带协议版本和客户端能力。"
+    },
+    {
+      "stage": "check",
+      "question": "为了实现预先的版本和能力发现，每个现代 MCP 服务器必须实现什么？",
+      "options": [
+        "server/discover",
+        "sessions/create",
+        "logging/setLevel",
+        "initialize"
+      ],
+      "correct": 0,
+      "explanation": "server/discover 会公布支持的协议版本、服务器能力和服务器身份。"
+    },
+    {
+      "stage": "check",
+      "question": "MCP 2026-07-28 中当前使用哪种 Streamable HTTP 形态？",
+      "options": [
+        "每次工具调用后发送 DELETE 请求",
+        "通过 Mcp-Session-Id 标识的 WebSocket 会话",
+        "每个 JSON-RPC 消息对应一个 POST；请求 POST 返回 JSON 或请求级 SSE",
+        "一个 GET 流加一个独立的 POST 端点"
+      ],
+      "correct": 2,
+      "explanation": "当前传输方式使用一个 POST 端点。请求 POST 返回 JSON 或请求级 SSE；已接受的通知 POST 返回 HTTP 202 且无响应体。"
+    },
+    {
+      "stage": "check",
+      "question": "服务器如何区分缺失的协议版本元数据与格式正确但不被支持的版本？",
+      "options": [
+        "两种情况都返回 -32022",
+        "缺失版本返回 HTTP 301，不支持版本生成 Mcp-Session-Id",
+        "缺失或非字符串元数据返回 -32602，不支持的字符串版本返回 -32022 并附带 supported/requested 信息",
+        "接受缺失版本，对不支持版本返回 -32601"
+      ],
+      "correct": 2,
+      "explanation": "缺失或类型错误的必填字段属于格式错误的 JSON-RPC params。UnsupportedProtocolVersionError 仅在提供的版本字符串未被实现时适用。"
+    },
+    {
+      "stage": "post",
+      "question": "一个多步工具需要在调用间保持连续性。现代 MCP 的设计方案是什么？",
+      "options": [
+        "将可变状态放在 clientInfo 中",
+        "仅为此工具恢复 Mcp-Session-Id",
+        "生成一个不透明句柄并要求在后续工具参数中传入",
+        "在 TCP 连接后方存储状态"
+      ],
+      "correct": 2,
+      "explanation": "跨调用状态是显式的应用层状态。服务器生成的句柄以普通授权参数的形式传递。"
+    },
+    {
+      "stage": "post",
+      "question": "现代服务器在工具操作期间如何向用户、模型或根请求输入？",
+      "options": [
+        "将问题写入 stderr",
+        "打开第二个 SSE 连接",
+        "返回 input_required，客户端用 inputResponses 重试",
+        "发送独立的服务器到客户端 JSON-RPC 请求"
+      ],
+      "correct": 2,
+      "explanation": "多轮往返请求模式将 inputRequests 嵌入 input_required 结果中并重试原始操作。"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "lesson": "36-scope-contracts",
+  "title": "范围合同与任务边界",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么范围蔓延被称为最未被监控的故障模式？",
+      "options": [
+        "它太罕见而无法监控",
+        "测试会自动捕获它",
+        "它会大声崩溃 agent",
+        "每次触碰在当时都有看似合理的理由；但它们合在一起却形成了与审查时不同的变更"
+      ],
+      "correct": 3,
+      "explanation": "Agent 会真诚地叙述每一步；沉默的总和就是蔓延。"
+    },
+    {
+      "stage": "pre",
+      "question": "课程称哪个合同字段为\"合同的一半\"？",
+      "options": [
+        "approvals_required",
+        "forbidden_files（负空间）",
+        "goal",
+        "task_id"
+      ],
+      "correct": 1,
+      "explanation": "没有 forbidden_files 的合同是不完整的；负空间是合同的一半。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么将允许/禁止列表绑定到通配符模式而非原始路径？",
+      "options": [
+        "通配符加密效果更好",
+        "通配符更快",
+        "原始路径不可 JSON 序列化",
+        "真实仓库会移动文件；通配符能在会话间的重构中存活下来"
+      ],
+      "correct": 3,
+      "explanation": "通配符模式（如 app/**/*.py）能使合同在重构过程中保持有效。"
+    },
+    {
+      "stage": "check",
+      "question": "\"违规预算\"模式有什么作用？",
+      "options": [
+        "按违规次数收费",
+        "允许在预算范围内出现轻微的范围偏差并作为警告；只有超出部分才会触发合并拒绝——这是能够正常交付的门禁与会被禁用的门禁之间的区别",
+        "限制模型调用频率",
+        "为 agent 设置月度预算"
+      ],
+      "correct": 1,
+      "explanation": "agent-guardrails 使用 violationBudget，使门禁在日常流程中可用。"
+    },
+    {
+      "stage": "check",
+      "question": "specsmaxxing 实践者报告了什么？",
+      "options": [
+        "延迟降低了 90%",
+        "成本上升了 5 倍",
+        "三周内 rabbit-hole 率从 52% 降至 21%，无需更改 agent；是合同在执行工作，而非模型",
+        "测试变慢了"
+      ],
+      "correct": 2,
+      "explanation": "在调用 agent 之前使用 YAML 格式的范围合同，无需修改模型就能将 rabbit-hole 率减半。"
+    },
+    {
+      "stage": "post",
+      "question": "多合同合并的语义（最小权限）是什么？",
+      "options": [
+        "最后一个合同胜出",
+        "allowed_files 取交集；forbidden_files 取并集；time_budget 取最小值；累计 approvals；deny-all 持久生效；None 的合并权移交另一方",
+        "随机决胜",
+        "第一个合同胜出"
+      ],
+      "correct": 1,
+      "explanation": "最小权限合并：允许项取交集，禁止项取并集，采用最严格的时间限制，累计审批要求。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么时间和网络预算也应纳入合同？",
+      "options": [
+        "提供商要求它们",
+        "墙钟时间和外部主机访问都是范围维度；仅靠文件通配符是必要但不充分的",
+        "它们使 JSON 更小",
+        "Apache 2.0 许可证要求它们"
+      ],
+      "correct": 1,
+      "explanation": "time_budget_minutes 和 network_egress 白名单是在文件通配符之上的范围维度。"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "lesson": "17-personal-ai-tutor",
+  "title": "Capstone 17 — Personal AI Tutor (Adaptive, Multimodal, with Memory)",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "当学习者直接索要答案时，苏格拉底式导师策略会做什么？",
+      "options": [
+        "切换到不同的概念节点",
+        "记录请求并保持沉默",
+        "提出引导性问题，搭建支架帮助学习者得出答案",
+        "立即提供答案并继续"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "课程图编码了哪种结构？",
+      "options": [
+        "仅最近学习的节点",
+        "主题随机排序",
+        "具有先修关系边的概念有向图，附加OER内容",
+        "无关联概念的平面列表"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "学习者模型在每次交互后会更新什么？",
+      "options": [
+        "课程图架构",
+        "基础LLM的权重",
+        "通过贝叶斯知识追踪或类似变体更新各概念掌握概率",
+        "COPPA保留策略"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "情景记忆和语义记忆如何划分？",
+      "options": [
+        "情景记忆供家长使用；语义记忆供学习者使用",
+        "情景记忆保存每次交互；语义记忆保存从情景记忆中提炼的错题和偏好",
+        "情景记忆保存嵌入；语义记忆保存原始音频",
+        "它们是相同数据的副本"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪种约束影响K-12学习者的记忆保留？",
+      "options": [
+        "符合COPPA规范的保留策略，在定义的时间窗口后自动删除并提供家长访问权限",
+        "基于模型上下文长度的保留",
+        "永久保留不删除",
+        "仅GDPR"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "用于评估交付物的效能研究结构是什么？",
+      "options": [
+        "与单个学习者进行一次一小时的会话",
+        "匿名互联网调查",
+        "30秒A/B测试",
+        "对10名学习者进行两周的前测和后测，并与非自适应基线组对比"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "导师向学习者暴露哪些多模态输入路径？",
+      "options": [
+        "仅通过自定义OCR模型拍照",
+        "文字输入、通过LiveKit + Whisper的语音输入，以及通过dots.ocr或PaliGemma 2的拍照数学题",
+        "仅文字",
+        "仅语音，无文字或照片"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

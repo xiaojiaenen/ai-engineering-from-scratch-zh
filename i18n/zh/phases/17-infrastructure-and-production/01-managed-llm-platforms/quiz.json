@@ -1,0 +1,90 @@
+{
+  "lesson": "01-managed-llm-platforms",
+  "title": "托管 LLM 平台 — Bedrock、Vertex AI、Azure OpenAI",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在本课之前，如果客户需要通过一个 API 使用 Claude、Llama 和 Cohere，你会首先选择哪个平台？",
+      "options": [
+        "AWS Bedrock",
+        "Vertex AI",
+        "Anthropic 直接 API",
+        "Azure OpenAI Service"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "哪家超大规模云厂商的策略被描述为独占合作而非市场平台？",
+      "options": [
+        "Vertex AI",
+        "AWS Bedrock",
+        "OCI Generative AI",
+        "Azure OpenAI"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "在 Llama 3.1 405B 等效模型上，Azure OpenAI（配备 PTUs）与 Bedrock 按需模式之间的中位 TTFT 差距大约是多少？",
+      "options": [
+        "~250 ms",
+        "~5 ms",
+        "~100 ms",
+        "~25 ms"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪项 Bedrock 2025 功能可在 CloudWatch 中原生地提供最清晰的产品级成本归因？",
+      "options": [
+        "Bedrock Agents",
+        "Bedrock Knowledge Bases",
+        "Application Inference Profiles",
+        "Bedrock Guardrails"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Azure PTUs 的预留实例相对于按需实例通常在哪种持续利用率区间达到盈亏平衡？",
+      "options": [
+        "40-60%",
+        "80-95%",
+        "5-10%",
+        "20-30%"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为什么课程推荐的 2026 年策略要求对关键产品的 LLM 调用至少使用两个提供商？",
+      "options": [
+        "超大规模云厂商除非你也使用竞争对手的服务，否则拒绝签署 BAA",
+        "单一供应商定价总是更昂贵",
+        "SOC 2 Type II 要求这样做",
+        "前沿模型的领先地位每月轮换，因此单一供应商锁定会让你失去三分之二的 Frontier 模型访问权限"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "哪项陈述最能描述这三个平台的 FinOps 能力？",
+      "options": [
+        "三个平台都暴露相同的每请求归因",
+        "Bedrock 最原生清晰，Vertex 通过 BigQuery 最灵活，Azure 若无集成则最晦涩",
+        "Vertex 完全没有归因能力",
+        "Azure 最原生清晰，Bedrock 最晦涩"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

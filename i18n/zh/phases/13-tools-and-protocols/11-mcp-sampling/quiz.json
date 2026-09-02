@@ -1,0 +1,78 @@
+{
+  "lesson": "11-mcp-sampling",
+  "title": "MCP 模型输入：采样迁移与无状态 MRTR",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "新的 MCP 服务器需要模型推理。在 2026-07-28 版本中，默认的架构是什么？",
+      "options": [
+        "直接与模型提供商集成",
+        "在每个工具调用前发送 sampling/createMessage",
+        "在协议会话中存储客户端的模型密钥",
+        "为 Sampling 开启永久 SSE 流"
+      ],
+      "correct": 0,
+      "explanation": "Sampling 已弃用，不再用于新设计。当服务器需要模型推理时，直接提供商集成是推荐的默认方案。"
+    },
+    {
+      "stage": "check",
+      "question": "2026-07-28 的服务器在 tools/call 期间如何请求兼容的 Sampling？",
+      "options": [
+        "将提示词写入 server/discover",
+        "将提示词放在 Mcp-Session-Id 头中",
+        "返回 resultType input_required，并在 inputRequests 中包含 sampling/createMessage",
+        "在同一条连接上发送反向 JSON-RPC 请求"
+      ],
+      "correct": 2,
+      "explanation": "MRTR 在 input_required 结果内部承载服务器到客户端的请求，从而避免反向请求通道。 advertised summarize_repo 工具必须首先通过有效的 inputSchema 在 tools/list 中声明。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个属性证明 MRTR 重试是一次独立的 JSON-RPC 请求？",
+      "options": [
+        "省略每次请求的元数据",
+        "使用与原请求相同的 id",
+        "使用新的 id，同时重复原始的方法和参数",
+        "移除原始工具参数"
+      ],
+      "correct": 2,
+      "explanation": "客户端使用新的 JSON-RPC id、当前 inputResponses 以及回显的 requestState 来重复原始操作。"
+    },
+    {
+      "stage": "check",
+      "question": "当 requestState 影响资源访问时，必须用什么来保护它？",
+      "options": [
+        "绑定到主体、请求和有效期的 HMAC 或认证加密",
+        "仅 Base64 编码",
+        "clientInfo 名称",
+        "长期存在的传输会话"
+      ],
+      "correct": 0,
+      "explanation": "requestState 会经过不受信任的客户端。完整性保护与绑定可防止篡改和跨请求重放。"
+    },
+    {
+      "stage": "post",
+      "question": "客户端未在每请求能力中声明 Sampling。服务器应使用什么确切的协议响应？",
+      "options": [
+        "仍然发送嵌入的 sampling 请求",
+        "返回错误码 -32021 并附带 data.requiredCapabilities，或选择非 Sampling 路径",
+        "将能力添加到客户端元数据中",
+        "从上一次请求推断该能力"
+      ],
+      "correct": 1,
+      "explanation": "服务器不得发出客户端在当前请求中未声明支持能力的 input 请求。确切的不支持能力错误码是 -32021。"
+    },
+    {
+      "stage": "post",
+      "question": "哪种迁移方式在协议层保持两回合兼容循环的无状态？",
+      "options": [
+        "每次新重试仅携带当前轮次的 inputResponses 和签名阶段状态",
+        "在 Mcp-Session-Id 下存储阶段状态",
+        "复用原始请求 id 直到完成",
+        "将所有模型响应累积在隐藏会话中"
+      ],
+      "correct": 0,
+      "explanation": "每次重试都是自包含的。签名的 requestState 携带经过验证的中间状态，inputResponses 仅包含当前轮次的响应。"
+    }
+  ]
+}

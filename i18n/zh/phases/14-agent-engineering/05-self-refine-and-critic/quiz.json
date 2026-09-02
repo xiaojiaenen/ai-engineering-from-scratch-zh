@@ -1,0 +1,90 @@
+{
+  "lesson": "05-self-refine-and-critic",
+  "title": "Self-Refine 与 CRITIC：迭代式输出优化",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "哪三个提示词构成一个 Self-Refine 循环？",
+      "options": [
+        "规划、执行、解决",
+        "生成、反馈、精炼",
+        "角色、评估者、反思者",
+        "搜索、评分、综合"
+      ],
+      "correct": 1,
+      "explanation": "Self-Refine 使用一个模型担任三个角色：生成、反馈、精炼。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么 Self-Refine 在精炼步骤需要历史？",
+      "options": [
+        "计费需要历史记录",
+        "提供商仅在历史记录上缓存",
+        "它能加快 token 生成速度",
+        "如果没有之前的输出和批评，精炼步骤会重复之前的错误；消融实验表明质量急剧下降"
+      ],
+      "correct": 3,
+      "explanation": "精炼提示词基于完整的历史记录，这样模型不会重复之前的错误。"
+    },
+    {
+      "stage": "check",
+      "question": "CRITIC 相对于 Self-Refine 做了什么改进？",
+      "options": [
+        "它使用更大的模型进行生成",
+        "它并行运行反馈步骤",
+        "它用外部工具驱动的验证器替换了自我反馈步骤",
+        "它移除了精炼步骤"
+      ],
+      "correct": 2,
+      "explanation": "CRITIC 将自我批评替换为验证步骤，该步骤通过搜索、代码解释器、计算器或领域验证器进行路由。"
+    },
+    {
+      "stage": "check",
+      "question": "用 Claude 友好的语言，哪种 Anthropic 工作流模式对应 Self-Refine 和 CRITIC？",
+      "options": [
+        "并行采样",
+        "提示词链",
+        "评估器-优化器",
+        "路由器"
+      ],
+      "correct": 2,
+      "explanation": "Anthropic 将此模式命名为评估器-优化器：评估者评分，优化者修订，循环直到收敛。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是橡皮图章循环，课程建议如何避免它？",
+      "options": [
+        "超时的护栏；延长超时时间",
+        "总是失败的重试；提高预算",
+        "相同的模型和提示词 critique 自己的输出并批准它；使用结构上不同的提示词或单独的较小 critic",
+        "总是通过的测试；移除测试"
+      ],
+      "correct": 2,
+      "explanation": "相同风格的自我批评会收敛到'我觉得不错'；要让评估者和优化者有所区别。"
+    },
+    {
+      "stage": "post",
+      "question": "OpenAI Agents SDK 中哪个 SDK 功能符合 CRITIC 模式？",
+      "options": [
+        "会话",
+        "追踪",
+        "交接",
+        "输出护栏（可调用工具）"
+      ],
+      "correct": 3,
+      "explanation": "输出护栏验证最终代理输出并可以调用工具，匹配 CRITIC 的验证器角色。"
+    },
+    {
+      "stage": "post",
+      "question": "课程为 2026 年评估器-优化器循环推荐什么停止条件？",
+      "options": [
+        "仅当模型说'没问题'时才停止",
+        "永不停止；让代理无限自我改进",
+        "仅当验证器通过时才停止",
+        "组合条件：验证器通过 OR (模型说没问题 AND 迭代次数 >= 2) OR 迭代次数 >= 最大迭代次数"
+      ],
+      "correct": 3,
+      "explanation": "组合条件避免单一条件的失效模式。"
+    }
+  ]
+}

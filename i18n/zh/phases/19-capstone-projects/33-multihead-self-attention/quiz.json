@@ -1,0 +1,78 @@
+{
+  "lesson": "33-multihead-self-attention",
+  "title": "多头自注意力",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "高效的自注意力块为何使用单个输出 3*D 特征的线性层？",
+      "options": [
+        "它在数学上等价于三个 Linear(D, D) 层，但作为一次 matmul 运行",
+        "它减少了模型参数量",
+        "它在 Q、K、V 之间强制共享权重",
+        "它避免了对因果掩码的需求"
+      ],
+      "correct": 0,
+      "explanation": "将三个 (D, D) 投影矩阵堆叠到一个 (3D, D) 矩阵中会产生相同的输出，但前向传播是一次适合加速器的 matmul。"
+    },
+    {
+      "stage": "check",
+      "question": "d_model、n_heads 和 d_head 之间的关系是什么？",
+      "options": [
+        "d_head = d_model * n_heads",
+        "d_head = d_model + n_heads",
+        "d_head 独立于 d_model",
+        "d_head = d_model // n_heads，且 d_model 必须能被 n_heads 整除"
+      ],
+      "correct": 3,
+      "explanation": "该块将 d_model 均匀分配到各个头。约束条件 d_model % n_heads == 0 在构建时强制执行。"
+    },
+    {
+      "stage": "check",
+      "question": "缩放点积注意力的缩放因子中使用什么值？",
+      "options": [
+        "sqrt(d_head)",
+        "sqrt(n_heads)",
+        "sqrt(d_model)",
+        "sqrt(seq_len)"
+      ],
+      "correct": 0,
+      "explanation": "分数除以 sqrt(d_head)，即 matmul 收缩的头维度。随着 d_head 增大，这能保持分数的方差有界。"
+    },
+    {
+      "stage": "check",
+      "question": "因果掩码如何确保位置 t 无法关注位置 t+1？",
+      "options": [
+        "通过将未来位置的键乘以零",
+        "通过在 softmax 之前将对角线上方的分数条目设为负无穷",
+        "通过从输入中移除未来 token",
+        "通过为未来使用不同的注意力头"
+      ],
+      "correct": 1,
+      "explanation": "将未来条目设为 -inf 会强制 softmax 赋予其零权重。过去和当前位置保留有效的权重分布。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么该块在合并头之后以 Linear(D, D) 输出投影结束？",
+      "options": [
+        "为了让模型能够混合跨头的信息",
+        "为了匹配模型的词汇表大小",
+        "为了将激活值归一化为均值零",
+        "autograd 追踪梯度是必需的"
+      ],
+      "correct": 0,
+      "explanation": "如果没有输出投影，头输出只能在后续层中组合。该投影让块在同一阶段内有一次混合头的机会。"
+    },
+    {
+      "stage": "post",
+      "question": "形状为 (B, H, T, T) 的注意力权重矩阵告诉我们什么？",
+      "options": [
+        "每个查询位置在每个头、每个批次元素上关注哪些键位置",
+        "查询和值向量之间的余弦相似度",
+        "下一个 token 的输出 logit",
+        "每个头有多少参数"
+      ],
+      "correct": 0,
+      "explanation": "每个头的矩阵的第 t 行是查询位置 t 使用的键位置分布。检查它可显示每个头的关注位置。"
+    }
+  ]
+}

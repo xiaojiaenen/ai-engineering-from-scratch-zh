@@ -1,0 +1,78 @@
+{
+  "lesson": "12-mcp-roots-and-elicitation",
+  "title": "显式作用域与无状态信息收集",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "MCP Roots 提供了什么安全保证？",
+      "options": [
+        "信息性工作区指导，而非授权或沙箱隔离",
+        "为每个服务器进程提供操作系统级隔离",
+        "证明调用方拥有根目录下的所有文件",
+        "自动防止符号链接逃逸"
+      ],
+      "correct": 0,
+      "explanation": "Roots 仅提供信息性功能，已在 2026-07-28 版本中弃用。服务器仍需授权、隔离和沙箱化。"
+    },
+    {
+      "stage": "check",
+      "question": "当工作区作用域每次工具调用都发生变化时，最清晰的现代替代方案是什么？",
+      "options": [
+        "存储在传输会话下的隐藏值",
+        "在变更操作后发送的 roots/list 请求",
+        "自报告的 clientInfo 名称",
+        "由服务器授权的工作区 URI 参数"
+      ],
+      "correct": 3,
+      "explanation": "显式句柄是可见且可重放的，但服务器仍需对已认证的主体进行授权。"
+    },
+    {
+      "stage": "check",
+      "question": "在 MCP 2026-07-28 下，表单模式信息收集如何传递？",
+      "options": [
+        "通过 server/discover 的 HTTP 重定向",
+        "通过 notifications/roots/list_changed 通知",
+        "通过 Mcp-Session-Id 流上的反向请求",
+        "通过 inputRequests 上的 input_required 结果"
+      ],
+      "correct": 3,
+      "explanation": "MRTR 将 elicitation/create 嵌入 inputRequests，客户端随后使用 inputResponses 重试原始操作。elicitation {} 和 elicitation.form 支持表单模式；仅支持 URL 模式时返回 -32021 及 data.requiredCapabilities.elicitation.form。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种值绝不能通过表单模式信息收集来采集？",
+      "options": [
+        "布尔型危险操作确认",
+        "从枚举中选定的 note id",
+        "API 访问令牌",
+        "非敏感显示偏好设置"
+      ],
+      "correct": 2,
+      "explanation": "机密信息和凭证不应经过 MCP 客户端传输。对敏感的外部交互，应使用严格绑定的 URL 模式流程。"
+    },
+    {
+      "stage": "post",
+      "question": "用户拒绝删除确认时，安全的结果是什么？",
+      "options": [
+        "执行删除，因为模型已选定笔记",
+        "将缺失内容视为隐式同意",
+        "返回完整的非错误拒绝结果并保留笔记",
+        "重复相同对话直到用户接受"
+      ],
+      "correct": 2,
+      "explanation": "拒绝即为明确拒绝。不得将其转换为同意、错误循环提示或变更操作。"
+    },
+    {
+      "stage": "post",
+      "question": "哪种设计能安全地将危险确认绑定到用户所见的内容？",
+      "options": [
+        "对选定的 note id 进行 Base64 编码但不带签名",
+        "对主体、原始参数摘要、候选 id、阶段和过期时间进行签名，并在变更前重新检查实时目标",
+        "将 clientInfo 作为权威用户身份",
+        "信任任何附带操作接受返回的 note id"
+      ],
+      "correct": 1,
+      "explanation": "具有完整性保护的状态可防止篡改。共享原子一次性 nonce 声明可防止重放，最终的实时检查可解决变更操作前的竞态条件。"
+    }
+  ]
+}

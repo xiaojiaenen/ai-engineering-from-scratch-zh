@@ -1,0 +1,90 @@
+{
+  "lesson": "18-agno-and-mastra-runtimes",
+  "title": "生产环境 Agent 运行时",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "课程为每个运行时推荐哪种语言搭配？",
+      "options": [
+        "Agno 用于 TypeScript，Mastra 用于 Python",
+        "两者都是 Go 优先",
+        "Agno 用于 Python，Mastra 用于 TypeScript",
+        "两者都是 Rust 优先"
+      ],
+      "correct": 2,
+      "explanation": "Agno 是 Python 风格（类 FastAPI）；Mastra 是 TypeScript 风格（类 Vercel AI SDK）。"
+    },
+    {
+      "stage": "pre",
+      "question": "Agno 推荐的生产部署形态是什么？",
+      "options": [
+        "长期运行的有状态守护进程",
+        "仅服务器端 cron 工作器",
+        "无状态的会话范围 FastAPI 后端；每个请求启动一个全新 agent，会话状态存储在数据库中",
+        "纯 WebSocket 服务器"
+      ],
+      "correct": 2,
+      "explanation": "按请求提供无状态 FastAPI；会话状态外部化到数据库。"
+    },
+    {
+      "stage": "check",
+      "question": "Mastra 的三个原语是什么？",
+      "options": [
+        "Node、Edge、State",
+        "Plan、Worker、Solver",
+        "Agents、Tools、Workflows",
+        "Actor、Message、Inbox"
+      ],
+      "correct": 2,
+      "explanation": "Agents（LLM + 角色）、Tools（Zod 类型定义）和 Workflows 是 Mastra 的三个原语。"
+    },
+    {
+      "stage": "check",
+      "question": "根据文档，Agno 的目标 agent 实例化成本大约是多少？",
+      "options": [
+        "每个 agent 约 1 秒和 1 GiB",
+        "每个 agent 约 2 微秒和 3.75 KiB",
+        "每个 agent 约 200 毫秒和 100 MiB",
+        "每个 agent 约 10 分钟和 4 GiB"
+      ],
+      "correct": 1,
+      "explanation": "Agno 的文档指出每个 agent 约 2 微秒和 3.75 KiB。"
+    },
+    {
+      "stage": "check",
+      "question": "Mastra 的统一模型路由器提供什么？",
+      "options": [
+        "向量数据库层",
+        "针对数千种模型（来自多个提供商）的统一客户端接口",
+        "图检查点器",
+        "工具调用队列"
+      ],
+      "correct": 1,
+      "explanation": "Mastra 的统一模型路由器支持超过 94 个提供商的 3300 多种模型。"
+    },
+    {
+      "stage": "post",
+      "question": "何时为性能而性能会成为选择 Agno 的错误理由？",
+      "options": [
+        "使用 Langfuse 时",
+        "当工作负载是每个请求一次慢速 agent 调用且开销不是瓶颈时",
+        "使用 Python 3.13 时",
+        "部署到 AWS 时"
+      ],
+      "correct": 1,
+      "explanation": "在聊天 fan-in 规模下 2 微秒有意义，但对于每个请求单次慢速调用则不然。"
+    },
+    {
+      "stage": "post",
+      "question": "在 fork Mastra 之前应该仔细阅读哪个许可范围？",
+      "options": [
+        "没有许可证文件",
+        "ee/ 目录是源码可用而非 Apache 2.0，并限制商业用途",
+        "Mastra 全部是 GPL",
+        "Mastra 需要 CLA 但无需审查许可"
+      ],
+      "correct": 1,
+      "explanation": "Mastra 除 ee/ 目录外均为 Apache 2.0 许可（ee/ 为源码可用）；fork 前请检查相关限制。"
+    }
+  ]
+}

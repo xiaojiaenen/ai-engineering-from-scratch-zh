@@ -1,0 +1,78 @@
+{
+  "lesson": "phase-19/26-sandbox-runner-denylist",
+  "title": "带黑名单和路径沙箱的沙箱运行器",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在阅读课程之前：对于 python3 -c 等解释器调用，沙箱检查 argv 形状的最强原因是什么？",
+      "options": [
+        "解释器完全无法被安全沙箱化。",
+        "解释器速度慢，会浪费 agent 预算。",
+        "带 -c 的解释器本质上是另一种形式的 shell 调用，可以绕过可执行文件黑名单。",
+        "没有它们，模型能写出更好的代码。"
+      ],
+      "correct": 2,
+      "explanation": "python3 -c、bash -c、node -e 等与直接给模型一个 shell 功能上等价。仅阻止可执行文件名是不够的。"
+    },
+    {
+      "stage": "check",
+      "question": "沙箱配置为 project_root=/work。一个路径参数以 ./src/main.py 的形式到达。路径沙箱检查是如何执行的？",
+      "options": [
+        "对连接后的绝对路径执行 os.path.realpath，并检查是否以 /work 为前缀。",
+        "沙箱拒绝所有相对路径。",
+        "直接与 /work 进行字面字符串前缀匹配。",
+        "沙箱先启动子进程，事后再检查工作目录。"
+      ],
+      "correct": 0,
+      "explanation": "realpath 会解析符号链接。如果项目根目录下有一个指向外部的符号链接，字面前缀检查就会被绕过。realpath 加前缀匹配（或相等）才是安全的检查方式。"
+    },
+    {
+      "stage": "check",
+      "question": "一个 SandboxResult 返回 denied=True、timed_out=False、exit_code=-100。其规范含义是什么？",
+      "options": [
+        "沙箱从未启动子进程；该调用在 exec 之前就被拒绝了。",
+        "子进程显式返回了 -100。",
+        "子进程已启动，但被 SIGKILL 杀掉。",
+        "墙钟超时触发。"
+      ],
+      "correct": 0,
+      "explanation": "哨兵 exit_code -100 与 denied=True 配对，表示沙箱在调用 subprocess.run 之前就短路退出了。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么沙箱默认优先使用 shell=False 并拒绝 shell 元字符？",
+      "options": [
+        "subprocess 在 macOS 上不接受 shell=True。",
+        "这会让测试套件更简单。",
+        "Shell 解析会将整个 shell DSL 暴露给模型，而这正是沙箱试图缩小的攻击面。",
+        "shell=True 在 CPython 中更慢。"
+      ],
+      "correct": 2,
+      "explanation": "shell=True 会将 argv 转化为 shell 解释的字符串。管道、重定向、命令替换和 glob 都会变为可用。一旦 shell 解析运行，沙箱就无法有意义地拒绝负载。"
+    },
+    {
+      "stage": "post",
+      "question": "你想为沙箱添加每进程内存限制。本课的沙箱未实现此功能。正确的下一步是什么？",
+      "options": [
+        "跳过：黑名单足以应对内存炸弹。",
+        "增加墙钟超时来补偿。",
+        "在向 subprocess.run 传递的 preexec_fn 中使用 os.setrlimit(RLIMIT_AS)。",
+        "将限制作为字符串添加到黑名单。"
+      ],
+      "correct": 2,
+      "explanation": "subprocess.run 接受 preexec_fn（POSIX）或类似的机制。setrlimit(RLIMIT_AS) 可以限制子进程的地址空间。本课的沙箱未自带此功能；第 29 课的全栈演示讨论了如何在容器级限制之上叠加此限制。"
+    },
+    {
+      "stage": "post",
+      "question": "模型以 argv=['cat', 'src/../src/main.py'] 调用沙箱。该文件存在于 project_root 下。此调用应能通过路径沙箱检查吗？",
+      "options": [
+        "取决于用户是否为 root。",
+        "能：realpath 将 src/../src 归约为 src，解析后的路径位于 project_root 内。",
+        "不能：argv 会被正则门禁在沙箱看到之前拒绝。",
+        "不能，路径中任何 .. 都会自动被拒绝。"
+      ],
+      "correct": 1,
+      "explanation": "realpath 会对路径进行规范化。沙箱不会一概拒绝 .. 标记；它检查的是解析后的目标路径。这是设计如此：合法路径有时会合法地经过 .. 。"
+    }
+  ]
+}

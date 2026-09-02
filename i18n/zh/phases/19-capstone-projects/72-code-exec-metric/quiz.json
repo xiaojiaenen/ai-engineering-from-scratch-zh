@@ -1,0 +1,78 @@
+{
+  "lesson": "72-code-exec-metric",
+  "title": "代码执行指标",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么 runner 会为每个候选代码启动一个全新的 Python 子进程，而不是直接在内部调用 exec？",
+      "options": [
+        "避免污染内置函数",
+        "exec 在现代 Python 中已被弃用",
+        "比 exec 更快",
+        "将超时、输出溢出和危险导入与宿主 eval 进程隔离"
+      ],
+      "correct": 3,
+      "explanation": "候选代码中的无限循环或内存滥用只会导致子进程崩溃，宿主 eval 进程仍能继续运行。"
+    },
+    {
+      "stage": "pre",
+      "question": "当一个任务包含三个断言、其中两个通过一个失败时，得分是多少？",
+      "options": [
+        "0.667",
+        "1.0",
+        "0.0",
+        "0.5"
+      ],
+      "correct": 0,
+      "explanation": "得分 = 通过的断言数 / 总断言数。三题对两题得 0.667。退出码为 assertion_fail。"
+    },
+    {
+      "stage": "check",
+      "question": "当候选代码无法通过语法解析时，runner 返回哪个退出码？",
+      "options": [
+        "syntax_error",
+        "error",
+        "timeout",
+        "assertion_fail"
+      ],
+      "correct": 0,
+      "explanation": "compile() 在 runner 内抛出 SyntaxError，内部脚本捕获后写入 exit_code=syntax_error。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么墙钟超时是关键的防护手段，而非导入黑名单？",
+      "options": [
+        "Python 中无法禁止导入",
+        "subprocess.run 不支持黑名单",
+        "大多数故障是无限循环，且坚定的攻击者可以绕过任何进程内黑名单",
+        "墙钟检查在编译阶段进行"
+      ],
+      "correct": 2,
+      "explanation": "黑名单能拦截敷衍的代码，超时能拦截无限循环。黑名单是后备防线，超时报底限保障。"
+    },
+    {
+      "stage": "check",
+      "question": "当 n - c < k 时，pass_at_k(n, c, k) 返回什么？",
+      "options": [
+        "1，因为样本中必然至少包含一个通过解",
+        "c / n，即经验通过率",
+        "0，因为样本未定义",
+        "抛出 ValueError"
+      ],
+      "correct": 0,
+      "explanation": "如果失败次数少于样本大小 k，那么任意大小为 k 的样本都必然包含至少一个通过解，因此概率为 1。"
+    },
+    {
+      "stage": "post",
+      "question": "runner 如何上报输出溢出，且上限为何设为 256 KB？",
+      "options": [
+        "仅通过 stderr；大小与 OS 管道默认值匹配",
+        "以保留两位小数的百分比表示的得分值",
+        "子进程的 stdout 被流式读取；当累计总量超过 256 KB 时，子进程被终止，任务记录为 exit_code=error，详情为 \"output overflow\"",
+        "候选源码大小上限，以确保生成代码保持精简"
+      ],
+      "correct": 2,
+      "explanation": "该上限用于保护宿主进程。向 stdout 疯狂输出的候选代码会被中途终止；runner 以 exit_code=error 并附详情 \"output overflow\" 来规范化记录结果，而非创建新的退出码。"
+    }
+  ]
+}

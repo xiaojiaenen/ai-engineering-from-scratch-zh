@@ -1,0 +1,78 @@
+{
+  "lesson": "16-mcp-security-oauth-2-1",
+  "title": "MCP 授权：CIMD、发行方绑定、PKCE 与逐步授权",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "截至 2026-07-28，MCP OAuth 客户端注册首选哪种机制？",
+      "options": [
+        "URL 中的访问令牌",
+        "Mcp-Session-Id",
+        "Client ID Metadata Documents",
+        "Dynamic Client Registration"
+      ],
+      "correct": 2,
+      "explanation": "CIMD 为首选；DCR 已弃用，仅作为兼容路径保留。"
+    },
+    {
+      "stage": "check",
+      "question": "具有回环重定向的桌面客户端在 DCR 回退时应声明哪种 application_type？",
+      "options": [
+        "web",
+        "stateless",
+        "native",
+        "confidential"
+      ],
+      "correct": 2,
+      "explanation": "桌面、移动设备、命令行和回环客户端属于原生应用。"
+    },
+    {
+      "stage": "check",
+      "question": "客户端应如何处理授权响应中的 iss 值？",
+      "options": [
+        "标准化并比较主机名",
+        "将其存储为 clientInfo",
+        "PKCE 成功后忽略它",
+        "在使用响应前精确比对记录的发行方"
+      ],
+      "correct": 3,
+      "explanation": "RFC 9207 发行方检查可防止不同发行方间的授权响应混淆。"
+    },
+    {
+      "stage": "check",
+      "question": "客户端应如何对发行方签发的 OAuth 凭证和访问令牌进行密钥管理？",
+      "options": [
+        "按发行方管理签发的凭证，按发行方加资源管理令牌",
+        "所有注册和令牌统一下使用全局客户端名称",
+        "仅按服务器显示名称",
+        "按协议会话标识符"
+      ],
+      "correct": 0,
+      "explanation": "发行方和资源密钥可防止签发的凭证跨越安全权限或受众。自托管 CIMD URL 保持可移植性。"
+    },
+    {
+      "stage": "post",
+      "question": "某资源返回 403，且作用域提示 notes:delete。正确的下一步是什么？",
+      "options": [
+        "无授权本地添加 notes:delete",
+        "说明该作用域，获取用户同意，授权后，以新 request id 重试",
+        "将 MCP 令牌发送给下游 API",
+        "重用当前令牌并忽略挑战"
+      ],
+      "correct": 1,
+      "explanation": "逐步授权在重试操作前获取新授权的令牌。"
+    },
+    {
+      "stage": "post",
+      "question": "根据 RFC 9728，MCP 资源 https://notes.example.com/mcp 的元数据 URL 是什么？",
+      "options": [
+        "https://notes.example.com/.well-known/oauth-protected-resource/mcp",
+        "https://auth.example.com/.well-known/oauth-protected-resource",
+        "https://notes.example.com/.well-known/oauth-protected-resource",
+        "https://notes.example.com/mcp/.well-known/oauth-protected-resource"
+      ],
+      "correct": 0,
+      "explanation": "RFC 9728 在 well-known 段后保留受保护资源路径，因此需要 /mcp 后缀。"
+    }
+  ]
+}

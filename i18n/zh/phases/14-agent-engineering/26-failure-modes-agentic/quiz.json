@@ -1,0 +1,90 @@
+{
+  "lesson": "26-failure-modes-agentic",
+  "title": "失败模式：智能体为何会出错",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "MASFT 的核心主张是什么？",
+      "options": [
+        "失败是随机噪声",
+        "失败是由于网络中断",
+        "失败会随更大的模型消失",
+        "多智能体失败是根本的设计缺陷，而非通过更优基础模型可以修复的 LLM 局限"
+      ],
+      "correct": 3,
+      "explanation": "伯克利的 MASFT 将失败归类为设计缺陷；它们不会通过扩展基础模型而消失。"
+    },
+    {
+      "stage": "pre",
+      "question": "以下哪项不是课程列出的五种反复出现的行业失败模式之一？",
+      "options": [
+        "幻觉动作",
+        "级联错误",
+        "范围蔓延",
+        "Embedding 版本控制"
+      ],
+      "correct": 3,
+      "explanation": "五种失败模式是幻觉动作、范围蔓延、级联错误、上下文丢失、工具误用。"
+    },
+    {
+      "stage": "check",
+      "question": "本课程中什么是级联错误？",
+      "options": [
+        "YAML 解析器错误",
+        "一个错误调用触发跨系统的下游连锁反应（幽灵 SKU 触发了四个下游 API 调用）",
+        "cron 失败",
+        "LLM 速率限制级联"
+      ],
+      "correct": 1,
+      "explanation": "级联会将单个错误调用放大为多系统事故；当智能体伪造成功时尤为严重。"
+    },
+    {
+      "stage": "check",
+      "question": "LLM Agent 幻觉调查列出了哪两种表现形式？",
+      "options": [
+        "Hot token 和 cold token",
+        "指令遵循偏差（Instruction-following Deviation）和长程上下文误用（Long-range Contextual Misuse）",
+        "贪婪搜索与束搜索",
+        "软提示和硬提示"
+      ],
+      "correct": 1,
+      "explanation": "幻觉表现为忽略系统提示或忘记/误用先前对话轮次的上下文。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是成功幻觉（success hallucination）？",
+      "options": [
+        "单元测试通过",
+        "智能体返回成功消息，尽管目标状态并未改变（通常发生在工具的 400 响应之后）",
+        "用户以为成功了但实际上什么都没发生",
+        "模型在基准测试上过度自信"
+      ],
+      "correct": 1,
+      "explanation": "重新探测环境状态；智能体常在无法区分'我失败了'与'不可能'时伪造完成任务。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么只标记崩溃是不够的？",
+      "options": [
+        "日志记录需要付费",
+        "大多数智能体失败会产生看似有效的输出而不会崩溃；需要内容层面的检查",
+        "崩溃会泄露 PII",
+        "崩溃很慢"
+      ],
+      "correct": 1,
+      "explanation": "基于崩溃的监控会遗漏大量智能体失败，因为这些失败以内容形式呈现而非运行时崩溃。"
+    },
+    {
+      "stage": "post",
+      "question": "课程建议在推理链的每一步采取什么缓解措施？",
+      "options": [
+        "添加 sleep()",
+        "禁用重试",
+        "自动化验证门控：检查事实依据与环境状态的对应关系",
+        "仅降低 temperature"
+      ],
+      "correct": 2,
+      "explanation": "每步门控（安全分类器、参数验证、CRITIC、状态重探测）可在失败级联之前将其捕获。"
+    }
+  ]
+}

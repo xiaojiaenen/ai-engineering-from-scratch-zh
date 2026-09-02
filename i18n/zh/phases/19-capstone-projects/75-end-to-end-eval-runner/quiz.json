@@ -1,0 +1,78 @@
+{
+  "lesson": "75-end-to-end-eval-runner",
+  "title": "End-to-End Eval Runner",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "ModelAdapter 接口的最小方法集合是什么？",
+      "options": [
+        "complete、embed、classify、summarise",
+        "init、login、generate、close",
+        "generate(prompt, task) 返回文本以及可选的置信度和逐 token NLL",
+        "load_weights、generate、save_weights"
+      ],
+      "correct": 2,
+      "explanation": "一个方法覆盖任意适配器即可，其余都是可选修饰。Runner 不需要更丰富的接口表面。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么 Runner 接受并行标志而非始终并行运行？",
+      "options": [
+        "测试需要确定性执行顺序；该标志允许切换到串行模式",
+        "并行执行在 CPython 中不安全",
+        "并行执行需要 GPU",
+        "ThreadPoolExecutor 不在标准库中"
+      ],
+      "correct": 0,
+      "explanation": "测试追求可复现性，生产追求吞吐量。该标志将二者关注点分离，无需维护两条代码路径。"
+    },
+    {
+      "stage": "check",
+      "question": "Runner 如何确定校准缓冲区的正确标志？",
+      "options": [
+        "默认情况下，exact_match 类指标使用阈值 1.0，分级指标使用阈值 0.5",
+        "调用适配器两次并比较输出",
+        "使用平均 bin 置信度",
+        "使用 Brier 分解"
+      ],
+      "correct": 0,
+      "explanation": "阈值是指标感知的：exact_match 类指标使用接近 1.0 的截断值，而分级指标默认使用 0.5。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么 Runner 构建 EvalRun 记录并交给聚合器，而非内联计算排行榜？",
+      "options": [
+        "这让 Runner 对聚合器保持无关，且排行榜层可以独立演进而无需改动 Runner",
+        "聚合器处理 numpy 数组比 dataclass 更快",
+        "EvalRun 由 JSON Schema 强制要求",
+        "EvalRun 更省内存"
+      ],
+      "correct": 0,
+      "explanation": "组合优于内联。Runner 只负责产出记录，聚合器负责排行榜计算。每个模块只关注自身职责。"
+    },
+    {
+      "stage": "check",
+      "question": "困惑度块在最终 JSON 信封中的作用是什么？",
+      "options": [
+        "它由 bootstrap CI 计算得出",
+        "它携带每个模型的保留语言建模数值，独立于任务评分",
+        "它是校准报告的一个输入",
+        "它是排行榜排名的必需字段"
+      ],
+      "correct": 1,
+      "explanation": "困惑度与排行榜并列而非包含于其中。它使用适配器每次调用的逐 token NLL 与 token 计数。"
+    },
+    {
+      "stage": "post",
+      "question": "自终止演示的 clean-run 退出条件是什么？",
+      "options": [
+        "所有任务均已完成验证与评分、校准已聚合，且基于规则的适配器在排行榜上严格优于随机适配器",
+        "每个任务得分均高于 0.9",
+        "每个模型的 ECE 低于 0.05",
+        "Bootstrap CI 对每一对模型均不包含零"
+      ],
+      "correct": 0,
+      "explanation": "该演示端到端强制执行完整契约：每一层均已运行，且最准确的适配器获得相应排名。"
+    }
+  ]
+}

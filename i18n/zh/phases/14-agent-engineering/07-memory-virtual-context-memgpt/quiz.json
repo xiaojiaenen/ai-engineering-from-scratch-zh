@@ -1,0 +1,90 @@
+{
+  "lesson": "07-memory-virtual-context-memgpt",
+  "title": "智能体记忆 — 虚拟上下文与记忆分页",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "MemGPT基于什么操作系统类比构建？",
+      "options": [
+        "虚拟内存：主上下文作为RAM，外部存储作为磁盘，内存工具作为页面调入调出",
+        "进程和线程",
+        "网络套接字",
+        "文件描述符"
+      ],
+      "correct": 0,
+      "explanation": "MemGPT将提示映射到RAM，外部存储映射到磁盘，内存工具映射到类似页错误的传输方式。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么更大的上下文窗口不能完全解决记忆问题？",
+      "options": [
+        "模型拒绝长输入",
+        "长上下文无需成本",
+        "即使有128k窗口，溢出、注意力稀释和跨会话持久性缺失仍然会造成问题",
+        "供应商将其限制在4k tokens"
+      ],
+      "correct": 2,
+      "explanation": "Mem0测量发现，128k窗口的基线仍然会遗漏一个带有外部记忆的4k智能体能够捕获的事实；溢出、稀释和持久性问题依然存在。"
+    },
+    {
+      "stage": "check",
+      "question": "以下哪项不是MemGPT的规范内存工具之一？",
+      "options": [
+        "archival_memory_search",
+        "core_memory_append",
+        "conversation_search",
+        "gradient_memory_update"
+      ],
+      "correct": 3,
+      "explanation": "没有gradient memory工具；接口是core/archival/conversation操作。"
+    },
+    {
+      "stage": "check",
+      "question": "中断模式在MemGPT中做什么？",
+      "options": [
+        "它在任何错误时停止整个智能体运行",
+        "在对话过程中，智能体调用内存工具，运行时执行它，结果插入到下一轮",
+        "它完全绕过上下文窗口",
+        "它触发模型重新训练"
+      ],
+      "correct": 1,
+      "explanation": "以中断方式访问内存：调用内存工具，运行时获取，结果在下一轮作为新观察返回（类似于Unix的read()）。"
+    },
+    {
+      "stage": "check",
+      "question": "MemGPT在2024年演进成了哪个生产系统？",
+      "options": [
+        "Pinecone",
+        "Mem0",
+        "Zep",
+        "Letta"
+      ],
+      "correct": 3,
+      "explanation": "MemGPT在2024年9月更名为Letta；研究仓库cpacker/MemGPT仍然存在，作为起源。"
+    },
+    {
+      "stage": "post",
+      "question": "在这个上下文中，记忆投毒（memory poisoning）是什么？",
+      "options": [
+        "在RAM可用时从磁盘读取",
+        "嵌入模型版本漂移",
+        "损坏向量索引的bug",
+        "攻击者的内容被存储为记忆笔记，并在未来的回忆中重新摄入"
+      ],
+      "correct": 3,
+      "explanation": "外部记忆是检索到的文本；如果可被攻击者影响的内容落入记忆笔记，智能体会在下次会话中重新摄入它。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么课程说生产记忆系统是MemGPT的变体？",
+      "options": [
+        "Letta、Mem0、Assistants threads和Claude Agent SDK都运行两层（或更多）分页内存模式；差异在于操作形态",
+        "它们共享权重",
+        "它们使用相同的向量数据库",
+        "MemGPT拥有商标"
+      ],
+      "correct": 0,
+      "explanation": "按操作形态区分而非模式；所有这些都共享MemGPT的分页骨架。"
+    }
+  ]
+}

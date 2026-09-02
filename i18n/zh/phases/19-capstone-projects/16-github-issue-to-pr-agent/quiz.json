@@ -1,0 +1,90 @@
+{
+  "lesson": "16-github-issue-to-pr-agent",
+  "title": "Capstone 16 — GitHub Issue-to-PR Autonomous Agent",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "异步云端编码代理在生产环境中是如何被触发的？",
+      "options": [
+        "由问题标签或PR评论触发的GitHub webhook，分派到沙箱工作器",
+        "手动文件上传",
+        "长连接的SSH会话进入虚拟机",
+        "定期执行访问仓库的cron作业"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "为什么代理必须使用短期有效的GitHub App安装令牌而非个人访问令牌运行？",
+      "options": [
+        "个人访问令牌无法创建PR",
+        "App令牌提供精细、有作用域、短期有效的凭据，适合每个任务的工作器",
+        "App完全避免GitHub速率限制",
+        "App比PAT需要更少的代码"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪两种保护机制防止代理破坏main分支？",
+      "options": [
+        "在工作器上禁用git",
+        "分支保护强制执行不允许直接向main推送或强制推送到main，且该应用不在绕过列表中",
+        "每次推送需要验证码",
+        "克隆前加密仓库"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么对.github/workflows的路径范围保护是在工作器层面强制执行，而不是作为GitHub App权限？",
+      "options": [
+        ".github/workflows是虚拟路径",
+        "GitHub App权限不支持路径范围，因此工作器对提议diff的白名单检查是强制执行的正确位置",
+        "任何形式的路径范围都不可能",
+        "工作流存储在仓库外部"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "代理循环结束后、打开PR之前，会进行什么门控检查？",
+      "options": [
+        "评审模型重写diff",
+        "PR立即打开，无任何检查",
+        "在沙箱中运行完整CI；计算覆盖率变化；超出阈值的回归会被标记为needs-review",
+        "仓库被强制推送到main"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "分发器每天每个仓库强制执行哪些预算限制？",
+      "options": [
+        "仅回合数上限",
+        "每个PR的金额上限加上每个仓库每天的最大PR数量",
+        "无限制的PR和成本",
+        "仅墙钟时间上限"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "代理发布的PR正文中包含什么内容？",
+      "options": [
+        "推理依据、diff摘要、追踪URL、成本和回合数，以便评审者进行审计和后续跟进",
+        "仅diff",
+        "无内容；PR正文为空",
+        "仅生成的变更日志"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

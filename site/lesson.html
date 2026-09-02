@@ -3457,6 +3457,24 @@
         });
       }
 
+      // Load a lesson quiz in the current language. English falls back to the
+      // main branch quiz.json. Non-English tries the translations branch
+      // i18n/<lang>/<path>/quiz.json first, then falls back to English so the
+      // quiz always works even before a translation exists.
+      function fetchLanguageQuiz(path, lang) {
+        var english = fetchRepositoryFile(path + '/quiz.json')
+          .then(function (res) { return res.json(); })
+          .catch(function () { return null; });
+        if (lang === 'en') return english;
+        var translatedQuiz = 'https://raw.githubusercontent.com/' + SOURCE_OWNER + '/' + SOURCE_REPO + '/translations/i18n/'
+          + lang + '/' + path + '/quiz.json';
+        return fetch(translatedQuiz).then(function (res) {
+          return res.ok ? res.json() : null;
+        }).catch(function () { return null; }).then(function (zhQuiz) {
+          return zhQuiz || english;
+        });
+      }
+
       var lessonFetchSequence = 0;
 
       function fetchLesson(path, retried, requestSequence) {
@@ -3487,9 +3505,7 @@
           + lang + '/' + path + '/docs/' + lang + '.md';
 
         if (!retried || !lessonQuizPromise) {
-          lessonQuizPromise = fetchRepositoryFile(path + '/quiz.json')
-            .then(function (res) { return res.json(); })
-            .catch(function () { return null; });
+          lessonQuizPromise = fetchLanguageQuiz(path, lang);
         }
         var quizPromiseForRequest = lessonQuizPromise;
 

@@ -1,0 +1,78 @@
+{
+  "lesson": "06-sglang-radixattention",
+  "title": "Prefix-Cache Serving — RadixAttention 与 KV 复用",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "SGLang 的 KV 缓存复用背后依靠的核心数据结构是什么？",
+      "options": [
+        "一个基数树，每个节点拥有 token 范围和其 KV 块",
+        "一个按请求 ID 键控的跳跃表",
+        "一个按完整提示键控的哈希表",
+        "一个注意力分数的 B 树"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么在 SGLang 上，FCFS 调度不适合前缀密集型流量？",
+      "options": [
+        "FCFS 是 SGLang 推荐的策略",
+        "FCFS 可能在下一个长前缀请求到达之前驱逐热前缀分支，破坏 radix-tree 复用",
+        "FCFS 仅在 AMD GPU 上工作",
+        "FCFS 与 PagedAttention 不兼容"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "SGLang 的缓存感知调度器使用什么驱逐粒度来匹配 radix 树的形状？",
+      "options": [
+        "仅按请求驱逐",
+        "随机驱逐",
+        "单 token 驱逐",
+        "整棵分支驱逐，从使用最短的叶子节点开始"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "工程师保持 radix-tree 共享前缀可发现的最直接手段是什么？",
+      "options": [
+        "始终使用静态批处理",
+        "固定 prompt 模板的顺序，使不可变内容（系统提示、工具、schema）始终排在最前",
+        "降低 GPU 内存利用率旋钮",
+        "禁用连续批处理"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "本课程预期 RadixAttention 在以下哪种工作负载模式上不会带来优势？",
+      "options": [
+        "共享 tool schemas 的 Agent",
+        "单次生成且提示唯一、无共享 system prompt",
+        "带有共享检索前置内容的 RAG",
+        "带有重复前缀的语音工作负载"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "ProjectDiscovery 的部署通过什么方式将前缀缓存命中率从 7% 提升到 74%？",
+      "options": [
+        "将 GPU 数量从 8 增加到 16",
+        "禁用连续批处理",
+        "将动态内容移出可缓存的前缀部分",
+        "从 vLLM 切换到 SGLang 但不对 prompt 做任何修改"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

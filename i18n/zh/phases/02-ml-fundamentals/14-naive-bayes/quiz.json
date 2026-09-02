@@ -1,0 +1,67 @@
+[
+  {
+    "id": "nb-pre-1",
+    "stage": "pre",
+    "question": "Naive Bayes中的'naive'假设是什么？",
+    "options": [
+      "每个类别的先验概率相等",
+      "给定类别标签后，所有特征条件独立",
+      "数据服从正态分布",
+      "模型没有需要学习的参数"
+    ],
+    "correct": 1,
+    "explanation": "Naive Bayes假设每个特征在给定类别的条件下与其他特征独立。这在数学上是错误的（例如，'machine'和'learning'会共同出现），但在实践中效果很好。"
+  },
+  {
+    "id": "nb-pre-2",
+    "stage": "pre",
+    "question": "Laplace smoothing在Naive Bayes中防止了什么？",
+    "options": [
+      "训练时未见过某类别的词语时出现的零概率",
+      "数据集中的类别不平衡",
+      "高维数据训练速度慢",
+      "对大数据集的过拟合"
+    ],
+    "correct": 0,
+    "explanation": "如果没有平滑，某个在'spam'训练邮件中从未出现的词会得到 P(word|spam) = 0，导致整个乘积为零，无论其他证据多么有力。Laplace smoothing会为每个计数加1。"
+  },
+  {
+    "id": "nb-post-1",
+    "stage": "post",
+    "question": "Naive Bayes的独立性假设对于文本显然是错误的。为什么Naive Bayes仍能很好地分类？",
+    "options": [
+      "它只在独立性成立的小词汇量上工作",
+      "它只在特征真正独立时工作",
+      "现代实现偷偷移除了独立性假设",
+      "分类只需要正确的类别排序，不需要精确的概率估计，而且独立性假设引入的稳定误差对所有类别影响相似"
+    ],
+    "correct": 3,
+    "explanation": "NB需要对类别进行正确排序，而不需要估计精确的概率。独立性假设是高偏差低方差，使其在有限数据下很稳定。相关特征会双倍计算正确类别的证据。"
+  },
+  {
+    "id": "nb-post-2",
+    "stage": "post",
+    "question": "什么时候应该使用Multinomial NB而不是Gaussian NB？",
+    "options": [
+      "Multinomial用于词频/频率特征，Gaussian用于连续实值特征",
+      "它们可以互换——总是使用更快的那个",
+      "Multinomial用于二进制数据，Gaussian用于多类问题",
+      "Multinomial用于回归，Gaussian用于分类"
+    ],
+    "correct": 0,
+    "explanation": "Multinomial NB对特征计数建模（文本中的词频）。Gaussian NB假设特征服从正态分布，适用于测量值或传感器读数等连续特征。"
+  },
+  {
+    "id": "nb-post-3",
+    "stage": "post",
+    "question": "一封邮件包含两次'free'和一次'money'。在使用对数概率的Multinomial NB中，spam得分如何计算？",
+    "options": [
+      "P(spam) * P(free|spam) * P(money|spam)",
+      "log P(spam) * 2 * log P(free|spam)",
+      "log P(spam) + log P(free|spam) + log P(money|spam)",
+      "log P(spam) + 2 * log P(free|spam) + 1 * log P(money|spam)"
+    ],
+    "correct": 3,
+    "explanation": "Multinomial NB将被计数的词似然性相乘。在对数空间中：log P(spam) + 2*log P(free|spam) + 1*log P(money|spam)。词频作为指数。"
+  }
+]

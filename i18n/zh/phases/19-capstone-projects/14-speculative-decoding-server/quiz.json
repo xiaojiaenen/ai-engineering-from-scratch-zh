@@ -1,0 +1,90 @@
+{
+  "lesson": "14-speculative-decoding-server",
+  "title": "Capstone 14 — 投机解码推理服务器",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "投机解码背后的两层机制是什么？",
+      "options": [
+        "两个目标模型按token交替执行",
+        "一个嵌入模型和一个合成器",
+        "一个检索缓存和一个重排序器",
+        "草稿模型提出k个候选token，目标模型在单次通过中完成验证"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "EAGLE-3做了什么ngram草稿做不到的事情？",
+      "options": [
+        "它完全避免分词",
+        "它只在CPU上运行",
+        "它在目标模型的隐藏状态上训练草稿头，从而提高接受率",
+        "它替换了目标模型"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么p99尾部延迟要在批量大小1、8和32下都进行报告？",
+      "options": [
+        "稳态每秒token数可能掩盖这样一个事实：拒绝时的验证pass比朴素解码成本更高",
+        "vLLM无法服务批量大小低于8的请求",
+        "p99仅在批量大小32时才重要",
+        "尾部延迟与批量大小无关"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "当流量分布发生变化时，接受率为什么会漂移？",
+      "options": [
+        "草稿对齐依赖于输入分布：ShareGPT、代码和领域数据会激活不同的模式",
+        "操作系统调度器会打乱GPU内存布局",
+        "运行时会发生量化参数变化",
+        "vLLM每小时轮换模型"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "该部署基于哪个Kubernetes HPA信号进行扩缩容？",
+      "options": [
+        "磁盘IOPS",
+        "CPU利用率",
+        "推理请求的队列等待时间",
+        "集群自动伸缩节点数量"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "相比串行EAGLE-3，P-EAGLE增加了什么？",
+      "options": [
+        "权重量化至FP4",
+        "移除目标模型",
+        "在一棵草稿分支树上进行并行推测，由单次目标pass统一验证",
+        "自动数据集策展"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "量表中要求相对于非投机基线的吞吐量目标是什么？",
+      "options": [
+        "在两种模型上、质量持平的前提下至少达到2.5倍",
+        "只要高于基线即可",
+        "质量持平时约1.1倍",
+        "任意质量下精确达到10倍吞吐量"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "37-loading-pretrained-weights",
+  "title": "加载预训练权重",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么加载器需要名称映射？",
+      "options": [
+        "发布的GPT-2权重使用wte、wpe、h.N.attn.c_attn等名称；本地模型使用tok_embed、pos_embed、blocks.N.attn.qkv；加载器将一方映射到另一方",
+        "Safetensors文件是加密的",
+        "预训练张量和本地参数共享相同的名称",
+        "Torch要求这样做"
+      ],
+      "correct": 0,
+      "explanation": "两种命名约定有不同的历史来源；该映射是一个字面字典，按层展开。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是conv1d转置，哪些张量需要它？",
+      "options": [
+        "所有权重张量",
+        "发布的GPT-2以tensorflow conv1d布局存储c_attn、c_proj和c_fc权重，这与nn.Linear.weight期望的布局互为转置；加载器在赋值时对它们调用.t()",
+        "仅嵌入层",
+        "仅LayerNorm缩放因子"
+      ],
+      "correct": 1,
+      "explanation": "三种后缀需要转置；偏置项和LayerNorm已经是正确的形状。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么LM头不在safetensors文件中？",
+      "options": [
+        "它太大了",
+        "它从单独的文件加载",
+        "它在运行时从logits计算",
+        "权重绑定：LM头与词嵌入（wte）共享存储，因此加载wte并在加载后执行alias lm_head.weight = tok_embed.weight即可重建头部"
+      ],
+      "correct": 3,
+      "explanation": "在wte加载完成后设置lm_head.weight = tok_embed.weight即可恢复别名关系；如果复制则会使参数量翻倍。"
+    },
+    {
+      "stage": "check",
+      "question": "加载器在遇到形状不匹配时做什么？",
+      "options": [
+        "对较小的张量进行填充",
+        "崩溃进程",
+        "在LoadReport.shape_mismatch中记录不匹配并拒绝赋值，保持本地参数不变",
+        "截断较大的张量"
+      ],
+      "correct": 2,
+      "explanation": "半加载的模型是静默失败的源头；拒绝赋值才能让报告保持诚实。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么示例中的stub夹具不是真正的GPT-2下载？",
+      "options": [
+        "真实文件不是safetensors格式",
+        "真实权重是加密的",
+        "示例必须离线快速运行；stub使用完全一致的预训练命名约定，使加载器代码路径完全相同，换成真实文件不会改变加载器的行为",
+        "Safetensors无法存储大张量"
+      ],
+      "correct": 2,
+      "explanation": "相同的代码路径，更小的数据量；加载器两者都能正常工作。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么在加载前后都要生成样本？",
+      "options": [
+        "测量推理速度",
+        "设置随机种子",
+        "如果加载后的样本与加载前的样本完全相同，说明加载并未改变模型，即映射静默地错过了所有张量",
+        "预热GPU缓存"
+      ],
+      "correct": 2,
+      "explanation": "抽样验证是最便宜的检查手段：样本指纹如果没有变化，就能暴露出LoadReport摘要自身无法发现的故障加载。"
+    }
+  ]
+}

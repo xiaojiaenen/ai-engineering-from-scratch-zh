@@ -1,0 +1,78 @@
+{
+  "lesson": "53-result-evaluator",
+  "title": "Result Evaluator",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "评估器为何使用配对t检验，而不是直接比较两个单一数值？",
+      "options": [
+        "因为numpy需要配对数组",
+        "因为runner无法输出单个数值",
+        "因为通过在候选模型和基线中使用相同seed进行配对，可以隔离配置变更与随机初始化噪声的影响",
+        "因为IRB总是要求使用t检验"
+      ],
+      "correct": 2,
+      "explanation": "通过seed配对可以抵消随机初始化的影响。剩余的差异归因于配置变更，这正是该检验所要测量的。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么评估器在每个指标上都携带一个direction字段？",
+      "options": [
+        "因为numpy需要方向来计算方差",
+        "因为accuracy和loss的改善方向相反；改进的符号取决于所比较指标的优劣方向",
+        "因为runner需要它",
+        "因为解析器期望它"
+      ],
+      "correct": 1,
+      "explanation": "越高越好的指标在上升时即为改进；越低越好的指标在下降时即为改进。direction字段告知improvement函数应用哪种符号约定。"
+    },
+    {
+      "stage": "check",
+      "question": "当|improvement|低于阈值时，即使p value显著，verdict path返回什么？",
+      "options": [
+        "noise",
+        "regressed",
+        "failed",
+        "improved"
+      ],
+      "correct": 0,
+      "explanation": "从循环的角度来看，一个统计显著但变化过小的情况仍然属于noise。threshold gate在significance gate之前运行。"
+    },
+    {
+      "stage": "check",
+      "question": "评估器为何在计算improvement前先对log缩放的指标进行变换？",
+      "options": [
+        "因为p value依赖于它",
+        "因为numpy的log运算更快",
+        "因为runner只输出log缩放的指标",
+        "因为perplexity等指标随loss呈指数增长；转换到log空间使得像2%这样的阈值在线性指标和log指标之间都有意义"
+      ],
+      "correct": 3,
+      "explanation": "Perplexity是exp(loss)。微小的loss变化会导致较大的perplexity变化。取log后，相对改进可以在统一阈值下与线性指标进行比较。"
+    },
+    {
+      "stage": "check",
+      "question": "配对t检验辅助函数何时返回p_value = None？",
+      "options": [
+        "当方差为零时",
+        "当均值相等时",
+        "当指标尺度为log时",
+        "当可用配对样本少于两个时"
+      ],
+      "correct": 3,
+      "explanation": "t分布至少需要一个自由度。当n小于2时无法估计方差，辅助函数返回None，以便verdict path将该运行标记为noise。"
+    },
+    {
+      "stage": "check",
+      "question": "如果即使只有一个候选结果的terminal标签不是ok，会发生什么？",
+      "options": [
+        "评估器返回failed verdict，并在rationale中记录有问题的terminals",
+        "评估器跳过该seed并继续",
+        "评估器重试该运行",
+        "评估器回退到单侧检验"
+      ],
+      "correct": 0,
+      "explanation": "一次失败的运行会使候选集失效。评估器短路verdict path并返回failed，同时列出有问题的terminals，这样orchestrator就不会从崩溃的运行中得出结论。"
+    }
+  ]
+}

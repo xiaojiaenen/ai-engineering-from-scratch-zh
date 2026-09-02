@@ -1,0 +1,90 @@
+{
+  "lesson": "14-autogen-actor-model",
+  "title": "Agent 的 Actor 模型 —— 异步消息与类型化运行时",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在AutoGen v0.4中，actor之间唯一的合法交互方式是什么？",
+      "options": [
+        "直接访问共享字典",
+        "相互修改对方的prompt",
+        "共享SQL事务",
+        "通过收件箱交换异步消息；无共享内存"
+      ],
+      "correct": 3,
+      "explanation": "Actor具有私有状态和收件箱；消息是唯一的交互方式。"
+    },
+    {
+      "stage": "pre",
+      "question": "AutoGen v0.4的三个API层是什么？",
+      "options": [
+        "Core、AgentChat、Extensions",
+        "前端、后端、数据库",
+        "Tools、Models、Memory",
+        "Plan、Act、Reflect"
+      ],
+      "correct": 0,
+      "explanation": "Core是底层actor框架，AgentChat是任务驱动的高级API，Extensions是集成。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么将投递与处理解耦能实现故障隔离？",
+      "options": [
+        "运行时捕获B中handler的失败而不会导致A崩溃；A的send()立即返回且从不阻塞",
+        "每个actor运行在独立的机器上",
+        "Handlers是纯函数",
+        "运行时在失败时重启操作系统"
+      ],
+      "correct": 0,
+      "explanation": "send()将消息放入收件人的收件箱并返回；handler崩溃仅影响该actor本身。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个AgentChat拓扑按固定顺序轮换agents？",
+      "options": [
+        "SelectorGroupChat",
+        "Magentic-One",
+        "RoundRobinGroupChat",
+        "Supervisor"
+      ],
+      "correct": 2,
+      "explanation": "RoundRobinGroupChat是固定轮换；SelectorGroupChat使用selector来选择下一个。"
+    },
+    {
+      "stage": "check",
+      "question": "本课中的Magentic-One是什么？",
+      "options": [
+        "基于AgentChat构建的用于网页浏览、代码执行和文件处理的参考多agent团队",
+        "一个OTel导出器",
+        "一个新的LLM模型",
+        "一种序列化格式"
+      ],
+      "correct": 0,
+      "explanation": "Magentic-One是Microsoft的参考团队，用于演示AgentChat API。"
+    },
+    {
+      "stage": "post",
+      "question": "本课中AutoGen v0.4在2026年初的状态是什么？",
+      "options": [
+        "已弃用并被移除",
+        "被LangGraph替代",
+        "刚刚发布",
+        "稳定但处于维护模式；Microsoft Agent Framework是发展方向"
+      ],
+      "correct": 3,
+      "explanation": "AutoGen v0.7.x对研究而言是稳定的；活跃开发已转向Microsoft Agent Framework。"
+    },
+    {
+      "stage": "post",
+      "question": "AutoGen v0.4默认支持哪个可观测性标准？",
+      "options": [
+        "Datadog APM",
+        "仅Prometheus指标",
+        "符合OTel GenAI语义规范的gen_ai.*属性的OpenTelemetry spans",
+        "StatsD"
+      ],
+      "correct": 2,
+      "explanation": "每条消息都会生成一个span；tool调用根据OTel GenAI规范携带gen_ai.*属性。"
+    }
+  ]
+}

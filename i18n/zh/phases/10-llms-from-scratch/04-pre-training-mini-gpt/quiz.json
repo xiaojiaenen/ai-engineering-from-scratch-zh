@@ -1,0 +1,37 @@
+[
+  {
+    "question": "GPT在预训练时使用什么训练目标？",
+    "options": ["句子分类", "下一个token预测：给定之前的tokens，预测下一个", "图像-文本对齐", "掩码语言建模（预测被掩码的tokens）"],
+    "correct": 1,
+    "explanation": "GPT是一个因果（自回归）语言模型，通过下一个token预测进行训练。给定tokens [t1, t2, ..., tn]，它学习预测tn+1。损失函数是预测值与实际下一个token之间的交叉熵。",
+    "stage": "pre"
+  },
+  {
+    "question": "GPT-2 Small (124M)有多少层transformer层、注意力头和嵌入维度？",
+    "options": ["24层，16个头，1024维", "6层，6个头，512维", "48层，25个头，1600维", "12层，12个头，768维"],
+    "correct": 3,
+    "explanation": "GPT-2 Small有12层transformer层，每层12个注意力头，768维嵌入。该架构有1.24亿参数，可以在单个GPU上几小时内训练完成。",
+    "stage": "pre"
+  },
+  {
+    "question": "因果注意力掩码在GPT中的作用是什么？",
+    "options": ["它阻止每个token attend到未来的tokens，确保模型只能使用过去的上下文进行预测", "减少训练时的内存使用", "屏蔽低置信度的attention分数", "阻止对padding tokens的attention"],
+    "correct": 0,
+    "explanation": "因果掩码是一个三角矩阵，在softmax之前将未来位置设为负无穷。位置5的token可以attend到位置1-5，但不能attend到6+。这确保模型从左到右生成tokens。",
+    "stage": "post"
+  },
+  {
+    "question": "文本生成过程中的\"temperature\"控制什么？",
+    "options": ["token选择的随机性：较低的temperature使输出更确定，较高的temperature使输出更多样", "生成速度", "生成的token数量", "模型的置信度阈值"],
+    "correct": 0,
+    "explanation": "Temperature在softmax之前除以logits。Temperature=0.1使分布非常尖锐（几乎确定性）。Temperature=1.0是训练分布。Temperature>1.0使其变平坦，增加随机性。",
+    "stage": "post"
+  },
+  {
+    "question": "为什么预训练比微调需要更多的计算资源？",
+    "options": ["预训练从零开始处理万亿级别的tokens以学习通用语言模式，而微调调整已具备能力的模型在数千样本上", "预训练使用不同的架构", "预训练使用更大的batch大小", "微调不使用梯度"],
+    "correct": 0,
+    "explanation": "预训练从随机权重开始，通过万亿级tokens建立所有语言知识。微调从这些已学习的权重开始，在更小的数据集上进行调整（数千到数百万样本）。",
+    "stage": "post"
+  }
+]

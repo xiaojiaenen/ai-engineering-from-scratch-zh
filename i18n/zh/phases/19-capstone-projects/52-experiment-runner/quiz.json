@@ -1,0 +1,78 @@
+{
+  "lesson": "52-experiment-runner",
+  "title": "Experiment Runner",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么 runner 使用子进程而不是在进程中导入实验脚本？",
+      "options": [
+        "因为 subprocess 比 import 更快",
+        "因为独立进程让 runner 在超时或内存限制时有 kill 句柄，并将崩溃与编排器隔离",
+        "因为 Python 不允许嵌套 import",
+        "因为 metrics 格式要求这样做"
+      ],
+      "correct": 1,
+      "explanation": "独立进程是语言提供的最简隔离。父进程保留 kill 句柄和独立的地址空间，因此崩溃的实验不会拖累编排器。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么内存上限被描述为 soft（软性）？",
+      "options": [
+        "因为它只作用于 heap，不适用于 stack",
+        "因为轮询有非零间隔，进程可能在两次轮询之间短暂超过上限，runner 只在下次观察时才采取行动",
+        "因为操作系统总是覆盖它",
+        "因为 numpy 忽略该上限"
+      ],
+      "correct": 1,
+      "explanation": "上限通过轮询强制实施，而非内核级限制。轮询间隔是上限的分辨率，短时间尖峰可能在下次观察前短暂超出上限。"
+    },
+    {
+      "stage": "check",
+      "question": "当 stdout 包含 metrics 但退出码非零时，runner 返回哪个终端标签？",
+      "options": [
+        "timeout",
+        "crash",
+        "ok",
+        "oom"
+      ],
+      "correct": 1,
+      "explanation": "只有退出码为零且 metrics 解析成功时，终端才是 ok。退出码非零即为 crash，即使失败前已捕获部分 metrics。"
+    },
+    {
+      "stage": "check",
+      "question": "runner 如何从 stdout 中识别最终的 metrics blob？",
+      "options": [
+        "扫描 stderr 中的 json",
+        "期望恰好一行输出",
+        "读取最后一行包含所有 required metric_keys 的 json；更早的覆盖行视为中间 metrics",
+        "读取第一行 json"
+      ],
+      "correct": 2,
+      "explanation": "最终 metrics 是最后一行能解析为 json 且包含所有必需键的记录。更早的覆盖行作为中间 metrics 保留，用于绘制学习曲线。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么 ablation helper 一次只扫描一个超参而不是全因子扫描？",
+      "options": [
+        "因为一次扫一个超参能产生清晰的坐标轴供 evaluator 绘图，而全因子组合呈指数膨胀且难以解读",
+        "因为 seed 只沿一个超参变化",
+        "因为 runner 不能同时启动多个子进程",
+        "因为 numpy 不支持笛卡尔积"
+      ],
+      "correct": 0,
+      "explanation": "单超参扫描保持结果可解释。全因子组合随超参数量指数增长，生成的表格难以阅读和理解。"
+    },
+    {
+      "stage": "check",
+      "question": "将 spec.seed 转发到 config['__seed'] 为 evaluator 提供了什么保证？",
+      "options": [
+        "降低内存消耗",
+        "缩短墙钟时间",
+        "免费获得显著性检验",
+        "确定性保证：相同 seed 重跑产生相同 metrics，使 evaluator 能区分真实变化与随机噪声"
+      ],
+      "correct": 3,
+      "explanation": "seed 固定了实验中的随机初始化。相同 seed 的两轮运行产生相同 metrics，这正是 evaluator 区分真实回归与不同随机采样的关键。"
+    }
+  ]
+}

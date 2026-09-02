@@ -1,0 +1,78 @@
+{
+  "lesson": "23-watermarking-synthid-stable-signature-c2pa",
+  "title": "水印 - SynthID、Stable Signature、C2PA",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Kirchenbauer风格（SynthID-text）的token水印是如何嵌入信号的？",
+      "options": [
+        "通过使用公钥加密输出",
+        "在每个解码步骤中，对前K个token进行哈希以将词表划分为绿色/红色集合，并将采样偏向绿色；检测通过z分数统计绿色token数量",
+        "通过插入隐藏的HTML注释",
+        "通过修改提示模板"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "文本水印在面对改写时的主要局限性是什么？",
+      "options": [
+        "改写仅影响图像水印",
+        "它们实际上能够抵御改写",
+        "改写会增强水印",
+        "重新措辞或改写文本会破坏绿色token的统计信号"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Stable Signature（Fernandez等人，ICCV 2023）做了什么？",
+      "options": [
+        "在图像的角落添加可见水印",
+        "使用私钥签署元数据",
+        "使用C2PA在上传时签署图像",
+        "微调潜在扩散解码器，使每个生成的图像都携带一个固定的嵌入信息，可以从潜在空间中检测到"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "2024年5月'Stable Signature不稳定'的研究结果证明了什么？",
+      "options": [
+        "水印可被证明不可伪造",
+        "水印需要C2PA才能运作",
+        "水印仅在JPEG压缩下失效",
+        "生成后对解码器进行微调可以在保持图像质量的同时移除水印，削弱对抗鲁棒性"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "C2PA元数据与水印如何互补？",
+      "options": [
+        "C2PA完全替代水印",
+        "元数据可能被剥离但携带丰富的来源链；水印能在转码中持续存在但只携带少量信息；分层使用时，它们能提供可用的来源故事",
+        "水印与C2PA使用相同的密钥签署",
+        "它们可以互换"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为什么'没有SynthID信号'不能作为真实性（人工生成）的证明？",
+      "options": [
+        "因为SynthID是闭源的",
+        "因为SynthID总是对人类文本产生误报",
+        "因为SynthID仅对启用SynthID的模型生成的内容进行水印；来自任何没有SynthID的模型的内容默认没有水印",
+        "因为SynthID仅对Gemini输出有效"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

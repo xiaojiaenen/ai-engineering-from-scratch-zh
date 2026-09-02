@@ -1,0 +1,90 @@
+{
+  "lesson": "04-multimodal-document-qa",
+  "title": "Capstone 04 — 多模态文档问答（视觉优先的PDF、表格、图表）",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为何2026年的前沿方案更倾向在财务PDF和科学论文中使用视觉优先的晚期交互，而非先OCR再文本的方案？",
+      "options": [
+        "OCR流水线会破坏旋转表格、密集公式和图表图像，丢失一半以上的信号",
+        "OCR无法在GPU上运行",
+        "视觉模型每页成本更低",
+        "OCR比渲染更慢"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "在ColPali风格的检索中，晚期交互（late interaction）是什么意思？",
+      "options": [
+        "每个查询token与每个patch token进行打分，并通过MaxSim对逐token最大值求和",
+        "嵌入向量在用户点击结果后才计算",
+        "重排序器仅在最终候选上运行",
+        "嵌入向量推迟到评估时才计算"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "ColQwen嵌入每页大约产生多少个patch向量，这会带来什么存储问题？",
+      "options": [
+        "精确128个向量，可干净地适配任何向量数据库",
+        "每页约2048个patch向量，与单向量索引相比导致原始存储急剧膨胀",
+        "每页1个向量，无存储问题",
+        "16个向量，存储开销可忽略不计"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "该管线中的DocPruner有什么作用？",
+      "options": [
+        "在摄入前移除重复的PDF页面",
+        "通过保留高信号patch（约50%）来压缩多向量索引，同时精度损失可忽略",
+        "在证据区域周围裁剪边界框",
+        "重写查询嵌入以获得更短的向量"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为何某些页面仍需拼接OCR文本通道？",
+      "options": [
+        "视觉语言模型无法在180 DPI下读取图像",
+        "OCR是主要的检索模态",
+        "它能提升PDF渲染质量",
+        "公式密集和表格较多的页面可从文本回退中受益，与图像配合使用"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "这个Capstone项目针对哪个基准来评估视觉优先检索？",
+      "options": [
+        "ViDoRe v3",
+        "RewardBench-2",
+        "MMLU-Pro",
+        "SWE-bench Pro"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "评分标准中的证据区域定位（evidence-region grounding）是什么意思？",
+      "options": [
+        "重排序器在p99延迟尾部的耗时",
+        "每个查询检索到的总页数",
+        "被引用的边界框中实际包含答案片段的占比",
+        "DocPruner实现的压缩比"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

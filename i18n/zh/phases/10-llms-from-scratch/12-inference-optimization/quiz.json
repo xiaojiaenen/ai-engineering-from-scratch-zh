@@ -1,0 +1,37 @@
+[
+  {
+    "question": "LLM推理的两个阶段是什么？",
+    "options": ["前向传播与反向传播", "编码与解码", "训练与评估", "Prefill（并行处理prompt，计算密集型）和 decode（逐个生成token，内存密集型）"],
+    "correct": 3,
+    "explanation": "Prefill并行处理所有prompt token（受计算能力限制）。Decode自回归地逐个生成token（受加载模型权重的显存带宽限制）。不同的优化方法针对各个阶段。",
+    "stage": "pre"
+  },
+  {
+    "question": "KV-cache在自回归生成过程中消除了什么？",
+    "options": ["Embedding查找", "Attention mask的需求", "Softmax计算", "在每个生成步骤中对所有先前token的key和value向量进行冗余重新计算"],
+    "correct": 3,
+    "explanation": "如果没有KV-cache，生成第N个token需要为所有前N-1个token重新计算attention的keys和values。KV-cache存储这些向量，因此每个新token只需计算自身的K和V，每步节省O(N)的计算量。",
+    "stage": "pre"
+  },
+  {
+    "question": "什么是continuous batching，它为何能提升吞吐量？",
+    "options": ["跨多个模型进行批处理", "使用更大的batch size", "将所有请求放在一个大的batch中处理", "随着请求开始和完成，动态地将请求添加到正在运行的batch中或从中移除，而不是等待整个batch完成"],
+    "correct": 3,
+    "explanation": "在static batching中，短请求会占用batch slot直到最长的请求完成。Continuous batching立即用新请求填补已完成的slot，保持GPU忙碌，提升整体吞吐量。",
+    "stage": "post"
+  },
+  {
+    "question": "PagedAttention（vLLM中使用）解决了什么问题？",
+    "options": ["提升tokenization速度", "减小模型大小", "像虚拟内存一样以固定大小的块管理KV-cache内存，消除变长序列造成的碎片化", "加快attention计算速度"],
+    "correct": 2,
+    "explanation": "变长序列的KV-cache会导致内存碎片化（分配之间的浪费间隙）。PagedAttention以固定块分配KV-cache并用页表映射，类似操作系统的虚拟内存机制。",
+    "stage": "post"
+  },
+  {
+    "question": "什么是speculative decoding？",
+    "options": ["使用小型草稿模型提出多个token候选，由大模型并行验证，从而加速生成", "预测用户想要的token", "生成多个响应并选择最好的", "缓存频繁生成的序列"],
+    "correct": 0,
+    "explanation": "小型快速模型生成N个候选token。大模型在一次前向传递中并行验证所有N个。如果接受了K个token，你就用大约1次大模型步骤的时间生成了K个token。",
+    "stage": "post"
+  }
+]

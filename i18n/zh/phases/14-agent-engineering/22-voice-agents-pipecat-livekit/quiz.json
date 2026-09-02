@@ -1,0 +1,90 @@
+{
+  "lesson": "22-voice-agents-pipecat-livekit",
+  "title": "语音代理：Pipecat 与 LiveKit",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Pipecat 管道使用哪两个流向？",
+      "options": [
+        "读取与写入",
+        "热流与冷流",
+        "入站与出站",
+        "DOWNSTREAM（源到汇）与 UPSTREAM（反馈、取消、插话）"
+      ],
+      "correct": 3,
+      "explanation": "帧从源到汇向下游流动，并为控制和取消向上游流动。"
+    },
+    {
+      "stage": "pre",
+      "question": "标准的 Pipecat 语音管道是什么？",
+      "options": [
+        "VAD -> STT -> LLM -> TTS -> transport",
+        "音频 -> JSON -> SQL -> 响应",
+        "LLM -> 嵌入 -> 检索 -> 回答",
+        "TTS -> STT -> LLM -> VAD"
+      ],
+      "correct": 0,
+      "explanation": "VAD 检测语音活动，STT 进行转录，LLM 生成响应，TTS 合成语音，transport 负责传输。"
+    },
+    {
+      "stage": "check",
+      "question": "LiveKit Agents 提供了哪两种语音代理类？",
+      "options": [
+        "BatchAgent 和 StreamAgent",
+        "TextAgent 和 SpeechAgent",
+        "MultimodalAgent（直接音频）与 VoicePipelineAgent（STT/LLM/TTS 级联）",
+        "LocalAgent 和 CloudAgent"
+      ],
+      "correct": 2,
+      "explanation": "MultimodalAgent 使用直接音频（类 Realtime 风格）；VoicePipelineAgent 使用 STT->LLM->TTS 以实现文本级控制。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是插话（barge-in）以及如何处理？",
+      "options": [
+        "LLM 成本飙升；减少 token",
+        "用户在代理说话时插话；UPSTREAM 取消帧可中途停止 TTS",
+        "验证码失败；重试",
+        "提供商宕机；切换区域"
+      ],
+      "correct": 1,
+      "explanation": "插话是用户打断行为；UPSTREAM 取消是 Pipecat 干净处理插话的方式。"
+    },
+    {
+      "stage": "check",
+      "question": "课程描述的premium端到端延迟是多少？",
+      "options": [
+        "约 450-600 毫秒",
+        "约 1500 毫秒",
+        "约 50 毫秒",
+        "约 5000 毫秒"
+      ],
+      "correct": 0,
+      "explanation": "premium 堆栈的延迟约为 450-600 毫秒；800-1200 毫秒很常见；超过 1500 毫秒会感觉卡顿。"
+    },
+    {
+      "stage": "post",
+      "question": "如果忽略 STT 置信度会发生什么？",
+      "options": [
+        "通话成本降低",
+        "延迟改善",
+        "TTS 变快",
+        "低置信度转录本被当作真理喂给 LLM，导致错误答案；应设置置信度阈值或请求确认"
+      ],
+      "correct": 3,
+      "explanation": "将低置信度的 STT 结果视为真相是语音代理的典型故障模式。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么课程建议在发布前对各组件延迟求和？",
+      "options": [
+        "延迟是 WebRTC 的要求",
+        "每个组件增加 50-200 毫秒延迟；总和决定用户体验是否卡顿",
+        "提供商按延迟计费",
+        "满足合规要求"
+      ],
+      "correct": 1,
+      "explanation": "在发布前应对整个链路求和（VAD + STT + LLM + TTS + transport）；目标延迟要求严格。"
+    }
+  ]
+}

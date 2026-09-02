@@ -1,0 +1,90 @@
+{
+  "lesson": "37-runtime-feedback-loops",
+  "title": "运行时反馈循环",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "反馈运行器强制智能体做什么？",
+      "options": [
+        "对想象中的输出做出反应",
+        "对事实做出反应：每次命令捕获的结构化 stdout/stderr/退出码/耗时记录进入循环",
+        "跳过验证",
+        "使用不同的模型"
+      ],
+      "correct": 1,
+      "explanation": "运行器弥补了'测试已通过'（想象中）和'测试实际运行并以零退出码结束'（已记录）之间的差距。"
+    },
+    {
+      "stage": "pre",
+      "question": "反馈与遥测有何区别？",
+      "options": [
+        "反馈用于本次运行的下一轮；遥测用于操作人员在跨时间范围内审查运行记录（不同文件、不同保留策略）",
+        "它们是同一回事",
+        "遥测是付费服务",
+        "遥测使用 OTel；反馈使用 GraphQL"
+      ],
+      "correct": 0,
+      "explanation": "两者共享字段但存储在不同文件中，保留策略也不同：反馈是运行内数据，遥测是跨运行数据。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个字段必须出现在每条反馈记录中？",
+      "options": [
+        "exit_code（且退出码为 null 时不得推进循环）",
+        "embedding_vector",
+        "model_id",
+        "prompt_cache_token"
+      ],
+      "correct": 0,
+      "explanation": "exit_code 是明确的成败信号；null 退出表示没有进展。"
+    },
+    {
+      "stage": "check",
+      "question": "运行器如何截断大输出？",
+      "options": [
+        "用 gzip 压缩",
+        "随机采样",
+        "仅保留前 10 行",
+        "确定性的头部 + 尾部截断，并添加 'truncated N lines' 标记，使相同输出始终产生相同记录"
+      ],
+      "correct": 3,
+      "explanation": "确定性截断保持记录可重放，同时控制 token 成本；尾部携带失败摘要。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么在写入时脱敏而非读取时？",
+      "options": [
+        "读取时脱敏会破坏 JSON 格式",
+        "磁盘上的文件才是攻击者能触及的；仅在读取时脱敏会让密钥残留在 JSONL 文件中",
+        "速度更快",
+        "压缩"
+      ],
+      "correct": 1,
+      "explanation": "在追加前脱敏匹配 Bearer、password=、api_key=、AKIA...、xox[baprs]- 的行；每季度审计脱敏模式。"
+    },
+    {
+      "stage": "post",
+      "question": "parent_command_id 赋予工作台的什么能力？",
+      "options": [
+        "更快的文件 I/O",
+        "更低的内存占用",
+        "重试与其父尝试关联，审查者和审计日志能看到失败链；否则重试看起来像是独立成功",
+        "更便宜的推理成本"
+      ],
+      "correct": 2,
+      "explanation": "父级链接使重试链对审查者（第39课）和验证门可见。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么将 feedback_record.jsonl 限制在 1 MB 并启用轮转？",
+      "options": [
+        "磁盘太慢",
+        "智能体只读取当前文件；轮转使运行时成本可控，同时 CI 产物捕获完整数据集",
+        "JSON 无法处理大文件",
+        "提供商按字节收费"
+      ],
+      "correct": 1,
+      "explanation": "有界当前文件 + 轮转历史与 logrotate 的模式相同；在热循环中成本可预测。"
+    }
+  ]
+}

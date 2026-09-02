@@ -1,0 +1,102 @@
+{
+  "lesson": "24-coreference-resolution",
+  "title": "指代消解",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "指代消解的目标是什么？",
+      "options": [
+        "将所有指向同一现实世界实体的提及（命名提及、名词性提及、代词性提及）聚类",
+        "抽取关系",
+        "标注词性",
+        "将代词翻译为名词"
+      ],
+      "correct": 0,
+      "explanation": "核心指代聚类将指向同一实体的所有提及跨度归为一类。"
+    },
+    {
+      "stage": "pre",
+      "question": "哪种表达类型属于'名词性'提及？",
+      "options": [
+        "动词",
+        "像'she'这样的代词",
+        "仅专有名词",
+        "名词短语，如'the CEO'或'the company'"
+      ],
+      "correct": 3,
+      "explanation": "名词性提及是像'the company'这样的名词短语；代词性提及是代词。"
+    },
+    {
+      "stage": "check",
+      "question": "现代（Lee 等，2017）核心指代架构是什么？",
+      "options": [
+        "仅基于规则的句法解析",
+        "决策树",
+        "端到端基于跨度的方法：枚举跨度、评分提及，然后计算先行词概率并贪心聚类",
+        "BM25 检索"
+      ],
+      "correct": 2,
+      "explanation": "端到端神经核心指代枚举跨度，并联合学习提及评分与先行词评分。"
+    },
+    {
+      "stage": "check",
+      "question": "CoNLL F1 平均的是什么？",
+      "options": [
+        "MUC、B-cubed 和 CEAF-phi4 的 F1 分数",
+        "精确率和召回率",
+        "跨语言的 F1",
+        "词元和跨度的 F1"
+      ],
+      "correct": 0,
+      "explanation": "CoNLL F1 是 MUC、B-cubed 和 CEAF-phi4 指标的平均值。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是桥梁指代（bridging anaphora）？",
+      "options": [
+        "一种隐含指代，如'the wheels'暗示前文提及的汽车的轮子",
+        "误译",
+        "出现在先行词之前的代词",
+        "没有先行词的代词"
+      ],
+      "correct": 0,
+      "explanation": "桥梁指代将一个提及链接到已被隐含但未明确陈述的实体或其部分。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么纯 LLM 核心指代在长文档上不可靠？",
+      "options": [
+        "核心指代需要 CFG",
+        "LLM 无法阅读文本",
+        "分词器失效",
+        "单次调用的 LLM 在 50+ 段落的文档中会过度合并或静默丢弃提及；需要滑动窗口加合并策略"
+      ],
+      "correct": 3,
+      "explanation": "长文档的 LLM 核心指代性能下降；滑动窗口配合跨窗口合并可缓解该问题。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么在下游任务前要将核心指代聚类合并到 NER 结果中？",
+      "options": [
+        "Wikidata 强制要求",
+        "使下游任务每个聚类只看到一个实体，而非每个表面提及一个实体，大幅提升覆盖率",
+        "降低延迟",
+        "增加词元数量"
+      ],
+      "correct": 1,
+      "explanation": "不合并时，NER 会单独计算每个表面形式，遗漏 60-80% 的实体提及。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么硬编码的性别规则会成为核心指代系统的脆弱点？",
+      "options": [
+        "它们在非二元性别指代、组织和动物上会失效；学习式评分更鲁棒",
+        "它们无法使用词性标签",
+        "它们需要 GPU",
+        "它们运行太快"
+      ],
+      "correct": 0,
+      "explanation": "性别启发式规则在人口多样性文本中失效；推荐 Learning-based 模型。"
+    }
+  ]
+}

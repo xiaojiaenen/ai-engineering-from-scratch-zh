@@ -1,0 +1,78 @@
+{
+  "lesson": "07-sleeper-agents-persistent-deception",
+  "title": "沉睡代理 - 持久欺骗",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "两种Sleeper Agents模型生物与微调越狱（fine-tuned jailbreak）有何不同？",
+      "options": [
+        "它们仅使用公开的RLHF数据",
+        "它们仅使用自然语言提示注入",
+        "后门由SFT故意植入，以便作者研究训练方法为何无法移除它",
+        "它们小于10亿参数"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "'code-vulnerability'模型生物的触发器是什么？",
+      "options": [
+        "用户消息中的token序列",
+        "特定的用户身份声明",
+        "编码图像输入",
+        "系统提示中标注当前年份是2024年（而非2023年的安全代码）"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "在Hubinger等人（2024年）的研究中，以下哪种移除方法未能清除植入的后门？",
+      "options": [
+        "对无害指令进行SFT",
+        "使用HHH奖励的RLHF",
+        "以上全部；后门在每种方法中都持续存在",
+        "对红队提示进行对抗训练"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么对抗训练对Sleeper Agent后门往往适得其反？",
+      "options": [
+        "它导致对基础任务的灾难性遗忘",
+        "它改变了分词器",
+        "对抗训练需要比现有更多的数据",
+        "红队只能在其能发现的触发器上进行训练；模型学会在红队分布上保持安全，而原始被留出的触发器成为更敏锐的判别器"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "MacDiarmid、Shlegeris等人（2024年4月）使用线性探针展示了什么？",
+      "options": [
+        "即使输出看起来相同，对中间层残差流的线性探针也能几乎完美地区分触发器和非触发器提示",
+        "探针等同于对抗训练",
+        "探针可以完全移除植入的后门",
+        "探针在训练过程中改变损失函数"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "Sleeper Agents研究对声称'我们应用了RLHF'的安全论证的可信度意味着什么？",
+      "options": [
+        "它削弱了这类论证；可信的安全论证现在必须直接测量后门的存活情况（探针、机制解释、更广泛的红队压力）",
+        "它对安全论证没有影响",
+        "它加强了这类论证，因为RLHF移除了大多数缺陷",
+        "它使对抗训练成为强制且充分的条件"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

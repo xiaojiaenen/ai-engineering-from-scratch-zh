@@ -1,0 +1,90 @@
+{
+  "lesson": "23-function-call-dispatcher",
+  "title": "Function Call Dispatcher",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么非幂等工具在超时时默认不重试？",
+      "options": [
+        "因为调度器无法测量非幂等调用",
+        "因为非幂等处理器运行更快",
+        "因为幂等键太慢",
+        "因为工具可能已部分提交；重试可能重复产生效果"
+      ],
+      "correct": 3,
+      "explanation": "对4.9秒时超时的db.write进行重试可能产生第二次写入。除非处理器告知该调用可安全重复，否则调度器会拒绝重试。"
+    },
+    {
+      "stage": "pre",
+      "question": "幂等键去重机制用于防范什么问题？",
+      "options": [
+        "模式验证错误",
+        "原始调用仍在进行中时触发的重试",
+        "进程重启",
+        "网络慢"
+      ],
+      "correct": 1,
+      "explanation": "若无去重，5秒时的重试会与仍在等待的慢速原始调用产生竞争。缓存会将两者合并为一次处理器调用。"
+    },
+    {
+      "stage": "check",
+      "question": "此调度器中哪些错误类型适合重试？",
+      "options": [
+        "schema 和 not_found",
+        "timeout（若为幂等）和 transient",
+        "internal 和 budget_exceeded",
+        "全部"
+      ],
+      "correct": 1,
+      "explanation": "schema 和 not_found 是确定性的。internal 掩盖了未知的处理器 bug。budget_exceeded 是一种产出（yield）。只有对幂等操作时的 timeout 和显式的 TransientError 才会重试。"
+    },
+    {
+      "stage": "check",
+      "question": "_run_with_retries 周围的信号量保护的是什么？",
+      "options": [
+        "处理器自身",
+        "后端不被 gather() 扇出的过多并发调用压垮",
+        "校验器",
+        "重试计数器"
+      ],
+      "correct": 1,
+      "explanation": "若不加限制，四十次 gather() 调用会同时打开四十个并发分派。信号量会对这一波调用做上限控制。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么幂等键由调用方推导，而非由调度器推导？",
+      "options": [
+        "因为缓存无法存储字符串",
+        "因为注册表不会有这个键",
+        "因为仅从参数推导，语义上不同的调用若碰巧共享参数会碰撞",
+        "因为 Python 哈希不稳定"
+      ],
+      "correct": 2,
+      "explanation": "调用方知道 step id、规划意图和用户信息。仅靠参数不足以提供安全去重所需的上下文。"
+    },
+    {
+      "stage": "post",
+      "question": "哪个 JSON-RPC 错误码映射到调度时的模式失败？",
+      "options": [
+        "-32602",
+        "-32603",
+        "-32700",
+        "-32601"
+      ],
+      "correct": 0,
+      "explanation": "-32602 Invalid params。调度器在处理器执行前就返回该错误。"
+    },
+    {
+      "stage": "post",
+      "question": "对幂等工具达到 max_attempts 且均为超时时，返回什么？",
+      "options": [
+        "DispatchOk 但无结果",
+        "DispatchError，kind=timeout 且 attempts==max_attempts",
+        "抛出异常",
+        "DispatchError，kind=internal"
+      ],
+      "correct": 1,
+      "explanation": "调度器返回带类型的错误信封。kind 反映最后一次失败模式，attempts 反映实际尝试次数。"
+    }
+  ]
+}

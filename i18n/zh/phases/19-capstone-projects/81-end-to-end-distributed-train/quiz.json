@@ -1,0 +1,78 @@
+{
+  "lesson": "81-end-to-end-distributed-train",
+  "title": "端到端分布式训练",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "当每节课已有自己的测试时，为什么综合项目仍然重要？",
+      "options": [
+        "组合是独立的属性：各部分可以通过单元测试，但集成后会出现死锁、loss 发散或内存增长",
+        "装饰性的",
+        "更慢",
+        "更容易评分"
+      ],
+      "correct": 0,
+      "explanation": "端到端测试能捕获孤立测试无法发现的连接问题：rendezvous、barrier 顺序、gather 合约。"
+    },
+    {
+      "stage": "pre",
+      "question": "演示验证了哪四个不变量？",
+      "options": [
+        "速度",
+        "每秒 token 数",
+        "硬件",
+        "(a) loss 运行到第 20 步且无 NaN，(b) 每个 rank 的参数范数一致，(c) 每 rank 的优化器内存符合 ZeRO-1 公式，(d) 第 10 步的 checkpoint 重新加载后字节级相等"
+      ],
+      "correct": 3,
+      "explanation": "每个不变量捕获不同类型的组合 bug：NaN 捕获发散，范数一致性捕获同步漂移，内存捕获分片错误，checkpoint 捕获写入原子性。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么模型是小型 GPT 而不是 MLP？",
+      "options": [
+        "必需",
+        "看起来更专业",
+        "GPT 引入了 LayerNorm 运行统计、embedding 梯度形状以及 softmax+交叉熵的边缘情况，这些是 MLP 会隐藏的",
+        "更快"
+      ],
+      "correct": 2,
+      "explanation": "MLP 梯度同步已在第 77 课中验证；综合项目需要一个有更多边缘情况的模型来证明在真实算子下的组合正确性。"
+    },
+    {
+      "stage": "check",
+      "question": "在此上下文中，自终止是什么意思？",
+      "options": [
+        "进程自我终止",
+        "固定步数（20），完成后退出码为 0，无需人工干预；如果任何部分死锁，演示将永远不会返回，CI 会捕获它",
+        "崩溃恢复",
+        "手动"
+      ],
+      "correct": 1,
+      "explanation": "带退出码 0 的有界运行允许测试框架断言终止；while-True 循环会掩盖死锁。"
+    },
+    {
+      "stage": "check",
+      "question": "演示如何结合 DDP 和 ZeRO？",
+      "options": [
+        "仅 ZeRO",
+        "同时使用两者",
+        "初始化时采用 DDP 风格的广播进行参数同步，ZeRO-1 的 reduce_scatter+allgather 替代 optimiser.step；DDP 的梯度 allreduce 被纳入 ZeRO 的 reduce_scatter",
+        "仅 DDP"
+      ],
+      "correct": 2,
+      "explanation": "ZeRO-1 通过 reduce_scatter 负责梯度同步，因此不需要 DDP 单独的 allreduce；初始化时的广播是唯一保留的 DDP 特有调用。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么生产环境使用墙钟 checkpoint 间隔而非步数？",
+      "options": [
+        "看起来更整洁",
+        "更快",
+        "NCCL 要求",
+        "每步时间随序列长度和微批次数量变化；10 分钟的间隔无论模型大小都能捕获相同的计算量"
+      ],
+      "correct": 3,
+      "explanation": "本课为清晰起见使用基于步数的方法；生产环境通常在每 5-15 分钟的墙钟时间保存一次。"
+    }
+  ]
+}

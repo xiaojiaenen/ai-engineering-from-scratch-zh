@@ -1,0 +1,78 @@
+{
+  "lesson": "15-mcp-security-tool-poisoning",
+  "title": "MCP 安全：中毒元数据、路由与 MRTR 状态",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "哪个 MCP 字段可安全用作经过认证的客户端标识？",
+      "options": [
+        "所有自报告的 clientInfo 字段均不安全",
+        "clientInfo.name",
+        "clientInfo.version",
+        "clientCapabilities"
+      ],
+      "correct": 0,
+      "explanation": "客户端信息与能力声明属于协议元数据，不能作为身份认证依据。"
+    },
+    {
+      "stage": "check",
+      "question": "网关在批准工具后应对什么进行哈希计算？",
+      "options": [
+        "完整的规范描述符，包括 description、schema 及相关注解",
+        "仅工具名称",
+        "仅服务器显示名称",
+        "当前会话标识符"
+      ],
+      "correct": 0,
+      "explanation": "对整个描述符进行固定哈希可检测出仅对 description 哈希无法发现的 schema 或注解变更。"
+    },
+    {
+      "stage": "check",
+      "question": "网关应如何暴露两个同名 search 的后端工具？",
+      "options": [
+        "让模型自行推断服务端",
+        "随机选择一个后端",
+        "使用稳定的限定名称，如 notes.search 和 issues.search",
+        "保留最后发现的工具"
+      ],
+      "correct": 2,
+      "explanation": "限定名称使路由、审批、审计和头部校验都能指向一个稳定的工具标识。"
+    },
+    {
+      "stage": "check",
+      "question": "哪些客户端能力声明支持 MCP 表单 elicitation？",
+      "options": [
+        "elicitation: {} 隐式声明，或 elicitation: {form: {}} 显式声明均可",
+        "任意非空的 extensions 对象",
+        "仅有启用 form 的协议会话",
+        "仅 elicitation.url"
+      ],
+      "correct": 0,
+      "explanation": "空的 elicitation 对象即隐含表单支持，而 form: {} 则是显式声明。仅支持 URL 无法满足表单请求需求。"
+    },
+    {
+      "stage": "post",
+      "question": "为何必须对 requestState 进行完整性保护并将其绑定到精确参数？",
+      "options": [
+        "为了选择缓存作用域",
+        "为了替代 OAuth",
+        "为了防止客户端对其他操作复用或篡改已确认的请求",
+        "为了让 JSON 更小"
+      ],
+      "correct": 2,
+      "explanation": "requestState 会经过不可信的对端往返传输，因此服务端必须能够检测篡改和上下文变更。共享原子 nonce 声明可防止在多个处理器实例间被复用。"
+    },
+    {
+      "stage": "post",
+      "question": "现代网关的正确处理顺序是什么？",
+      "options": [
+        "信任 clientInfo，执行，然后审计",
+        "将声明的能力视为权限",
+        "先认证，再校验报文与头部，检查能力兼容性，授权，最后执行",
+        "创建会话，按发现顺序路由，然后授权"
+      ],
+      "correct": 2,
+      "explanation": "在授权和执行之前，必须先解决报文歧义性和身份问题。"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "60-projection-layer-modality-align",
+  "title": "用于模态对齐的投影层",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么视觉编码器产生的 tokens 是文本解码器无法直接消费的？",
+      "options": [
+        "图像 tokens 已加密",
+        "图像 tokens 太短",
+        "它们处于不同的文件格式中",
+        "图像 tokens 存在于编码器在视觉预训练阶段学到的基空间中，与解码器的词向量没有对应关系"
+      ],
+      "correct": 3,
+      "explanation": "两个编码器学习独立的基空间；需要一个桥接模块在共享空间中将其对齐。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么在实际中两层 MLP 就足以完成模态对齐？",
+      "options": [
+        "禁止使用单层投影",
+        "PyTorch 要求使用两层",
+        "两个线性投影之间的一次非线性变换（GELU）在经验上足以对齐 CLIP 风格的特征与文本嵌入",
+        "更深的投影是不被允许的"
+      ],
+      "correct": 2,
+      "explanation": "LLaVA 及其后续模型都采用这种两层 MLP，因为非线性能够修正单层线性投影无法解决的曲率不匹配问题。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么在该对齐阶段会冻结视觉编码器？",
+      "options": [
+        "编码器为空",
+        "86M 参数的编码器无法在小规模示例语料上重新训练；仅 1.3M 参数的投影足够轻量，可在几分钟内完成对齐",
+        "冻结意味着更快的 wall time",
+        "PyTorch 不支持训练编码器"
+      ],
+      "correct": 1,
+      "explanation": "冻结编码器和文本表后，投影成为唯一学习的模块，这正是所有基于 adapter 的多模态大模型（VLM）的标准做法。"
+    },
+    {
+      "stage": "check",
+      "question": "当两个向量指向相反方向时，cosine_alignment_loss(image_emb, text_emb) 会返回什么值？",
+      "options": [
+        "无穷大",
+        "1.0",
+        "0.0",
+        "2.0"
+      ],
+      "correct": 3,
+      "explanation": "损失 = 1 - cos(夹角)。反平行向量的 cos 值为 -1，因此损失为 1 - (-1) = 2.0。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么使用 CLS pooling 从 197 个 tokens 生成单个图像级向量？",
+      "options": [
+        "节省磁盘空间",
+        "PyTorch 会自动对 tokens 求和",
+        "Patch tokens 未被使用",
+        "每个 caption 对应一个向量，因此图像侧也需要一个向量；CLS token 正是编码器内置的图像摘要表示"
+      ],
+      "correct": 3,
+      "explanation": "对齐操作是一个图像向量与一个 caption 向量的比对；CLS pooling 可以在不引入额外参数的情况下生成该图像向量。"
+    },
+    {
+      "stage": "post",
+      "question": "下列哪个生产系统最直接地对应课程 60 中所描述的模式？",
+      "options": [
+        "LLaVA 1.5：冻结视觉编码器与冻结 LLM，仅训练一个两层 MLP 投影",
+        "PaLM",
+        "AlphaFold",
+        "Stable Diffusion"
+      ],
+      "correct": 0,
+      "explanation": "LLaVA 的第一阶段训练正是这种模式：冻结编码器和语言模型，仅以两层 MLP 桥接模块作为唯一可训练部分。"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "27-finops-llms",
+  "title": "LLM 的 FinOps——单位经济与多租户分摊",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么传统的 FinOps 在 LLM 支出上会失效？",
+      "options": [
+        "LLM 不花钱",
+        "云服务商拒绝明细账单",
+        "LLM 账单总是免费的",
+        "成本以 token 交易计而非资源占用时长；标签不会从 API 调用自动传播，必须在调用点标记用户/任务/租户"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "课程要求第一天就启用哪三个归因维度？",
+      "options": [
+        "服务商、模型、API 版本",
+        "区域、可用区、数据中心",
+        "按用户（user_id）、按任务（task_id + route）、按租户（tenant_id）",
+        "GPU、CPU、RAM"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "成本归因中应该拆分哪四个 token 层级？",
+      "options": [
+        "GPU、CPU、RAM、存储",
+        "缓存、模型、网关、可观测性",
+        "输入、输出、网络、磁盘",
+        "Prompt、tool、memory、response"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "执行阶梯中的快速切断（kill-switch）触发条件是什么？",
+      "options": [
+        "一分钟支出超过 1 美元",
+        "出现任何 5xx 响应",
+        "租户支出的 z-score 相对基线 > 4；自动暂停该租户并通知值班人员",
+        "P50 延迟 > 2s"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程推荐使用哪个单位指标来替代 $/M tokens？",
+      "options": [
+        "每秒成本",
+        "每 GPU 小时成本",
+        "每项业务产出成本（例如：每个已解决工单的成本、每篇生成文章的成本、每个成功完成的 agent 任务成本）",
+        "每网关成本"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程称成熟团队使用的最高准确率归因模式是哪一种？",
+      "options": [
+        "仅打标签并聚合",
+        "基于模型的分配",
+        "遥测连接器——通过 trace ID 将追踪数据与账单关联",
+        "采样与外推"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

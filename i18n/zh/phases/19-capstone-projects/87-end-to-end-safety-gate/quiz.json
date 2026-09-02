@@ -1,0 +1,78 @@
+{
+  "lesson": "87-end-to-end-safety-gate",
+  "title": "Capstone 87 — End-to-End Safety Gate",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "三个检查点在请求生命周期中分别位于何处？",
+      "options": [
+        "全部三个都在模型调用前运行",
+        "Pre-gen在模型前处理prompt，during-gen过滤输出流，post-gen在处理完成的输出上运行",
+        "只有post-gen运行；pre-gen和during-gen是别名",
+        "全部三个都在模型完成后运行"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "during-gen过滤的目标是什么？",
+      "options": [
+        "提高token吞吐量",
+        "当出现已知有害的续接内容时缓冲数据块并提前终止流，使用户无法看到",
+        "用拒绝回应替换prompt",
+        "将输出翻译成另一种语言"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "聚合器如何决定最终操作？",
+      "options": [
+        "仅查看规则引擎",
+        "综合检测器、token过滤器、分类器和规则信号的最大严重程度，并映射为阻止、编辑、警告或允许",
+        "对所有信号的置信度求平均",
+        "再次调用模型"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么网关为每次请求生成结构化的RequestTrace？",
+      "options": [
+        "为了降低系统速度",
+        "替代日志记录",
+        "为审核人员提供每个检查点的审计轨迹，以便追踪任何层面的回归到正确的模块",
+        "将轨迹复制到prompt中"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "当pre-gen置信度超过阻止阈值时会发生什么？",
+      "options": [
+        "为了完整性仍会调用模型",
+        "网关抛出异常",
+        "网关返回策略拒绝响应，完全跳过during-gen和post-gen",
+        "网关降低阈值并重试"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为什么演示故意让某些编码技巧型prompt进入during-gen阶段？",
+      "options": [
+        "因为编码技巧不是真正的攻击",
+        "因为输入管道不一定能及时规范化它们；during-gen过滤器是捕获泄漏内容的纵深防御",
+        "因为规则引擎处理编码",
+        "因为模型无论如何都会拒绝它们"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

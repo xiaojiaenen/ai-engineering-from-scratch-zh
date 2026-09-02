@@ -1,0 +1,90 @@
+{
+  "lesson": "12-anthropic-workflow-patterns",
+  "title": "Anthropic 的工作流模式：简单胜于复杂",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Anthropic 如何区分工作流（workflow）与智能体（agent）？",
+      "options": [
+        "工作流由工程师主导、是预定义的图；智能体由模型主导、动态决定工具使用",
+        "工作流是无状态的；智能体是有状态的",
+        "工作流在 CPU 上运行；智能体需要 GPU",
+        "工作流使用嵌入；智能体使用工具"
+      ],
+      "correct": 0,
+      "explanation": "工作流 = 工程师主导的预定义代码路径；智能体 = 模型主导的图。"
+    },
+    {
+      "stage": "pre",
+      "question": "支撑这五种模式的增强型 LLM 具备哪三种能力？",
+      "options": [
+        "搜索（检索）、工具（行动）、记忆（持久化）",
+        "向量、KV、图",
+        "规划、执行、反思",
+        "嵌入、微调、RAG"
+      ],
+      "correct": 0,
+      "explanation": "原子单元是一个集成了检索、工具和记忆的单个 LLM。"
+    },
+    {
+      "stage": "check",
+      "question": "下列哪项不属于 Anthropic 的五种工作流模式？",
+      "options": [
+        "评估器-优化器（Evaluator-optimizer）",
+        "梯度蒸馏（Gradient distillation）",
+        "提示链（Prompt chaining）",
+        "路由（Routing）"
+      ],
+      "correct": 1,
+      "explanation": "五种模式分别是：提示链、路由、并行化、编排器-工作者、评估器-优化器。梯度蒸馏是一种训练概念。"
+    },
+    {
+      "stage": "check",
+      "question": "并行化有哪两种形式？",
+      "options": [
+        "同步与异步",
+        "有状态与无状态",
+        "热与冷",
+        "分块（不同片段）和投票（同一提示调用 N 次后聚合）"
+      ],
+      "correct": 3,
+      "explanation": "并行化分为分块或投票两种形式；两者都向 N 个调用扇出并聚合结果。"
+    },
+    {
+      "stage": "check",
+      "question": "Self-Refine 是哪个工作流模式的泛化？",
+      "options": [
+        "编排器-工作者",
+        "评估器-优化器",
+        "提示链",
+        "路由"
+      ],
+      "correct": 1,
+      "explanation": "评估器-优化器是 Anthropic 对 Self-Refine / CRITIC 迭代模式的命名。"
+    },
+    {
+      "stage": "post",
+      "question": "根据课程，在什么情况下工作流优于智能体？",
+      "options": [
+        "总是",
+        "仅在 GPU 上",
+        "在可预测、成本可控或合规受限的任务中，且流程图可枚举和审计",
+        "仅用于对话"
+      ],
+      "correct": 2,
+      "explanation": "工作流更经济、更易调试且可审计；当步骤可预见时选用它们。"
+    },
+    {
+      "stage": "post",
+      "question": "课程推荐的默认起点是什么？",
+      "options": [
+        "多智能体框架",
+        "微调模型",
+        "构建自定义 MCTS",
+        "直接调用 API；仅当持久状态、Actor 并发或角色模板化值得其成本时才引入框架"
+      ],
+      "correct": 3,
+      "explanation": "Schluntz 和 Zhang：从简单开始；仅在必要时增加框架复杂性。"
+    }
+  ]
+}

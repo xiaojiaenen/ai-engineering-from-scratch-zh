@@ -1,0 +1,78 @@
+{
+  "lesson": "25-security-secrets-audit",
+  "title": "安全——密钥、API Key轮换、审计日志与护栏",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "2026年LLM服务凭证的标准模式是什么？",
+      "options": [
+        "为求速度将API密钥硬编码在配置文件中",
+        "通过邮件将密钥发送给每位工程师",
+        "将密钥存储在Slack频道中",
+        "通过IAM角色由AI网关在运行时从集中式密钥库拉取；在密钥库中轮换，所有应用在几分钟内即可生效"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "课程建议API密钥、密钥库根令牌和CI/CD凭证的轮换频率是多少？",
+      "options": [
+        "90天内完成，尽可能自动化，手动操作时记录并跟踪",
+        "仅在泄露时",
+        "从不",
+        "每5年"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么PII脱敏采用一致的令牌化方案（Mesh方法）？",
+      "options": [
+        "它将提示词加密后发送给模型",
+        "这是ISO 27001的强制要求",
+        "相同源值映射到相同占位符，使LLM能在整个提示词中保持代码和关系语义",
+        "它比正则表达式占用更少的内存"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "课程建议LLM服务子网采用怎样的出站安全策略？",
+      "options": [
+        "仅白名单放行少量域名（如api.openai.com、api.anthropic.com、向量数据库、密钥库），丢弃其余所有流量，并使用仅允许白名单的DNS解析器",
+        "阻止所有出站流量，包括供应商流量",
+        "允许DNS但阻止HTTP",
+        "允许所有出站流量"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "2026年Vercel供应链事件告诉我们关于CI/CD凭证的什么教训？",
+      "options": [
+        "CI/CD凭证风险较低，可保留在env文件中",
+        "CI/CD密钥不可能被盗取",
+        "Vercel未受影响",
+        "CI/CD凭证等同于生产环境凭证——应存入密钥库、严格限制作用范围、频繁轮换"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程建议每条LLM调用应保留哪些审计日志字段？",
+      "options": [
+        "仅费用",
+        "时间戳、用户/租户、提示词哈希值（非原始内容）、模型及版本、token数量、费用、响应哈希值、任何护栏触发事件",
+        "仅原始提示词",
+        "仅响应内容"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

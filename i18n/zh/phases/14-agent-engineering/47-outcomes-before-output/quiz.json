@@ -1,0 +1,78 @@
+{
+  "lesson": "47-outcomes-before-output",
+  "title": "Outcomes Before Output",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "哪个陈述是结果（outcome）而非产出（output）？",
+      "options": [
+        "构建一个事件助手",
+        "添加一个仪表板",
+        "部署向量数据库",
+        "在两分钟内识别出故障服务，同时保持只读状态"
+      ],
+      "correct": 3,
+      "explanation": "该陈述描述了可观察的变化和约束，而非直接指定产物。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么更快的实现会增加塑形（shaping）风险？",
+      "options": [
+        "团队可能在学习跟上之前就陷入了错误的问题",
+        "代码会变慢",
+        "模型停止规划",
+        "测试变得不可能"
+      ],
+      "correct": 0,
+      "explanation": "速度会放大未经验证方向的成本。"
+    },
+    {
+      "stage": "check",
+      "question": "成果框架（outcome frame）应包含哪些内容？",
+      "options": [
+        "用户、情境、当前行为、期望成果、约束和非目标",
+        "仅架构",
+        "仅功能",
+        "模型和框架版本"
+      ],
+      "correct": 0,
+      "explanation": "六个维度将构建与真实情境和边界联系起来。"
+    },
+    {
+      "stage": "check",
+      "question": "成果框架在什么情况下可以提及技术？",
+      "options": [
+        "仅在标题中",
+        "当经证实的兼容性约束真正将其锁定为约束时",
+        "在每个目标中",
+        "当它流行时"
+      ],
+      "correct": 1,
+      "explanation": "只有当证据使技术成为真实约束时，技术才应出现。"
+    },
+    {
+      "stage": "post",
+      "question": "非目标（non-goals）的作用是什么？",
+      "options": [
+        "列出未来梦想",
+        "在当前切片中拒绝诱人的相邻工作",
+        "衡量成功",
+        "替代约束"
+      ],
+      "correct": 1,
+      "explanation": "具体的非目标让构建始终保持与当前结果的关联。"
+    },
+    {
+      "stage": "post",
+      "question": "受约束的成果何时算失败？",
+      "options": [
+        "只有当没有代码交付时",
+        "当实现发生变化时",
+        "当达成期望结果却违反了既定约束时",
+        "当记录了非目标时"
+      ],
+      "correct": 2,
+      "explanation": "约束是成果的一部分，而非可选的实现建议。"
+    }
+  ]
+}

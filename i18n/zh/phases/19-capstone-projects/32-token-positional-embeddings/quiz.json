@@ -1,0 +1,78 @@
+{
+  "lesson": "32-token-positional-embeddings",
+  "title": "Token and Positional Embeddings",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "embedding 阶段从 (B, T) ids 产生什么形状的张量？",
+      "options": [
+        "(B, T, D)，其中 D 是模型维度",
+        "(B, V)",
+        "(B, T, V)，其中 V 是词表大小",
+        "(B, T)"
+      ],
+      "correct": 0,
+      "explanation": "每个 id 被映射为一个 D 维向量。批次维度保留 B 和 T，并新增一个特征维度 D。"
+    },
+    {
+      "stage": "check",
+      "question": "在本课程中，token 嵌入和位置嵌入如何组合？",
+      "options": [
+        "通过额外的线性投影",
+        "通过取逐元素最大值",
+        "通过逐元素相加，将位置向量在批次维度上广播",
+        "沿特征轴拼接"
+      ],
+      "correct": 2,
+      "explanation": "形状为 (B, T, D) 和 (T, D) 的两个张量直接相加。广播机制将位置表在批次轴上复制。"
+    },
+    {
+      "stage": "check",
+      "question": "SinusoidalPositionalEmbedding 贡献多少个可学习参数？",
+      "options": [
+        "max_context_length * d_model",
+        "零",
+        "max_context_length",
+        "d_model"
+      ],
+      "correct": 1,
+      "explanation": "正弦表通过公式计算生成，并存储为 buffer。它不包含任何可学习参数。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种位置编码不能接受超过其构建限制的序列？",
+      "options": [
+        "Sinusoidal positional embedding",
+        "Neither",
+        "Both",
+        "Learned positional embedding"
+      ],
+      "correct": 2,
+      "explanation": "在本课程的实现中，这两个类都在 forward 时强制限制 max_context_length。Learned 嵌入本质上受表大小限制；此处的 Sinusoidal 嵌入也因使用预建表而受限。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么正弦方案在相邻特征对上同时使用 sin 和 cos？",
+      "options": [
+        "使得位置 p+k 的向量成为位置 p 向量的线性函数",
+        "因为 cos 本身无法进行反向传播",
+        "因为单独的 sin 不是周期性的",
+        "因为这会使参数数量翻倍"
+      ],
+      "correct": 0,
+      "explanation": "在同一波长上配对 sin 和 cos 意味着位置偏移 k 相当于一次旋转，而旋转是线性映射。因此，Attention 可以通过线性投影学习相对偏移。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么 embedding 的反向传播只更新批次中出现的 token 表行？",
+      "options": [
+        "前向传播中未涉及的行通过链式法则产生零梯度",
+        "优化器跳过它未看到的行",
+        "PyTorch 只为非零条目存储梯度",
+        "token ids 存储在稀疏数据结构中"
+      ],
+      "correct": 0,
+      "explanation": "未对任何输出产生贡献的行，其对损失的导数为零，因此该步的梯度为零。"
+    }
+  ]
+}

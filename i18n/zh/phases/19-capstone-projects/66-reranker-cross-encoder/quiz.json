@@ -1,0 +1,78 @@
+{
+  "lesson": "66-reranker-cross-encoder",
+  "title": "Cross-Encoder 重排序器",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Bi-encoder 和 cross-encoder 在架构上有什么区别？",
+      "options": [
+        "Bi-encoder 分别独立编码查询和文档；cross-encoder 将（查询，文档）拼接后作为整体序列输入，并在整个序列上进行全注意力计算",
+        "Bi-encoder 经过训练；cross-encoder 没有经过训练",
+        "Bi-encoder 使用余弦相似度；cross-encoder 使用点积",
+        "Cross-encoder 只能在 GPU 上运行"
+      ],
+      "correct": 0,
+      "explanation": "跨拼接序列的全注意力机制赋予了 cross-encoder 更高的精度；bi-encoder 从未同时看到查询和文档。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么 cross-encoder 不能用作 1000 万文档语料库的主要检索器？",
+      "options": [
+        "它无法对文本进行嵌入",
+        "它需要对每个（查询，文档）对执行一次前向传播，即每次查询需执行 1000 万次",
+        "它不支持负分数",
+        "它要求在序列末尾使用 CLS token"
+      ],
+      "correct": 1,
+      "explanation": "在语料库规模下吞吐量急剧下降；cross-encoder 需要对每个候选对单独执行一次前向传播，而不是在索引时每个文档只执行一次。"
+    },
+    {
+      "stage": "check",
+      "question": "在两级检索后重排序流程中，N 参数的作用是什么？",
+      "options": [
+        "它是词汇表的大小",
+        "它是 cross-encoder 的隐藏层维度",
+        "它是 cross-encoder 的层数",
+        "它是 bi-encoder 返回给 cross-encoder 重新评分的候选数量"
+      ],
+      "correct": 3,
+      "explanation": "N 是重排序候选池的大小；它限制了质量上限（cross-encoder 无法超越 bi-encoder 在 N 个候选中的召回率）和延迟（cross-encoder 需执行 N 次前向传播）。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么必须选择 N 严格大于 K（通常 3 倍或以上）？",
+      "options": [
+        "BM25 需要它来进行 IDF 计算",
+        "较小的 N 会降低嵌入维度",
+        "cross-encoder 要求 N 必须是 K 的倍数",
+        "如果 N 等于 K，cross-encoder 只能重新加权而无法重新排序；重排序增益坍缩为零"
+      ],
+      "correct": 3,
+      "explanation": "当 N = K 时没有可重新排序的空间；cross-encoder 的唯一任务是选出 K 个最佳结果，这要求 N > K。"
+    },
+    {
+      "stage": "check",
+      "question": "在本课程中，cross-encoder 的均值池化头的作用是什么？",
+      "options": [
+        "对词汇分布进行池化",
+        "对文档位置计算 softmax",
+        "对非填充位置的最后一层输出求均值，再通过一个线性层输出生成单个相关性分数",
+        "对嵌入索引求和"
+      ],
+      "correct": 2,
+      "explanation": "对非填充位置进行均值池化，然后通过单个线性层输出相关性分数；CLS 池化是另一种质量相近的替代方案。"
+    },
+    {
+      "stage": "post",
+      "question": "记录 rank-1 cross-encoder 分数有助于检测哪种生产故障模式？",
+      "options": [
+        "域外查询：当排名第一的重排序分数低于针对语料库设定的阈值时，模型在提示语料库中没有能回答该查询的内容",
+        "网络中断",
+        "分词器的词汇漂移",
+        "bi-encoder 的索引损坏"
+      ],
+      "correct": 0,
+      "explanation": "持续偏低的 rank-1 分数意味着 cross-encoder 检测到检索到的候选池中不包含答案；应将该信号作为低置信度反馈给 LLM。"
+    }
+  ]
+}

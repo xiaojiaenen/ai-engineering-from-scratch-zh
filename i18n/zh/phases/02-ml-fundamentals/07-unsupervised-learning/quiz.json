@@ -1,0 +1,67 @@
+[
+  {
+    "id": "unsupervised-pre-1",
+    "stage": "pre",
+    "question": "无监督学习与监督学习有何区别？",
+    "options": [
+      "无监督学习没有带标签的输出——算法自行发现结构",
+      "无监督学习始终产生更好的结果",
+      "无监督学习使用更多数据",
+      "无监督学习仅适用于文本数据"
+    ],
+    "correct": 0,
+    "explanation": "在无监督学习中，没有标签。算法在不被告知正确输出的情况下，自动发现数据中的模式、分组或结构。"
+  },
+  {
+    "id": "unsupervised-pre-2",
+    "stage": "pre",
+    "question": "K-Means 在训练前需要指定什么？",
+    "options": [
+      "聚类数量 K",
+      "确切的聚类中心",
+      "要使用的距离度量",
+      "每个数据点的标签"
+    ],
+    "correct": 0,
+    "explanation": "K-Means 需要以聚类数量 K 作为输入。随后迭代地将点分配给最近的中心，并重新计算中心，直至收敛。"
+  },
+  {
+    "id": "unsupervised-post-1",
+    "stage": "post",
+    "question": "K-Means 在两个互锁的半月亮形状上失败，而 DBSCAN 成功。为什么？",
+    "options": [
+      "DBSCAN 在所有数据集上都优于 K-Means",
+      "DBSCAN 使用的数据比 K-Means 更多",
+      "DBSCAN 基于密度发现聚类，因此能发现任意形状的聚类，而 K-Means 假设聚类是球形的",
+      "K-Means 无法处理二维数据"
+    ],
+    "correct": 2,
+    "explanation": "K-Means 将点分配到最近的中心，生成球形（凸性）聚类。DBSCAN 从密集区域生长聚类，只要聚类通过密度连接，就能发现任意形状。"
+  },
+  {
+    "id": "unsupervised-post-2",
+    "stage": "post",
+    "question": "轮廓分数（silhouette score）衡量的是什么？",
+    "options": [
+      "发现的聚类总数",
+      "每个点与自身聚类的相似程度，相较于与最近的其他聚类的相似程度",
+      "聚类算法的速度",
+      "数据中异常值的百分比"
+    ],
+    "correct": 1,
+    "explanation": "轮廓分数 = (b - a) / max(a, b)，其中 a 是簇内平均距离，b 是最近邻簇的平均距离。取值范围为 -1（错误的聚类）到 +1（聚类良好）。"
+  },
+  {
+    "id": "unsupervised-post-3",
+    "stage": "post",
+    "question": "高斯混合模型（GMM）与 K-Means 在聚类分配上有何不同？",
+    "options": [
+      "GMM 使用硬分配，每个点仅属于一个聚类",
+      "GMM 给出软分配（概率性），每个点属于每个聚类都有一定的概率",
+      "GMM 仅适用于一维数据",
+      "GMM 完全不使用中心"
+    ],
+    "correct": 1,
+    "explanation": "K-Means 将每个点恰好分配到一个聚类（硬分配）。GMM 计算每个点属于每个高斯成分的概率（软分配），可以建模椭圆形、重叠的聚类。"
+  }
+]

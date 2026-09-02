@@ -1,0 +1,90 @@
+{
+  "lesson": "16-openai-agents-sdk",
+  "title": "OpenAI Agents SDK：交接、护栏与追踪",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "OpenAI Agents SDK 的五大核心原语是什么？",
+      "options": [
+        "计划、工作者、求解器、评估器、反思器",
+        "工具、提示、模型、记忆、追踪",
+        "代理、交接、护栏、会话、追踪",
+        "节点、边、归约器、检查点、子图"
+      ],
+      "correct": 2,
+      "explanation": "SDK 内置了这五大原语。"
+    },
+    {
+      "stage": "pre",
+      "question": "模型如何看待交接（handoff）？",
+      "options": [
+        "作为特殊 token",
+        "作为系统消息",
+        "作为自定义 HTTP 端点",
+        "作为名为 transfer_to_<agent_name> 的工具"
+      ],
+      "correct": 3,
+      "explanation": "交接以 transfer_to_<agent> 命名规则的形式暴露为工具。"
+    },
+    {
+      "stage": "check",
+      "question": "SDK 内置了哪三种护栏类型？",
+      "options": [
+        "硬护栏、软护栏和尽力护栏",
+        "前置、后置和内联护栏",
+        "输入、输出和工具护栏",
+        "静态、动态和联邦护栏"
+      ],
+      "correct": 2,
+      "explanation": "输入（第一个代理）、输出（最后一个代理）和工具（每个函数工具）护栏。"
+    },
+    {
+      "stage": "check",
+      "question": "并行和阻塞式护栏有什么区别？",
+      "options": [
+        "并行与主 LLM 同时运行（延迟更低，但触发时会浪费 token）；阻塞式先运行（触发时不浪费 token）",
+        "阻塞式仅适用于输出",
+        "并行总是成本更高",
+        "阻塞式是异步的；并行式是同步的"
+      ],
+      "correct": 0,
+      "explanation": "并行在触发时会浪费 token 来优化延迟；阻塞式节省 token 但会增加延迟。"
+    },
+    {
+      "stage": "check",
+      "question": "SDK 中如何启用追踪功能？",
+      "options": [
+        "仅在托管控制台上",
+        "默认关闭；需按代理单独启用",
+        "仅通过 OpenTelemetry 收集器",
+        "默认开启；可通过 OPENAI_AGENTS_DISABLE_TRACING=1 环境变量禁用"
+      ],
+      "correct": 3,
+      "explanation": "默认会生成 LLM、工具、交接和护栏的 span；可通过环境变量禁用。"
+    },
+    {
+      "stage": "post",
+      "question": "什么是交接漂移，课程建议如何缓解？",
+      "options": [
+        "代理 A 交接给 B，B 又交接回 A 形成循环；添加跳数计数器",
+        "会话溢出；归档旧会话",
+        "追踪滞后；减少 span 数量",
+        "护栏失步；重新训练"
+      ],
+      "correct": 0,
+      "explanation": "跳数计数器可在转移链无限循环之前设置上限。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么内置工具存在护栏盲区？",
+      "options": [
+        "它们不支持交接",
+        "工具护栏仅在函数工具上触发；内置工具（文件读取器、网页抓取）需要单独的策略",
+        "它们无法被追踪",
+        "它们比函数工具慢"
+      ],
+      "correct": 1,
+      "explanation": "逐工具护栏覆盖函数工具；内置工具需要单独的策略层。"
+    }
+  ]
+}

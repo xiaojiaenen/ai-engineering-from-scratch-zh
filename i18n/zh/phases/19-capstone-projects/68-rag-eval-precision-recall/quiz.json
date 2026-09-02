@@ -1,0 +1,78 @@
+{
+  "lesson": "68-rag-eval-precision-recall",
+  "title": "RAG评估：精确率、召回率、MRR、nDCG、忠实度、答案相关性",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么recall@k通常是生产环境中RAG的首要检索指标？",
+      "options": [
+        "Recall忽略排序",
+        "OpenAPI规范强制要求使用Recall",
+        "在RAG中Recall与Precision相同",
+        "生成器可以过滤掉不相关的内容块，但无法从未见过的内容块中凭空编造答案，因此遗漏正确内容块是代价更高的失败"
+      ],
+      "correct": 3,
+      "explanation": "检索器如果遗漏了正确内容块，下游无法修复；多余的内容块会浪费token，但很少会污染答案。"
+    },
+    {
+      "stage": "pre",
+      "question": "MRR计算的是什么？",
+      "options": [
+        "答案的Token数量",
+        "余弦相似度的几何平均值",
+        "第二篇相关文档的中位排名",
+        "在所有查询中1/第一篇相关文档位置的平均值"
+      ],
+      "correct": 3,
+      "explanation": "MRR主要由列表顶部决定：排名第1贡献1.0，排名第2贡献0.5，排名第10贡献0.1。"
+    },
+    {
+      "stage": "check",
+      "question": "什么时候应该选择nDCG而不是recall@k？",
+      "options": [
+        "当检索器不返回分数时",
+        "当语料库较小时",
+        "从不",
+        "当金标准标签带有等级相关性（如文档A为3分，文档B为2分，文档C为1分）且二元指标会丢失信息时"
+      ],
+      "correct": 3,
+      "explanation": "nDCG使用等级收益和位置折扣；recall将所有内容扁平化为二元判断。"
+    },
+    {
+      "stage": "check",
+      "question": "Faithfulness和Answer Relevance的区别是什么？",
+      "options": [
+        "Faithfulness是检索指标，Relevance是内容块指标",
+        "它们是同一个指标的两个名称",
+        "Faithfulness衡量精确率；Relevance衡量召回率",
+        "Faithfulness询问'答案是否有检索上下文作为依据'；Answer Relevance询问'答案是否回答了问题'"
+      ],
+      "correct": 3,
+      "explanation": "忠实但离题的答案在Faithfulness上得分高，在Relevance上得分低；相关但缺乏依据的答案在Relevance上得分高，在Faithfulness上得分低。"
+    },
+    {
+      "stage": "check",
+      "question": "一个管道显示recall@5尚可但MRR较低。应该首先调查哪个阶段？",
+      "options": [
+        "生成器",
+        "内容块切分器",
+        "语料库摄入器",
+        "重排序器，因为正确内容块在top-k内但不在顶部"
+      ],
+      "correct": 3,
+      "explanation": "Recall@5意味着正确答案在top-5中；MRR低意味着它不在列表顶部。这是重排序阶段的工作。"
+    },
+    {
+      "stage": "post",
+      "question": "什么生产风险使固定的qrels文件随时间推移变得危险？",
+      "options": [
+        "评估套件占用磁盘空间",
+        "嵌入向量过期",
+        "检索器六个月后停止工作",
+        "Qrels腐变：语料库发生变化，上季度还是金标准的文档不再是正确答案；指标会基于过时的标签进行报告"
+      ],
+      "correct": 3,
+      "explanation": "安排季度qrels审查，否则随着语料库的演变，你的指标将测量错误的东西。"
+    }
+  ]
+}

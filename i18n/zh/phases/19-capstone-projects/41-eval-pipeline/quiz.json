@@ -1,0 +1,78 @@
+{
+  "lesson": "phase-19/41-eval-pipeline",
+  "title": "完整评估流水线",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "阅读前：一位同事报告他们的模型在保留集上的困惑度（perplexity）为 4.2，询问模型是否算好。最稳妥的回答是？",
+      "options": [
+        "是的：困惑度低于 5 意味着模型很好。",
+        "困惑度只反映模型对语言分布的拟合程度，它不说明模型是否能遵循指令或返回正确答案。",
+        "没有明确的提示词，困惑度就毫无意义。",
+        "只有评判模型才能回答这个问题。"
+      ],
+      "correct": 1,
+      "explanation": "困惑度只是其中一个维度。模型可能拥有低困惑度但在事实性任务上仍然错误，也可能困惑度尚可却产出低质量答案。你需要多种评估，每种衡量不同的维度。"
+    },
+    {
+      "stage": "check",
+      "question": "困惑度评估对非 padding 位置的 per-token 负对数似然求和后，除以非 padding token 总数。为什么不用按 batch 平均的困惑度呢？",
+      "options": [
+        "分 batch 数据的困惑度是未定义的。",
+        "按 batch 平均困惑度在数学上是等价的。",
+        "批次包含必须始终被平均的 padding token。",
+        "按 batch 平均困惑度会低估短序列的权重（其 per-batch ppl 方差更大），从而产生有偏的聚合值。"
+      ],
+      "correct": 3,
+      "explanation": "Per-token 聚合是教科书定义，避免了 batch 大小和序列长度的偏差。Per-batch 平均是一个常见 bug；在序列长度不一的样例集上，它会产生与正确值不同的结果。"
+    },
+    {
+      "stage": "check",
+      "question": "Token F1 在预测和参考都为空时返回 1.0。下列哪种情况也必须返回特定值？",
+      "options": [
+        "当 pred 为空但 reference 非空时，F1 必须为 1.0。",
+        "当 pred 恰好包含一个匹配 token 时，F1 必须为 0.5。",
+        "当 pred 非空但 reference 为空时，F1 必须为未定义。",
+        "当 pred 和 reference 中有且仅有一个为空时，F1 必须为 0.0。"
+      ],
+      "correct": 3,
+      "explanation": "空-空是空洞匹配。空-非空混合是明确的 miss 情形：一边有内容，另一边什么都没有。SQuAD 的约定是这种情况下 F1 = 0。"
+    },
+    {
+      "stage": "check",
+      "question": "聚合器用 `1 / (1 + log(max(ppl, 1.0)))` 对困惑度做归一化。这对归一化分数保证了什么？",
+      "options": [
+        "它始终在 [0, 1] 范围内，且随着原始困惑度增大单调递减。",
+        "它始终在 [0, 1] 范围内，且随着原始困惑度增大单调递增。",
+        "它上无界。",
+        "它只返回 0 或 1（二值）。"
+      ],
+      "correct": 0,
+      "explanation": "困惑度 1（理论下界）映射到 1.0；无穷大映射到 0。分数落在 [0, 1]，且困惑度越低越好，这与其它归一化指标的方向一致。"
+    },
+    {
+      "stage": "post",
+      "question": "你把 mock judge 替换成了真实的前线模型 judge。流水线中最小改动是什么？",
+      "options": [
+        "重写聚合器以接受不同的分数范围。",
+        "在 DEFAULT_WEIGHTS 中新增一个条目。",
+        "将 `judge_eval` 的 `judge_fn` 参数替换为一个签名相同的函数：(instruction, prediction, reference) -> JudgeVerdict。",
+        "将整个评估套件迁移到异步 I/O。"
+      ],
+      "correct": 2,
+      "explanation": "Judge 接口为 `(instruction, prediction, reference) -> JudgeVerdict`。任何具有该签名的函数都可以直接接入。流水线通过该边界与 judge 实现解耦，这正是设计的要点。"
+    },
+    {
+      "stage": "post",
+      "question": "你的聚合分数是 0.72，但 exact-match 仅 0.40，judge 却给到 4.5/5。模型在做哪种权衡？",
+      "options": [
+        "聚合分数计算错误。",
+        "模型在 LM 语料上过拟合了。",
+        "judge 与 exact-match 天生就不对齐。",
+        "模型精确命中金色字符串的次数更少，但 judge 认为开放形式的回答还不错。"
+      ],
+      "correct": 3,
+      "explanation": "低 EM 配合高 judge 分数表明存在释义：答案在实质上是正确的，但与金色标准答案并非逐字符一致。这正是 EM 遗漏、而 judge 能捕捉到的维度。这种权衡是有信息量的，并非 bug。"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "34-transformer-block",
+  "title": "Transformer Block from Scratch",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "单个解码器 transformer block 内部包含哪两个子层？",
+      "options": [
+        "卷积和循环门",
+        "多头因果注意力和位置式 MLP，各自包裹在残差连接中",
+        "RNN 编码器和解码器",
+        "嵌入查找和 softmax"
+      ],
+      "correct": 1,
+      "explanation": "每个现代解码器 LLM 的 block 都包含注意力机制和 MLP，各自拥有独立的残差路径和 LayerNorm。"
+    },
+    {
+      "stage": "check",
+      "question": "在深度网络中，pre-LN 和 post-LN 的关键区别是什么？",
+      "options": [
+        "Pre-LN 使用不同的注意力计算方法",
+        "Pre-LN 仅适用于编码器",
+        "Pre-LN 保持残差信号未归一化，使梯度能够干净地传播到嵌入层；post-LN 在残差相加后放置归一化，这会导致深层梯度缩小并需要预热",
+        "Post-LN 在 GPU 上更快"
+      ],
+      "correct": 2,
+      "explanation": "Pre-LN 在常见学习率下无需预热即可稳定训练；post-LN 是 2017 年论文采用的方案，需要预热。"
+    },
+    {
+      "stage": "check",
+      "question": "多头注意力中的因果掩码起什么作用？",
+      "options": [
+        "丢弃随机 token",
+        "将注意力 logit 的上三角部分设为负无穷，使得 token i 无法关注位置大于 i 的 token",
+        "归一化注意力分数",
+        "选择 batch 中最长的序列"
+      ],
+      "correct": 1,
+      "explanation": "忘记因果掩码会训练出一个能够读取未来 token 的模型；掩码是确保因果性的唯一机制。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么使用融合的 QKV 投影而不是三个独立的线性层？",
+      "options": [
+        "避免 softmax",
+        "改变模型表达能力",
+        "移除残差连接",
+        "宽度为 3 倍 d_model 的单个线性层将三次 kernel 启动和三次矩阵乘法合并为一次，在所有加速器上都更快，且与参考 GPT-2 实现一致"
+      ],
+      "correct": 3,
+      "explanation": "数学计算相同，但减少 kernel 调用次数；GPT-2、LLaMA 和 Mistral 的参考实现都采用融合投影。"
+    },
+    {
+      "stage": "post",
+      "question": "在 transformer block 中，dropout 不应该放在哪里？",
+      "options": [
+        "放在残差恒等路径本身上，因为这会破坏让梯度在深层流动的加法恒等关系",
+        "在前向展开内部",
+        "在注意力 softmax 输出上",
+        "在第二个 MLP 线性层之后"
+      ],
+      "correct": 0,
+      "explanation": "Dropout 应该作用于注意力输出和 MLP 残差更新，但绝不应放在残差的恒等分支上。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么将因果掩码注册为 buffer 而不是每次前向调用时分配？",
+      "options": [
+        "Buffer 仅在 GPU 上运行",
+        "Buffer 是加密的",
+        "Buffer 提高数值精度",
+        "掩码仅取决于最大上下文长度，因此只需在构造时分配一次并在每次调用时切片活动窗口，可避免长上下文时的分配热点"
+      ],
+      "correct": 3,
+      "explanation": "使用 register_buffer 分配一次，每次前向调用时切片；否则掩码会成为每次调用的分配开销。"
+    }
+  ]
+}

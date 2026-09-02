@@ -1,0 +1,78 @@
+{
+  "lesson": "58-vision-encoder-patches",
+  "title": "视觉编码器 Patches",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么 Vision Transformer 使用 patches 而不是将每个像素作为 token 输入？",
+      "options": [
+        "PyTorch 要求使用 patches",
+        "逐像素 token 序列会使注意力计算呈二次方爆炸，在典型分辨率下失去可行性",
+        "Patches 提升图像质量",
+        "避免使用 tokenizer"
+      ],
+      "correct": 1,
+      "explanation": "一张 224x224 的图片包含 150528 个像素 token。注意力机制的计算量随序列长度呈二次方增长，因此采用 16x16 的 patch 将序列缩短至 196 个 token，使模型具有可行性。"
+    },
+    {
+      "stage": "pre",
+      "question": "kernel = stride = patch_size 的 Conv2d 与 flatten-then-linear 之间是什么关系？",
+      "options": [
+        "Conv2d 引入了非线性",
+        "它们产生不同的输出",
+        "Conv2d 是对每个 patch 执行相同线性投影的更快实现方式",
+        "flatten-then-linear 不可行"
+      ],
+      "correct": 2,
+      "explanation": "每个 Conv2d 输出位置将 patch 像素与一个滤波器做点积，这与 flatten-then-linear 等价。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么 2D 正弦位置嵌入是确定性的而非学习得到的？",
+      "options": [
+        "固定的 sin/cos 信号能够干净地插值到模型从未见过的网格，这在分辨率变化时非常有用",
+        "需要随机初始化",
+        "节省磁盘空间",
+        "学习位置是不合法的"
+      ],
+      "correct": 0,
+      "explanation": "固定的正弦位置在不同分辨率下都是确定性的，使同一个编码器能够在未训练过的输入上运行。"
+    },
+    {
+      "stage": "check",
+      "question": "对于 patch_size=16 且含一个 CLS token 的 224x224 图像，输出序列长度是多少？",
+      "options": [
+        "224",
+        "256",
+        "196",
+        "197"
+      ],
+      "correct": 3,
+      "explanation": "224/16 = 14，因此 14x14 = 196 个 patches，加上一个 CLS token，总共 197 个 token。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么重构（先 unfold 再 unflatten）是对 patch 前端的一个有用的合理性检查？",
+      "options": [
+        "它加速推理",
+        "像素经过 patch-flatten 往返（无投影）必须等于输入；失败意味着 unfold 数学计算有误",
+        "它提升准确性",
+        "ONNX 要求这样做"
+      ],
+      "correct": 1,
+      "explanation": "在没有投影的情况下，patch 步骤是可逆的。如果往返结果出现偏差，说明 unfold 逻辑有 bug，编码器其余部分也不安全。"
+    },
+    {
+      "stage": "post",
+      "question": "在本课中将学习位置嵌入替换为 2D 正弦嵌入，会有什么变化？",
+      "options": [
+        "没有任何变化",
+        "正弦位置每步都是随机的",
+        "学习位置可以稍微更好地拟合固定分辨率；正弦位置无需重新训练即可迁移到新分辨率",
+        "正弦位置消耗更多参数"
+      ],
+      "correct": 2,
+      "explanation": "学习位置在一个分辨率下具有灵活性。正弦位置零参数成本，能够适应分辨率变化。"
+    }
+  ]
+}

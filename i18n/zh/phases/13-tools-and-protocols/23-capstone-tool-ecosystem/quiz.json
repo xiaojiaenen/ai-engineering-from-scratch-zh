@@ -1,0 +1,78 @@
+{
+  "lesson": "23-capstone-tool-ecosystem",
+  "title": "Capstone：无状态工具生态",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "本课程 stdlib harness 的成功运行证明了什么？",
+      "options": [
+        "进程内策略和数据流按预期行为",
+        "真实 MCP 传输层完成初始化",
+        "OAuth 授权服务器签发了有效令牌",
+        "收集器收到了每个 OpenTelemetry span"
+      ],
+      "correct": 0,
+      "explanation": "该 harness 使用 Python 函数、静态令牌、fixtures 和内存中的 spans，验证这些本地边界，同时将协议、授权、导出、浏览器和沙箱集成留给后续测试。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个流程符合 MCP revision 2026-07-28 发现服务器并轮询长期运行的工作？",
+      "options": [
+        "server/connect、tools/poll、tasks/status",
+        "server/discover、tools/call 返回 task handle、tasks/get",
+        "initialize、tools/call、tasks/result",
+        "GET /mcp、tools/call、tasks/list"
+      ],
+      "correct": 1,
+      "explanation": "无状态 revision 使用强制性的 `server/discover`。可选的 `io.modelcontextprotocol/tasks` 扩展返回 task handle 并使用 `tasks/get`；终止任务携带其最终结果。旧握手、GET 端点、`tasks/result` 和 `tasks/list` 不在此流程中。"
+    },
+    {
+      "stage": "check",
+      "question": "A2A v1 在其 gRPC 和 JSON-RPC 绑定中如何命名 send-message 操作？",
+      "options": [
+        "AgentMessage",
+        "message/create",
+        "tasks/send",
+        "SendMessage"
+      ],
+      "correct": 3,
+      "explanation": "A2A v1 对 gRPC 和 JSON-RPC 使用 `SendMessage`。其 HTTP+JSON 绑定暴露 `POST /message:send`。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个 MCP Apps SDK 调用让 App 能在其原始服务器上请求工具？",
+      "options": [
+        "host.callTool(name, args)",
+        "app.callServerTool({ name, arguments })",
+        "app.invoke(name, args)",
+        "server.tools.call(args)"
+      ],
+      "correct": 1,
+      "explanation": "App 实例调用 `callServerTool`，传入包含 `name` 和可选 `arguments` 的对象；host 代理底层的 `tools/call` 请求。"
+    },
+    {
+      "stage": "post",
+      "question": "Capstone Agent Skill 对 MCP 工具和沙箱提供何种权限？",
+      "options": [
+        "显式调用后跳过审批",
+        "授权正文中命名的所有工具",
+        "授予只读网络访问权限",
+        "无；host 适配器和策略仍授权各项能力"
+      ],
+      "correct": 3,
+      "explanation": "Skill 仅提供流程。发现、调用、工具暴露、授权、凭证和隔离由 host 和外部运行时边界强制执行。"
+    },
+    {
+      "stage": "post",
+      "question": "哪项证据最能证明遥测数据跨越了生产导出边界？",
+      "options": [
+        "要求产生 spans 的 skill 指令",
+        "包含 traceId 键的本地字典",
+        "预期的 span 层次结构图",
+        "带有 trace 和 parent 断言的接收侧收集器数据"
+      ],
+      "correct": 3,
+      "explanation": "接收侧观察证明 SDK、propagator、exporter、transport 和 collector 路径正常工作。本地数据和图表仅证明本地构造或意图。"
+    }
+  ]
+}

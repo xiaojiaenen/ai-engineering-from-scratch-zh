@@ -1,0 +1,78 @@
+{
+  "lesson": "79-pipeline-parallel",
+  "title": "流水线并行与气泡分析",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "什么是流水线气泡？",
+      "options": [
+        "一个网络数据包",
+        "NCCL 中的一个 bug",
+        "流水线开始和结束时的空闲时间：在第一个微批次到达之前，以及最后一个微批次离开之后的阶段空闲时间",
+        "内存泄漏"
+      ],
+      "correct": 2,
+      "explanation": "对于 M 个微批次和 N 个阶段，每阶段的空闲时间为 (N-1)/(M+N-1)。选择远大于 N 的 M 可以减小它。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么 GPipe 的激活内存与 M 成正比？",
+      "options": [
+        "硬件限制",
+        "编译器限制",
+        "bug",
+        "所有 M 个微批次的激活都必须保留到匹配的 backward；在排空开始前没有任何释放"
+      ],
+      "correct": 3,
+      "explanation": "GPipe 先填充所有 forward 传播，然后才进行 backward。每个飞行中的微批次在其 backward 开始前携带其激活。"
+    },
+    {
+      "stage": "check",
+      "question": "1F1B 如何改进 GPipe？",
+      "options": [
+        "更高吞吐量",
+        "相同的气泡但激活内存有界；一旦 mb 0 的 forward 到达最后阶段，其 backward 就开始，激活被释放",
+        "更小的模型",
+        "更小的气泡"
+      ],
+      "correct": 1,
+      "explanation": "Megatron-LM 和 PipeDream 使用 1F1B 通过流水线深度来限制激活内存，而不是微批次数量。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么每个阶段的计算量均衡比参数量均衡更重要？",
+      "options": [
+        "内存对齐",
+        "美观性",
+        "最慢的阶段控制每个周期；其他阶段空闲等待它。Embedding 层有很多参数但计算量小，因此按参数量划分会导致流水线失衡",
+        "更简单"
+      ],
+      "correct": 2,
+      "explanation": "Megatron-LM 暴露 --num-layers-per-stage 作为列表，以允许当每层成本不同时使用不均等的层数。"
+    },
+    {
+      "stage": "check",
+      "question": "如果每个阶段都先调用 send 再调用 recv 会怎样？",
+      "options": [
+        "更大的气泡",
+        "更慢",
+        "线上死锁；标准修复方法是交错偶数等级先 send、奇数等级先 recv",
+        "内存泄漏"
+      ],
+      "correct": 2,
+      "explanation": "同步 send/recv 对需要一侧在另一侧发送时正在接收。课程明确安排等级顺序，以便观察到这种模式。"
+    },
+    {
+      "stage": "post",
+      "question": "流水线 + ZeRO-1 结合了哪两个内存优势？",
+      "options": [
+        "仅激活内存",
+        "没有",
+        "每阶段参数分片（每个 rank 只保存一个阶段的层）加上每 rank 优化器分片（每个 rank 只保存其阶段优化器状态的 1/N）",
+        "压缩和量化"
+      ],
+      "correct": 2,
+      "explanation": "流水线在 rank 间分片层；ZeRO 在每个流水线 rank 的数据并行组内分片优化器状态。两种优势叠加。"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "73-perplexity-calibration",
+  "title": "困惑度与校准",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "困惑度为1.0对测试语料上的语言模型意味着什么？",
+      "options": [
+        "模型已损坏",
+        "模型为每个实际token赋予概率1；它是一个完美模型",
+        "模型在词表上均匀分布",
+        "语料为空"
+      ],
+      "correct": 1,
+      "explanation": "困惑度等于 exp(平均负对数似然)。当每个 token 都获得概率 1 时，NLL 为零，exp(0) 为 1。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么 harness 要求 adapter 提供非负的对数概率？",
+      "options": [
+        "Numpy 遇到负值会崩溃",
+        "ECE 的 bin 边界假设正值",
+        "困惑度对负值无定义",
+        "负对数概率按定义为非负；收到负值意味着 adapter 发送的是 log p 而非 -log p"
+      ],
+      "correct": 3,
+      "explanation": "概率的 -log p 是非负的。负值违反了契约，会无声地产生小于 1 的困惑度，而这是不可能的。"
+    },
+    {
+      "stage": "check",
+      "question": "期望校准误差（ECE）衡量什么？",
+      "options": [
+        "按 bin 大小加权的 bin 级置信度与 bin 级准确率之间的平均差距",
+        "预测的交叉熵",
+        "预测标签与真实标签之间的平均绝对距离",
+        "softmax 输出的方差"
+      ],
+      "correct": 0,
+      "explanation": "ECE 按置信度对预测进行分 bin，测量每个 bin 的平均置信度与平均准确率之间的差距，并按 bin 大小加权。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么实现还同时返回 populated_bins 与 ECE 值？",
+      "options": [
+        "它是 Brier 分的分母",
+        "numpy 需要它",
+        "当填充的 bin 过少、单个数值不可信时发出信号",
+        "可靠性图需要它"
+      ],
+      "correct": 2,
+      "explanation": "填充的 bin 很少时 ECE 被噪声主导。报告填充数量使 runner 能够拒绝发布有误导性的单一数值。"
+    },
+    {
+      "stage": "check",
+      "question": "Brier 分捕捉到了 ECE 未能捕捉的什么内容？",
+      "options": [
+        "它不需要真实标签",
+        "它计算更快",
+        "它仅适用于二元结果",
+        "它直接惩罚局部校准误差，因为它是逐预测的平方误差"
+      ],
+      "correct": 3,
+      "explanation": "ECE 只看每个 bin 的平均值。Brier 对每个预测的误差进行平方，因此能捕获那些平均上 bin 间相互抵消、但个体层面校准错误的情形。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么校准是逐模型报告而非逐任务指标？",
+      "options": [
+        "逐任务计算校准太慢",
+        "任务没有概率",
+        "ECE 要求 runner 了解模型架构",
+        "单一任务的预测太少，无法估计 bin 统计量；报告在整个评估中聚合"
+      ],
+      "correct": 3,
+      "explanation": "逐任务校准被噪声主导。runner 在计算 ECE、Brier 和可靠性图之前，会将所有任务的置信度/正确性配对进行汇总。"
+    }
+  ]
+}

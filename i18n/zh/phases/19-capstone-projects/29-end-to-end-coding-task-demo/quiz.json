@@ -1,0 +1,78 @@
+{
+  "lesson": "phase-19/29-end-to-end-coding-task-demo",
+  "title": "在Harness上的端到端Coding Agent",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在学习本课前：为什么端到端演示用确定性策略替代了LLM？",
+      "options": [
+        "确定性策略在编码任务上总是优于LLM。",
+        "课程无法承担推理成本。",
+        "LLM运行测试时太慢。",
+        "harness是本课测试的对象；策略是可替换的接口。"
+      ],
+      "correct": 3,
+      "explanation": "harness契约不关心策略是LLM还是状态机。移除LLM后，就消除了网络依赖和随机性，使课程变成一个可复现的集成测试。"
+    },
+    {
+      "stage": "check",
+      "question": "代理的状态机有五个状态。正常执行时按什么顺序运行？",
+      "options": [
+        "RUN_TESTS -> SURVEY -> INSPECT -> FIX -> VERIFY。",
+        "SURVEY -> RUN_TESTS -> INSPECT -> FIX -> VERIFY。",
+        "SURVEY -> FIX -> VERIFY -> RUN_TESTS -> INSPECT。",
+        "SURVEY -> INSPECT -> FIX -> RUN_TESTS -> VERIFY。"
+      ],
+      "correct": 1,
+      "explanation": "代理先调查项目，运行测试，检查失败的测试，修复bug，然后验证。RUN_TESTS在INSPECT之前，因为测试失败是策略读取的信号。"
+    },
+    {
+      "stage": "check",
+      "question": "内置fixture的bug是src/fizz.py中的一处off-by-one错误：range(1, n)应为range(1, n + 1)。策略在哪里决定应用修复？",
+      "options": [
+        "在SURVEY状态内，通过读取文件头部。",
+        "在状态机之外，在gate链中。",
+        "在VERIFY状态内，在重新运行之后。",
+        "在INSPECT状态内，在测试失败已明确预期输出后。"
+      ],
+      "correct": 3,
+      "explanation": "INSPECT是策略读取失败测试并了解预期输出的阶段。在此处识别修复，并在下一个FIX状态中写入。"
+    },
+    {
+      "stage": "check",
+      "question": "每次工具调用依次经过什么组件链？",
+      "options": [
+        "ObservationLedger -> GateChain -> Sandbox -> SpanBuilder。",
+        "SpanBuilder -> GateChain -> Sandbox -> ObservationLedger。",
+        "GateChain -> SpanBuilder -> Sandbox -> ObservationLedger。",
+        "Sandbox -> GateChain -> SpanBuilder -> ObservationLedger。"
+      ],
+      "correct": 2,
+      "explanation": "先是Gate（允许/拒绝），接着是span（以便也能捕获拒绝），第三是sandbox（仅当被允许），最后是ledger（仅在成功时）。课程代码就是这样连接的。"
+    },
+    {
+      "stage": "post",
+      "question": "你用真正的LLM替换确定性策略。哪个harness组件会改变？",
+      "options": [
+        "sandbox需要用seccomp加固。",
+        "Prometheus暴露格式变得不兼容。",
+        "gate链需要重写以处理LLM的随机性。",
+        "harness中的任何东西都不变；策略是唯一被替换的部分。"
+      ],
+      "correct": 3,
+      "explanation": "本课的核心观点：harness是策略无关的。接口是next_action / observe。LLM只需接入这里，无需触碰gate、sandbox、ledger或spans。"
+    },
+    {
+      "stage": "post",
+      "question": "演示断言代理在少于12步内解决fixture。确定性策略用了5步。真正的LLM代理可能会做什么，harness如何处理？",
+      "options": [
+        "LLM无法在这个harness内运行。",
+        "LLM也用5步；harness不变。",
+        "harness默默扩展预算。",
+        "LLM可能用更多步；step_budget限制循环次数，未解决的运行会被报告为失败，并附带halted_reason。"
+      ],
+      "correct": 3,
+      "explanation": "step budget是显式且确定性的终止条件。游走式的LLM会被截断，报告也会明确告诉你原因。"
+    }
+  ]
+}

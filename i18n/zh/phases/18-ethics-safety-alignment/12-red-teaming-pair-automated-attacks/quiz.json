@@ -1,0 +1,78 @@
+{
+  "lesson": "12-red-teaming-pair-automated-attacks",
+  "title": "红队测试：PAIR与自动化攻击",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么手动红队测试不足以评估前沿模型？",
+      "options": [
+        "手动测试人员无法读取模型输出",
+        "它无法规模化；攻击成功率需要针对每次模型发布时的目标进行统计采样",
+        "手动提示词总是被过滤器拦截",
+        "手动测试会产生太多误报"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "PAIR代表什么，它做什么？",
+      "options": [
+        "Pre-Action Inspection Reasoning；一种防御性脚手架",
+        "Persuasive Adversarial Iterative Reward；用说服者替换RM",
+        "Pairwise Adversarial Inference Routing；跨模型路由攻击",
+        "Prompt Automatic Iterative Refinement；攻击者LLM为目标迭代提出越狱提示，并将先前尝试作为上下文反馈"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么对黑盒目标，PAIR比GCG更高效？",
+      "options": [
+        "GCG需要白盒梯度访问并产生不可读的后缀，无法使用上下文反馈；PAIR是黑盒且使用自然语言，支持上下文学习",
+        "PAIR忽略目标的响应",
+        "GCG只攻击开源模型",
+        "PAIR使用比GCG更大的攻击者模型"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么攻击成功率（ASR）必须同时报告查询预算和裁判身份？",
+      "options": [
+        "因为裁判总是一致同意",
+        "因为ASR取决于允许攻击者的查询次数，以及哪个LLM将响应判定为越狱",
+        "因为预算只由JailbreakBench设定",
+        "因为ASR是出口管制法规要求的"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "以下哪种自动化攻击最符合'带剪枝的攻击树'描述？",
+      "options": [
+        "GCG",
+        "TAP",
+        "PAP",
+        "AutoDAN"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "哪个标准化基准测试使用7个类别中的510种行为，包含语义和功能危害测试？",
+      "options": [
+        "TruthfulQA",
+        "WMDP",
+        "HarmBench",
+        "JailbreakBench"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

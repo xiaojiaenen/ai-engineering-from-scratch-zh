@@ -1,0 +1,78 @@
+{
+  "lesson": "31-mcp-conformance-versioning-and-operations",
+  "title": "MCP 合规工程：版本管理、证据与操作",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么一次成功的 SDK tools/list 调用不足以作为合规证据？",
+      "options": [
+        "归一化值可能会隐藏传输层字段、版本行为、代理变更和无效响应",
+        "SDK 无法调用 MCP 工具",
+        "成功调用总是选择旧时代协议",
+        "合规性仅适用于注册表发布者"
+      ],
+      "correct": 0,
+      "explanation": "合规性必须检查原始请求和响应、所选版本时代、中间层以及 SDK 转换。"
+    },
+    {
+      "stage": "check",
+      "question": "现代探针返回 JSON-RPC 错误 -32021。具备回退能力的客户端应该怎么做？",
+      "options": [
+        "立即为旧时代发送 initialize",
+        "将对等方视为离线",
+        "保持现代时代并纠正或报告缺失的能力声明",
+        "忽略错误并重试，不使用能力声明"
+      ],
+      "correct": 2,
+      "explanation": "已识别的现代错误证明了现代行为。这是纠正证据，而非降级许可。"
+    },
+    {
+      "stage": "check",
+      "question": "现代客户端应如何处理 resultType 为 complete 且包含不熟悉的附加字段的結果？",
+      "options": [
+        "将 resultType 更改为 input_required",
+        "拒绝所有包含未知键的结果",
+        "接受已知的结果类型，并根据其角色保留或有意忽略附加字段",
+        "将不熟悉的字段视为旧握手"
+      ],
+      "correct": 2,
+      "explanation": "附加字段支持前向兼容性。它们不同于未知的生命周期判别器。"
+    },
+    {
+      "stage": "check",
+      "question": "对于没有 id 的通知，必需的 JSON-RPC 响应是什么？",
+      "options": [
+        "server/discover 结果",
+        "无 JSON-RPC 响应",
+        "内容为 null 的完整结果",
+        "id 为 null 的错误"
+      ],
+      "correct": 1,
+      "explanation": "通知是单向的。最终传输序列化器不得发出 JSON-RPC 成功或错误响应。"
+    },
+    {
+      "stage": "post",
+      "question": "哪项证据最能证明代理保留了原始协议错误？",
+      "options": [
+        "经脱敏的入口、源端和出口状态及载荷证据，带有稳定摘要",
+        "网关仪表板的截图",
+        "仅 SDK 异常类",
+        "代理进程运行时间"
+      ],
+      "correct": 0,
+      "explanation": "三边界证据揭示了状态坍缩、载荷重写以及行为发生变化的精确跳点。"
+    },
+    {
+      "stage": "post",
+      "question": "候选版本未能通过负面测试用例，且前一版本没有准入或健康证据。发布门控应该怎么做？",
+      "options": [
+        "选择最新的注册表版本",
+        "因黄金测试用例通过而提升",
+        "回滚到标记为 latest 的包",
+        "暂不发布，直至合格的回滚目标或修正后的候选版本得到证实"
+      ],
+      "correct": 3,
+      "explanation": "没有精确准入和健康证据的回滚是另一次未经验证的发布，因此安全的做法是暂不发布。"
+    }
+  ]
+}

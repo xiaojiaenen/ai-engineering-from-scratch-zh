@@ -1,0 +1,90 @@
+{
+  "lesson": "24-agent-observability-platforms",
+  "title": "Agent 可观测性：Langfuse、Phoenix、Opik",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "2025 年 6 月将原本商业化的模块开源后，Langfuse 采用什么许可证发布？",
+      "options": [
+        "Apache 2.0",
+        "GPLv3",
+        "Elastic License 2.0",
+        "MIT"
+      ],
+      "correct": 3,
+      "explanation": "Langfuse 采用 MIT 许可证，包括 2025 年 6 月之后的 LLM-as-a-judge、标注队列、提示实验和 Playground。"
+    },
+    {
+      "stage": "pre",
+      "question": "根据课程，Arize Phoenix 最强在哪些方面？",
+      "options": [
+        "深度 Agent 特定评估：追踪聚类、异常检测、RAG 检索相关性、OpenInference 自动插桩",
+        "自动化优化循环",
+        "提示版本管理",
+        "代码静态分析"
+      ],
+      "correct": 0,
+      "explanation": "Phoenix 专注于行为漂移和 RAG 评估，配合 OpenInference 自动插桩。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个平台将自动化提示优化与防护护栏（PII 脱敏、主题约束）及 LLM-judge 幻觉检测相结合？",
+      "options": [
+        "Langfuse",
+        "Phoenix",
+        "Jaeger",
+        "Opik"
+      ],
+      "correct": 3,
+      "explanation": "Opik 专注于优化+防护护栏的闭环。"
+    },
+    {
+      "stage": "check",
+      "question": "课程推荐哪个平台作为包含提示管理的端到端一体化方案？",
+      "options": [
+        "Opik",
+        "Datadog APM",
+        "Phoenix",
+        "Langfuse"
+      ],
+      "correct": 3,
+      "explanation": "Langfuse 覆盖追踪+提示管理+评估+会话回放的全流程。"
+    },
+    {
+      "stage": "check",
+      "question": "课程对厂商发布的平台基准测试结果有何建议？",
+      "options": [
+        "它们是权威结论",
+        "作为方向性参考；测量你自己的语料库",
+        "只有 Opik 的是可靠的",
+        "OpenTelemetry 禁止使用"
+      ],
+      "correct": 1,
+      "explanation": "即使是引用的 Opik 和 Langfuse 之间 14 倍的差距，也应在你自己的数据上测量后再做决定。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么没有评估的追踪被认为是有成本的日志记录？",
+      "options": [
+        "提供商按 span 收费",
+        "你能看到运行但不评分，因此回归不可见且无法二分排查",
+        "磁盘成本高于 CPU",
+        "Span 无法回放"
+      ],
+      "correct": 1,
+      "explanation": "评估是将追踪转化为可操作质量信号的关键。"
+    },
+    {
+      "stage": "post",
+      "question": "课程对自建 LLM-judge 有何警告？",
+      "options": [
+        "适用 CRITIC 原则：评判者需要外部依据进行事实验证，否则会橡皮图章式审批",
+        "它们必须在 GPU 上运行",
+        "Apache 2.0 禁止使用",
+        "它们仅在 TypeScript 中可用"
+      ],
+      "correct": 0,
+      "explanation": "没有基于外部工具的事实验证，LLM-judge 会倾向于橡皮图章式审批（CRITIC，第5课）。"
+    }
+  ]
+}

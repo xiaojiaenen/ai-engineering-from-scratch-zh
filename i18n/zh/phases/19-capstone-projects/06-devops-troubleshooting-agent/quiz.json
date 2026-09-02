@@ -1,0 +1,90 @@
+{
+  "lesson": "06-devops-troubleshooting-agent",
+  "title": "Capstone 06 — Kubernetes 运维故障排查代理",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "故障排查代理的 RBAC 权限范围默认采用什么权限策略？",
+      "options": [
+        "集群管理员权限，以便自我修复",
+        "默认只读，破坏性操作需通过独立服务器和人工审批才能执行",
+        "等同于值班工程师的权限",
+        "仅限受影响命名空间的管理员权限"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "代理在根因分析过程中遍历的知识图谱是什么？",
+      "options": [
+        "节点是 K8s 对象加上遥测来源；边编码所有权、调度和观察关系",
+        "按团队组织的 Prometheus 指标名称",
+        "最近重启的 pod 列表",
+        "GitHub 提交和 PR 审核的图谱"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "根因假设在 Slack 简报中如何排序？",
+      "options": [
+        "按告警名称字母顺序",
+        "仅按模型对数概率",
+        "按生成顺序",
+        "按证据评分排序，综合考量时效性、具体程度、图路径长度和引用次数"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么审计日志同时记录代理考虑的命令和已执行的命令？",
+      "options": [
+        "ArgoCD 仅接受被考虑的命令",
+        "重放攻击需要两个列表",
+        "Slack API 需要两者用于交付",
+        "审查人员可以发现代理差点执行破坏性命令的险情"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪种机制防止代理在部署失败时单方面回滚？",
+      "options": [
+        "破坏性工具托管在独立的 MCP 服务器上，需要 Slack 卡片中的审批令牌",
+        "PagerDuty 自动暂停部署",
+        "GitOps 仓库的分支保护",
+        "第二个 LLM 裁判对回滚进行投票"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "度量标准衡量的 p50 假设时间目标是什么？",
+      "options": [
+        "1 小时以内",
+        "30 秒以内",
+        "下次值班轮换前",
+        "从告警到 Slack 简报在 5 分钟以内"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "用于评估 RCA 准确性的合成事件套件有多大？",
+      "options": [
+        "5 个场景",
+        "20 个场景，涵盖 OOMKill、DNS 抖动、HPA 振荡、PVC 填满等",
+        "1 个脚本演示事件",
+        "100 个随机采样的生产告警"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

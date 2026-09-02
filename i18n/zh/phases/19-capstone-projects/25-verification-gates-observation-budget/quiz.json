@@ -1,0 +1,78 @@
+{
+  "lesson": "phase-19/25-verification-gates-observation-budget",
+  "title": "验证闸与观测预算",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在学习本课前：为什么测试框架需要确定性的闸链而非模型作为裁判？",
+      "options": [
+        "模型在生产环境中作为裁判太慢了。",
+        "闸链允许模型编写自己的策略。",
+        "模型作为裁判总是会产生幻觉式的允许决策。",
+        "确定性使得拒绝原因可审计且链可回放。"
+      ],
+      "correct": 3,
+      "explanation": "审计轨迹和可复现性是实际收益。裁判模型也可以接入，但结构性闸门需要是确定性的，以便决策可以被复现和审查。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么课程中闸链先运行 WhitelistGate 再运行 BudgetGate？",
+      "options": [
+        "BudgetGate 在至少调用过一个工具之前无法运行。",
+        "白名单拒绝成本更低，因此短路白名单可以避免昂贵的账本求和。",
+        "按照惯例，Whitelist 必须始终是最后一个闸。",
+        "顺序无关紧要，因为 GateChain 会随机化评估顺序。"
+      ],
+      "correct": 1,
+      "explanation": "廉价的拒绝先执行。WhitelistGate 是 O(1) 哈希查找。BudgetGate 需要对账本求和。在白名单处短路可以避免在调用本身结构非法时进行该工作。"
+    },
+    {
+      "stage": "check",
+      "question": "ObservationLedger 记录了来自 read_file 的 60-token 观测。随后测试框架拒绝了后续调用。账本对这次拒绝记录了什么？",
+      "options": [
+        "无。账本只记录成功的观测。",
+        "拒绝作为带有拒绝者名称的合成观测被追加。",
+        "标记为拒绝的零 token 观测行。",
+        "代表拒绝成本的负 token 观测行。"
+      ],
+      "correct": 0,
+      "explanation": "账本记录模型已看到的观测。拒绝产生 GateDecision 而非 Observation。拒绝计数与账本并列存在，而非在账本内部。"
+    },
+    {
+      "stage": "check",
+      "question": "RecencyGate.window 设为 3。账本的 latest_turn 是 5。新的 ToolCall 在第 10 轮到达。会发生什么？",
+      "options": [
+        "闸门拒绝：5 的间隔超过了 3 的窗口。",
+        "闸门允许：调用发生在最新轮次。",
+        "闸门允许：窗口应用于账本大小而非轮次间隔。",
+        "闸门抛出异常因为账本已过时。"
+      ],
+      "correct": 0,
+      "explanation": "RecencyGate 将 (call.turn - ledger.latest_turn) 与窗口比较。10 - 5 = 5，大于 3，因此闸门拒绝。"
+    },
+    {
+      "stage": "post",
+      "question": "你想添加每次调用的输出上限（单个观测不得超过 8000 token）。这个闸在链中逻辑上应该放在哪里？",
+      "options": [
+        "它不能是闸，因为大小只有在工具运行后才已知。",
+        "在 WhitelistGate 之前，因为大小是最便宜的检查属性。",
+        "在 BudgetGate 内部，使限制组合。",
+        "在 BudgetGate 之后，因为累积预算始终占主导。"
+      ],
+      "correct": 0,
+      "explanation": "输出大小在闸评估时未知。测试框架在工具运行后应用上限，在模型看到观测之前截断它。闸评估的是输入而非输出。"
+    },
+    {
+      "stage": "post",
+      "question": "审查员要求你证明智能体在会话期间从未触发过被拒绝的工具调用。你应该指向哪个工件？",
+      "options": [
+        "ObservationLedger 快照，只包含成功的观测。",
+        "pytest 输出，记录测试通过/失败。",
+        "模型的聊天摘要，包含其自身报告。",
+        "ChainOutcome 记录列表，包含每次调用的决策及拒绝原因。"
+      ],
+      "correct": 3,
+      "explanation": "ChainOutcome 记录携带每次调用的决策和拒绝原因。账本和摘要可以支持该声明，但可审计的工件是链式决策。"
+    }
+  ]
+}

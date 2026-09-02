@@ -1,0 +1,78 @@
+{
+  "lesson": "47-checkpoint-save-resume",
+  "title": "检查点保存与恢复",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "哪一组最能描述完整的训练检查点？",
+      "options": [
+        "torch.save()可以序列化的任何内容",
+        "仅模型权重",
+        "模型状态、优化器状态、调度器状态、步数计数器、损失历史，以及python、numpy、torch CPU、torch CUDA的RNG状态",
+        "仅损失历史"
+      ],
+      "correct": 2,
+      "explanation": "恢复必须沿相同轨迹运行。没有优化器动量、调度器位置和RNG状态，恢复后的损失曲线会是不同的轨迹。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么保存器先写入临时文件然后重命名，而不是直接写入目标文件名？",
+      "options": [
+        "更快的I/O",
+        "同一目录内的POSIX重命名是原子操作，写入中途崩溃时保留之前的有效文件，而不是留下半写入的目标文件",
+        "去重文件",
+        "绕过fsync"
+      ],
+      "correct": 1,
+      "explanation": "atomic_save调用os.replace将同一目录下的临时文件进行替换。跨设备重命名会失去原子性，因此临时文件必须存在于目标目录中。"
+    },
+    {
+      "stage": "check",
+      "question": "分片检查点为什么在index.json中为每个分片存储sha256？",
+      "options": [
+        "让加载器在加载时检测到被截断或被篡改的分片，而非静默合并损坏的state_dict",
+        "因为torch要求",
+        "为了SEO",
+        "为了压缩文件"
+      ],
+      "correct": 0,
+      "explanation": "load_sharded_checkpoint会断言每个分片的实际哈希与记录的哈希匹配，也包括元文件的哈希。静默损坏是最严重的失败模式。"
+    },
+    {
+      "stage": "check",
+      "question": "恢复训练如何在当前epoch内的正确偏移处继续？",
+      "options": [
+        "使用特殊数据库",
+        "跳到下一个epoch边界",
+        "总是从step 0重启",
+        "TrainState记录(epoch, batch_in_epoch)，RNG状态被恢复，加载器跳过已消耗的批次后继续"
+      ],
+      "correct": 3,
+      "explanation": "没有(epoch, batch_in_epoch)会跳到下一个epoch边界造成重复工作。没有RNG会看到不同的批次。两者都是必需的。"
+    },
+    {
+      "stage": "check",
+      "question": "payload上的schema字段提供了什么？",
+      "options": [
+        "迁移钩子：未来格式变更递增schema字符串，加载器可基于此分发处理而不破坏旧版本",
+        "没有",
+        "压缩",
+        "好看的文件名"
+      ],
+      "correct": 0,
+      "explanation": "课程使用ckpt.v1；下一个版本是带migrate函数的ckpt.v2。没有这个字段，格式演进就必须破坏兼容性。"
+    },
+    {
+      "stage": "post",
+      "question": "阅读恢复演示摘要，max_loss_diff_after_resume接近0证明了什么？",
+      "options": [
+        "没什么用",
+        "磁盘很快",
+        "模型很好",
+        "恢复后的损失轨迹在浮点误差范围内与连续训练基线一致，说明RNG状态和优化器状态都被忠实恢复"
+      ],
+      "correct": 3,
+      "explanation": "忘记RNG会看到不同的曲线和非平凡差异。忘记优化器状态差异会非常大。接近零的数值就是验证契约。"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么2024年后的SOTA文本到图像模型（SD3、FLUX、Z-Image）用Diffusion Transformer（DiT）取代了U-Net去噪器？",
+      "options": ["U-Net已不再支持GPU", "DiT比U-Net具有更可预测的可扩展性（与LLM相同的scaling-law regime），能更好地处理长程空间依赖以实现精准跟随提示词的生成，并通过交叉注意力或联合注意力与文本编码器自然配合", "Transformer更容易编写", "DiT参数更少"],
+      "correct": 1,
+      "explanation": "DiT将扩散过程视为另一种序列建模任务。它像语言模型一样可扩展，避免了卷积的固定归纳偏置对长程结构的瓶颈限制，并能与transformer文本编码器无缝集成。2026年的所有SOTA模型——SD3、FLUX.1、FLUX.2、SD4、Z-Image、Qwen-Image——均为DiT架构。"
+    },
+    {
+      "stage": "pre",
+      "question": "Rectified flow训练模型预测沿数据与噪声之间直线插值的速度`v = epsilon - x_0`。为何这能实现20步采样而非1000步？",
+      "options": ["需要更大的模型", "学习到的ODE比DDPM的曲线SDE更接近直线，因此少量步数的Euler积分即可生成高质量样本；结合蒸馏可得到1-4步的变体（如FLUX schnell）", "Euler严格优于DDIM", "实际上rectified flow仍需1000步"],
+      "correct": 1,
+      "explanation": "DDPM的反向过程是随机曲线路径，需要大量小步数。Rectified flow定义了直线插值；学习到的速度沿轨迹近似恒定。对近直线的ODE进行积分只需很少步数。SD3和FLUX在20-30步即可生成全质量图像；schnell/turbo/LCM通过蒸馏进一步压缩至1-4步。"
+    },
+    {
+      "stage": "post",
+      "question": "MMDiT（SD3）使用两组权重（分别处理文本token和图像token），但共享单个联合注意力层。为何如此设计？",
+      "options": ["节省显存", "文本和图像嵌入属于不同的概念分布；分离的权重让每种模态独立处理自身表示，而联合注意力使两者交互；相比单一共享流，这种设计能提升文本-图像对齐和提示词遵循能力", "这是遗留设计", "只有图像token经过注意力层"],
+      "correct": 1,
+      "explanation": "Stable Diffusion 3的MMDiT保留了各模态独立的权重流，以维护文本token和图像token的不同统计特性，同时通过联合自注意力层实现特征融合。这在结构上比拼接共享（SD1/2所用）更具表达力，实证提升了提示词遵循能力和文本渲染质量。FLUX进一步扩展为交替的双流/单流块以提升效率。"
+    },
+    {
+      "stage": "post",
+      "question": "DiT模块中的AdaLN-Zero是什么意思？为何它能带来帮助？",
+      "options": ["仅50%时间应用的LayerNorm", "自适应LayerNorm，其调制MLP初始化为零，使模块起始时等效于恒等映射；训练过程中逐步学习尺度/偏移/门控参数，从而稳定极深的扩散transformer", "epsilon为零的layer norm", "均值为零的LayerNorm"],
+      "correct": 1,
+      "explanation": "AdaLN从条件向量预测尺度、偏移和门控参数。'Zero'表示MLP初始化为零，因此门控起始值为0，模块表现为恒等变换。梯度逐步将调制参数偏离零值，防止深层网络在训练早期发散。这是DiT对ResNet残差零初始化的等价实现，被所有现代扩散transformer采用。"
+    },
+    {
+      "stage": "post",
+      "question": "FLUX.1-schnell仅需4步即可生成图像。使用何种技术实现这一效果？",
+      "options": ["更低精度权重", "更小参数量", "蒸馏——schnell由多步慢速教师模型通过对抗/一致性风格目标训练，使1-4步去噪结果匹配教师模型20-30步的输出", "与FLUX.1-dev不同的基础架构"],
+      "correct": 2,
+      "explanation": "Schnell/Turbo/LCM系列采用步数蒸馏技术。小步数学生模型学习匹配多步教师模型的输出。基础架构和参数量通常相同（FLUX.1-dev和schnell均为12B参数）。蒸馏使亚秒级推理成为可能。这与SDXL Turbo、SD Turbo及Latent Consistency Models的思路一致。"
+    }
+  ]
+}

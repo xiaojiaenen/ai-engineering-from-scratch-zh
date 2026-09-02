@@ -1,0 +1,102 @@
+{
+  "lesson": "21-nli-textual-entailment",
+  "title": "自然语言推理 — 文本蕴含",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "NLI为(premise, hypothesis)对分配哪三个标签？",
+      "options": [
+        "真 / 假 / 未知",
+        "原因 / 结果 / 无关",
+        "蕴含 / 矛盾 / 中立",
+        "正 / 负 / 中立"
+      ],
+      "correct": 2,
+      "explanation": "NLI是对蕴含、矛盾和中立的三分类任务。"
+    },
+    {
+      "stage": "pre",
+      "question": "NLI如何用作零样本文本分类器？",
+      "options": [
+        "通过提示LLM",
+        "将每个候选标签表述为假设（例如'这段文本关于体育'），然后选择蕴含得分最高的标签",
+        "通过计算TF-IDF",
+        "通过平均嵌入向量"
+      ],
+      "correct": 1,
+      "explanation": "NLI分类器将标签转化为假设；模型选择蕴含度最大的标签。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么NLI是RAG输出的忠实度检查方法？",
+      "options": [
+        "它成本低",
+        "验证检索到的上下文是否蕴含每个答案主张，这正是NLI训练时的核心任务",
+        "它是多语言的",
+        "它使用分词器"
+      ],
+      "correct": 1,
+      "explanation": "幻觉 = 答案主张未被检索上下文蕴含；NLI直接衡量蕴含关系。"
+    },
+    {
+      "stage": "check",
+      "question": "假设-only基线暴露了什么？",
+      "options": [
+        "分词器漂移",
+        "推理速度慢",
+        "多语言差距",
+        "仅在假设层面（不含前提）就能预测标签的数据集，表明存在标签泄露"
+      ],
+      "correct": 3,
+      "explanation": "SNLI上的高假设-only分数揭示了标注偏差；可用于调试数据。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个NLI模型系列在2026年榜单上作为标准主力？",
+      "options": [
+        "在MNLI/FEVER/ANLI上微调的DeBERTa-v3变体",
+        "普通Word2Vec",
+        "GPT-2",
+        "fastText"
+      ],
+      "correct": 0,
+      "explanation": "在MNLI及相关语料上微调的DeBERTa-v3是2026年的开源NLI主力模型。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么句子级NLI模型在文档长度前提上准确率下降？",
+      "options": [
+        "它们训练于短前提，无法处理多句和多跳推理；DocNLI微调模型能处理更长输入",
+        "更大输入运行更慢",
+        "余弦相似度衰减",
+        "文档触发分词器漂移"
+      ],
+      "correct": 0,
+      "explanation": "训练分布不匹配：单句NLI模型在文档长度输入上F1下降20+。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么零样本准确率会因假设模板不同而波动10+分？",
+      "options": [
+        "模板改变标签集",
+        "模型对措辞敏感；例如'这段文本关于{label}'与单独的'{label}'会改变蕴含概率",
+        "模板改变分词器行为",
+        "模板影响模型权重"
+      ],
+      "correct": 1,
+      "explanation": "模板措辞显著影响蕴含得分；应在保留集上微调。"
+    },
+    {
+      "stage": "post",
+      "question": "关于NLI用于幻觉检测，安全的论断是什么？",
+      "options": [
+        "作为忠实度信号可减少幻觉但无法消除；应与检索召回率和人工审查结合使用",
+        "仅适用于英语",
+        "它消除幻觉",
+        "它需要LLM"
+      ],
+      "correct": 0,
+      "explanation": "NLI是有用的信号但不是完整解决方案；应与检索指标和人工抽查配合使用。"
+    }
+  ]
+}

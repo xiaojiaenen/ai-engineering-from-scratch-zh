@@ -1,0 +1,78 @@
+{
+  "lesson": "phase-19/39-instruction-tuning-sft",
+  "title": "通过监督微调进行指令微调",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "阅读前：你给一个原始基础模型输入提示词 'What is the capital of France?'。它输出 'And what about Italy and Spain too?'。哪个选项最能诊断出这个差距？",
+      "options": [
+        "模型缺少关于巴黎的事实信息。",
+        "模型具有语言模型行为，但缺乏遵循指令的格式约定。",
+        "模型需要更大的词汇表。",
+        "必须重置基础模型并重新进行预训练。"
+      ],
+      "correct": 1,
+      "explanation": "基础模型能够续写文本，但从未见过指令需要相应回复的示例。SFT 教授的是格式约定：看到指令，输出回复。"
+    },
+    {
+      "stage": "check",
+      "question": "collate 函数将 labels[i] 设为 -100 以标记指令位置和填充位置。为什么 PyTorch cross-entropy 能正确处理这些位置？",
+      "options": [
+        "PyTorch 按序列长度归一化，因此被屏蔽的位置会相互抵消。",
+        "F.cross_entropy 遵守 ignore_index=-100：这些位置对损失和梯度贡献均为零。",
+        "Cross-entropy 会静默丢弃任何负数目标。",
+        "这些位置的模型输出会被自动设为 NaN。"
+      ],
+      "correct": 1,
+      "explanation": "ignore_index 是 F.cross_entropy 的已记录参数。目标值等于 ignore_index 的位置对损失和梯度均无贡献。-100 是惯例默认值。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么 `shifted_loss` 对 `logits[:, :-1, :]` 和 `labels[:, 1:]` 做切片，而不是在相同位置直接使用？",
+      "options": [
+        "这是一种可选优化；在相同位置使用 labels 也能工作。",
+        "为了自动排除末尾的填充位置。",
+        "因为模型在位置 i 根据因果下一个 token 目标预测位置 i+1 的 token。",
+        "为了让张量在 collate 步骤后尺寸相同。"
+      ],
+      "correct": 2,
+      "explanation": "因果语言模型训练位置 i 预测 token i+1。切片将位置 i 的预测与位置 i+1 的真实标签对齐，这是标准的下一个 token 预测目标。"
+    },
+    {
+      "stage": "check",
+      "question": "你不用 mask 进行训练：labels 直接等于 input_ids，没有 -100。模型可以训练，但对回复的精确匹配率比使用 mask 时更差。最可能的原因是？",
+      "options": [
+        "模型无法在没有 mask 的情况下学习边界 token。",
+        "优化器对回复 token 过拟合。",
+        "当损失包含特殊 token 时 cross-entropy 不稳定。",
+        "大部分梯度信号用于预测指令（如果屏蔽掉最大的指令区域，这部分梯度就会被释放）。"
+      ],
+      "correct": 3,
+      "explanation": "当指令位置计入损失时，它们会主导梯度，因为指令通常比回复 token 更多。对你真正关心的部分（回复）的有效学习率下降，模型会将容量用于重建用户始终提供的输入。"
+    },
+    {
+      "stage": "post",
+      "question": "在 Held-out 集上精确匹配率为 0.85。一位审稿人指出模型对正确答案进行了改写，精确匹配无法覆盖这些情况。你应该添加哪个指标来捕捉这一点？",
+      "options": [
+        "平均序列长度。",
+        "参考文本在模型下的交叉熵。",
+        "与参考文本的 token 级 F1 分数，该指标在即使不完全字符匹配的情况下也会为重叠部分计分。",
+        "Held-out 集上的 Loss。"
+      ],
+      "correct": 2,
+      "explanation": "Token 级 F1（在归一化后对比预测 token 和参考 token）即使在表面形式不同时也为模型答对大部分答案的部分计分。这是第 41 课的内容。"
+    },
+    {
+      "stage": "post",
+      "question": "你想在支持多轮对话的聊天机器人中使用该 SFT 模型。对数据和 mask 的最小改动是什么？",
+      "options": [
+        "无需改动：SFT 模型开箱即用支持多轮。",
+        "每轮添加 USER 和 ASSISTANT 标记，拼接各轮，并只保留当前正在训练的 ASSISTANT 轮不被 mask。",
+        "将损失改为均方误差。",
+        "增加词汇表大小。"
+      ],
+      "correct": 1,
+      "explanation": "多轮 SFT 是对单轮模板的泛化。每轮都有角色标记。mask 是所有非 ASSISTANT 位置加上填充位置的并集。训练目标不变。"
+    }
+  ]
+}

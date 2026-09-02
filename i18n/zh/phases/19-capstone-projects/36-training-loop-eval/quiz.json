@@ -1,0 +1,78 @@
+{
+  "lesson": "36-training-loop-eval",
+  "title": "训练循环与评估",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "目标张量为什么必须是输入张量向后移位一个位置的结果？",
+      "options": [
+        "交叉熵需要相同的张量",
+        "它能加速优化器",
+        "AdamW 要求这样做",
+        "下一个 token 预测是训练目标：模型在每个位置预测下一个 token；如果忘记移位，就会训练模型预测自身，这学不到任何有用的东西"
+      ],
+      "correct": 3,
+      "explanation": "输入是 tokens 0..T-1；目标 tokens 是 1..T；损失在展平后的 (batch*seq, vocab) 和 (batch*seq,) 形状上计算。"
+    },
+    {
+      "stage": "pre",
+      "question": "evaluate_model 做了训练步骤没有做的什么操作？",
+      "options": [
+        "它在 no_grad 和关闭 dropout 的情况下运行固定数量的验证批次，返回可复现的平均损失",
+        "它会修改模型权重",
+        "它会计算两次梯度",
+        "它会运行优化器"
+      ],
+      "correct": 0,
+      "explanation": "预留评估需要无梯度、关闭 dropout 和固定的验证数据切片，以确保跨运行的结果可复现。"
+    },
+    {
+      "stage": "check",
+      "question": "哪些 AdamW 参数会进行权重衰减？",
+      "options": [
+        "矩阵形状的张量（线性权重、嵌入表）会进行权重衰减；scale、shift 和 bias 张量不衰减",
+        "只有 LayerNorm 的 scale",
+        "每个参数平等衰减",
+        "只有 LM head"
+      ],
+      "correct": 0,
+      "explanation": "对 LayerNorm 的 scale 施加衰减会使其趋向于零并破坏归一化；这种区分是标准的生产模式。"
+    },
+    {
+      "stage": "check",
+      "question": "warmup 加 cosine 调度从第 0 步到最终步呈现什么形状？",
+      "options": [
+        "阶梯函数",
+        "恒定值",
+        "在 warmup_steps 内从零线性上升到最大值，然后在剩余步数内按余弦规律从最大值衰减到 min_lr",
+        "指数增长"
+      ],
+      "correct": 2,
+      "explanation": "Warmup 用于填充优化器状态；余弦衰减逐步减小步长，使最终阶段能够精细调整权重。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么在 optimizer.step() 之前要裁剪梯度范数？",
+      "options": [
+        "它能消除 warmup 的需求",
+        "一个糟糕的批次可能产生巨大的梯度，瞬间抹掉数小时的训练成果；裁剪到 max_norm=1.0 能将优化器保持在安全范围内，同时不会扭曲正常的更新",
+        "它能加速矩阵乘法",
+        "它能减少内存使用"
+      ],
+      "correct": 1,
+      "explanation": "梯度裁剪是防止发散的最廉价保险；默认值 1.0 能在大多数配置中生存下来。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么以 JSONL 格式记录每一步而不是 pickle 状态？",
+      "options": [
+        "JSONL 是优化器要求的",
+        "JSONL 训练更快",
+        "JSONL 记录在重构过程中保持兼容、可被 grep 搜索、可用三十行代码绘制图表，并且能抵抗崩溃；而 pickle 状态会将你绑定到生成它的模块布局上",
+        "JSONL 占用更少的 GPU 内存"
+      ],
+      "correct": 2,
+      "explanation": "任何崩溃都会留下可读的产物；恢复时读取最后一步；在其之上的工具构建非常简单。"
+    }
+  ]
+}

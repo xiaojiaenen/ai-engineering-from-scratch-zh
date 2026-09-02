@@ -1,0 +1,78 @@
+{
+  "lesson": "03-gpu-autoscaling-kubernetes",
+  "title": "Kubernetes 上的 GPU 自动伸缩 — Karpenter、KAI Scheduler、Gang Scheduling",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "HPA 默认的伸缩信号是什么，课程指出这对 vLLM 风格的服务是失效的？",
+      "options": [
+        "P99 TTFT",
+        "DCGM_FI_DEV_GPU_UTIL 占空比",
+        "队列深度",
+        "KV cache 利用率"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "KAI Scheduler 中的 gang scheduling 主要防止什么问题？",
+      "options": [
+        "Tokenizer GIL 竞争",
+        "部分分配陷阱：8 张 GPU 中 7 张空闲，等待第 8 张",
+        "冷启动延迟",
+        "GPU 内存碎片化"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么 Karpenter 的默认 consolidationPolicy WhenEmptyOrUnderutilized 对推理 GPU 集群是危险的？",
+      "options": [
+        "它只合并 spot 实例",
+        "它阻止 Karpenter 配置新节点",
+        "它会终止正在运行的 GPU 节点以迁移 pods，导致正在处理的请求被驱逐并重载权重",
+        "它在突发流量时拒绝扩容"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Karpenter 配置 GPU 节点的速度比 Cluster Autoscaler 快多少？",
+      "options": [
+        "快约 5%",
+        "相同",
+        "快约 40%（约 45-60 秒 vs 约 90-120 秒）",
+        "慢约 10 倍"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "对于解耦的 prefill / decode pods（第 17 阶段 · 17），课程推荐的伸缩信号是？",
+      "options": [
+        "两个都用 Cluster Autoscaler",
+        "使用一个覆盖两种 pod 类型的 duty cycle HPA",
+        "仅手动伸缩",
+        "prefill pods 用队列深度，decode pods 用 KV cache 压力，分别配置 per-role HPA"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程推荐哪个 Karpenter 中断设置来避免推理 GPU 集群驱逐正在运行的任务？",
+      "options": [
+        "始终使用 spot 实例且不做合并",
+        "完全禁用 Karpenter",
+        "consolidationPolicy: WhenEmptyOrUnderutilized，consolidateAfter: 0s",
+        "consolidationPolicy: WhenEmpty，consolidateAfter: 1h"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "匈牙利算法在 tracking-by-detection 中做什么？",
+      "options": [
+        "它训练检测器",
+        "它预测未来的轨迹",
+        "它过滤掉低置信度的检测",
+        "它解决 tracks 和 detections 之间的最小代价一对一分配问题——通常使用 1 - IoU 作为代价——使每个 track 最多匹配一个 detection，反之亦然"
+      ],
+      "correct": 3,
+      "explanation": "每个 tracking-by-detection 帧都要解决一个分配问题：M 条 track、N 个 detection，找出最佳一对一匹配。匈牙利算法是解决该问题的最优多项式算法。代价通常为 1 - IoU（重叠度越高，代价越低）。scipy.optimize.linear_sum_assignment 是标准实现。SORT、DeepSORT、ByteTrack、BoT-SORT 都使用它。"
+    },
+    {
+      "stage": "pre",
+      "question": "ByteTrack 的独特贡献是什么？",
+      "options": [
+        "新的 backbone",
+        "外观嵌入",
+        "新的 Kalman 滤波器",
+        "第二阶段关联：尝试将剩余 track 与低置信度 detection 匹配，恢复短暂遮挡和标准 tracker 因丢弃这些 detection 而丢失的 ID"
+      ],
+      "correct": 3,
+      "explanation": "大多数 tracker 会丢弃置信度低于阈值（~0.5）的 detection。ByteTrack 保留它们并运行第二轮匈牙利算法，尝试将这些 detection 与未匹配到任何高置信度 detection 的 track 配对。这能恢复短暂的遮挡和交叉，显著提升 MOT17 上的 IDF1，且无需任何学习到的外观特征。其简洁性使其成为 Ultralytics 和 Roboflow Supervision 的默认选择。"
+    },
+    {
+      "stage": "post",
+      "question": "SAM 2 的基于记忆的 tracker 如何避免显式的匈牙利式关联？",
+      "options": [
+        "它在记忆库中存储每个实例的时空特征；在每一帧新帧上，记忆与当前特征之间的交叉注意力直接生成同一实例的 mask，关联隐含在注意力操作中",
+        "它在内部运行 SORT",
+        "它使用 Kalman 滤波器",
+        "它需要逐帧手动标注 ID"
+      ],
+      "correct": 0,
+      "explanation": "SAM 2 用记忆条件分割器取代了检测后关联的流程。记忆库保存该实例前几帧的特征。在每一新帧，解码器将新帧特征与记忆进行交叉注意力，生成的 mask 即为同一实例——无需外部分配步骤。即使实例消失多帧，记忆仍能保持，因此能优雅处理长时遮挡。"
+    },
+    {
+      "stage": "post",
+      "question": "对于以保持每人 ID 一致为主要需求的监控视频，应报告哪个指标？",
+      "options": [
+        "IDF1——ID 精确率与召回率的调和平均数；衡量随时间推移的身份保持能力，而非逐帧检测精度",
+        "Top-1 准确率",
+        "MOTA",
+        "FID"
+      ],
+      "correct": 0,
+      "explanation": "MOTA 混淆了检测错误和关联错误，因此存在大量误报的 tracker 可能掩盖其 ID 失败。IDF1 专为回答\"谁是谁\"这个问题而设计：它在全局范围将预测 track 与 ground-truth track 匹配，并对 ID 标签计算 F1。对于监控和人群分析，IDF1 是要报告的指标；HOTA 是更广泛的学术标准。"
+    },
+    {
+      "stage": "post",
+      "question": "SAM 3.1 Object Multiplex（2026 年 3 月）为多个被跟踪实例引入共享记忆，这实现了什么？",
+      "options": [
+        "高效的多目标跟踪——一个带实例查询 token 的共享记忆库替代 N 个独立记忆库，使代价随实例数呈次线性增长，演唱会规模的人群场景变得可行",
+        "新的训练目标",
+        "精度降低",
+        "仅云端推理"
+      ],
+      "correct": 0,
+      "explanation": "Multiplex 之前的 SAM 2 / SAM 3 为每个对象维护独立的记忆库；代价随实例数量线性增长。Multiplex（2026 年 3 月）引入单一共享记忆库配合实例查询 token 来获取实例特定特征。多人跟踪——人群、交通、仓库工人——首次借助基于记忆的 tracker 变得高效。"
+    }
+  ]
+}

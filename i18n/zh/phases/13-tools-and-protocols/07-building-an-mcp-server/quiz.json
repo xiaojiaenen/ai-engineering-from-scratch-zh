@@ -1,0 +1,48 @@
+{
+  "lesson": "07-building-an-mcp-server",
+  "title": "构建MCP服务器：无状态Python和TypeScript",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "现代MCP服务器从哪里读取客户端能力？",
+      "options": ["从Mcp-Session-Id", "从第一次initialize调用", "从每个当前请求", "从进程环境"],
+      "correct": 2,
+      "explanation": "MCP 2026-07-28在每个请求的params._meta中携带客户端能力。"
+    },
+    {
+      "stage": "check",
+      "question": "现代服务器必须实现哪个方法？",
+      "options": ["initialize", "server/discover", "resources/subscribe", "shutdown"],
+      "correct": 1,
+      "explanation": "server/discover在现代服务器上必须实现，尽管客户端可能会先调用其他方法。"
+    },
+    {
+      "stage": "check",
+      "question": "tools/list的成功结果中需要哪些字段？",
+      "options": ["protocolVersion和tools", "resultType、ttlMs、cacheScope、tools", "initialized和tools", "sessionId和tools"],
+      "correct": 1,
+      "explanation": "现代列表结果是类型化的且可缓存。"
+    },
+    {
+      "stage": "check",
+      "question": "服务器为什么要确定性排序工具？",
+      "options": ["为了稳定缓存和模型上下文", "为了创建会话", "为了协商协议", "为了替代授权"],
+      "correct": 0,
+      "explanation": "稳定的排序使等效注册表产生等效响应。"
+    },
+    {
+      "stage": "post",
+      "question": "有效的工具调用运行但领域操作失败。哪种形状适用？",
+      "options": ["notifications/initialized", "HTTP DELETE", "isError为true的完整工具结果", "新的服务器请求"],
+      "correct": 2,
+      "explanation": "工具级失败通过content和isError对模型可见。"
+    },
+    {
+      "stage": "post",
+      "question": "什么应该结束stdio服务器的传输生命周期？",
+      "options": ["stdin上的EOF", "GET请求", "强制性关闭RPC", "Mcp-Session-Id过期"],
+      "correct": 0,
+      "explanation": "EOF是可移植的stdio关闭信号。它不会关闭现代协议会话。"
+    }
+  ]
+}

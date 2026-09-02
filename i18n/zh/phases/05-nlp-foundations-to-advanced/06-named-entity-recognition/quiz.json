@@ -1,0 +1,102 @@
+{
+  "lesson": "06-named-entity-recognition",
+  "title": "命名实体识别",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "什么是BIO标注？",
+      "options": [
+        "实体的树状表示",
+        "实体与非实体的二分类方案",
+        "逐token标签：B-TYPE表示实体开始，I-TYPE表示实体内部，O表示外部",
+        "一种分词方式"
+      ],
+      "correct": 2,
+      "explanation": "BIO通过将跨度提取转换为带有B/I/O前缀的token分类来实现。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么基于规则的 gazetteer 在生产级NER中不够健壮？",
+      "options": [
+        "它们速度慢",
+        "它们无法处理多token实体",
+        "它们对新实体完全没有覆盖，且无法消歧（例如 Apple 是水果还是公司）",
+        "它们需要GPU"
+      ],
+      "correct": 2,
+      "explanation": "gazetteer 可以匹配已知字符串，但无法消歧词义或泛化到未见过的名称。"
+    },
+    {
+      "stage": "check",
+      "question": "CRF在NER任务上相比HMM的关键优势是什么？",
+      "options": [
+        "CRF避免使用Viterbi算法",
+        "CRF是判别式模型，可以混合任意特征（形状、大小写、上下文邻居）",
+        "CRF更快",
+        "CRF不需要训练数据"
+      ],
+      "correct": 1,
+      "explanation": "CRF是判别式模型，允许基于丰富且重叠的特征进行条件建模。"
+    },
+    {
+      "stage": "check",
+      "question": "在BiLSTM-CRF架构中，CRF层起什么作用？",
+      "options": [
+        "执行分词",
+        "替换嵌入",
+        "预训练LSTM",
+        "通过在LSTM输出之上对标签间转移进行建模，强制执行合法的BIO标签序列"
+      ],
+      "correct": 3,
+      "explanation": "位于LSTM特征之上的CRF对标签间的依赖关系进行建模，并排除非法序列。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么NER评估必须使用实体级F1，而不是token级F1？",
+      "options": [
+        "预测的跨度必须与真实跨度完全匹配；token级F1通过计算部分匹配而高估准确率",
+        "HuggingFace要求使用实体级F1",
+        "token级F1无法处理BIO",
+        "实体级F1更容易计算"
+      ],
+      "correct": 0,
+      "explanation": "跨度精确匹配是有意义的指标；token级F1会通过部分重叠虚高分值。"
+    },
+    {
+      "stage": "post",
+      "question": "HuggingFace NER pipeline中的aggregation_strategy='simple'做什么？",
+      "options": [
+        "仅返回置信度最高的实体",
+        "将连续的B-X和I-X token合并为单个跨度",
+        "将输出转为小写",
+        "跳过分词"
+      ],
+      "correct": 1,
+      "explanation": "它将相同类型的连续BIO token合并为跨度级实体。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么标准BIO无法处理嵌套实体？",
+      "options": [
+        "BIO是一种扁平的逐token方案，无法表达两个不同类型且重叠的跨度",
+        "BIO需要Transformer",
+        "BIO无法表示多token实体",
+        "BIO会丢弃类型标签"
+      ],
+      "correct": 0,
+      "explanation": "BIO每个token分配一个标签；嵌套跨度需要多轮处理或基于跨度的模型。"
+    },
+    {
+      "stage": "post",
+      "question": "在2026年，经典NER（CRF或BiLSTM-CRF）在什么情况下仍能胜过LLM？",
+      "options": [
+        "开放域叙述文本上",
+        "嵌套实体上",
+        "只要输入是英文",
+        "在延迟预算紧张、标签充足、本体稳定或非生成式监管约束的场景下"
+      ],
+      "correct": 3,
+      "explanation": "经典NER在延迟、有标签数据的场景、固定本体和本地部署约束下更具优势。"
+    }
+  ]
+}

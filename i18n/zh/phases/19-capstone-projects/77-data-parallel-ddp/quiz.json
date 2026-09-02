@@ -1,0 +1,78 @@
+{
+  "lesson": "77-data-parallel-ddp",
+  "title": "Data Parallel DDP From Scratch",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么DDP在构造时广播参数，而不是依赖各rank使用相同的随机种子？",
+      "options": [
+        "广播节省内存",
+        "广播比设置种子更快",
+        "PyTorch禁止使用相同种子初始化",
+        "跨rank使用相同种子初始化会产生float epsilon级别的漂移；广播保证在训练开始前各处的权重字节级相等"
+      ],
+      "correct": 3,
+      "explanation": "不同硬件上（甚至不同进程顺序）的float运算可能在位级别产生差异。从rank 0进行广播是唯一能确保各处获得字节级相等权重的方法。"
+    },
+    {
+      "stage": "pre",
+      "question": "反向传播后、optimizer.step()之前，DDP会执行什么操作？",
+      "options": [
+        "对所有参数的梯度执行allreduce-SUM，然后除以world_size得到平均梯度",
+        "不做任何操作",
+        "保存检查点",
+        "广播logits"
+      ],
+      "correct": 0,
+      "explanation": "平均梯度与world_size无关，因此在一个rank上调整的学习率在N个rank下同样适用。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么在allreduce-SUM后需要除以world_size，而不是直接使用allreduce-MEAN？",
+      "options": [
+        "gloo中没有allreduce-MEAN操作",
+        "world_size未知",
+        "在每个rank上除以world_size是本地操作；allreduce-MEAN在底层也是以相同方式实现的",
+        "除法产生NaN"
+      ],
+      "correct": 2,
+      "explanation": "两种方法的计算结果相同。NCCL从2.10版本开始支持allreduce-AVG；而gloo不支持，因此需要先执行SUM操作再在各rank本地进行除法。"
+    },
+    {
+      "stage": "check",
+      "question": "生产环境中的DDP梯度分桶有什么作用？",
+      "options": [
+        "将多个小的allreduce合并为一个大的allreduce，摊薄每次调用的延迟下限",
+        "释放梯度内存",
+        "将梯度量化为int8",
+        "跳过反向传播"
+      ],
+      "correct": 0,
+      "explanation": "拥有1B参数的模型有数千个grad张量，如果每个张量都执行一次allreduce，就要承受gloo或NCCL的延迟数千次。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么PyTorch DDP中存在no_sync()？",
+      "options": [
+        "切换后端",
+        "关闭DDP",
+        "调试用途",
+        "对K个微批次进行梯度累积时需要跳过其中K-1个的后向传播allreduce；no_sync正是包装这种暂停"
+      ],
+      "correct": 3,
+      "explanation": "如果不使用no_sync，累积步骤中会触发K次allreduce，吞吐量将下降到最低水平。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么本课程的参考实现按顺序遍历每个rank的微批次并在单个进程中执行？",
+      "options": [
+        "这是使用gloo的唯一方式",
+        "单进程更快",
+        "节省内存",
+        "提供字节级相等的基准：顺序计算的平均梯度必须与DDP的allreduce平均梯度在每个步骤保持一致"
+      ],
+      "correct": 3,
+      "explanation": "与参考循环的等价性是关键的准确性验证；缺少这个验证的话，梯度同步的bug会隐藏直到第10000步才暴露。"
+    }
+  ]
+}

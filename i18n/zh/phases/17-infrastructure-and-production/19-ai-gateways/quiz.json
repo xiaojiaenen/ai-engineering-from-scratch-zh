@@ -1,0 +1,78 @@
+{
+  "lesson": "19-ai-gateways",
+  "title": "AI网关——LiteLLM、Portkey、Kong AI Gateway、Bifrost",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "本课中AI网关的核心作用是什么？",
+      "options": [
+        "用于检索的向量数据库",
+        "模型微调服务",
+        "位于应用和模型提供商之间的进程，通过单一API整合路由、回退、重试、速率限制、密钥引用、可观测性和护栏功能",
+        "仅用于日志记录的边车"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Kong的基准测试报告显示LiteLLM的扩展上限是多少？",
+      "options": [
+        "LiteLLM无法进行基准测试",
+        "超过10k RPS时仍能线性扩展",
+        "在8GB内存下约~2000 RPS时崩溃，持续负载下出现级联故障",
+        "最高仅50 RPS"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "在同等CPU条件下，Kong的基准测试显示Kong AI Gateway比Portkey和LiteLLM快多少？",
+      "options": [
+        "相同",
+        "分别快约10%和20%",
+        "比Portkey快228%，比LiteLLM快859%",
+        "比两者都慢"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "本课中将哪个网关定位为具有20-40毫秒延迟开销，并专注于护栏/PII脱敏/越狱检测？",
+      "options": [
+        "Cloudflare AI Gateway",
+        "Portkey",
+        "Kong AI Gateway",
+        "LiteLLM"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "本课指出自托管与托管网关决策的决定性因素是什么？",
+      "options": [
+        "支持的提供商数量",
+        "每次请求成本",
+        "数据驻留要求",
+        "网关是否开源"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "当SLA为TTFT P99 < 100毫秒时，哪些网关能保持在预算范围内？",
+      "options": [
+        "仅Portkey",
+        "任意网关",
+        "仅LiteLLM",
+        "Kong（约3-8毫秒）或Cloudflare/Vercel边缘网关（约1-3毫秒）；Portkey在20-40毫秒时开销过大"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

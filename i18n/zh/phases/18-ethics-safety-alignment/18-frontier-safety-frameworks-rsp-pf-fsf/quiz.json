@@ -1,0 +1,78 @@
+{
+  "lesson": "18-frontier-safety-frameworks-rsp-pf-fsf",
+  "title": "前沿安全框架 - RSP、PF、FSF",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Anthropic 的 ASL 结构模型参考了哪个体系？",
+      "options": [
+        "欧盟《人工智能法案》类别",
+        "生物安全等级（BSL）",
+        "互联网 RFC 层级",
+        "ITIL 事故严重级别"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "OpenAI 准备度框架 v2 中，哪个标准用于描述'危害发生迅速或不可逆转'？",
+      "options": [
+        "Net-new（全新危害）",
+        "Plausible（合理可能）",
+        "Measurable（可衡量）",
+        "Instantaneous-or-irremediable（即时或不可补救）"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "DeepMind 的 FSF v3.0（2025年9月版）新增了哪个关键能力等级？",
+      "options": [
+        "有害操纵（Harmful Manipulation）",
+        "网络能力提升（Cyber Uplift）",
+        "生物武器能力提升（Bioweapon Uplift）",
+        "机器学习研发加速（ML R&D Acceleration）"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "2025年及以后的前沿安全框架中的'竞争对手调整条款'是什么？",
+      "options": [
+        "当其他实验室在未配备同等安全措施的情况下发布模型时，允许某实验室降低安全要求的条款",
+        "出口管制豁免",
+        "模型卡片披露要求",
+        "API 访问定价规则"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程中所描述的 safety case 的三个标准支柱是什么？",
+      "options": [
+        "有帮助、诚实、无害",
+        "监控、不可读性、无能力",
+        "速度、准确性、成本",
+        "内在、外在、表 Mesa"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "Anthropic 的'能力阈值'、OpenAI 的'高能力阈值'和 DeepMind 的'关键能力等级'之间存在哪种结构性对应关系？",
+      "options": [
+        "均未公开文档化",
+        "结构性对齐：均包含分层的前沿能力阈值并附有公布的评估标准，尽管术语不同",
+        "术语和数值阈值完全相同",
+        "三者使用完全相同的评估方法"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

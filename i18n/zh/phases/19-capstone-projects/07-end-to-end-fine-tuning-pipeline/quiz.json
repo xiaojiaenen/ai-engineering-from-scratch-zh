@@ -1,0 +1,90 @@
+{
+  "lesson": "07-end-to-end-fine-tuning-pipeline",
+  "title": "Capstone 07 — 端到端微调流水线（数据到SFT到DPO到服务化部署）",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "数据准备阶段的污染检测防止了什么？",
+      "options": [
+        "SFT和DPO阶段之间的词元器漂移",
+        "来自MMLU-Pro、MT-Bench-v2等公开基准测试集的数据泄漏至训练数据",
+        "训练与推理之间的GPU驱动不匹配",
+        "不同llama.cpp构建版本间的GGUF版本偏差"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "为什么流水线采用先SFT后DPO（或GRPO）的组合，而不是单独使用DPO？",
+      "options": [
+        "DPO无法在量化权重上运行",
+        "Axolotl未实现DPO",
+        "SFT在标注补全数据上建立领域行为能力，而DPO或GRPO通过偏好对或可验证奖励进一步对齐模型",
+        "DPO需要独立的基座模型架构"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "EAGLE-3在vLLM服务化阶段贡献了什么？",
+      "options": [
+        "工具调用的OPA策略",
+        "自动数据去重步骤",
+        "新的提示缓存层",
+        "能够提前预测N个token的草稿头；目标模型在一次前向通过中验证，实现2-3倍吞吐提升"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪个指标报告推测解码草稿与目标模型的吻合程度？",
+      "options": [
+        "接受率（Acceptance rate）",
+        "困惑度（Perplexity）",
+        "PSI",
+        "覆盖率差值（Coverage delta）"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "流水线提供了哪三种量化格式以支持部署灵活性？",
+      "options": [
+        "GPTQ-INT4-Marlin、AWQ-INT4和GGUF-Q4_K_M",
+        "FP32、FP16、BF16",
+        "仅INT8覆盖三种运行时",
+        "ONNX、CoreML、TFLite"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "本Capstone中的2026版模型卡片遵循哪种框架规范？",
+      "options": [
+        "仅HuggingFace YAML front-matter",
+        "OpenAI的模型卡片格式",
+        "Datasheets for Datasets",
+        "Model Openness Framework（MOF）2026模板，涵盖数据、训练、评估、安全、许可证和可复现性"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "使用哪个HPA指标来自动扩缩容服务副本？",
+      "options": [
+        "GPU温度",
+        "CPU利用率",
+        "队列等待时间",
+        "网络出口字节数"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

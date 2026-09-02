@@ -1,0 +1,90 @@
+{
+  "lesson": "10-multi-agent-software-team",
+  "title": "Capstone 10 — 多智能体软件工程团队",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "即使拥有 200k token 的上下文，为什么单智能体方案在大任务上仍会遇到性能瓶颈？",
+      "options": [
+        "模型不支持 git",
+        "单智能体无法进行工具调用",
+        "上下文无法同时容纳架构计划、四个并行代码库切片、评审意见和测试结果",
+        "沙箱拒绝托管多个进程"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "在这种工厂模式架构中，架构师角色负责什么？",
+      "options": [
+        "在干净的沙箱中运行测试套件",
+        "阅读 issue 并生成包含明确接口定义的子任务计划",
+        "审查合并后的 diff 是否存在幻觉",
+        "编码员分歧时强制合并分支"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么每个编码员都在自己的 git worktree 加上 Daytona 沙箱中工作？",
+      "options": [
+        "架构师需要 worktree ID",
+        "Daytona 是唯一支持 SSH 的沙箱",
+        "隔离的工作树让 N 个编码员能并行实现子任务而不互相干扰共享文件",
+        "worktree 比分支克隆更快"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "对审查者施加了什么约束来保证其客观性？",
+      "options": [
+        "不能批准自己编写或提议的 diff",
+        "只能在测试员签字后才能运行",
+        "必须批准它阅读的每个 diff",
+        "必须与架构师使用相同的模型"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么评分标准将 token 效率与单智能体基线进行对比？",
+      "options": [
+        "单智能体没有可观测性方案",
+        "角色边界增加了摘要和交接上下文，所以真正的问题是工厂模式是否每美元更有优势",
+        "多智能体总是更便宜",
+        "token 成本与性能无关"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "在事后分析中，每个失败的 issue 会产生什么产物？",
+      "options": [
+        "新的架构师计划模板",
+        "更新的 A2A 协议规范",
+        "交接失败直方图，标识哪个角色边界出了问题（计划、合并、审查、测试）",
+        "强制推送日志"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "最终项目使用哪个评估集来评分各角色的 pass@1？",
+      "options": [
+        "HumanEval-Java",
+        "MigrationBench",
+        "MT-Bench-v2",
+        "SWE-bench Pro 50-issue 子集"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "17-disaggregated-prefill-decode",
+  "title": "Disaggregated Prefill/Decode — NVIDIA Dynamo and llm-d",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么prefill和decode需要不同的最优GPU配置？",
+      "options": [
+        "Prefill必须运行在AMD上，decode运行在NVIDIA上",
+        "它们使用不同的模型权重",
+        "Prefill受matmul吞吐量计算瓶颈限制；decode受HBM带宽内存瓶颈限制，将它们共存会浪费一种资源",
+        "Decode需要更多网络带宽"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "NVIDIA Dynamo使用什么传输方式在prefill池和decode池之间移动KV cache？",
+      "options": [
+        "仅gRPC双向流",
+        "NIXL（可用时使用RDMA/InfiniBand，TCP回退）",
+        "普通HTTP",
+        "基于NFS的共享文件系统"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "根据课程内容，以下哪种场景下去中心化不划算？",
+      "options": [
+        "带有8K+前缀的RAG",
+        "Blackwell上的MoE工作负载",
+        "共享system prompt的多租户服务",
+        "prompt在512 tokens以下且输出在200 tokens以下，此时KV传输开销会超过收益"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Dynamo和llm-d的核心架构区别是什么？",
+      "options": [
+        "Dynamo是开源的；llm-d是闭源的",
+        "Dynamo运行在CPU上；llm-d运行在GPU上",
+        "Dynamo是运行在vLLM/SGLang/TRT-LLM之上的上层编排器；llm-d是Kubernetes原生的，将prefill/decode/router作为独立Service",
+        "Dynamo需要AMD；llm-d需要NVIDIA"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "哪些Dynamo组件能够针对SLO自动调优prefill:decode比例？",
+      "options": [
+        "Marlin内核",
+        "Planner Profiler和SLA Planner",
+        "Cluster Autoscaler",
+        "Sidecar代理和Envoy过滤器"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "去中心化如何与Phase 17 · 11中的cache-aware routing交互？",
+      "options": [
+        "去中心化完全禁用了KV cache复用",
+        "cache-aware router可以将请求落到已持有其prefix的decode池；当缓存未命中时，请求流程为prefill → decode，两者叠加增效",
+        "两者互斥",
+        "cache-aware routing仅适用于colocated部署"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

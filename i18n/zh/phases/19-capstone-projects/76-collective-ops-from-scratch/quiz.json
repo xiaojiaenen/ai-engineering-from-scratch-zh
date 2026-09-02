@@ -1,0 +1,78 @@
+{
+  "lesson": "76-collective-ops-from-scratch",
+  "title": "Collective Ops From Scratch",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在N个rank上，ring allreduce处理T字节张量的每个rank带宽开销是多少？",
+      "options": [
+        "N * T 字节",
+        "T log2(N) 字节",
+        "T 字节",
+        "2T(N-1)/N 字节"
+      ],
+      "correct": 3,
+      "explanation": "Ring allreduce分两趟移动大小为T/N的N-1个块（先reduce-scatter再allgather）；每个rank的总量为2T(N-1)/N，与集群大小无关。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么本课的队列网格是真实集群上NCCL的忠实替代品？",
+      "options": [
+        "它通过硬件卸载进行归约操作",
+        "它在CUDA核心上运行",
+        "它实现了相同的线路模式（围绕环的有序点对点发送），仅介质不同",
+        "它压缩消息"
+      ],
+      "correct": 2,
+      "explanation": "算法正确性取决于线路模式而非介质；队列环与NCCL ring allreduce暴露相同的竞争形状和块调度。"
+    },
+    {
+      "stage": "check",
+      "question": "Ring allreduce的reduce-scatter阶段结束后，rank r持有什么？",
+      "options": [
+        "一个块的归约和（张量的N分之一）",
+        "两个块的归约和",
+        "未归约的完整张量",
+        "无"
+      ],
+      "correct": 0,
+      "explanation": "Reduce-scatter将一个块的求和结果驻留在一个rank上；allgather阶段随后将这些已完成的块绕环旋转分发。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么使用树形广播而非源点的N-1次直接发送？",
+      "options": [
+        "PyTorch中必须使用树形结构",
+        "直接发送会丢包",
+        "树形结构每轮使持有者集合翻倍；深度为log2(N)，因此延迟按log增长而非N",
+        "树形结构使用更少内存"
+      ],
+      "correct": 2,
+      "explanation": "当每次hop的延迟是瓶颈时，log2(N)次跳远优于N-1次顺序发送需重复支付该延迟下限。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么要用torch.distributed gloo在同一输入上进行验证？",
+      "options": [
+        "Gloo更快",
+        "Gloo是集体语义的法律参考；字节级匹配的输出证明算法在真实集群上运行前与规范一致",
+        "Gloo无需设置",
+        "Gloo自动写入JSONL"
+      ],
+      "correct": 1,
+      "explanation": "没有参考实现时，原语在实际训练的第10000步之前看起来都是正确的；gloo在CPU上提供字节级精确的基准真值。"
+    },
+    {
+      "stage": "post",
+      "question": "什么时候tree allreduce优于ring allreduce？",
+      "options": [
+        "始终",
+        "消息较大时",
+        "小消息或高延迟链路；log2(N)跳数在交叉点以下优于带宽项2T(N-1)/N",
+        "从不"
+      ],
+      "correct": 2,
+      "explanation": "NCCL在约1MB以上选择ring，以下选择tree；交叉点取决于给定集群拓扑上的带宽与延迟权衡。"
+    }
+  ]
+}

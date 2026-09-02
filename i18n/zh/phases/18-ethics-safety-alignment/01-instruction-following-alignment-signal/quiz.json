@@ -1,0 +1,78 @@
+{
+  "lesson": "01-instruction-following-alignment-signal",
+  "title": "指令跟随作为对齐信号",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么原始的预训练语言模型在收到'写一个反转列表的Python函数'的指令时，往往会用另一个提示来回应而不是代码？",
+      "options": [
+        "它的温度默认值为零",
+        "它的词汇表缺少Python词元",
+        "它被训练用于补全网页风格的文本，其中提示会延续为更多提示",
+        "它在不进行微调的情况下无法表示函数签名"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "InstructGPT的奖励模型在成对偏好标签上使用哪种损失函数？",
+      "options": [
+        "预测奖励与真实奖励之间的交叉熵",
+        "标注者评分的均方误差",
+        "固定边界的铰链损失",
+        "Bradley-Terry：-log sigmoid(r(x, y_w) - r(x, y_l))"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "InstructGPT第三阶段的KL惩罚主要防止什么？",
+      "options": [
+        "词元统计信息的灾难性遗忘",
+        "优化器找到利用奖励模型的对抗性高分字符串",
+        "采样期间上下文窗口溢出",
+        "PPO梯度更新中的数值不稳定性"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "PPO-ptx混入强化学习目标以缓解什么问题？",
+      "options": [
+        "对齐税：在RLHF未针对的基准上的性能退化",
+        "SFT与RM之间的词元不匹配",
+        "KL项变为负值",
+        "奖励模型在PPO期间的漂移"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "一个13亿参数的InstructGPT在约70%的情况下比1750亿参数的基础GPT-3更受偏好。这说明了关于对齐和能力之间的什么关系？",
+      "options": [
+        "对齐与能力是不同的维度，基础模型设定了能力的下限",
+        "超过50%的偏好率证明代理奖励等同于人类价值观",
+        "能力和对齐在规模上是同一维度",
+        "更大的基础模型总是输给较小的对齐模型"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "InstructGPT中的奖励模型是从以下哪个模型初始化的？",
+      "options": [
+        "保持语言模型头完整的基础预训练模型",
+        "用标量头替换语言模型头的SFT模型",
+        "独立的仅编码器transformer",
+        "无预训练的随机标量回归器"
+      ],
+      "correct": 1,
+      "explanation": ""
+    }
+  ]
+}

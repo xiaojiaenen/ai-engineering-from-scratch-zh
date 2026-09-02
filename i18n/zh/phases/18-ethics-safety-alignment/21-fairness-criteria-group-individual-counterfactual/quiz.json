@@ -1,0 +1,78 @@
+{
+  "lesson": "21-fairness-criteria-group-individual-counterfactual",
+  "title": "公平性准则 - 群体、个体与反事实",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "下列哪项最符合群体 A=a 与 A=a' 的人口统计parity（demographic parity）定义？",
+      "options": [
+        "各组间的预测值相等",
+        "各组间的真阳性率与假阳性率相等",
+        "各组间的接受率相等：P(Y=1 | A=a) = P(Y=1 | A=a')",
+        "各组间的Lipschitz常数相等"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Chouldechova / Kleinberg-Mullainathan-Raghavan 2017年的不可能性定理说明什么？",
+      "options": [
+        "在基础率不等的情况下，人口统计parity、机会均等（equalized odds）与条件使用准确性相等无法同时成立",
+        "个体公平性对任意DAG都蕴含反事实公平性",
+        "反事实公平性蕴含人口统计parity",
+        "群体公平性总能通过重新加权实现"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Dwork et al. 2012 通过以下方式定义个体公平性：",
+      "options": [
+        "带有敏感属性干预的因果DAG",
+        "受保护群体间的准确率相等",
+        "对决策映射施加相对于任务特定相似性度量的Lipschitz条件，使相似个体获得相似决策",
+        "个体层面的Demographic parity"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "反事实公平性（Counterfactual fairness，Kusner et al. 2017）要求：",
+      "options": [
+        "所有组别具有相等的Lipschitz常数",
+        "仅依赖群体级统计量",
+        "无需因果假设",
+        "基于因果DAG；当个体的敏感属性被反事实地改变时，决策结果保持不变"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "回溯反事实（backtracking counterfactuals，arXiv:2401.13935）为何对法律合规具有重要意义？",
+      "options": [
+        "它们替代了基于嵌入的偏见度量方法",
+        "它们消除了对任何因果模型的需求",
+        "它们证明不可能性定理是错误的",
+        "它们不干预受保护属性（这存在法律风险），而是询问：哪些实际特征的组合本可导致该反事实结果"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "ICLR Blogposts 2024 的哲学调和论点主张什么？",
+      "options": [
+        "在显式因果图下，满足某些群体公平性度量即蕴含反事实公平性；两派之间的表面冲突部分源于因果模型的隐含性",
+        "群体公平性与反事实公平性无关",
+        "仅个体公平性具有正当性",
+        "不可能性定理可通过重新加权解决"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

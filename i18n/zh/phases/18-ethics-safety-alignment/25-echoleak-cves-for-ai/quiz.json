@@ -1,0 +1,78 @@
+{
+  "lesson": "25-echoleak-cves-for-ai",
+  "title": "EchoLeak与AI漏洞的兴起",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "EchoLeak（CVE-2025-32711）最准确的描述是什么？",
+      "options": [
+        "Microsoft 365 Copilot中的零点击AI命令注入漏洞（CVE-2025-32711，CVSS 9.3），可导致未经授权的网络安全信息泄露，并通过CSP白名单/受信任的Microsoft域进行数据外泄",
+        "NPU的硬件漏洞",
+        "对PyPI的供应链攻击",
+        "通过长上下文样本注入的越狱攻击"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "EchoLeak为何被称为'零点击'？",
+      "options": [
+        "它在操作系统内核中运行",
+        "它需要三次点击但无需输入",
+        "受害者无需打开邮件；Copilot在例行查询时会将其作为RAG上下文检索，注入的指令便会执行",
+        "它需要用户在Teams聊天中点击链接"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Aim Labs将EchoLeak定义为'LLM作用域违规'。三个边界必须各自独立控制，是哪三个？",
+      "options": [
+        "检索、作用域、输出",
+        "网络、磁盘、内存",
+        "提示、响应、日志",
+        "输入、模型、GPU"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Microsoft/GitHub如何修复了CamoLeak（CVSS 9.6，GitHub Copilot Chat）？",
+      "options": [
+        "增加上下文大小",
+        "添加XPIA提示注入过滤器",
+        "将模型切换为Llama Guard",
+        "在Copilot Chat中完全禁用图像渲染（代价：可用性），因为替代攻击面无法被限制"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "EchoLeak的披露揭示了严重性校准中的什么规律？",
+      "options": [
+        "供应商高估了初始CVSS评分",
+        "所有AI的CVE自动评级为10.0",
+        "供应商最初对EchoLeak评级较低（信息泄露）；Aim Labs的多因素认证代码外泄概念验证将其评级提升至9.3——防御方必须推动针对AI特定漏洞的全面PoC",
+        "严重性评级仅由OWASP决定"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "截至2024/2025年，NIST和OWASP对提示注入的排名如何？",
+      "options": [
+        "NIST：范围外；OWASP：未列出",
+        "双方都仅将其列为二级风险",
+        "NIST：次要；OWASP：列表底部",
+        "NIST AI SPD 2024将提示注入视为生成式AI的主要信息安全风险；OWASP 2025将其列为LLM01（顶级应用层威胁）"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

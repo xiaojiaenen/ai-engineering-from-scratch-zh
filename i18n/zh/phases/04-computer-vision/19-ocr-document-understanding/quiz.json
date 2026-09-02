@@ -1,0 +1,64 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么OCR使用CTC损失而不是普通交叉熵？",
+      "options": [
+        "PyTorch要求必须使用CTC",
+        "OCR将固定长度的特征序列映射到可变长度的字符序列，无需逐时间步对齐；CTC损失通过对所有在移除重复和空白后能缩减为目标序列的对齐方式求边际概率，因此无需逐字符的时间标签即可训练",
+        "交叉熵在长序列上会溢出",
+        "CTC更快"
+      ],
+      "correct": 1,
+      "explanation": "识别模型在每个时间步输出一个分布，但目标文本没有逐步对齐信息。CTC通过求和所有经'合并重复并移除空白'操作后能缩减为目标序列的对齐方式来处理这个问题。这就是CRNN仅凭(image, text)对就能训练，而无需知道图像中每个字符起止位置的原因。"
+    },
+    {
+      "stage": "pre",
+      "question": "在CTC解码中，blank token的作用是什么？",
+      "options": [
+        "表示序列结束",
+        "将序列填充到固定长度",
+        "掩码噪声区域",
+        "分隔相邻的相同字符，使模型输出类似'h e l _ l o'的形式来生成'double L'的'hello'——没有blank时，'l l'会合并成一个'l'"
+      ],
+      "correct": 3,
+      "explanation": "blank是CTC编码双字符的机制。'll'需要在两个l之间加入blank，这样'合并重复'步骤才能保持它们区分：'l _ l'在合并后仍保留，而'l l'则不会。没有blank时，CTC无法表示任何包含相邻相同字符的单词。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么greedy CTC解码在某些简单数据集上有时比beam search更好？",
+      "options": [
+        "Greedy更容易实现",
+        "Beam search需要语言模型",
+        "Greedy总是更好",
+        "当模型在每一步都很有信心时（清晰手写体、印刷字体），greedy的argmax通常就是beam search的获胜者；beam search会增加延迟却没有精度提升。在噪声或模糊输入上，beam search才有帮助"
+      ],
+      "correct": 3,
+      "explanation": "只有当每步的argmax不可靠时beam search才有优势——字符模糊、字母重叠、扫描质量差的情况。对于清晰的印刷文本，模型每一步都很有信心，greedy的CER与beam search相差不到1%。应始终对比两者的表现；延迟权衡是实际存在的。"
+    },
+    {
+      "stage": "post",
+      "question": "Donut如何跳过显式的文本检测和字符识别？",
+      "options": [
+        "它是一个ViT编码器加文本解码器的模型，直接从图像端到端地生成最终输出字符串（通常为JSON）；模型通过训练目标隐式地学会定位和识别",
+        "它使用CNN文本检测器预处理图像",
+        "它仅限于具有固定布局的文档类别",
+        "它在内部使用外部OCR引擎"
+      ],
+      "correct": 0,
+      "explanation": "Donut是一个端到端模型：ViT编码器观察整份文档，transformer解码器自回归地输出目标文本或JSON。没有检测器+识别器+布局模块的流水线。这避免了多阶段错误累积，但需要针对特定文档类型的大量标注训练数据。"
+    },
+    {
+      "stage": "post",
+      "question": "从收据中提取`invoice_total`时，2026年通常最好的方法是什么？",
+      "options": [
+        "仅传统OCR足够可靠",
+        "为每个字段单独训练CNN",
+        "在少量标注的目标收据上微调Donut或VLM；两者都能在单个模型中处理布局和语义提取，比流水线方法更好地泛化到不同收据变体",
+        "在Tesseract输出上手工编写正则表达式"
+      ],
+      "correct": 2,
+      "explanation": "结构化字段提取曾是LayoutLM加启发式规则的地盘。端到端模型（Donut、Qwen-VL-OCR）已超越该路径：它们接收图像直接输出JSON。对于少量标注收据（100-1000张），微调Donut能达到的F1高于任何OCR+规则的流水线。"
+    }
+  ]
+}

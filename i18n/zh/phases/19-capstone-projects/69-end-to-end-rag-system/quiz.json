@@ -1,0 +1,78 @@
+{
+  "lesson": "69-end-to-end-rag-system",
+  "title": "端到端RAG系统",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么集成测试是六组件RAG管道唯一可靠的评估方式？",
+      "options": [
+        "各组件运行在不同机器上",
+        "分块器是唯一重要的组件",
+        "生产服务器无法运行单独的阶段测试",
+        "每个阶段独立的指标无法预测系统整体指标，因为各阶段相互交互；唯一有效的评估方式是针对相同的qrels对整个管道进行端到端运行"
+      ],
+      "correct": 3,
+      "explanation": "孤立的胜利不会组合；管道根据联合输出进行评分。"
+    },
+    {
+      "stage": "pre",
+      "question": "答案生成器中refuse-on-low-confidence的作用是什么？",
+      "options": [
+        "它将每次拒绝记录到磁盘",
+        "当reranker的top-1分数低于语料库特定阈值时返回'我不知道'，防止在检索到的上下文无法回答问题时产生幻觉答案",
+        "它阻止超过100个token的查询",
+        "它使用不同的分块器触发重新检索"
+      ],
+      "correct": 1,
+      "explanation": "持续低的rank-1分数是模型在告诉你：语料库中没有任何内容能回答此查询；拒绝而不是幻觉。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么rerank训练三元组与评估查询保持分离？",
+      "options": [
+        "防止训练-测试数据泄漏；如果评估查询与rerank训练集重叠，评估结果会看起来很神奇，回归测试也无法检测到真实的漂移",
+        "因为RRF无法合并重叠的列表",
+        "因为cross-encoder需要不同的词表",
+        "为了节省GPU显存"
+      ],
+      "correct": 0,
+      "explanation": "严格分离是基本要求；否则rerank指标无法预测生产行为。"
+    },
+    {
+      "stage": "check",
+      "question": "自终止演示程序的退出码有什么作用？",
+      "options": [
+        "Python所必需",
+        "reranker将其用作训练信号",
+        "装饰性用途",
+        "它对指标阈值编码通过/失败状态；CI冒烟测试可以将演示程序接入管道，并在非零退出码时阻止合并"
+      ],
+      "correct": 3,
+      "explanation": "退出码0表示达到阈值；非零表示回归。这是CI门控消耗的合同。"
+    },
+    {
+      "stage": "check",
+      "question": "此管道中的引用锚点是什么样子？",
+      "options": [
+        "JSON-RPC信封",
+        "[doc_id:chunk_index]",
+        "带有源URL的Markdown链接",
+        "字面量的embedding向量"
+      ],
+      "correct": 1,
+      "explanation": "生成器输出(doc_id, chunk_index)元组作为锚点，以便下游UI或审计人员可以将每个声明映射回其源分块。"
+    },
+    {
+      "stage": "post",
+      "question": "哪种故障模式在mock生成器中不可见，必须在发货前用真实LLM进行测试？",
+      "options": [
+        "延迟",
+        "幻觉：mock生成器仅从检索到的分块中输出文本，无法发明内容；而真实LLM可以忽略分块并生成无依据的答案",
+        "分词",
+        "向量索引大小"
+      ],
+      "correct": 1,
+      "explanation": "mock无法测试生成器对幻觉内容的安全性；只有真实模型的替换才能做到。"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "lesson": "09-sequence-to-sequence",
+  "title": "Sequence-to-Sequence 模型",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "2014年风格的seq2seq模型中，编码器(Encoder)的作用是什么？",
+      "options": [
+        "生成目标词元",
+        "执行束搜索",
+        "计算注意力权重",
+        "读取源序列并产生一个固定大小的上下文向量来总结它"
+      ],
+      "correct": 3,
+      "explanation": "编码器RNN将源序列压缩为最终隐藏状态，供解码器使用。"
+    },
+    {
+      "stage": "pre",
+      "question": "seq2seq训练中的教师强制(Teacher Forcing)是什么？",
+      "options": [
+        "手动标注每个解码器步骤",
+        "在推理期间添加教师网络",
+        "将批大小翻倍",
+        "将真实前一个词元(而非模型预测)作为解码器输入"
+      ],
+      "correct": 3,
+      "explanation": "教师强制通过使用真实的前一个词元来稳定训练；没有它，早期错误会级联。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么固定上下文向量的seq2seq准确率随输入长度增长而下降？",
+      "options": [
+        "交叉熵发散",
+        "填充词元累积",
+        "词汇表变得太大",
+        "关于源的所有信息必须适应单个固定大小的编码器隐藏状态，这在长输入时会丢失细节"
+      ],
+      "correct": 3,
+      "explanation": "固定上下文向量的瓶颈意味着长输入无法无损总结。"
+    },
+    {
+      "stage": "check",
+      "question": "什么是暴露偏差(Exposure Bias)？",
+      "options": [
+        "类别不平衡导致的偏差",
+        "编码器嵌入中的偏差",
+        "标注者分歧",
+        "训练时使用真实词元，但推理时使用模型自身预测的差距"
+      ],
+      "correct": 3,
+      "explanation": "模型在训练期间从未练习过从自己的错误中恢复，因此在推理时错误会级联。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么束搜索在生成任务中通常优于贪心解码？",
+      "options": [
+        "束搜索更快",
+        "束搜索在每个步骤保留top-k个部分序列，而不是不可逆转地选择一个词元",
+        "束搜索避免暴露偏差",
+        "束搜索降低损失"
+      ],
+      "correct": 1,
+      "explanation": "贪心解码每步都做出不可逆的选择；束搜索探索多个假设，然后选择最好的完整序列。"
+    },
+    {
+      "stage": "post",
+      "question": "哪种架构族取代了用于通用生成任务的RNN seq2seq？",
+      "options": [
+        "朴素贝叶斯",
+        "图神经网络",
+        "一维CNN",
+        "Transformer编码器-解码器模型(BART, T5, mBART, NLLB)"
+      ],
+      "correct": 3,
+      "explanation": "Transformer编码器-解码器摒弃了循环结构，现已主导生成任务。"
+    },
+    {
+      "stage": "post",
+      "question": "Scheduled Sampling做了什么？",
+      "options": [
+        "向嵌入添加随机噪声",
+        "在训练期间逐渐降低教师强制比例，使模型学会从自己的预测中恢复",
+        "重新排序训练集",
+        "安排学习率衰减"
+      ],
+      "correct": 1,
+      "explanation": "Scheduled Sampling逐渐混合模型预测，以缩小训练/推理差距。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么单独使用贪心解码在面向用户的生成任务中经常失败？",
+      "options": [
+        "它总是先选择<EOS>",
+        "它无法使用嵌入",
+        "贪心解码可能重复或循环，且无法从局部好但全局差的词元选择中回溯",
+        "它需要更多内存"
+      ],
+      "correct": 2,
+      "explanation": "贪心解码每步不可逆的选择会导致循环和重复，除非结合束搜索或采样。"
+    }
+  ]
+}

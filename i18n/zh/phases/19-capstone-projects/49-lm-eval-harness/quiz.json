@@ -1,0 +1,78 @@
+{
+  "lesson": "49-lm-eval-harness",
+  "title": "语言模型评估框架",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在harness的JSONL格式中，定义任务示例的四个字段是什么？",
+      "options": [
+        "id, prompt, targets, metric 以及一个可选的 extras 字典，用于存放metric所需的附加数据",
+        "name, score, payload, vendor",
+        "weights and bias",
+        "input and output"
+      ],
+      "correct": 0,
+      "explanation": "JSONL行是一种契约。extras字段允许code_exec metric传递io_pairs，而不会污染prompt。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么metric函数的签名是 (prediction, targets, extras) -> float？",
+      "options": [
+        "它返回一个整数",
+        "它需要model对象",
+        "它是能处理单目标字符串匹配、多参考rouge-l以及带附加数据的code_exec的最小签名，同时保持分数在可比较的 [0.0, 1.0] 范围内",
+        "随机选择"
+      ],
+      "correct": 2,
+      "explanation": "[0,1] 范围内的浮点数意味着每个task及整体的分数都是可解释的平均值。extras槽位是code_exec获取其io_pairs的方式。"
+    },
+    {
+      "stage": "check",
+      "question": "code_exec metric如何抵御恶意预测？",
+      "options": [
+        "它使用沙箱容器",
+        "它以剥离的 __builtins__ 字典运行预测，使命名空间仅暴露少量安全名称；由于导入器不在作用域内，import语句会失败",
+        "它无法抵御",
+        "它拒绝任何包含def的内容"
+      ],
+      "correct": 1,
+      "explanation": "课程中的安全命名空间将builtins削减到少数几个名称。测试断言 import os 返回的score为0.0而非执行成功。"
+    },
+    {
+      "stage": "check",
+      "question": "model adapter抽象带来了什么好处？",
+      "options": [
+        "它是harness中唯一的model特定代码；更换adapter即可指向新的vendor，而tasks、metrics、runner和leaderboard格式保持不变",
+        "它是torch必需的",
+        "没有任何好处",
+        "它能让model运行更快"
+      ],
+      "correct": 0,
+      "explanation": "课程中的ToyAdapter是一个确定性模式匹配器。面向真实vendor的HttpAdapter具有相同的 generate(prompts) -> list[str] 接口。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么leaderboard JSON会携带类似 leaderboard.v1 的schema字符串？",
+      "options": [
+        "以便未来格式变更时递增版本号，下游仪表盘可以据此进行分发处理，而不是静默出错",
+        "它压缩了文件",
+        "为了SEO",
+        "它是随机的"
+      ],
+      "correct": 0,
+      "explanation": "与第47课中的checkpoint payload采用相同技巧。schema字段是迁移钩子。"
+    },
+    {
+      "stage": "post",
+      "question": "阅读leaderboard时，overall_score是如何计算的？比较两次运行时需要注意什么？",
+      "options": [
+        "随机采样",
+        "正确计数求和",
+        "各task分数（每个都在[0,1]）的均值；比较时还需针对分数发生变化的task逐example核对预测，因为仅看分数会掩盖哪些example出现了回退",
+        "最佳task分数"
+      ],
+      "correct": 2,
+      "explanation": "各task均值的均值让每个task权重相等。使用 --include-per-example 可在分数旁保留prediction级证据，使回退情况可见。"
+    }
+  ]
+}

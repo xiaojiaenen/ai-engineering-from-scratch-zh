@@ -1,0 +1,102 @@
+{
+  "lesson": "07-pos-tagging-parsing",
+  "title": "词性标注与句法分析",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "词性标注的目标是什么？",
+      "options": [
+        "翻译句子",
+        "检测情感",
+        "提取命名实体",
+        "为每个词元分配语法类别（名词、动词等）"
+      ],
+      "correct": 3,
+      "explanation": "词性标注为每个词元标注其词性。"
+    },
+    {
+      "stage": "pre",
+      "question": "跨语言工作的默认标签集是？",
+      "options": [
+        "Penn Treebank",
+        "CoNLL-2003",
+        "Stanford Dependencies",
+        "Universal Dependencies"
+      ],
+      "correct": 3,
+      "explanation": "Universal Dependencies 提供了一个更粗粒度、跨语言的17标签集。"
+    },
+    {
+      "stage": "check",
+      "question": "二元HMM词性标注器建模什么？",
+      "options": [
+        "依存句法分析",
+        "仅P(标签)",
+        "P(标签|前一个标签)转移概率加上P(词|标签)发射概率，用Viterbi解码",
+        "嵌入相似度"
+      ],
+      "correct": 2,
+      "explanation": "二元HMM使用标签转移和词发射；Viterbi算法找到概率最高的序列。"
+    },
+    {
+      "stage": "check",
+      "question": "Viterbi算法为HMM标注器计算什么？",
+      "options": [
+        "转移矩阵",
+        "每个标签的边缘概率",
+        "仅前向概率",
+        "通过对标签格进行动态规划找到单一最高概率的标签序列"
+      ],
+      "correct": 3,
+      "explanation": "Viterbi通过O(n * |T|^2)的动态规划找到argmax序列。"
+    },
+    {
+      "stage": "check",
+      "question": "依存句法分析产生什么？",
+      "options": [
+        "NP/VP/PP标签的短语结构树",
+        "每个词有一个中心词和带标签的语法关系的树",
+        "指代链",
+        "扁平BIO序列"
+      ],
+      "correct": 1,
+      "explanation": "依存句法分析给出每个词的(head, relation)边；短语结构分析给出嵌套的短语结构。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么PTB词性标注的准确率上限约为97-98%？",
+      "options": [
+        "任何任务的模型都不能超过98%",
+        "Universal Dependencies限制在98%",
+        "人工标注者仅在约97%的情况下达成一致，因此高于~98%的模型可能过拟合了测试数据",
+        "硬件限制"
+      ],
+      "correct": 2,
+      "explanation": "标注者分歧限制了可达到的准确率；非常高的数字通常意味着过拟合。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么词性标注在2026年的LLM管线中仍然重要？",
+      "options": [
+        "分词所必需的",
+        "词形还原、基于方面的情感分析、查询分解、结构化输出验证和跨语言迁移仍然需要POS或依存句法分析",
+        "替代transformer",
+        "LLM没有它无法运行"
+      ],
+      "correct": 1,
+      "explanation": "即使LLM生成文本，POS和依存句法分析仍然为许多结构化下游任务提供输入。"
+    },
+    {
+      "stage": "post",
+      "question": "在大多数生产环境的POS/句法分析任务中应该使用哪个库？",
+      "options": [
+        "scikit-learn",
+        "spaCy（如需更高准确率或更广泛的语言覆盖，可选stanza/trankit）",
+        "NumPy",
+        "自己实现解析器"
+      ],
+      "correct": 1,
+      "explanation": "spaCy提供快速的生产级POS+依存句法分析器；stanza/trankit覆盖更广泛的语言。"
+    }
+  ]
+}

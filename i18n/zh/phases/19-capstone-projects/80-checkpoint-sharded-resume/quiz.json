@@ -1,0 +1,78 @@
+{
+  "lesson": "80-checkpoint-sharded-resume",
+  "title": "Sharded Checkpoint and Atomic Resume",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么在大规模场景下，\"先gather再write\"是错误的检查点模式？",
+      "options": [
+        "所有状态都经过rank 0；写入带宽是最慢的单个链路，而非聚合带宽，因此TB级别的写入需要数小时",
+        "它需要特殊硬件",
+        "它使用过多CPU",
+        "它很难看"
+      ],
+      "correct": 0,
+      "explanation": "分片写入随集群规模扩展：64个rank并行写入，完成时间是单个rank写入聚合状态的1/64。"
+    },
+    {
+      "stage": "pre",
+      "question": "manifest记录了分片文件无法记录的内容是什么？",
+      "options": [
+        "world_size、schema版本、每个分片的sha256和分片归属；为loader提供了在操作状态前可验证的契约",
+        "主机名",
+        "随机数",
+        "文件系统名称"
+      ],
+      "correct": 0,
+      "explanation": "如果没有manifest，loader只能猜测哪个分片属于哪个rank，并且信任文件数量是正确的。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么要写入<name>.tmp然后重命名，而不是直接写入？",
+      "options": [
+        "torch的要求",
+        "更快",
+        "节省内存",
+        "文件系统内的POSIX重命名是原子的：写入过程中崩溃不会影响之前的文件。直接写入可能导致半完成的检查点污染下一次的恢复"
+      ],
+      "correct": 3,
+      "explanation": "没有原子写入，部分保存加上指向它的更新manifest会在下次加载时损坏状态。"
+    },
+    {
+      "stage": "check",
+      "question": "每个分片的sha256防御什么？",
+      "options": [
+        "性能下降",
+        "网络攻击",
+        "部分或损坏的写入；在加载时验证哈希可以在截断的分片影响模型状态之前检测到它们",
+        "内存泄漏"
+      ],
+      "correct": 2,
+      "explanation": "没有sha256验证，截断的分片会静默加载并损坏优化器，之后表现为NaN损失。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么加载路径会大声拒绝world_size不匹配？",
+      "options": [
+        "在8个rank上恢复4-rank的分片布局会静默地错误分配分片；大声拒绝强制操作者使用跨world_size的重新平衡路径",
+        "硬件需要它",
+        "更容易编码",
+        "外观"
+      ],
+      "correct": 0,
+      "explanation": "跨world_size重新平衡是单独的操作；静默地拼接错误大小的分片会损坏状态。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么生产环境会轮换检查点（保留最近K个）？",
+      "options": [
+        "压缩",
+        "美观",
+        "它不会",
+        "如果没有轮换，磁盘会在运行过程中填满，下一个检查点会失败；轮换会在写入新检查点之前删除最旧的检查点，限制磁盘使用量"
+      ],
+      "correct": 3,
+      "explanation": "实际运行保留3-5个最近的检查点；每次新保存之前都会丢弃最旧的检查点，这样磁盘预算是固定的。"
+    }
+  ]
+}

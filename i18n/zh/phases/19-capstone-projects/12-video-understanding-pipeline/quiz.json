@@ -1,0 +1,90 @@
+{
+  "lesson": "12-video-understanding-pipeline",
+  "title": "Capstone 12 — 视频理解流水线（场景、问答、搜索）",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "即使长上下文 VLM 能原生读取 2 小时视频，为什么仍需要场景级索引？",
+      "options": [
+        "场景切换是 VLM 唯一能理解的内容",
+        "向量索引不支持视频文件",
+        "长上下文 VLM 无法流式输出",
+        "即使单个视频可以整体阅读，将 100 小时视频摄入可查询的语料库仍需场景级检索"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "在多向量索引中，每个场景会获得哪三种向量类型？",
+      "options": [
+        "音频波形、梅尔频谱图和 MFCCs",
+        "姿态、深度和光流",
+        "哈希、gzip 和 CRC",
+        "字幕嵌入、关键帧嵌入和转录文本嵌入"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "查询时，来自三个检索流的结果如何合并？",
+      "options": [
+        "通过对三个排序列表进行互逆等级融合（reciprocal rank fusion）",
+        "通过平均余弦相似度",
+        "仅选取字幕命中结果",
+        "直接取并集而不进行打分"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "时间定位（temporal grounding）步骤会对顶级场景内的什么内容进行精修？",
+      "options": [
+        "包含答案的（start, end）时间戳窗口",
+        "关键帧嵌入的维度",
+        "Whisper 的转录文本词时间戳",
+        "Qdrant 中存储的向量数量"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪类问题因是已知的幻觉热点而被单独报告？",
+      "options": [
+        "翻译类问题",
+        "说话人识别类问题",
+        "计数和行动类型问题，VLM 会误计数或误序事件",
+        "关于风景的描述性问题"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "评分标准在保留集（held-out set）上测量哪种定位指标？",
+      "options": [
+        "困惑度（Perplexity）",
+        "时间定位交并比（temporal-grounding intersection-over-union, IoU）",
+        "接受率",
+        "MRR@10"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "为什么流水线要求在答案中引用时间戳？",
+      "options": [
+        "时间戳是 Whisper 输出的强制要求",
+        "时间戳是 Qdrant payloads 的强制要求",
+        "它们能降低嵌入维度",
+        "它们让观众可以跳转到精确的（video_id, start, end）位置，从而验证声明"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

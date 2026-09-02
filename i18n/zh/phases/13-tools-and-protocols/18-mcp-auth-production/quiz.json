@@ -1,0 +1,78 @@
+{
+  "lesson": "18-mcp-auth-production",
+  "title": "生产环境中的 MCP 认证：绑定发行方的注册与令牌",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "MCP 客户端为同一资源发现了不同的授权服务器发行方。它应如何处理已有的注册信息和访问令牌？",
+      "options": [
+        "本地修改受众后仅复用访问令牌",
+        "为新的发行方重新注册，并按发行方隔离凭证",
+        "因为 MCP 资源 URL 未改变而复用两者",
+        "将两者都存储在工具名称下而非发行方名下"
+      ],
+      "correct": 1,
+      "explanation": "客户端标识符和注册凭证属于创建它们的授权服务器发行方。发行方变更需要独立的注册，且每个访问令牌都按发行方及其资源受众进行缓存。"
+    },
+    {
+      "stage": "check",
+      "question": "MCP 2026-07-28 授权配置文件更推荐哪种注册方式？",
+      "options": [
+        "对每次请求都使用 RFC 7591 动态客户端注册",
+        "由客户端 HTTPS URL 提供的 Client ID 元数据文档",
+        "存储单个全局客户端标识符的协议会话",
+        "嵌入到每个桌面客户端的共享客户端密钥"
+      ],
+      "correct": 1,
+      "explanation": "CIMD 允许授权服务器从 HTTPS 客户端标识符解析客户端元数据。DCR 已被弃用，仅保留兼容性。"
+    },
+    {
+      "stage": "check",
+      "question": "一个已弃用的 DCR 请求描述了一个回环桌面客户端。哪些元数据对于正确分类至关重要？",
+      "options": [
+        "Mcp-Session-Id",
+        "通配符重定向 URI",
+        "application_type 设置为 native",
+        "可复用的 bearer 令牌"
+      ],
+      "correct": 2,
+      "explanation": "当前兼容性指南要求正确的 application type。回环桌面客户端是 native；Web 客户端使用 HTTPS 重定向 URI。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么客户端在兑换授权码之前要验证 RFC 9207 的 iss 值？",
+      "options": [
+        "防止在错误的令牌端点兑换合法发行方的授权码",
+        "避免刷新 JWKS 缓存",
+        "用发行方发现替代 PKCE",
+        "从 server/discover 中选择工具"
+      ],
+      "correct": 0,
+      "explanation": "发行方检查旨在防御授权服务器混用攻击。它与 PKCE 互补，确认响应来自重定向前记录的发行方。"
+    },
+    {
+      "stage": "post",
+      "question": "对于当前的无状态传输，MCP 资源服务器应在何处缓存授权状态？",
+      "options": [
+        "在 Mcp-Session-Id 下缓存，直到客户端发送 DELETE",
+        "在后续所有调用的 server/discover 结果中缓存",
+        "在 SSE 连接中缓存，直到重新连接",
+        "作为协议会话决策不缓存任何内容；每次请求都验证 bearer 令牌"
+      ],
+      "correct": 3,
+      "explanation": "MCP 2026-07-28 已移除协议会话。每个请求独立跨越授权边界，因此每次都会检查身份、受众、过期时间和权限范围。"
+    },
+    {
+      "stage": "post",
+      "question": "在信任一个授权服务器之前，哪项部署证据最可靠？",
+      "options": [
+        "根据 PKCE、发行方、注册和资源绑定要求验证目标服务器的已发现元数据",
+        "从旧课程复制的厂商分类表",
+        "声称支持 OAuth 的产品页面",
+        "未检查令牌受众的成功登录"
+      ],
+      "correct": 0,
+      "explanation": "能力因部署和版本而异。实时发现的文档是需检查的具体契约，随后进行端到端的发行方和受众验证。"
+    }
+  ]
+}

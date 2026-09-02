@@ -1,0 +1,78 @@
+{
+  "lesson": "31-tokenized-dataset-sliding-window",
+  "title": "滑动窗口分词数据集",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "因果语言模型训练批次的形状规范是什么？",
+      "options": [
+        "(B, T) 的输入id和(B, T) 的目标id，其中目标id是输入左移一位的结果",
+        "(B, V) 词汇表上的one-hot向量",
+        "(B, T, T) 对角线上有输入id的注意力掩码",
+        "(B, 2) 输入id和标签对"
+      ],
+      "correct": 0,
+      "explanation": "因果语言模型训练读取(B, T)的输入id，并预测相同形状的目标id，其中target[t] = input[t+1]。"
+    },
+    {
+      "stage": "check",
+      "question": "长度为N的id序列中，步长为S时能容纳多少个长度为T+1的窗口？",
+      "options": [
+        "max(0, 1 + (N - (T + 1)) // S)",
+        "N - T - S",
+        "(N - T) * S",
+        "N // (T + 1)"
+      ],
+      "correct": 0,
+      "explanation": "第一个窗口从位置0开始。后续窗口从S的倍数位置开始。最后一个窗口必须仍然覆盖T+1个id。"
+    },
+    {
+      "stage": "check",
+      "question": "将步长减半会对数据集产生什么影响？",
+      "options": [
+        "每个epoch的训练样本数减半",
+        "消除了连续窗口之间的重叠",
+        "每个epoch的训练样本数大致翻倍",
+        "没有影响，因为窗口从不重叠"
+      ],
+      "correct": 2,
+      "explanation": "更小的步长会产生更多重叠窗口，从而增加样本数量并提高边界多样性，但代价是每个epoch的计算量增加。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么需要向DataLoader传入显式的torch.Generator？",
+      "options": [
+        "使相同seed下的shuffle在多次运行中保持一致",
+        "消除了对批次填充的需求",
+        "支持多GPU训练",
+        "加速数据加载"
+      ],
+      "correct": 0,
+      "explanation": "带种子的生成器可以复现相同的shuffle顺序。使用相同seed重新运行时，批次的顺序保持一致，这对于公平的超参数对比是必需的。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么数据集从每个大小为T+1的窗口中返回(input[:-1], input[1:])？",
+      "options": [
+        "丢弃一个id以节省内存",
+        "移除输入中的特殊token",
+        "这是PyTorch张量索引的一个 quirks",
+        "实现移位一位的目标，使损失衡量下一个token的预测"
+      ],
+      "correct": 3,
+      "explanation": "位置t处的目标是位置t+1处的输入。将窗口切片为[:-1]和[1:]即表达了这一规范。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么课程选择丢弃不完整的尾部窗口而不是对其进行填充？",
+      "options": [
+        "丢弃后所有示例长度相同，无需损失掩码",
+        "被丢弃的数据在下一个epoch中可恢复",
+        "填充会改变词汇表大小",
+        "模型不支持填充token"
+      ],
+      "correct": 0,
+      "explanation": "所有示例按构造均为恰好T个token长，因此批次是一个规整的矩形张量，损失可以均匀应用，无需掩码。"
+    }
+  ]
+}

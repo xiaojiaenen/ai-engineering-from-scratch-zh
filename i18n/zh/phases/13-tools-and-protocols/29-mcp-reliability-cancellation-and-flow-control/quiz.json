@@ -1,0 +1,78 @@
+{
+  "lesson": "29-mcp-reliability-cancellation-and-flow-control",
+  "title": "MCP 可靠性、取消与流控",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "变体响应丢失且客户端以新的 JSON-RPC id 重试。什么让重试安全？",
+      "options": [
+        "新的 JSON-RPC id 自动去重变体操作",
+        "工具描述符包含 idempotentHint",
+        "使用相同参数复用的持久应用幂等键",
+        "重试使用相同的 HTTP 连接"
+      ],
+      "correct": 2,
+      "explanation": "JSON-RPC id 用于关联消息。业务幂等性需要持久键、参数指纹和已存储的提交结果。"
+    },
+    {
+      "stage": "check",
+      "question": "在 MCP 2026-07-28 中，客户端如何在 stdio 上取消进行中的请求？",
+      "options": [
+        "调用 tasks/cancel 并传入 JSON-RPC id",
+        "发送 notifications/cancelled 并附带活动请求 id",
+        "关闭逐请求的 SSE 流",
+        "向 MCP 端点发送 DELETE 请求"
+      ],
+      "correct": 1,
+      "explanation": "stdio 没有逐请求响应流，因此客户端发送 fire-and-forget 的 notifications/cancelled 通知。"
+    },
+    {
+      "stage": "check",
+      "question": "客户端如何取消进行中的 Streamable HTTP 请求？",
+      "options": [
+        "关闭该请求的 SSE 响应流",
+        "POST notifications/cancelled 到 MCP 端点",
+        "等待服务器发送 notifications/cancelled",
+        "发送 Last-Event-ID 且值为空"
+      ],
+      "correct": 0,
+      "explanation": "对于现代 Streamable HTTP，关闭请求特定的响应流即为取消信号。"
+    },
+    {
+      "stage": "check",
+      "question": "进度事件在每次空闲超时前持续到达。哪个截止时间仍须终止失控请求？",
+      "options": [
+        "从请求开始测量的绝对最大超时",
+        "下一次分页游标过期时间",
+        "代理保活间隔",
+        "Task 轮询间隔"
+      ],
+      "correct": 0,
+      "explanation": "有效的进度可重置空闲时钟，但绝对最大截止时间必须仍然有效。"
+    },
+    {
+      "stage": "post",
+      "question": "成功的 tasks/cancel 响应证明了什么？",
+      "options": [
+        "持久化结果已被删除",
+        "工作进程已停止",
+        "服务器已确认取消意图",
+        "Task 最终必然变为 cancelled"
+      ],
+      "correct": 2,
+      "explanation": "Task 取消是协作式的。Task 可能继续工作、先完成，或在工作进程检查点后变为 cancelled。"
+    },
+    {
+      "stage": "post",
+      "question": "订阅 SSE 流在多次进度事件后断开。哪种恢复方案符合 MCP 2026-07-28？",
+      "options": [
+        "从 Last-Event-ID 恢复并重放所有进行中的变体操作",
+        "打开 GET 事件流并恢复 Mcp-Session-Id",
+        "保留旧请求 id 并假设无更新丢失",
+        "打开新的 listen 请求，重新获取权威状态，并避免不安全的变体重放"
+      ],
+      "correct": 3,
+      "explanation": "现代 MCP 流不能通过 Last-Event-ID 恢复。恢复需使用新请求加上权威状态重获和显式的重试安全性保障。"
+    }
+  ]
+}

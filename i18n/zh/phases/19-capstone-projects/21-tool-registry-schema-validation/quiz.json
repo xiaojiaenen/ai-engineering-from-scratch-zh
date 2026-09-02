@@ -1,0 +1,78 @@
+{
+  "lesson": "21-tool-registry-schema-validation",
+  "title": "Tool Registry with Schema Validation",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么将工具的schema单独注册，而不是与其handler一起？",
+      "options": [
+        "因为handlers无法返回JSON",
+        "这样validator保持为纯数据，而handler保持为不透明代码",
+        "因为schemas必须被编译",
+        "因为schemas必须存放在YAML中"
+      ],
+      "correct": 1,
+      "explanation": "将schema作为数据、handler作为代码分开，能让validator成为针对schema树的纯函数。"
+    },
+    {
+      "stage": "check",
+      "question": "哪些关键字有意不在本课时实现的子集中？",
+      "options": [
+        "items, enum",
+        "oneOf, anyOf, $ref, allOf",
+        "minLength, maxLength, pattern",
+        "type, properties, required"
+      ],
+      "correct": 1,
+      "explanation": "省略的关键字会带来循环和引用解析。我们保持子集线性，使validator只需一次递归遍历。"
+    },
+    {
+      "stage": "check",
+      "question": "register() 为什么默认拒绝重复注册？",
+      "options": [
+        "因为schema无法被重新验证",
+        "静默覆盖会导致生产环境工具目录漂移",
+        "因为registry每个名称只能存储一条记录",
+        "因为handlers不能被替换"
+      ],
+      "correct": 1,
+      "explanation": "强制要求 override=True 能暴露代码中多处意图拥有同一工具名的情况。"
+    },
+    {
+      "stage": "check",
+      "question": "当schema指定type为integer但收到值True时，validator会做什么？",
+      "options": [
+        "静默转换为integer",
+        "将其视为1并通过",
+        "抛出未处理的异常",
+        "返回类型错误，因为此validator中bool不是integer"
+      ],
+      "correct": 3,
+      "explanation": "Python中bool是int的子类，但validator在integer检查时过滤掉了bool。JSON中布尔值和整数值是相互独立的。"
+    },
+    {
+      "stage": "post",
+      "question": "当输入对象为 {'user': {'email': 0}} 且schema要求 user.email 为字符串时，错误路径是什么？",
+      "options": [
+        "/user",
+        "/user/email",
+        "/",
+        "user.email"
+      ],
+      "correct": 1,
+      "explanation": "JSON pointer将经过user再经过email的路径编码为/user/email。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么registry不是一个安全边界？",
+      "options": [
+        "因为handlers是异步的",
+        "因为即使验证通过，handlers仍可能行为异常",
+        "因为registry是进程内的",
+        "因为schema是JSON"
+      ],
+      "correct": 1,
+      "explanation": "registry仅检查形状。行为、超时和隔离属于dispatcher和sandbox的范畴。"
+    }
+  ]
+}

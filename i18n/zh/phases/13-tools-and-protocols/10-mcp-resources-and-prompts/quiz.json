@@ -1,0 +1,78 @@
+{
+  "lesson": "10-mcp-resources-and-prompts",
+  "title": "MCP 资源与提示词",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "主机需要通过 URI 检索一份稳定的架构笔记。哪个 MCP 原语最合适？",
+      "options": [
+        "资源",
+        "取消通知",
+        "协议会话",
+        "破坏性工具"
+      ],
+      "correct": 0,
+      "explanation": "资源通过 URI 暴露可寻址的内容。工具执行操作，而会话和取消并不表示可读内容。"
+    },
+    {
+      "stage": "check",
+      "question": "当 resources/read 收到未知的资源 URI 时，2026-07-28 服务器应该返回什么？",
+      "options": [
+        "resources/list_changed 通知",
+        "JSON-RPC 错误 -32601",
+        "空的成功 contents 数组",
+        "JSON-RPC 错误 -32602"
+      ],
+      "correct": 3,
+      "explanation": "当前 Resources 契约对无效或未知的资源 URI 使用 invalid params（错误码 -32602）。返回空的 success 会掩盖调用方的错误。"
+    },
+    {
+      "stage": "check",
+      "question": "对于 resources/read 返回的用户所有笔记，哪种缓存策略最安全？",
+      "options": [
+        "公开缓存，因为 URI 是稳定的",
+        "当 MIME 类型匹配时跨用户共享",
+        "私有缓存并设置有限的 TTL",
+        "公开缓存且 TTL 不设上限"
+      ],
+      "correct": 2,
+      "explanation": "用户所有的结果不应跨越身份边界。带限定的私有缓存可以在保留授权上下文的同时减少重复读取。"
+    },
+    {
+      "stage": "check",
+      "question": "在 subscriptions/listen 响应流上，什么标识每条通知？",
+      "options": [
+        "订阅元数据中的原始 listen 请求 ID",
+        "资源的 MIME 类型",
+        "新生成的协议会话",
+        "服务器进程 ID"
+      ],
+      "correct": 0,
+      "explanation": "subscriptions/listen 的 JSON-RPC ID 变为 io.modelcontextprotocol/subscriptionId，并在确认消息和每个后续事件中重复出现。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么 resources/list 和 prompts/list 对于相同的请求输入必须是确定性的？",
+      "options": [
+        "为了授予所有返回条目的公共访问权限",
+        "为了避免验证分页游标",
+        "为了稳定缓存、快照和主机接口",
+        "为了让列表成员资格依赖于先前的读取"
+      ],
+      "correct": 2,
+      "explanation": "稳定的成员资格和排序能避免频繁的缓存未命中和接口变化。授权仍可影响可见性，因为凭据是显式的请求输入。"
+    },
+    {
+      "stage": "post",
+      "question": "即使客户端可能直接调用 resources/list，当前 MCP 服务器还必须暴露什么？",
+      "options": [
+        "每个 URI 的 resources/subscribe 方法",
+        "创建协议会话的 initialize 方法",
+        "独立的 HTTP GET 事件流",
+        "带有支持版本和功能集的 server/discover"
+      ],
+      "correct": 3,
+      "explanation": "服务器必须实现 server/discover，以便客户端获取能力和版本的快照。对客户端而言，调用它仍是可选的，客户端可以调用其他方法并处理结构化的版本错误。"
+    }
+  ]
+}

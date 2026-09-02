@@ -1,0 +1,102 @@
+{
+  "lesson": "22-embedding-models-deep-dive",
+  "title": "嵌入模型 — 2026年深度解析",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "什么是密集嵌入？",
+      "options": [
+        "每个文本一个固定维度的向量，余弦相似度按语义接近度对段落排序",
+        "词元级对齐矩阵",
+        "每个词表词元的稀疏权重",
+        "文档图"
+      ],
+      "correct": 0,
+      "explanation": "密集嵌入为每个文本提供一个向量（通常为384-3072维）；余弦相似度用于排序。"
+    },
+    {
+      "stage": "pre",
+      "question": "Matryoshka表示学习能实现什么？",
+      "options": [
+        "更快的softmax",
+        "多语言训练",
+        "交叉编码器重排序",
+        "将训练好的嵌入截断到前N维，得到一个仍然有用但更小的嵌入"
+      ],
+      "correct": 3,
+      "explanation": "Matryoshka训练使向量的前N维独立可用，实现低成本截断。"
+    },
+    {
+      "stage": "check",
+      "question": "多向量（ColBERT）嵌入如何对查询-文档对评分？",
+      "options": [
+        "词元向量均值池化的余弦相似度",
+        "交叉熵",
+        "MaxSim：对每个查询词元找到最相似的文档词元，然后求和最大值",
+        "地球移动距离"
+      ],
+      "correct": 2,
+      "explanation": "ColBERT式晚期交互在词元向量间使用MaxSim。"
+    },
+    {
+      "stage": "check",
+      "question": "BGE-M3同时输出什么？",
+      "options": [
+        "仅稀疏向量",
+        "仅密集向量",
+        "从单个模型单次推理同时输出密集、稀疏和多向量（colbert）表示",
+        "仅colbert向量"
+      ],
+      "correct": 2,
+      "explanation": "BGE-M3从单个模型输出三种检索模式，适用于融合混合评分。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么对Matryoshka截断向量进行余弦相似度前必须重新归一化？",
+      "options": [
+        "截断改变了向量范数；不重新归一化的话，点积不再等于余弦",
+        "余弦忽略归一化",
+        "截断破坏训练",
+        "仅FAISS要求"
+      ],
+      "correct": 0,
+      "explanation": "截断后重新归一化恢复单位范数，使点积再次等于余弦。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么BGE模型通常需要查询侧前缀字符串？",
+      "options": [
+        "压缩查询",
+        "前缀改变分词器行为",
+        "FAISS要求",
+        "BGE训练时使用了明确的查询提示；省略它会损失3-5个点的召回率"
+      ],
+      "correct": 3,
+      "explanation": "BGE模型期望查询上有'Represent this sentence for searching...'前缀。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么选择嵌入模型时MTEB必要但不充分？",
+      "options": [
+        "MTEB仅覆盖英语",
+        "MTEB偏向更大模型",
+        "MTEB忽略延迟",
+        "排行榜排名是多个任务的平均；你的特定领域可能不同，因此始终在你的数据上基准测试"
+      ],
+      "correct": 3,
+      "explanation": "MTEB跨任务取平均；领域特定的评估可能改变排名。"
+    },
+    {
+      "stage": "post",
+      "question": "何时应在密集嵌入旁添加SPLADE稀疏检索？",
+      "options": [
+        "仅在小型语料库上",
+        "编码器是多语言时",
+        "查询包含大量关键词或包含密集嵌入模糊的标识符/代码时",
+        "使用Matryoshka时"
+      ],
+      "correct": 2,
+      "explanation": "SPLADE捕获密集模型可能遗漏的词法/关键词匹配；通过RRF与密集融合。"
+    }
+  ]
+}

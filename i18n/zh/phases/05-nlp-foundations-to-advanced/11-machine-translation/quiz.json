@@ -1,0 +1,102 @@
+{
+  "lesson": "11-machine-translation",
+  "title": "机器翻译",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "BLEU衡量什么？",
+      "options": [
+        "假设译文与参考译文之间的N-gram精确率（通常为1-4-gram），并带有长度惩罚",
+        "嵌入向量的余弦相似度",
+        "语言识别准确率",
+        "字符级F值"
+      ],
+      "correct": 0,
+      "explanation": "BLEU是相对参考译文的1-4-gram精确率的几何平均，并加入长度惩罚。"
+    },
+    {
+      "stage": "pre",
+      "question": "为何使用sacrebleu而非自行实现BLEU？",
+      "options": [
+        "它能在GPU上运行",
+        "它更准确",
+        "它标准化了分词方式，使分数在不同论文和运行之间可比较",
+        "它支持流式处理"
+      ],
+      "correct": 2,
+      "explanation": "sacrebleu固定了分词方式，消除了导致BLEU分数不可比的常见来源。"
+    },
+    {
+      "stage": "check",
+      "question": "哪个NLLB特定设置能在解码时控制目标语言？",
+      "options": [
+        "src_lang",
+        "forced_bos_token_id设置为目标语言代码对应的token ID",
+        "num_beams",
+        "length_penalty"
+      ],
+      "correct": 1,
+      "explanation": "NLLB通过forced_bos_token_id强制第一个解码的token为目标语言代码。"
+    },
+    {
+      "stage": "check",
+      "question": "在拥有标注数据的生产环境中，2026年的机器翻译质量默认采用哪类指标？",
+      "options": [
+        "Token编辑距离",
+        "延迟",
+        "仅BLEU",
+        "基于人工判断训练的learned指标，如COMET（以及BERTScore/BLEURT）"
+      ],
+      "correct": 3,
+      "explanation": "像COMET这样的learned指标与人工判断的相关性高于仅使用BLEU/chrF。"
+    },
+    {
+      "stage": "check",
+      "question": "chrF何时通常比BLEU提供更多有用信息？",
+      "options": [
+        "对于形态丰富的语言，字符级匹配能捕捉到BLEU遗漏的词形变化",
+        "使用束搜索时",
+        "非常短的句子",
+        "只要有参考译文存在"
+      ],
+      "correct": 0,
+      "explanation": "字符F值能捕捉到词级BLEU低估的部分形态匹配。"
+    },
+    {
+      "stage": "post",
+      "question": "多语言机器翻译中的off-target生成是什么？",
+      "options": [
+        "丢失命名实体的输出",
+        "模型解码到了错误的目标语言（例如请求法语翻译时NLLB输出了西班牙语）",
+        "过短的输出",
+        "缺少标点的输出"
+      ],
+      "correct": 1,
+      "explanation": "Off-target生成在稀有语言对中很常见；翻译后的语言ID检查可以捕获它。"
+    },
+    {
+      "stage": "post",
+      "question": "为何在几千条高质量领域平行语料上微调通常胜过大量noisy web数据？",
+      "options": [
+        "质量和领域匹配优于数量；noisy并行数据会引入漂移和幻觉",
+        "更小的数据集训练更快",
+        "使用网页数据是非法的",
+        "大数据超出GPU内存"
+      ],
+      "correct": 0,
+      "explanation": "干净的领域对齐平行数据是最大的生产杠杆；noisy数据会降低适配效果。"
+    },
+    {
+      "stage": "post",
+      "question": "2026年，LLM（如GPT-4）在何时可能胜过专门的机器翻译模型？",
+      "options": [
+        "延迟敏感的浏览器翻译",
+        "习语内容、长上下文、通过prompt进行风格适配，或需要语气控制的内容",
+        "最高吞吐量的批量翻译",
+        "拥有数百万平行句对的小语种对"
+      ],
+      "correct": 1,
+      "explanation": "LLM在习语、长上下文或风格控制的翻译上占优；专门的MT在吞吐量和延迟上占优。"
+    }
+  ]
+}

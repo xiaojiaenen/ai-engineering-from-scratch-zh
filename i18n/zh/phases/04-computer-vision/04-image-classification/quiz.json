@@ -1,0 +1,64 @@
+{
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "你的模型输出形状为 (N, C) 的原始 logits。你写了 `loss = cross_entropy(softmax(logits), y)`。哪里出错了？",
+      "options": [
+        "cross_entropy 内部会重新应用 softmax，因此你实际上计算的是 softmax(softmax(logits))，产生近乎均匀的概率分布和无效的梯度",
+        "没有问题——这是正确的 API",
+        "cross_entropy 会因形状问题抛出 ValueError",
+        "准确率恰好下降 1/C"
+      ],
+      "correct": 0,
+      "explanation": "PyTorch 的 cross_entropy 期望接收原始 logits——它在内部融合了 log_softmax 和 NLL 以保证数值稳定性。先应用 softmax 会得到 softmax(softmax(x))，将 logits 压缩向均匀分布，使梯度几乎为零。训练损失在最初几步看起来合理，随后就会停滞。务必直接传入原始 logits。"
+    },
+    {
+      "stage": "pre",
+      "question": "你评估一个 10 分类器，得到 92% 准确率。类别 0 有 9,000 个样本；类别 1-9 共享 1,000 个样本（各约 111 个，共 10,000 个）。这个 headline 数字隐藏了什么？",
+      "options": [
+        "模型可能对每个输入都预测类别 0，仍然能得到 90%（9000/10000）的准确率；剩下的 2% 可以来自任何其他类别。按类别统计的 precision/recall 才能揭示真实情况",
+        "没有隐藏——准确率就是准确率",
+        "模型肯定过拟合了",
+        "验证损失是错误的"
+      ],
+      "correct": 0,
+      "explanation": "在 9000/1000 的划分（90/10 类别不平衡，共 10,000 个样本）下，始终预测多数类就能获得 9000/10000 = 90% 的准确率。92% 这个数字可能隐藏了九个少数类别各自仅有约 20% 的准确率。按类别的 precision、recall、F1 以及混淆矩阵是揭示这一问题的诊断工具，这也是为何仅凭聚合准确率永远不足以支持发布一个分类器。"
+    },
+    {
+      "stage": "post",
+      "question": "Mixup 用插值软标签 lambda * y_i + (1-lambda) * y_j 替换独热标签。这为什么能提升泛化能力？",
+      "options": [
+        "它将有效 batch size 翻倍",
+        "它保证训练损失为零",
+        "它允许使用更大的学习率训练",
+        "模型被迫在类别之间产生平滑的预测，而不是死记硬背硬独热标签，这同时改善了校准性与测试准确率"
+      ],
+      "correct": 3,
+      "explanation": "以硬独热标签进行训练会迫使 logits 在每个训练点上变得任意尖锐，这会损害校准性并诱发过拟合。Mixup 对输入和标签进行凸组合，迫使分类器在训练点之间行为平滑，这对自然图像类别是一种合理的归纳偏置，并且在不增加额外数据的情况下持续提升了测试准确率。"
+    },
+    {
+      "stage": "post",
+      "question": "在 CIFAR-10 上将 `RandomCrop(32, padding=4, padding_mode='zeros')` 替换为 `padding_mode='reflect'`。为什么这里 reflect 更好？",
+      "options": [
+        "零填充会产生硬黑边框，模型会学会依赖它们；reflect padding 镜像边缘像素，使增强后的裁剪图看起来像自然照片",
+        "reflect padding 是 batch normalization 所必需的",
+        "reflect padding 会改变输出尺寸",
+        "reflect padding 速度更快"
+      ],
+      "correct": 0,
+      "explanation": "零填充裁剪图带有可见的黑边框，会把裁剪位置信息泄露到特征中。网络可以学会只看角落，从而隐式地抵消增强效果。reflect padding 镜像真实内容，使得每张裁剪图仍然像自然图像，网络无法在增强上作弊。"
+    },
+    {
+      "stage": "post",
+      "question": "你训练了一个分类器，混淆矩阵显示大部分错误是类别 3 被预测为类别 5，以及类别 5 被预测为类别 3。下一步最具影响力的操作是什么？",
+      "options": [
+        "增大 batch size",
+        "从 SGD 切换到 Adam",
+        "查看让模型困惑的类别 3 和类别 5 的样本图片；这两个类别可能确实存在歧义、标注错误或视觉上相似，需要针对性的增强或重新标注的训练集",
+        "在所有类别上均匀增加更多训练数据"
+      ],
+      "correct": 2,
+      "explanation": "混淆矩阵集中在某一对非对角线元素意味着失败模式是特定的。正确的做法是检查这些图片：你经常能发现标注错误、近似重复的类别，或者模型尚未学会的某种简单不变性。当失败如此局部化时， blanket 式的改动（更多数据、新优化器）很少能带来帮助。"
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "lesson": "85-content-classifier-integration",
+  "title": "Capstone 85 — 内容分类器集成",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "如果输入已经经过检查，为什么还要运行输出侧的分类器？",
+      "options": [
+        "因为任何绕过输入检查的内容都会产生用户可见的输出，而输出是拦截它的最后一道防线",
+        "因为输入分类器已弃用",
+        "因为标准库要求两者都用",
+        "故意让系统变慢"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "本节课连接了哪三个分类器？",
+      "options": [
+        "OCR、ASR、TTS",
+        "质量、事实性、引用",
+        "毒性、PII、指令泄露",
+        "情感、语言、长度"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "当一个判定等级为高，另一个为中等时，路由器会怎么做？",
+      "options": [
+        "按顺序执行两个操作",
+        "取最大严重程度并执行对应操作；屏蔽优先于脱敏",
+        "丢弃两个判定并发送原文",
+        "仅执行中等操作"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么在 PII 分类器中使用 Luhn 校验？",
+      "options": [
+        "为了压缩正则表达式",
+        "为了计算 SSN",
+        "为了区分信用卡格式的连续数字与任意数字序列，从而降低误报率",
+        "为了将数字转换为字母"
+      ],
+      "correct": 2,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "指令泄露分类器如何做出判定？",
+      "options": [
+        "通过检测输出中的大括号",
+        "通过计算输出与已知系统提示之间的 trigram 余弦相似度，并设定阈值",
+        "通过调用另一个模型",
+        "通过计数 token"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "毒性分类器为何在左侧小窗口中检查否定词？",
+      "options": [
+        "为了提高误报率",
+        "为了减慢正则表达式的速度",
+        "为了跳过类似「你并不蠢」这样的匹配，避免分类器对常见安慰语过度脱敏",
+        "因为 Unicode 要求否定"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}

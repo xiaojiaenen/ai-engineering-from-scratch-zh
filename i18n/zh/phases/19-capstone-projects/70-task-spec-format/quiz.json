@@ -1,0 +1,78 @@
+{
+  "lesson": "70-task-spec-format",
+  "title": "任务规格格式",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "在编写评分代码之前，为什么要冻结任务记录模式？",
+      "options": [
+        "它锁定契约，使指标、运行器和后处理器对字段名达成一致",
+        "它允许任意新增指标名称而无需进一步更改",
+        "它使JSON解析器运行更快",
+        "它消除了对验证器的需求"
+      ],
+      "correct": 0,
+      "explanation": "模式是每个下游消费者读取的契约。锁定它使您可以独立更改组件而不会破坏其他部分。"
+    },
+    {
+      "stage": "pre",
+      "question": "metric_name字段接受的限制词汇表是什么？",
+      "options": [
+        "任务作者选择的任何字符串",
+        "只有exact_match和f1",
+        "运行器配置为识别的任何内容",
+        "exact_match, f1, bleu_4, rouge_l, accuracy, code_exec"
+      ],
+      "correct": 3,
+      "explanation": "课程将指标词汇表限定为六个名称。添加一个需要新课程和新的验证器条目。"
+    },
+    {
+      "stage": "check",
+      "question": "当验证器在记录中看到一个未知的一级字段时会做什么？",
+      "options": [
+        "记录警告但接受记录",
+        "剥离它并继续",
+        "将其重命名为metadata.unknown",
+        "返回验证错误并拒绝该记录"
+      ],
+      "correct": 3,
+      "explanation": "未知字段是向前兼容的隐患。验证器拒绝它们，以便模式始终保持唯一的真实来源。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么少样本示例附加到任务记录而不是由运行器计算？",
+      "options": [
+        "少样本仅用于微调",
+        "作者意图是评估的一部分；将示例绑定到任务可消除提示构建中的模型间差异",
+        "节省磁盘空间",
+        "运行器没有文件I/O"
+      ],
+      "correct": 1,
+      "explanation": "少样本组成是评估定义的一部分，而不是模型接口。将其放在任务中意味着每个模型都会看到相同的提示。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种类别-指标对在验证器下是非法的？",
+      "options": [
+        "code_exec + code_exec",
+        "summary + rouge_l",
+        "arithmetic + exact_match",
+        "mcq + bleu_4"
+      ],
+      "correct": 3,
+      "explanation": "对单个字母使用BLEU是没有意义的。验证器强制要求mcq任务仅使用exact_match或accuracy。"
+    },
+    {
+      "stage": "post",
+      "question": "当生成为`Answer: C is correct`时，post_process规则extract_letter返回什么？",
+      "options": [
+        "Answer",
+        "空字符串",
+        "完整的字符串不变",
+        "C"
+      ],
+      "correct": 3,
+      "explanation": "extract_letter返回生成中匹配[A-E]的第一个字符。该字符串在主体开头有C。"
+    }
+  ]
+}

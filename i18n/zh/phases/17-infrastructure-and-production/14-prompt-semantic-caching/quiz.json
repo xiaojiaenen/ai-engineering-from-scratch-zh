@@ -1,0 +1,78 @@
+{
+  "lesson": "14-prompt-semantic-caching",
+  "title": "Prompt缓存与语义缓存的经济性",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "L1语义缓存与L2 prompt/前缀缓存有什么区别？",
+      "options": [
+        "L2存储嵌入向量；L1存储注意力KV",
+        "L1是提供侧，L2是客户侧",
+        "L1和L2是相同的",
+        "L1在嵌入相似度命中时完全跳过LLM；L2在提供者端对重复前缀复用注意力KV"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "哪个Anthropic机制将块标记为可缓存以支持L2 prompt缓存？",
+      "options": [
+        "请求块上的显式cache_control属性",
+        "工具定义中的文件名后缀",
+        "隐式的prompt长度阈值",
+        "独立的/caches端点"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "并行化反模式如何推高账单？",
+      "options": [
+        "并行请求绕过了批处理",
+        "并行化触发了按请求的guardrail费用",
+        "所有并行请求自动共享一个缓存条目",
+        "N个具有相同前缀的并行请求在首次缓存写入完成前到达，因此每个都支付写入溢价且获得零折扣"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "可缓存前缀中的动态内容反模式是什么？",
+      "options": [
+        "在可缓存前缀中包含每次请求都会变化的内容（精确到分钟的当前时间、request ID、随机化的示例顺序），这会扼杀命中率",
+        "使用过短的system prompt",
+        "始终流式传输响应",
+        "将tool schemas放入前缀中"
+      ],
+      "correct": 0,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "批量处理+缓存输入如何叠加过夜运行以降低成本？",
+      "options": [
+        "批量处理与缓存不兼容",
+        "缓存会禁用批量处理资格",
+        "批量处理仅节省输出成本",
+        "Batch API提供50%折扣；缓存输入额外增加约10倍；两者叠加后，夜间流水线成本降至同步未缓存成本的约10%"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程对语义缓存\"95%准确率\"的说法是什么？",
+      "options": [
+        "95%意味着你应该预期95%的缓存命中率",
+        "95%是OpenAI默认的缓存命中率",
+        "95%是厂商记录的命中率基准",
+        "95%指的是匹配正确性，而非命中率；报告的生产环境命中率范围从约10%（开放式对话）到约70%（结构化FAQ）"
+      ],
+      "correct": 3,
+      "explanation": ""
+    }
+  ]
+}

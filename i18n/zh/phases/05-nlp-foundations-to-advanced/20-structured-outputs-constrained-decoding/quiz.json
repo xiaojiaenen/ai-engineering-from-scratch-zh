@@ -1,0 +1,102 @@
+{
+  "lesson": "20-structured-outputs-constrained-decoding",
+  "title": "结构化输出与约束解码",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么仅靠prompt要求返回JSON在生产环境中不够？",
+      "options": [
+        "提示词太长",
+        "Prompt无法描述schema",
+        "JSON太冗长",
+        "前沿模型大部分时候会遵守，但并非总是如此；少量格式错误的输出会破坏下游解析器"
+      ],
+      "correct": 3,
+      "explanation": "仅靠prompt的结构化方法在前沿模型上大约80%的情况下有效；生产环境需要更严格的保证。"
+    },
+    {
+      "stage": "pre",
+      "question": "约束解码在每个生成步骤中修改什么？",
+      "options": [
+        "logit向量，屏蔽会导致目标语法无效的token，使得只有有效的延续可以被采样",
+        "训练损失",
+        "tokenizer",
+        "KV缓存"
+      ],
+      "correct": 0,
+      "explanation": "logit处理器将无效token设为负无穷，使softmax无法采样它们。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么约束解码可能比自由生成更快？",
+      "options": [
+        "模型更小",
+        "完全避免softmax",
+        "跳过反向传播",
+        "强制的脚手架token（如{\"name\": \"）可以直接输出而无需采样，且有效token的搜索空间缩小"
+      ],
+      "correct": 3,
+      "explanation": "确定性token跳过采样，有效token集合的缩减降低了解码成本。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种schema设计选择能防止模型过早做出承诺？",
+      "options": [
+        "把answer放在前面",
+        "将推理字段放在answer/decision字段之前，让模型在做出承诺前先进行推理",
+        "使用更短的键名",
+        "使用snake_case命名"
+      ],
+      "correct": 1,
+      "explanation": "字段顺序体现逻辑：把推理放在前面让模型在锁定答案前能先思考。"
+    },
+    {
+      "stage": "check",
+      "question": "FSM-based约束解码工具（如Outlines）的局限性是什么？",
+      "options": [
+        "只支持枚举",
+        "只能用于OpenAI",
+        "递归schema需要展平；真正递归的结构需要基于CFG的引擎如XGrammar",
+        "不是确定性的"
+      ],
+      "correct": 2,
+      "explanation": "FSM无法表示无界递归；CFG引擎可以处理。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么Instructor被描述为不修改logits？",
+      "options": [
+        "Instructor将schema格式化为prompt并解析/重试输出；logit屏蔽在服务端发生或根本不发生",
+        "它编辑prompt",
+        "它使用梯度更新",
+        "Anthropic的要求"
+      ],
+      "correct": 0,
+      "explanation": "Instructor使用provider端的结构化输出加上客户端验证和重试，而非logit屏蔽。"
+    },
+    {
+      "stage": "post",
+      "question": "严格的regex如date='YYYY-MM-DD'可能引入什么问题？",
+      "options": [
+        "它破坏JSON解析",
+        "它为未知值移除了所有退路，导致模型编造日期而非返回null/sentinel",
+        "它需要CFG支持",
+        "Regex很慢"
+      ],
+      "correct": 1,
+      "explanation": "过度严格的语法迫使模型编造值；始终为未知值允许null/sentinel。"
+    },
+    {
+      "stage": "post",
+      "question": "什么时候应该选择vLLM guided decoding而非vendor structured-output API？",
+      "options": [
+        "仅适用于byte-level BPE",
+        "始终选择vendor",
+        "自托管推理中控制模型并希望获得无需重试的logit级保证",
+        "仅适用于极小的schema"
+      ],
+      "correct": 2,
+      "explanation": "vLLM guided decoding适用于自托管服务环境中的logit级约束；vendor API会限制你使用他们的栈。"
+    }
+  ]
+}

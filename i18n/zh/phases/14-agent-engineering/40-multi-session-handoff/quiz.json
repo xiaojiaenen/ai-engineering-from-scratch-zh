@@ -1,0 +1,90 @@
+{
+  "lesson": "40-multi-session-handoff",
+  "title": "多会话交接",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "交接包中哪个字段是关键承载字段？",
+      "options": [
+        "next_action（缺少该字段时，文档只是状态报告，而非交接包）",
+        "verdict_pointer",
+        "summary",
+        "commands_run"
+      ],
+      "correct": 0,
+      "explanation": "除了 next_action 之外的交接内容只是状态报告；下一个具体步骤才是让下一次会话高效的关键。"
+    },
+    {
+      "stage": "pre",
+      "question": "为什么交接包是生成的而非手动编写的？",
+      "options": [
+        "手动编写的交接包在忙碌时容易被跳过；生成器会读取工作台产物并输出交接包，因此代理只需将工作台保持在可被总结的状态即可",
+        "Apache 2.0 许可证要求这样做",
+        "生成速度更快",
+        "加密效果更好"
+      ],
+      "correct": 0,
+      "explanation": "自动化弥合了意图与一致性之间的差距。"
+    },
+    {
+      "stage": "check",
+      "question": "交接包以哪两种形式交付？",
+      "options": [
+        "电子邮件和 Slack",
+        "PDF 和 PNG",
+        "YAML 和 TOML",
+        "handoff.md（人类可读）和 handoff.json（机器可读，两者均源自同一份产物；JSON 在信息发散时更可靠）"
+      ],
+      "correct": 3,
+      "explanation": "Markdown 供人阅读，JSON 供下一个代理使用；两者都来自同一个生成器。"
+    },
+    {
+      "stage": "check",
+      "question": "课程如何区分压缩（compaction）与交接（handoff）？",
+      "options": [
+        "两者相同",
+        "压缩是付费的，交接是免费的",
+        "交接需要 GPU",
+        "压缩用于延续当前会话；交接则干净地关闭当前会话，并在全新的上下文中启动下一次会话。交接包正是实现这一低成本切换的关键"
+      ],
+      "correct": 3,
+      "explanation": "引用 Hermes Issue 20372 的表述：在原地压缩导致质量下降之前，先撰写一份紧凑的交接包，然后在新的会话中恢复工作。"
+    },
+    {
+      "stage": "check",
+      "question": "课程关于何时结束会话有何建议？",
+      "options": [
+        "在上下文预算使用到 50-75% 之前结束，此时上下文仍完整；在压缩伪影污染状态之前撰写交接成本更低",
+        "等到上下文用尽（100%）时再匆忙收尾",
+        "仅在代码合并之后",
+        "仅在午夜时分"
+      ],
+      "correct": 0,
+      "explanation": "提前收尾可保持生成器输入数据的整洁。"
+    },
+    {
+      "stage": "post",
+      "question": "课程建议将包中的反馈日志精简到什么程度？",
+      "options": [
+        "保留最近 K 条记录以及所有退出状态非零的记录，从而在保持包体积小巧的同时保留失败历史",
+        "随机选取 N 条记录",
+        "仅保留前 K 条记录",
+        "仅保留最新的一条记录"
+      ],
+      "correct": 0,
+      "explanation": "非对称裁剪策略：失败记录必须保留；末尾的琐碎记录保留成本很低。"
+    },
+    {
+      "stage": "post",
+      "question": "哪些元数据能让多代理会话之间的协调正常工作？",
+      "options": [
+        "branch、last_known_good_commit 和 status（active | superseded | archived）；每个分支和主题只能有一个 active 状态的交接包",
+        "一个共享的 Slack 频道",
+        "一个中央队列",
+        "顶级机密加密"
+      ],
+      "correct": 0,
+      "explanation": "过期交接包是多代理协作中的主要故障源；status + branch + LKG 可将活跃集合保持在较小规模。"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "question": "LoRA（低秩自适应）的核心思想是什么？",
+    "options": ["较小的模型总是更好", "微调时的权重更新具有低内在秩，因此可以用两个小矩阵来近似，而无需更新完整的权重矩阵", "大多数权重并不重要", "微调只需要最后一层"],
+    "correct": 1,
+    "explanation": "Aghajanyan 等人表明，微调更新占据一个低维子空间。LoRA 通过将更新表示为 W + BA 来利用这一点，其中 B（d x r）和 A（r x d）的秩 r 很小，通常为 8-64。",
+    "stage": "pre"
+  },
+  {
+    "question": "与 8B 模型的全量微调相比，LoRA 能节省多少显存？",
+    "options": ["仅节省磁盘空间", "没有节省", "从约 56GB 降至约 6GB，通过训练不到 1% 的参数并保持基础权重冻结", "减少 50%"],
+    "correct": 2,
+    "explanation": "全量微调需要所有 8B 参数的梯度和优化器状态（约 56GB）。LoRA 冻结基础权重，仅训练适配器矩阵（秩为 16 时约 80M 参数），总计仅需约 6GB。",
+    "stage": "pre"
+  },
+  {
+    "question": "什么是 QLoRA？",
+    "options": ["一种不同的微调算法", "应用于量化激活的 LoRA", "量化 LoRA：基础模型以 4-bit 精度加载，同时 LoRA 适配器以 16-bit 训练，结合两种技术的显存节省优势", "LoRA 的更快版本"],
+    "correct": 2,
+    "explanation": "QLoRA（Dettmers 等人）将冻结的基础模型以 4-bit（NF4 量化）加载，同时以 FP16/BF16 训练 LoRA 适配器。这使得在仅 6GB VRAM 的消费级 GPU 上微调 7B 模型成为可能。",
+    "stage": "post"
+  },
+  {
+    "question": "LoRA 中的 'rank' 参数（r）控制什么？",
+    "options": ["学习率", "训练轮数", "适配器的容量：较高的 rank 能捕获更复杂的适配，但会使用更多参数和显存", "需要微调的层数"],
+    "correct": 2,
+    "explanation": "Rank r 决定适配器矩阵 A（r x d）和 B（d x r）的大小。Rank 4 训练的参数很少（快速、便宜）。Rank 64 训练更多参数（表达能力更强）。大多数任务在 rank 8-32 时效果良好。",
+    "stage": "post"
+  },
+  {
+    "question": "将 LoRA 权重合并回基础模型时会发生什么？",
+    "options": ["合并是不可能的", "模型会变大", "模型需要重新训练", "适配器矩阵被加到基础权重上（W_merged = W_base + B*A），产生一个没有推理开销的标准模型"],
+    "correct": 3,
+    "explanation": "由于 LoRA 的形式是 W_base + B*A，你可以预先计算 B*A 并一次性加到 W_base 上。合并后的模型与原始模型具有相同的架构和推理速度，没有适配器开销。",
+    "stage": "post"
+  }
+]

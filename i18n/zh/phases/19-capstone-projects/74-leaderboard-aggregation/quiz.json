@@ -1,0 +1,78 @@
+{
+  "lesson": "74-leaderboard-aggregation",
+  "title": "排行榜聚合",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么聚合器要求每个输入分数都在 [0, 1] 范围内？",
+      "options": [
+        "如果没有统一量纲，范围为 0-100 的单个指标会主导每个模型的平均分",
+        "NumPy 要求这样做",
+        "这是 ECE 的分箱范围",
+        "Markdown 渲染期望两个小数位"
+      ],
+      "correct": 0,
+      "explanation": "如果通过率在 [0,1] 而 BLEU 在 [0,100]，后者会淹没平均值。归一化应在指标层完成，此处进行检查。"
+    },
+    {
+      "stage": "pre",
+      "question": "平均分隐藏了胜率能揭示的什么信息？",
+      "options": [
+        "Bootstrap 区间",
+        "模型是否校准良好",
+        "按任务统计的胜数能抵御异常值和量纲漂移，而均值对两者都很敏感",
+        "已完成任务的数量"
+      ],
+      "correct": 2,
+      "explanation": "胜率按任务逐个统计胜场。一个模型可能因某道简单任务获得较高的平均分，但在大多数两两比较中仍然落败。"
+    },
+    {
+      "stage": "check",
+      "question": "bootstrap_mean_ci 如何估计置信区间？",
+      "options": [
+        "通过对均值假设正态分布",
+        "通过对任务分数有放回地重采样，对每个样本计算均值，然后取 alpha/2 和 1 - alpha/2 分位数",
+        "通过解析计算标准差",
+        "通过调用 scipy.stats.bootstrap"
+      ],
+      "correct": 1,
+      "explanation": "对每个任务的分数采用非参数百分位数 bootstrap；不做分布假设，也不依赖 scipy。"
+    },
+    {
+      "stage": "check",
+      "question": "配对差异的置信区间在何时报告 `significant`（显著）？",
+      "options": [
+        "当两个模型都有超过三十个任务时",
+        "当置信区间不包含零时",
+        "当胜率不相等时",
+        "当均值差大于 0.1 时"
+      ],
+      "correct": 1,
+      "explanation": "严格排除零的置信区间意味着在所选显著性水平下，该差异不太可能为零；这是本课程采用的操作性定义。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么配对 bootstrap 采用配对方式而非独立方式？",
+      "options": [
+        "配对 bootstrap 尊重这样一个事实：相同任务同时作用于两个模型；差值是在重采样之前逐个任务计算的",
+        "配对 bootstrap 是 numpy 唯一支持的",
+        "配对 bootstrap 运行更快",
+        "独立 bootstrap 在 Python 中是非法的"
+      ],
+      "correct": 0,
+      "explanation": "配对 bootstrap 降低了噪声：我们在任务维度上采样而非模型维度，因此每次迭代都在同一组任务上进行比较。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么聚合器在返回总览数值的同时还返回各分类的均值？",
+      "options": [
+        "总览均值可能掩盖分类层面的弱点（总体良好，但代码能力差）；按分类展示可以暴露这一问题",
+        "按分类计算均值比计算总体均值更快",
+        "JSON Schema 要求这样做",
+        "Markdown 渲染要求这样做"
+      ],
+      "correct": 0,
+      "explanation": "一个模型可以通过在所有方面表现均等来赢得聚合排名，也可以通过主导某个分类来获胜。按分类细分可以让使用者看清究竟是哪种情况。"
+    }
+  ]
+}

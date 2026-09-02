@@ -1,0 +1,78 @@
+{
+  "lesson": "35-gpt-model-assembly",
+  "title": "GPT Model Assembly",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "本课程复现的参考 GPT-2 small 配置是什么？",
+      "options": [
+        "vocab 30000, context 512, d_model 512, 6 heads, 6 layers",
+        "vocab 50257, context 1024, d_model 768, 12 heads, 12 layers, 参数约 1.24 亿",
+        "vocab 50000, context 4096, d_model 4096, 32 heads, 32 layers",
+        "vocab 100000, context 2048, d_model 1024, 16 heads, 24 layers"
+      ],
+      "correct": 1,
+      "explanation": "GPT-2 small 是 124M 参数配置；与之匹配可确认模型连接正确。"
+    },
+    {
+      "stage": "check",
+      "question": "在模型组装中，weight tying 是什么意思？",
+      "options": [
+        "token embedding 和 LM head 共享完全相同的参数张量；优化器更新一个矩阵，同时服务于查找和输出投影",
+        "两个形状相同但在每一步被复制的不同张量",
+        "跨层共享的偏置项",
+        "对 attention heads 的约束"
+      ],
+      "correct": 0,
+      "explanation": "设置 lm_head.weight = tok_embed.weight 会共享存储；复制则不会。可节省 vocab × d_model 个参数。"
+    },
+    {
+      "stage": "check",
+      "question": "生成过程如何滑动其 context window？",
+      "options": [
+        "每一步取运行序列（prompt 加上已生成部分）的最后 context_length 个 tokens 输入模型",
+        "每步截断为一半的上下文",
+        "用零填充至最大上下文长度",
+        "每步从 prompt 重新开始"
+      ],
+      "correct": 0,
+      "explanation": "滑动窗口在运行序列超出上下文长度后丢弃最旧的 tokens。"
+    },
+    {
+      "stage": "check",
+      "question": "为何将 attention output projection 和第二个 MLP linear 的初始化标准差设得比其他层更小？",
+      "options": [
+        "数据集要求这样做",
+        "Top-k sampling 需要更小的权重",
+        "两者都直接参与 residual add。将其 std 缩放为 1 / √(2 × num_layers)，可使残差流在十二层中保持合适的尺度",
+        "节省内存"
+      ],
+      "correct": 2,
+      "explanation": "如果不进行缩放，残差流会随层数加深而增长，使最终的 LayerNorm 进入不稳定的状态。"
+    },
+    {
+      "stage": "post",
+      "question": "sampling 时 temperature 的作用是什么？",
+      "options": [
+        "选择优化器的学习率",
+        "在 softmax 前除 logits。T < 1 使分布更尖锐（趋近贪心），T = 1 保持模型原始分布，T > 1 使分布更平滑",
+        "缩放 embeddings",
+        "向 head 添加 dropout"
+      ],
+      "correct": 1,
+      "explanation": "Temperature 是最简单的调节参数；与 top-k 配合可控制生成的探索程度。"
+    },
+    {
+      "stage": "post",
+      "question": "sampling 前 top-k 过滤的作用是什么？",
+      "options": [
+        "选择最低的 k 个 logits",
+        "保留值最大的 k 个 logits，将其余 masked 为负无穷，再对剩余的做 softmax，使多项式采样仅考虑前 k 个 tokens",
+        "移除所有低于零的 logits",
+        "将 logits 限制在 k"
+      ],
+      "correct": 1,
+      "explanation": "Top-k 在 softmax 前截断长尾；top_k=1 是贪心的，k 越大则保留更多多样性。"
+    }
+  ]
+}

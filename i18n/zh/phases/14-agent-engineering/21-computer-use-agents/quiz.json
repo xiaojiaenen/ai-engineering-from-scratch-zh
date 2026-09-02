@@ -1,0 +1,90 @@
+{
+  "lesson": "21-computer-use-agents",
+  "title": "Computer Use：Claude、OpenAI CUA、Gemini",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Claude computer use 的输入和输出分别是什么？",
+      "options": [
+        "截图输入（基于视觉），键盘/鼠标命令输出",
+        "无障碍树输入，键盘/鼠标命令输出",
+        "DOM XML 输入，JavaScript 输出",
+        "JSON 输入，SQL 输出"
+      ],
+      "correct": 0,
+      "explanation": "Claude 读取像素并发射键盘/鼠标动作；不使用操作系统无障碍 API。"
+    },
+    {
+      "stage": "pre",
+      "question": "Gemini 2.5 Computer Use 的标志性安全特性是什么？",
+      "options": [
+        "每个步骤都有安全服务，在执行前评估每个动作并拒绝不安全操作",
+        "默认只读模式",
+        "硬编码的 WAF 规则",
+        "强制 CAPTCHA"
+      ],
+      "correct": 0,
+      "explanation": "Gemini 2.5 Computer Use 内置逐步骤安全分类器作为其定义性特性。"
+    },
+    {
+      "stage": "check",
+      "question": "课程将三种模型的共同未信任输入标识为什么？",
+      "options": [
+        "没有任何未信任输入；一切都被信任",
+        "仅限 HTTPS 响应",
+        "截图、DOM 文本、工具输出、PDF 内容、任何检索到的内容",
+        "仅限 PDF 内容"
+      ],
+      "correct": 2,
+      "explanation": "只有直接用户指令才算授权；其他一切均为未信任输入。"
+    },
+    {
+      "stage": "check",
+      "question": "课程引用了 OpenAI CUA 发布时的哪些 OSWorld / WebArena 数据？",
+      "options": [
+        "未公布数据",
+        "OSWorld 99%，WebArena 99%",
+        "OSWorld 0%，WebArena 0%",
+        "OSWorld 38.1%，WebArena 58.1%，WebVoyager 87%"
+      ],
+      "correct": 3,
+      "explanation": "这些是课程引用的发布数据。"
+    },
+    {
+      "stage": "check",
+      "question": "下列哪项不在 2026 年的防御措施汇总列表中？",
+      "options": [
+        "导航目标的白名单/黑名单",
+        "逐步骤安全分类器",
+        "敏感操作的在环人工确认",
+        "自动点击对话框以节省时间"
+      ],
+      "correct": 3,
+      "explanation": "自动点击对话框与安全性相悖；课程建议明确确认。"
+    },
+    {
+      "stage": "post",
+      "question": "课程重点强调的针对 computer-use agents 的主要攻击方式是什么？",
+      "options": [
+        "网络中断",
+        "系统更新滞后",
+        "渲染缓慢",
+        "恶意页面或 PDF 在检索到的内容中嵌入指令，使模型将其视为用户意图"
+      ],
+      "correct": 3,
+      "explanation": "将截图或 DOM 文本视为授权是典型的间接提示注入攻击失效模式。"
+    },
+    {
+      "stage": "post",
+      "question": "何时建议采用在环人工确认？",
+      "options": [
+        "从不",
+        "涉及敏感操作时，如登录、购买、删除文件",
+        "仅当模型请求时",
+        "只读导航操作"
+      ],
+      "correct": 1,
+      "explanation": "敏感操作（资金、数据泄露、新登录）需要明确的人工确认。"
+    }
+  ]
+}

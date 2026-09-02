@@ -1,0 +1,90 @@
+{
+  "lesson": "05-autonomous-research-agent",
+  "title": "Capstone 05 — 自主研究代理（AI-Scientist 类）",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "AI-Scientist 类代理使用哪种搜索策略来探索实验？",
+      "options": [
+        "广度优先展开配合随机打分",
+        "对 token 输出进行束搜索（Beam search）",
+        "纯人工反馈强化学习",
+        "对实验节点进行最佳优先树搜索，按新颖性 × 质量 × 预算评分"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "pre",
+      "question": "为何沙箱配置了 --network=none 并设置资源上限？",
+      "options": [
+        "迫使代理使用 prompt 缓存",
+        "防止网络出站流量，并将实验副作用限制在可复现的范围内",
+        "强制使用确定性浮点运算",
+        "默认允许 GPU 直通"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "writer loop 中视觉评审步骤的作用是什么？",
+      "options": [
+        "根据截图生成新的实验想法",
+        "在渲染时替换 matplotlib",
+        "将图表转换为柱状图",
+        "将 LaTeX 草稿编译为 PDF，再由 VLM 评审版面、图表可读性及论据一致性"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "reviewer ensemble 如何控制流水线？",
+      "options": [
+        "评审者匿名投票，多数票胜出",
+        "五位评委按 NeurIPS 风格评分表打分，加权总分需达到阈值，否则草稿返回 writer 重写",
+        "单一评委通过二元标志直接接受或拒绝",
+        "仅在发表后运行评审"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "Capstone 对每篇论文强制执行哪种成本规范？",
+      "options": [
+        "追踪 GPU 时长但从不限制上限",
+        "通过 Langfuse 计数器和运行前估算跟踪 $30 硬预算上限",
+        "仅优化成本而忽略质量检查",
+        "计算资源无上限，仅设墙钟时间上限"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "哪种评分函数对树节点排序以确定进一步扩展顺序？",
+      "options": [
+        "相关论文的引用次数",
+        "随机均匀优先级",
+        "输出长度和 token 数",
+        "新颖性 × 质量 × 剩余预算"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "红队报告针对系统进行了哪种演练？",
+      "options": [
+        "沙箱逃逸尝试，包括 fork 炸弹、网络数据外泄和文件系统逃逸",
+        "系统 prompt 的缓存命中率",
+        "向量数据库中的多租户数据泄露",
+        "丢包情况下的延迟尾部"
+      ],
+      "correct": 0,
+      "explanation": ""
+    }
+  ]
+}

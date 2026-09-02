@@ -1,0 +1,78 @@
+{
+  "lesson": "59-vit-transformer",
+  "title": "视觉Transformer编码器",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么标准ViT块使用Pre-LayerNorm而不是Post-LayerNorm？",
+      "options": [
+        "Pre-LN运行更快",
+        "Post-LN占用更多显存",
+        "Pre-LN在深层网络中无需学习率预热即可稳定训练，而Post-LN超过约6层就会发散",
+        "Post-LN已被专利保护"
+      ],
+      "correct": 2,
+      "explanation": "Pre-LN对每个子层的输入进行归一化，随着深度增加能够保持梯度范数有界。"
+    },
+    {
+      "stage": "pre",
+      "question": "当hidden=768、heads=12时，每个头的维度是多少，为什么重要？",
+      "options": [
+        "12，以便每个头可以在小GPU上运行",
+        "96，由ResNet-50设定",
+        "768，因为所有头共享投影层",
+        "64，它控制每个注意力图的分辨率，并让十二个头可以并行独立进行注意力计算"
+      ],
+      "correct": 3,
+      "explanation": "head_dim = hidden / heads = 64。每个头将token投影到自己独立的64维q/k/v向量，并计算自己的注意力图。"
+    },
+    {
+      "stage": "check",
+      "question": "ViT编码器是否需要因果注意力掩码？",
+      "options": [
+        "仅在训练时需要",
+        "不需要：编码器是双向的，每个token都可以关注同一序列中的任何其他token",
+        "需要，像GPT解码器一样",
+        "仅用于CLS行"
+      ],
+      "correct": 1,
+      "explanation": "视觉编码器是双向的。因果掩码会在文本解码器使用交叉注意力输出时才会出现。"
+    },
+    {
+      "stage": "check",
+      "question": "经过所有12个块后，CLS token的最终隐藏状态代表什么？",
+      "options": [
+        "整个图像的已学习向量摘要，下游头会将其投影为类别logits或对比嵌入",
+        "仅最后一个patch",
+        "随机噪声",
+        "输入嵌入的副本"
+      ],
+      "correct": 0,
+      "explanation": "CLS token最初为空，通过所有12个块中的自注意力机制从每个patch积累信息。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么前馈层的维度被扩展到hidden dim的4倍？",
+      "options": [
+        "它能减半FLOPs",
+        "PyTorch要求4倍",
+        "自原始Transformer以来的经验最优值：在固定数据预算下，更小会导致欠拟合，更大则过拟合",
+        "它可以消除对注意力的需求"
+      ],
+      "correct": 2,
+      "explanation": "自2017年以来，4倍系数在语言和视频Transformer中一直保持稳定。每参数的容量在此处达到峰值。"
+    },
+    {
+      "stage": "post",
+      "question": "哪个家族扩展在不改变块数学结构的情况下，添加了预置的学习token？",
+      "options": [
+        "因果掩码",
+        "RoPE旋转",
+        "寄存器token（DINOv2）：CLS之后预置的几个学习向量，用于捕捉全局统计信息并使注意力图更平滑",
+        "混合专家（MoE）"
+      ],
+      "correct": 2,
+      "explanation": "寄存器token能够在不改变块数学结构的情况下稳定注意力，它们是序列中的额外槽位。"
+    }
+  ]
+}

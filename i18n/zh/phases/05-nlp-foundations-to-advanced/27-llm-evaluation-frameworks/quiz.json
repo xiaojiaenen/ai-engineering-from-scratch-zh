@@ -1,0 +1,102 @@
+{
+  "lesson": "27-llm-evaluation-frameworks",
+  "title": "LLM 评估 — RAGAS、DeepEval、G-Eval",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "为什么精确匹配（Exact Match）和 token-F1 不足以评估现代 LLM 的输出？",
+      "options": [
+        "它们不可微",
+        "它们无法识别语义等价性；'June 29th, 2007' 与 'June 29, 2007' 虽然正确但 EM 得分仍为 0",
+        "它们需要 GPU",
+        "它们太慢"
+      ],
+      "correct": 1,
+      "explanation": "精确匹配/F1 无法识别人类会判为正确的改写或格式差异。"
+    },
+    {
+      "stage": "pre",
+      "question": "RAGAS 忠实度（faithfulness）指标衡量的是什么？",
+      "options": [
+        "延迟",
+        "每秒 token 数",
+        "通过自然语言推理（NLI）判断答案中的每项声明是否被检索到的上下文所蕴含",
+        "检索召回率"
+      ],
+      "correct": 2,
+      "explanation": "忠实度通过 NLI 蕴含关系，逐一检查答案中的各项声明是否与检索上下文一致。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么在信任评分前必须用人类标签对 judge 模型进行校准？",
+      "options": [
+        "GDPR 要求",
+        "如果 judge 与人类标签之间的 Spearman 相关系数过低（例如低于 0.7），则该分数是噪声而非信号",
+        "校准可以加速 judge",
+        "校准是分词问题"
+      ],
+      "correct": 1,
+      "explanation": "未经校准，你无法判断 judge 分数反映的是真实质量还是模型偏见。"
+    },
+    {
+      "stage": "check",
+      "question": "LLM 作为 judge 设置中的自我评估偏差是什么？",
+      "options": [
+        "judge 在缓存输出上运行更快",
+        "judge 忽略系统提示",
+        "延迟更低",
+        "使用同一 LLM 家族既生成答案又做评判，评分比独立 judge 高出 10%-20%"
+      ],
+      "correct": 3,
+      "explanation": "同一家族的生成模型和 judge 模型会导致评分虚高；应使用不同模型家族进行评判。"
+    },
+    {
+      "stage": "check",
+      "question": "G-Eval 相比朴素的「评分 0-1」提示具体增加了什么？",
+      "options": [
+        "更大的上下文",
+        "显式的思维链评分量规，包含命名的评估步骤，从而产生更稳定的分数",
+        "多语言评分",
+        "更低的成本"
+      ],
+      "correct": 1,
+      "explanation": "G-Eval 的结构化评估步骤比自由形式的「请打分」提示能产生更可靠的分数。"
+    },
+    {
+      "stage": "post",
+      "question": "仅报告聚合平均分为什么是危险的？",
+      "options": [
+        "聚合计算需要 GPU",
+        "聚合忽略了 judge",
+        "聚合数据量太大",
+        "0.85 的平均分可能掩盖 5% 的灾难性失败；必须始终检查最差分位"
+      ],
+      "correct": 3,
+      "explanation": "均值会隐藏尾部失败；应展示最差 10% 以发现高严重性问题。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么在 CI 中必须固定 judge 模型及其版本？",
+      "options": [
+        "Anthropic 强制要求",
+        "升级 judge 会改变所有指标；未冻结 judge 时纵向比较将失效",
+        "分词漂移",
+        "降低成本"
+      ],
+      "correct": 1,
+      "explanation": "judge 升级会悄无声息地偏移指标基线；固定版本可保持跨运行可比性。"
+    },
+    {
+      "stage": "post",
+      "question": "DeepEval 相对于 RAGAS 的定位是什么？",
+      "options": [
+        "完全替代 RAGAS",
+        "DeepEval 是一个分词器",
+        "DeepEval 是 LLM 的 pytest（CI 门禁、G-Eval、幻觉指标）；RAGAS 专注于无参考的 RAG 监控",
+        "DeepEval 仅托管运行"
+      ],
+      "correct": 2,
+      "explanation": "DeepEval 负责 CI/CD 回归测试；RAGAS 负责无参考的 RAG 监控。"
+    }
+  ]
+}

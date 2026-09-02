@@ -1,0 +1,90 @@
+{
+  "lesson": "03-reflexion-verbal-rl",
+  "title": "Reflexion：语言强化学习",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "Reflexion在标准强化学习中替换了什么？",
+      "options": [
+        "用参数记忆替代情景记忆",
+        "用试验间存储的自然语言反思替代梯度更新",
+        "用随机搜索替代策略网络",
+        "用固定奖励替代奖励塑形"
+      ],
+      "correct": 1,
+      "explanation": "Reflexion使用情景记忆中的自然语言反思，而非权重更新。"
+    },
+    {
+      "stage": "pre",
+      "question": "哪三个组件定义了Reflexion系统？",
+      "options": [
+        "规划器、工作器、求解器",
+        "选择器、扩展器、反向传播器",
+        "生成器、评论者、优化器",
+        "执行者、评估者、自我反思者"
+      ],
+      "correct": 3,
+      "explanation": "Reflexion将智能体分解为三个部分：运行轨迹的执行者、评分的评估者，以及撰写教训的自我反思者。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种评估器类型使用外部二元信号（如单元测试或已知正确答案）？",
+      "options": [
+        "启发式",
+        "标量",
+        "自评估",
+        "基于投票"
+      ],
+      "correct": 1,
+      "explanation": "标量评估器从真实情况读取通过/失败信号（如ALFWorld成功判定、HumanEval测试）。"
+    },
+    {
+      "stage": "check",
+      "question": "为什么自评估比标量反馈的信号更弱？",
+      "options": [
+        "自我评判的模型缺乏外部依据，因此可能盲目认可自己的答案",
+        "计算速度更慢",
+        "总是需要更大的模型",
+        "无法在工具上运行"
+      ],
+      "correct": 0,
+      "explanation": "自评估缺乏外部检查，因此自信的幻觉也能获得高分；应配合基于工具的可验证检查。"
+    },
+    {
+      "stage": "check",
+      "question": "课程将哪种情况列为Reflexion无法提供帮助的场景？",
+      "options": [
+        "网络中断等外部瞬态故障",
+        "HotpotQA多跳问题",
+        "可通过测试评分的代码生成",
+        "ALFWorld导航任务"
+      ],
+      "correct": 0,
+      "explanation": "反思瞬态外部故障会产生对未来运行无帮助的反思内容。"
+    },
+    {
+      "stage": "post",
+      "question": "Reflexion模式中的'记忆腐烂'是什么？",
+      "options": [
+        "进程重启时丢失反思内容",
+        "反思提示超出上下文窗口",
+        "反思内容被提供商加密",
+        "情景缓冲区被过时或错误的反思填满，从而拖慢或偏置后续试验"
+      ],
+      "correct": 3,
+      "explanation": "累积的陈旧或错误反思会劣化行为；可通过压缩或设置TTL来缓解。"
+    },
+    {
+      "stage": "post",
+      "question": "下列哪个生产模式最契合课程中Reflexion的描述？",
+      "options": [
+        "Claude Code将CLAUDE.md中学习到的经验预置到后续会话中",
+        "Anthropic的提示缓存",
+        "Cursor的apply-edits流程",
+        "OpenAI的批处理API"
+      ],
+      "correct": 0,
+      "explanation": "CLAUDE.md经验沉淀、pro-workflow的learn-rule，以及Letta的sleep-time计算，均是将情景反思缓冲区外部化的做法。"
+    }
+  ]
+}

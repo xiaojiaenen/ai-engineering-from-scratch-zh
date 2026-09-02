@@ -1,0 +1,102 @@
+{
+  "lesson": "19-subword-tokenization",
+  "title": "子词分词 — BPE、WordPiece、Unigram、SentencePiece",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "与词级词汇表相比，子词分词带来了什么好处？",
+      "options": [
+        "更快的训练",
+        "更小的模型",
+        "更好的嵌入",
+        "稀有词分解为已知的子词片段，在保持词汇表有界的同时消除未登录词"
+      ],
+      "correct": 3,
+      "explanation": "子词token通过分解覆盖任意输入，消除了词级词汇表的OOV问题。"
+    },
+    {
+      "stage": "pre",
+      "question": "GPT-2为什么使用字节级BPE而不是字符级BPE？",
+      "options": [
+        "Transformer架构要求",
+        "256字节的基底词汇表可覆盖任意UTF-8输入，保证无[UNK] token",
+        "字节更小",
+        "字节BPE跳过合并"
+      ],
+      "correct": 1,
+      "explanation": "字节级BPE从256个字节起步，每个输入均可编码，不存在OOV。"
+    },
+    {
+      "stage": "check",
+      "question": "Unigram分词器如何构建其词汇表？",
+      "options": [
+        "贪心频繁对合并",
+        "随机采样",
+        "从大量候选集开始，迭代剔除移除后对语料对数似然影响最小的token",
+        "贪心IDF加权"
+      ],
+      "correct": 2,
+      "explanation": "Unigram拟合单语语言模型，迭代移除最不有用的token以达到目标词汇表大小。"
+    },
+    {
+      "stage": "check",
+      "question": "WordPiece的合并标准与BPE有何不同？",
+      "options": [
+        "WordPiece使用字节",
+        "WordPiece跳过合并",
+        "WordPiece是无监督的",
+        "WordPiece合并最大化训练语料似然度的对，而BPE合并最频繁的对"
+      ],
+      "correct": 3,
+      "explanation": "WordPiece按似然度选择合并，BPE按原始频率选择。"
+    },
+    {
+      "stage": "check",
+      "question": "哪种工具直接对原始多语言Unicode文本训练分词器？",
+      "options": [
+        "spaCy",
+        "tiktoken",
+        "tokenizers-lite",
+        "SentencePiece（将空白编码为特殊标记并训练BPE或Unigram）"
+      ],
+      "correct": 3,
+      "explanation": "SentencePiece直接在原始文本上训练BPE/Unigram，无需预分词；tiktoken仅做编码。"
+    },
+    {
+      "stage": "post",
+      "question": "为什么生产环境CI必须哈希检查部署的tokenizer.json？",
+      "options": [
+        "分词器漂移会产生与模型训练时不同的token ID，静默地破坏输出结果",
+        "为了压缩存储",
+        "它减少了词汇表大小",
+        "Hugging Face的要求"
+      ],
+      "correct": 0,
+      "explanation": "即使是微小的分词器更改也会改变ID；哈希检查可在问题影响用户之前捕获漂移。"
+    },
+    {
+      "stage": "post",
+      "question": "单个emoji占用多个token的常见原因是什么？",
+      "options": [
+        "Emoji是停用字符",
+        "Emoji是保留字符",
+        "多码位emoji编码为多个UTF-8字节；没有专用token时每个字节各自成为子词",
+        "Emoji以浮点数存储"
+      ],
+      "correct": 2,
+      "explanation": "复合emoji编码为多个字节；字节级分词器可能为每个字形使用多个token。"
+    },
+    {
+      "stage": "post",
+      "question": "新单语Transformer的词汇表大小的启发式指导原则是什么？",
+      "options": [
+        "匹配训练语料大小",
+        "参数不足1B的模型约32k；1-10B的模型50-100k；多语言或前沿模型200k+",
+        "总是1M",
+        "总是8000"
+      ],
+      "correct": 1,
+      "explanation": "词汇表大小随模型规模和语言覆盖范围缩放；这些是社区中的大致默认值。"
+    }
+  ]
+}

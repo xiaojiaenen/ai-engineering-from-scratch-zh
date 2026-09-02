@@ -1,0 +1,78 @@
+{
+  "lesson": "14-mcp-apps",
+  "title": "无状态协议上的MCP应用",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "现代MCP应用应将UI资源绑定到工具的哪个位置？",
+      "options": [
+        "仅在最终文本结果中",
+        "在独立的HTTP GET流中",
+        "在MCP会话cookie中",
+        "在tools/list返回的工具定义中"
+      ],
+      "correct": 3,
+      "explanation": "工具定义上的嵌套_meta.ui.resourceUri允许主机在调用前预加载和审查UI。"
+    },
+    {
+      "stage": "check",
+      "question": "2026-07-28版本的客户端如何宣告支持MCP应用？",
+      "options": [
+        "通过notifications/initialized通知",
+        "通过Mcp-Session-Id",
+        "在每个请求的io.modelcontextprotocol/clientCapabilities.extensions中",
+        "通过接受所有ui://资源"
+      ],
+      "correct": 2,
+      "explanation": "扩展功能是通过每次请求的客户端能力映射实现可选启用的。"
+    },
+    {
+      "stage": "check",
+      "question": "ui/initialize用于初始化什么？",
+      "options": [
+        "协议级别的服务器会话",
+        "OAuth客户端注册",
+        "iframe与主机之间的Apps postMessage桥接",
+        "Streamable HTTP GET通道"
+      ],
+      "correct": 2,
+      "explanation": "ui/initialize属于Apps桥接协议方言，与已移除的MCP核心握手是分开的。"
+    },
+    {
+      "stage": "check",
+      "question": "对于用户无关的内置应用，哪个资源响应最安全？",
+      "options": [
+        "无resultType且无缓存策略",
+        "resultType为complete、设置有界的ttlMs、公开cacheScope和deny-first CSP",
+        "HTML中嵌入会话令牌",
+        "无限制的ttlMs和通配符CSP域名"
+      ],
+      "correct": 1,
+      "explanation": "完整的响应、明确的缓存提示和严格的CSP使得传输和浏览器策略可检查。"
+    },
+    {
+      "stage": "post",
+      "question": "当主机收到针对某个URI的resources/read请求，但Mcp-Name头部不同时，应该怎么做？",
+      "options": [
+        "打开两个资源",
+        "优先使用头部",
+        "优先使用主体",
+        "返回HTTP 400及JSON-RPC错误-32020"
+      ],
+      "correct": 3,
+      "explanation": "在评估版本支持或功能策略之前，路由头部和主体必须匹配；传输层返回HTTP 400及JSON-RPC错误-32020。"
+    },
+    {
+      "stage": "post",
+      "question": "不支持MCP应用的宿主正确的降级处理是什么？",
+      "options": [
+        "将HTML作为可信的宿主chrome返回",
+        "保持工具通过普通文本或结构化输出可用，并省略UI绑定",
+        "创建隐藏会话并重试",
+        "自动授予扩展权限"
+      ],
+      "correct": 1,
+      "explanation": "可选扩展不得使底层工具对于未协商该扩展的客户端无法使用。"
+    }
+  ]
+}

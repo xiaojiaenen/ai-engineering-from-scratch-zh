@@ -1,0 +1,78 @@
+{
+  "lesson": "07-tensorrt-llm-blackwell",
+  "title": "硬件专用推理编译 — Blackwell 上的 FP8 和 NVFP4",
+  "questions": [
+    {
+      "stage": "pre",
+      "question": "课程报告的在可比较的 120B 级工作负载下，Blackwell + TRT-LLM + Dynamo 与 H100 + vLLM 之间的每百万 tokens 成本差距大约是多少？",
+      "options": [
+        "约 2 倍",
+        "约 7 倍",
+        "约 1.1 倍",
+        "约 100 倍"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "为什么课程建议在 Blackwell 上将 KV cache 保持在 FP8 而不是 NVFP4？",
+      "options": [
+        "任何引擎都不支持 NVFP4 KV cache",
+        "KV cache 具有较宽的动态范围；FP4 量化会导致注意力分数出现灾难性的精度损失",
+        "FP8 比 FP4 占用更少的内存",
+        "FP8 是 NVLink 5 唯一支持的精度"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "TRT-LLM 利用了 Blackwell 的哪项特性，使得模型可以在无需后训练转换步骤的情况下直接加载？",
+      "options": [
+        "BF16 KV cache",
+        "FP64 attention",
+        "通过 bitsandbytes 的 INT2 权重",
+        "模型提供商随 Day-0 直接提供 FP4 权重"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "check",
+      "question": "按照课程所述，选择 TRT-LLM 技术栈的主要权衡是什么？",
+      "options": [
+        "需要完全自主的故障修复",
+        "无法服务 MoE 模型",
+        "仅在小规模场景下有效",
+        "将您锁定在 NVIDIA 硬件上——不支持 AMD、Intel 或 ARM"
+      ],
+      "correct": 3,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "课程描述的典型 Blackwell 配置是哪一种精度组合？",
+      "options": [
+        "全部内容使用 BF16",
+        "权重 NVFP4，激活值 NVFP4，KV cache FP8，注意力累加器 FP32",
+        "权重 INT8，激活值 FP32，KV cache INT4",
+        "权重 FP4，KV cache FP4，注意力计算 INT8"
+      ],
+      "correct": 1,
+      "explanation": ""
+    },
+    {
+      "stage": "post",
+      "question": "对于推理密集型工作负载，如果 NVFP4 权重转换导致 MATH 准确率下降几个百分点，课程建议怎么做？",
+      "options": [
+        "切换到 AMD MI300X",
+        "禁用投机解码（speculative decoding）",
+        "根据您的评估集验证任务质量；团队通常采用 FP8 权重 + FP4 激活值，或在 H200 上全程使用 FP8",
+        "无论如何仍发布 NVFP4，因为成本收益占主导"
+      ],
+      "correct": 2,
+      "explanation": ""
+    }
+  ]
+}
